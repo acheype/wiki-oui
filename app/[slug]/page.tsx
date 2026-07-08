@@ -2,6 +2,7 @@ import { FilePlus2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { DoubleClickToEdit } from "@/components/page/double-click-to-edit";
 import { PageActions } from "@/components/page/page-actions";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
@@ -39,9 +40,11 @@ export default async function ShowPage({ params }: Props) {
   return (
     <div>
       <PageActions slug={slug} tags={page.tags} />
-      <article className="prose prose-neutral max-w-none dark:prose-invert">
-        {await renderMdx(page.current?.content ?? "")}
-      </article>
+      <DoubleClickToEdit slug={slug}>
+        <article className="prose prose-neutral max-w-none dark:prose-invert">
+          {await renderMdx(page.current?.content ?? "")}
+        </article>
+      </DoubleClickToEdit>
       <p className="mt-10 border-t pt-3 text-xs text-muted-foreground">
         Créée le {formatDateTime(page.createdAt)} par{" "}
         {page.ownerName ?? "Anonyme"}
