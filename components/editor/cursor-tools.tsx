@@ -1,7 +1,12 @@
 "use client";
 
 import { syntaxTree } from "@codemirror/language";
-import { StateField, type EditorState, type Extension } from "@codemirror/state";
+import {
+  StateEffect,
+  StateField,
+  type EditorState,
+  type Extension,
+} from "@codemirror/state";
 import {
   EditorView,
   showTooltip,
@@ -223,16 +228,38 @@ function computeTooltips(
   return tooltips;
 }
 
+const editorFocusChanged = StateEffect.define<boolean>();
+
+type ToolsState = { focused: boolean; tooltips: readonly Tooltip[] };
+
+// Tools only show while the editor has focus: they vanish when the link
+// dialog opens (it takes focus) instead of floating above the modal. The
+// strip buttons prevent mousedown default, so using them keeps focus.
 export function cursorTools(
   onEditLink: (info: LinkInfo) => void
 ): Extension {
-  const field = StateField.define<Tooltip[]>({
-    create: (state) => computeTooltips(state, onEditLink),
-    update: (tooltips, tr) =>
-      tr.docChanged || tr.selection
-        ? computeTooltips(tr.state, onEditLink)
-        : tooltips,
-    provide: (f) => showTooltip.computeN([f], (state) => state.field(f)),
+  const field = StateField.define<ToolsState>({
+    create: () => ({ focused: false, tooltips: [] }),
+    update(value, tr) {
+      let focused = value.focused;
+      for (const effect of tr.effects) {
+        if (effect.is(editorFocusChanged)) focused = effect.value;
+      }
+      if (!tr.docChanged && !tr.selection && focused === value.focused) {
+        return value;
+      }
+      return {
+        focused,
+        tooltips: focused ? computeTooltips(tr.state, onEditLink) : [],
+      };
+    },
+    provide: (f) =>
+      showTooltip.computeN([f], (state) => [...state.field(f).tooltips]),
   });
-  return field;
+  return [
+    field,
+    EditorView.focusChangeEffect.of((_state, focusing) =>
+      editorFocusChanged.of(focusing)
+    ),
+  ];
 }
