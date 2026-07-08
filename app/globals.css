@@ -129,3 +129,28 @@
     @apply font-sans;
   }
 }
+
+/* --- Rendu MDX : corrections sur @tailwindcss/typography --------------- */
+
+/* The plugin renders literal backticks around inline code (::before/::after)
+   and no background: swap them for a chip. */
+.prose code::before,
+.prose code::after {
+  content: none;
+}
+.prose :not(pre) > code {
+  background-color: var(--muted);
+  border-radius: var(--radius-sm);
+  padding: 0.15em 0.4em;
+  font-weight: 500;
+}
+
+/* GFM task lists: no bullet, and a standard gap between box and text. */
+.prose li.task-list-item {
+  list-style: none;
+}
+.prose li.task-list-item > input[type="checkbox"] {
+  margin-right: 0.5em;
+  vertical-align: -0.125em;
+  accent-color: var(--primary);
+}
