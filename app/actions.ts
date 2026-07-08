@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
-import { specialSlugs } from "@/wiki.config";
+import { specialSlugs, wikiConfig } from "@/wiki.config";
 
 // MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
 const AUTHOR = "Anonyme";
@@ -58,7 +58,9 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   await prisma.page.delete({ where: { id: page.id } });
 
   revalidatePath("/", "layout");
-  redirect("/");
+  // Server-action redirects bypass next.config redirects(): aim straight at
+  // the home slug instead of "/".
+  redirect(`/${wikiConfig.homeSlug}`);
 }
 
 export async function restoreRevision(

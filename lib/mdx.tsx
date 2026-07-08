@@ -22,7 +22,13 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
     });
     return content;
   } catch (error) {
-    return <MdxCompileError error={error} />;
+    // Pass a plain string: handing the Error object itself to a component
+    // crashes React dev's debug-info serialization (frame.join TypeError).
+    return (
+      <MdxCompileError
+        message={error instanceof Error ? error.message : String(error)}
+      />
+    );
   }
 }
 
@@ -48,8 +54,7 @@ export function isBlankMdx(source: string): boolean {
   return source.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").trim() === "";
 }
 
-function MdxCompileError({ error }: { error: unknown }) {
-  const message = error instanceof Error ? error.message : String(error);
+function MdxCompileError({ message }: { message: string }) {
   return (
     <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm">
       <p className="mb-2 font-medium text-destructive">
