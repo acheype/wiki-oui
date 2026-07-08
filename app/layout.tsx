@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 import { isBlankMdx, renderMdx } from "@/lib/mdx";
 import { getLayoutContents } from "@/lib/pages";
 import { cn } from "@/lib/utils";
@@ -75,6 +76,7 @@ export default async function RootLayout({
             {await renderMdx(slots.footer)}
           </div>
         </footer>
+        <Toaster richColors />
       </body>
     </html>
   );
