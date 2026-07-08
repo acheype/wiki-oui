@@ -42,6 +42,12 @@ function UnknownComponent() {
   return null;
 }
 
+// True when the source renders to nothing visible (only comments/whitespace),
+// so layout slots like page-header can collapse instead of leaving a gap.
+export function isBlankMdx(source: string): boolean {
+  return source.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").trim() === "";
+}
+
 function MdxCompileError({ error }: { error: unknown }) {
   const message = error instanceof Error ? error.message : String(error);
   return (
