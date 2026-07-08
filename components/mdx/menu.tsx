@@ -7,12 +7,12 @@ import {
   isValidElement,
   useRef,
   useState,
+  type CSSProperties,
   type ReactElement,
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
-import { Bouton } from "./bouton";
-import { WikiLink } from "./wiki-link";
+import type { BoutonProps } from "./bouton";
 
 // Built-in component (ADR 0010): renders the nested list written between its
 // tags as a multi-level menu — level 1 as a horizontal bar, level 2 as a
@@ -32,6 +32,35 @@ type ElementWithChildren = ReactElement<{ className?: string; children?: ReactNo
 
 function isTag(node: ReactNode, tag: string): node is ElementWithChildren {
   return isValidElement(node) && node.type === tag;
+}
+
+// Type identity (node.type === Bouton) breaks across the RSC boundary: the
+// flight payload rebuilds client elements with lazy references, so SSR and
+// client disagree and hydration fails. Detect the registry components by
+// their props instead — the sandbox whitelist (ADR 0002) makes the shapes
+// unambiguous: only WikiLink carries `href`, only Bouton its French props.
+type LinkElement = ReactElement<{
+  className?: string;
+  style?: CSSProperties;
+  href: string;
+}>;
+
+function isComponentElement(
+  node: ReactNode
+): node is ReactElement<Record<string, unknown>> {
+  return isValidElement(node) && typeof node.type !== "string";
+}
+
+function isWikiLinkElement(node: ReactNode): node is LinkElement {
+  return isComponentElement(node) && typeof node.props.href === "string";
+}
+
+function isBoutonElement(node: ReactNode): node is ReactElement<BoutonProps> {
+  return (
+    isComponentElement(node) &&
+    !("href" in node.props) &&
+    ("icone" in node.props || "texte" in node.props || "lien" in node.props)
+  );
 }
 
 function meaningfulChildren(node: ReactNode): ReactNode[] {
@@ -57,10 +86,8 @@ function parseItem(li: ElementWithChildren): MenuItem {
   const label = nodes.filter((node) => !sublists.includes(node as ElementWithChildren));
   const navigates = label.some(
     (node) =>
-      isValidElement(node) &&
-      (node.type === WikiLink ||
-        (node.type === Bouton &&
-          Boolean((node.props as { lien?: string }).lien)))
+      isWikiLinkElement(node) ||
+      (isBoutonElement(node) && Boolean(node.props.lien))
   );
   return { label, navigates, children: sublists.flatMap(parseList) };
 }
@@ -70,10 +97,9 @@ const barItemClass =
 
 // Reuses the element the registry produced, just restyled for the bar.
 function styled(node: ReactNode, className: string): ReactNode {
-  if (isValidElement(node) && node.type === WikiLink) {
-    const element = node as ElementWithChildren;
-    return cloneElement(element, {
-      className: cn(className, element.props.className),
+  if (isWikiLinkElement(node)) {
+    return cloneElement(node, {
+      className: cn(className, node.props.className),
     });
   }
   return node;
@@ -100,9 +126,9 @@ export function Menu({ children }: { children?: ReactNode }) {
 
 function LeafItem({ item }: { item: MenuItem }) {
   const [node] = item.label;
-  if (item.label.length === 1 && isValidElement(node)) {
-    if (node.type === Bouton) return node;
-    if (node.type === WikiLink) return styled(node, barItemClass);
+  if (item.label.length === 1) {
+    if (isBoutonElement(node)) return node;
+    if (isWikiLinkElement(node)) return styled(node, barItemClass);
   }
   return <span className={cn(barItemClass, "hover:bg-transparent")}>{item.label}</span>;
 }
@@ -136,7 +162,9 @@ function Dropdown({ item }: { item: MenuItem }) {
         if (event.key === "Escape") setOpen(false);
       }}
     >
-      <DropdownTrigger item={item} open={open} onToggle={() => setOpen(!open)} />
+      {/* Open, not toggle: hover already opened it, so a toggling click
+          would close the panel right away (ADR 0010: "clic pour ouvrir"). */}
+      <DropdownTrigger item={item} open={open} onOpen={show} />
       {open && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
           <DropdownEntries items={item.children} depth={0} />
@@ -149,24 +177,25 @@ function Dropdown({ item }: { item: MenuItem }) {
 function DropdownTrigger({
   item,
   open,
-  onToggle,
+  onOpen,
 }: {
   item: MenuItem;
   open: boolean;
-  onToggle: () => void;
+  onOpen: () => void;
 }) {
   const [node] = item.label;
-  const isBouton =
-    item.label.length === 1 && isValidElement(node) && node.type === Bouton;
+  const isBouton = item.label.length === 1 && isBoutonElement(node);
 
   // A navigating trigger keeps its click for navigation (the dropdown opens
-  // on hover/focus); a plain one toggles on click.
-  if (item.navigates || isBouton) {
+  // on hover/focus); a plain one toggles on click. Any component in the
+  // label also takes this branch: it may render interactive markup, which
+  // must not be nested inside the <button> below (invalid HTML).
+  if (item.navigates || item.label.some(isComponentElement)) {
     const trigger = isBouton ? node : styled(node, barItemClass);
     return (
       <span
         className="flex items-center"
-        onClick={item.navigates ? undefined : onToggle}
+        onClick={item.navigates ? undefined : onOpen}
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -180,7 +209,7 @@ function DropdownTrigger({
     <button
       type="button"
       className={cn(barItemClass, "flex items-center")}
-      onClick={onToggle}
+      onClick={onOpen}
       aria-haspopup="menu"
       aria-expanded={open}
     >
@@ -204,21 +233,20 @@ function DropdownEntries({ items, depth }: { items: MenuItem[]; depth: number })
   return items.map((item, index) => {
     const indent = { paddingLeft: `${0.625 + depth * 0.875}rem` };
     const [node] = item.label;
-    const single = item.label.length === 1 && isValidElement(node);
+    const single = item.label.length === 1;
 
     let entry: ReactNode;
-    if (single && node.type === Bouton) {
+    if (single && isBoutonElement(node)) {
       entry = (
         <div className="px-1 py-0.5" style={indent}>
           {node}
         </div>
       );
-    } else if (single && node.type === WikiLink) {
-      const link = node as ElementWithChildren & ReactElement<{ style?: React.CSSProperties }>;
-      entry = cloneElement(link, {
+    } else if (single && isWikiLinkElement(node)) {
+      entry = cloneElement(node, {
         className: cn(
           "block rounded-sm py-1.5 pr-2 text-sm hover:bg-accent hover:text-accent-foreground",
-          link.props.className
+          node.props.className
         ),
         style: indent,
       });
