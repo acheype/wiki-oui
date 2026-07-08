@@ -47,8 +47,16 @@ export default async function RootLayout({
             >
               {await renderMdx(slots.titre)}
             </Link>
-            <div className="min-w-0 flex-1">{await renderMdx(slots.menuHaut)}</div>
-            <div className={cn("text-sm text-muted-foreground", inlineMdx)}>
+            <div className="layout-slot min-w-0 flex-1">
+              {await renderMdx(slots.menuHaut)}
+            </div>
+            <div
+              className={cn(
+                "layout-slot flex flex-wrap items-center gap-x-2",
+                "text-sm text-muted-foreground",
+                inlineMdx
+              )}
+            >
               {await renderMdx(slots.rapideHaut)}
             </div>
           </div>

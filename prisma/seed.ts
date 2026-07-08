@@ -20,10 +20,23 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
   [wikiConfig.layoutPages.titre]: `WikiOui
 `,
 
-  [wikiConfig.layoutPages.menuHaut]: `<Menu />
+  [wikiConfig.layoutPages.menuHaut]: `{/* Une liste imbriquée dans <Menu> devient un menu à plusieurs niveaux (voir l'aide-mémoire). */}
+
+<Menu>
+- [Accueil](page-principale)
+</Menu>
 `,
 
   [wikiConfig.layoutPages.rapideHaut]: `[Accueil](page-principale) · [Aide-mémoire](aide-memoire)
+
+<Menu>
+- <Bouton icone="roue" texte="Configuration" />
+  - [Titre du site](page-titre)
+  - [Menu principal](page-menu-haut)
+  - [Accès rapide](page-rapide-haut)
+  - [Bandeau](page-header)
+  - [Pied de page](page-footer)
+</Menu>
 `,
 
   [wikiConfig.layoutPages.header]: `{/* Contenu affiché dans le bandeau d'en-tête, sous le menu. */}
@@ -71,6 +84,19 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 | Colonne A | Colonne B |
 | --- | --- |
 | a | b |
+\`\`\`
+
+## Composants
+
+- Menu de navigation : une liste imbriquée entre \`<Menu>\` et \`</Menu>\` devient un menu à plusieurs niveaux. Un item est un texte, un lien ou un \`<Bouton>\`.
+- Bouton : \`<Bouton icone="roue" texte="Configuration" lien="ma-page" />\` — icônes disponibles : roue, maison, aide, crayon, page, calendrier, etoile, utilisateur.
+
+\`\`\`
+<Menu>
+- [Accueil](page-principale)
+- Rubrique
+  - [Une page](une-page)
+</Menu>
 \`\`\`
 
 ## Attributs (avancé)

@@ -154,3 +154,17 @@
   vertical-align: -0.125em;
   accent-color: var(--primary);
 }
+
+/* --- Composants intégrés dans les slots du bandeau --------------------- */
+
+/* Same <Bouton>, nav-bar look: the slot context restyles it (CONTEXT.md). */
+.layout-slot .wiki-bouton {
+  background: transparent;
+  color: var(--muted-foreground);
+  height: 2rem;
+  box-shadow: none;
+}
+.layout-slot .wiki-bouton:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
