@@ -1,0 +1,77 @@
+# WikiOui — Synthèse de conception (MVP)
+
+WikiOui est un moteur de wiki : des sites collaboratifs dont chaque page est écrite en MDX et éditable en ligne. Refonte de YesWiki sur une stack moderne. **L'ergonomie est prioritaire** (composants beaux, fluides, ergonomiques).
+
+Glossaire du domaine : [`../CONTEXT.md`](../CONTEXT.md).
+
+## Stack
+
+Next.js (App Router) · Prisma · PostgreSQL · shadcn/ui · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **pnpm**.
+
+## Périmètre MVP
+
+**Inclus** : CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `edit`, `revisions` · rendu MDX bridé · historique (toutes révisions) + diff + restauration · pages spéciales de layout · éditeur riche CodeMirror (barre d'outils markdown, tableaux, listes de tâches, modale de lien) · tags · suppression dure.
+
+**Backlog** (le domaine les accueille déjà) : upload de fichiers · système d'authoring de composants (menu « Composants », modales générées depuis YAML, sélecteur d'icônes Iconify) · droits d'accès & authentification · durcissement du sandbox (neutralisation des expressions JS) · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud.
+
+## Architecture en un coup d'œil
+
+- **Routing** (ADR 0001) : les handlers sont des routes Next natives. `app/[slug]/page.tsx` = `show` ; `app/[slug]/edit/page.tsx`, `app/[slug]/revisions/page.tsx`. `/` redirige vers `/page-principale` (`redirects()`). Slug : `^[a-z0-9]+(?:-[a-z0-9]+)*$`, minuscules (majuscules redirigées), tapé dans l'URL (pas de titre séparé).
+- **Handler vs Mutation** : un handler *affiche* une vue (URL). Sauvegarder / supprimer / restaurer sont des **Server Actions** (pas d'URL).
+- **Rendu** (ADR 0002) : MDX bridé. Registre de composants = `/components` + config. `import`/`export` désactivés dès le MVP ; neutralisation des expressions JS ajoutée avec l'auth. Composants intégrés (ex. `<Menu>`) présents dès le MVP ; l'*authoring* est au backlog.
+- **Éditeur** (ADR 0005) : CodeMirror 6, édition de source MDX colorée. Barre d'outils : gras, italique, barré, titres, listes (puces/numérotée/tâches), citation, code, ligne horizontale, alignement (classe Tailwind), commentaire (`{/* */}`), lien (modale), tableau (outils contextuels), aide-mémoire. Pas de souligné.
+- **Liens** (ADR 0006) : liens wiki en relatif par slug (`[texte](ma-page)`) ; externes en `http(s)://`. Modale de lien : cible onglet courant / nouvel onglet / **fenêtre modale** (Dialog ; avertissement si URL externe). Autocomplétion des pages.
+- **Pages spéciales** : slug réservé, seedées, non supprimables mais éditables — les 5 de layout, `page-principale`, `aide-memoire`.
+- **Historique** (ADR 0009) : pleine page, timeline horizontale (récente à droite), toutes les révisions. 3 vues : *Aperçu* (checkbox rendu ↔ code), *Modifications* (diff MDX vs précédente), *Différence avec la courante* (diff MDX). Diffs sur le source uniquement.
+- **Config** (ADR 0004) : `wiki.config.ts` typé (slugs des pages spéciales, slug d'accueil, plus tard composants/upload).
+
+## Schéma Prisma cible
+
+```prisma
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  tags      String[]                       // ADR 0007 (Postgres text[])
+  ownerName String?                        // "Anonyme" au MVP ; FK User plus tard
+  createdAt DateTime @default(now())
+
+  currentRevisionId String?   @unique      // ADR 0003 : pointeur révision courante
+  current           Revision? @relation("PageCurrent", fields: [currentRevisionId], references: [id])
+
+  revisions Revision[] @relation("PageRevisions")
+}
+
+model Revision {
+  id         String   @id @default(cuid())
+  content    String                        // snapshot MDX complet
+  authorName String?                       // "Anonyme" au MVP
+  createdAt  DateTime @default(now())
+
+  pageId String
+  page   Page   @relation("PageRevisions", fields: [pageId], references: [id], onDelete: Cascade)
+
+  restoredFromId String?                   // étiquetage historique (restauration)
+  restoredFrom   Revision?  @relation("RestoredFrom", fields: [restoredFromId], references: [id], onDelete: SetNull)
+  restoredInto   Revision[] @relation("RestoredFrom")
+
+  currentOf Page? @relation("PageCurrent")
+}
+```
+
+Notes : création d'une page en deux temps (Page → Revision → pointer `currentRevisionId`). Suppression dure d'une Page → cascade sur ses révisions ; le self-relation `restoredFrom` en `SetNull` pour ne pas bloquer la cascade.
+
+## Décisions (ADR)
+
+1. [Handlers = routes Next natives](adr/0001-handlers-as-native-next-routes.md)
+2. [Rendu MDX bridé (sandbox) + registre](adr/0002-mdx-rendering-sandbox.md)
+3. [Modèle Page/Révision + pointeur courant](adr/0003-page-revision-model.md)
+4. [Config = module TS typé](adr/0004-config-as-typed-ts-module.md)
+5. [Éditeur CodeMirror (source MDX)](adr/0005-editor-codemirror-source.md)
+6. [Liens wiki relatifs](adr/0006-relative-wiki-links.md)
+7. [Tags = String[] sur la Page](adr/0007-tags-as-page-string-array.md)
+8. [Suppression dure](adr/0008-hard-delete.md)
+9. [Historique : pleine page, diffs sur le source](adr/0009-revisions-view.md)
+
+## Points validés avant code
+
+- **`remark-attributes` → remplacé par `mdx-annotations`** (validé le 2026-07-08). `remark-attributes` exige des accolades échappées `\{…\}` sous MDX (contrainte du parseur MDX, rédhibitoire pour les auteurs). `mdx-annotations` (Tailwind Labs) exploite les expressions MDX à la place : `# Titre {{ id: 'ancre' }}`, `[lien](/page){{ className: 'btn' }}` — zéro échappement, vérifié sous MDX 3 / next-mdx-remote 6. Les conteneurs/encarts passent par le registre de composants (ADR 0002), sans `remark-directive` (une seule syntaxe avancée : le JSX ; la directive reste ajoutable plus tard, coexistence prouvée). Preuves : [`research/remark-attributes-mdx.md`](research/remark-attributes-mdx.md), [`research/mdx-native-element-attributes.md`](research/mdx-native-element-attributes.md).

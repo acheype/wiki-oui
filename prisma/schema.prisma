@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  tags      String[] // Postgres text[] (ADR 0007)
+  ownerName String? // "Anonyme" until auth lands; becomes a User FK later
+  createdAt DateTime @default(now())
+
+  currentRevisionId String?   @unique // current-revision pointer (ADR 0003)
+  current           Revision? @relation("PageCurrent", fields: [currentRevisionId], references: [id])
+
+  revisions Revision[] @relation("PageRevisions")
+}
+
+model Revision {
+  id         String   @id @default(cuid())
+  content    String // full MDX snapshot, not a delta
+  authorName String? // "Anonyme" until auth lands
+  createdAt  DateTime @default(now())
+
+  pageId String
+  page   Page   @relation("PageRevisions", fields: [pageId], references: [id], onDelete: Cascade)
+
+  // History label for restores; SetNull so it never blocks a page's hard-delete cascade.
+  restoredFromId String?
+  restoredFrom   Revision?  @relation("RestoredFrom", fields: [restoredFromId], references: [id], onDelete: SetNull)
+  restoredInto   Revision[] @relation("RestoredFrom")
+
+  currentOf Page? @relation("PageCurrent")
+}
