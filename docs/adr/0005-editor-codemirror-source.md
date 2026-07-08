@@ -16,7 +16,16 @@ Barre d'outils MVP : gras, italique, barré, titres (H1–H3), liste à puces, l
 
 Le souligné est écarté (déconseillé en web, confondu avec un lien). Barré, tableaux et listes de tâches proviennent de `remark-gfm` (MDX ne les a pas nativement).
 
-Édition de tableaux : outils **contextuels** (visibles/actifs seulement quand le curseur est dans un tableau) — insérer, ajouter/supprimer ligne ou colonne, alignement de colonne, reformater les pipes. Tableaux GFM uniquement (pas de fusion de cellules ni de contenu multi-ligne au MVP).
+### UI contextuelle ancrée au curseur
+
+Les outils contextuels ne vivent pas dans la barre d'outils : ils s'affichent **au niveau du curseur** (tooltips CodeMirror), déclenchés par la position du curseur quel que soit le moyen d'y arriver (clic ou clavier). Le même système accueillera plus tard l'édition des paramètres d'un composant.
+
+- **Lien** : curseur dans un lien → icône de modification ; elle ouvre la modale de lien préremplie (texte, cible, annotation `{{ target }}`) en mode « Modifier », qui remplace le lien entier dans le source. Pas de bouton de suppression de lien (édition seule).
+- **Tableaux** : curseur dans un tableau → ajouter/supprimer **colonne** et alignement de la colonne (bouton cyclique gauche → centré → droite) ancrés **en haut de la colonne courante** ; ajouter/supprimer **ligne** ancrés **à gauche de la ligne courante** ; **reformater les pipes** (égaliser les largeurs de cellules) au coin supérieur gauche du tableau. Insertion à droite / en dessous, suppression de la colonne/ligne courante. La barre d'outils ne garde que « Insérer un tableau ». Tableaux GFM uniquement (pas de fusion de cellules ni de contenu multi-ligne au MVP).
+
+### Entrée en édition
+
+Sur le handler `show`, un **double-clic sur le contenu de la page** ouvre l'éditeur (réflexe YesWiki). Exclusions : les éléments interactifs (liens, cases à cocher), les slots de layout (accessibles par la roue crantée) et les aperçus de révisions.
 
 ## Conséquences
 

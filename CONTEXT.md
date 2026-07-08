@@ -36,7 +36,7 @@ _Avoid_: Widget, plugin, action
 La liste blanche des composants autorisés au rendu, construite automatiquement à partir du répertoire `/components` plus ceux déclarés dans le fichier de configuration. Une balise hors registre n'est pas rendue.
 
 **Page spéciale**:
-Une page à **slug réservé**, créée au seed de la base, **non supprimable mais éditable** (comme n'importe quelle page : flux d'édition normal, rendu MDX normal). C'est le seul trait qui la définit ; « alimenter le layout » n'est qu'une propriété de certaines d'entre elles. Les pages spéciales : les 5 pages de layout (`page-titre`, `page-menu-haut`, `page-rapide-haut`, `page-header`, `page-footer`), `page-principale` (l'accueil, cible de la redirection `/` → `/page-principale` ; contenu ordinaire), et `aide-memoire`. Le menu n'a pas de rendu spécial : le contenu par défaut de `page-menu-haut` appelle le composant intégré `<Menu>`.
+Une page à **slug réservé**, créée au seed de la base, **non supprimable mais éditable** (comme n'importe quelle page : flux d'édition normal, rendu MDX normal). C'est le seul trait qui la définit ; « alimenter le layout » n'est qu'une propriété de certaines d'entre elles. Les pages spéciales : les 5 pages de layout (`page-titre`, `page-menu-haut`, `page-rapide-haut`, `page-header`, `page-footer`), `page-principale` (l'accueil, cible de la redirection `/` → `/page-principale` ; contenu ordinaire), et `aide-memoire`. Le menu n'a pas de rendu spécial : le contenu par défaut de `page-menu-haut` appelle le composant intégré `<Menu>`, et celui de `page-rapide-haut` expose les 5 pages de layout derrière un bouton roue crantée (`<Menu>` + `<Bouton>`).
 _Avoid_: Page seedée, template, page système, fragment
 
 **Lien wiki**:
@@ -50,10 +50,18 @@ La page spéciale `aide-memoire` qui résume toutes les syntaxes MDX supportées
 Un fragment de contenu non rendu par `show`, écrit avec la syntaxe de commentaire MDX `{/* … */}`. Visible dans l'éditeur et dans « Afficher le code Wiki », absent du rendu.
 
 **Composant intégré (built-in)**:
-Un composant livré avec WikiOui (ex. `<Menu>`), présent dans le registre dès le MVP car le rendu (notamment du layout) en dépend. À distinguer de l'*authoring* de composants (menu « Composants » de la barre d'outils, modales YAML, sélecteur d'icônes) qui, lui, est au backlog. Rendre un composant ≠ fournir l'UI pour l'insérer.
+Un composant livré avec WikiOui (`<Menu>`, `<Bouton>`), présent dans le registre dès le MVP car le rendu (notamment du layout) en dépend. À distinguer de l'*authoring* de composants (menu « Composants » de la barre d'outils, modales YAML, sélecteur d'icônes) qui, lui, est au backlog. Rendre un composant ≠ fournir l'UI pour l'insérer.
+
+**Menu**:
+Composant intégré qui transforme la liste imbriquée écrite entre ses balises en menu de navigation multi-niveaux : niveau 1 en barre horizontale, sous-items en déroulant (l'imbrication au-delà du niveau 2 est aplatie, indentée dans le même déroulant). Un item est au choix un texte (simple déclencheur), un lien (navigue au clic, déroulant au survol/focus) ou un `<Bouton>`. Sans contenu il ne rend rien : un menu est toujours écrit par l'auteur, jamais déduit de la base (ADR 0010).
+_Avoid_: auto-listing des pages, barre de navigation codée en dur
+
+**Bouton**:
+Composant intégré affichant un bouton défini par une icône (`icone`, nom français d'une liste blanche), un libellé (`texte`) et éventuellement un lien (`lien`). Dans le contenu d'une page il prend l'apparence d'un bouton pleine forme ; dans un slot du bandeau, celle d'un bouton discret de barre de navigation — la différence est purement CSS. Utilisé comme item parent d'un `<Menu>`, il en devient le déclencheur (ex. la roue crantée de `page-rapide-haut`). Son interface graphique de configuration reste au backlog.
+_Avoid_: bouton d'action serveur (il ne déclenche pas de mutation)
 
 ## Portée (MVP)
 
-Le MVP couvre : CRUD de pages par slug, routing page/handler, handlers `show` et `edit`, rendu MDX, révisions (historique + restauration), pages spéciales de layout, et un éditeur riche (barre d'outils de formatage markdown + modale d'insertion de lien).
+Le MVP couvre : CRUD de pages par slug, routing page/handler, handlers `show` et `edit`, rendu MDX, révisions (historique + restauration), pages spéciales de layout, les composants intégrés `<Menu>` et `<Bouton>`, et un éditeur riche (barre d'outils de formatage markdown, modale de lien, outils contextuels ancrés au curseur ; double-clic sur le contenu d'une page pour passer en édition).
 
 Reporté au backlog (mais le domaine doit pouvoir l'accueillir) : upload de fichiers, système de composants MDX + modales générées depuis YAML, sélecteur d'icônes Iconify, droits d'accès et authentification.

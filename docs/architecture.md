@@ -10,16 +10,16 @@ Next.js (App Router) · Prisma · PostgreSQL · shadcn/ui · CodeMirror 6 (édit
 
 ## Périmètre MVP
 
-**Inclus** : CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `edit`, `revisions` · rendu MDX bridé · historique (toutes révisions) + diff + restauration · pages spéciales de layout · éditeur riche CodeMirror (barre d'outils markdown, tableaux, listes de tâches, modale de lien) · tags · suppression dure.
+**Inclus** : CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `edit`, `revisions` · rendu MDX bridé · composants intégrés `<Menu>` (liste imbriquée → menu multi-niveaux, ADR 0010) et `<Bouton>` · historique (toutes révisions) + diff + restauration · pages spéciales de layout (roue crantée de `page-rapide-haut` vers les pages de configuration du layout) · éditeur riche CodeMirror (barre d'outils markdown, listes de tâches, modale de lien, outils contextuels ancrés au curseur : édition de lien, tableaux) · double-clic sur le contenu pour éditer · tags · suppression dure.
 
-**Backlog** (le domaine les accueille déjà) : upload de fichiers · système d'authoring de composants (menu « Composants », modales générées depuis YAML, sélecteur d'icônes Iconify) · droits d'accès & authentification · durcissement du sandbox (neutralisation des expressions JS) · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud.
+**Backlog** (le domaine les accueille déjà) : upload de fichiers · système d'authoring de composants (menu « Composants », modales générées depuis YAML, sélecteur d'icônes Iconify) · pages d'administration (Tableau de bord, Documentation, Gestion du site, Formulaire — rejoindront le menu roue crantée par édition de `page-rapide-haut`) · droits d'accès & authentification · durcissement du sandbox (neutralisation des expressions JS) · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud.
 
 ## Architecture en un coup d'œil
 
 - **Routing** (ADR 0001) : les handlers sont des routes Next natives. `app/[slug]/page.tsx` = `show` ; `app/[slug]/edit/page.tsx`, `app/[slug]/revisions/page.tsx`. `/` redirige vers `/page-principale` (`redirects()`). Slug : `^[a-z0-9]+(?:-[a-z0-9]+)*$`, minuscules (majuscules redirigées), tapé dans l'URL (pas de titre séparé).
 - **Handler vs Mutation** : un handler *affiche* une vue (URL). Sauvegarder / supprimer / restaurer sont des **Server Actions** (pas d'URL).
-- **Rendu** (ADR 0002) : MDX bridé. Registre de composants = `/components` + config. `import`/`export` désactivés dès le MVP ; neutralisation des expressions JS ajoutée avec l'auth. Composants intégrés (ex. `<Menu>`) présents dès le MVP ; l'*authoring* est au backlog.
-- **Éditeur** (ADR 0005) : CodeMirror 6, édition de source MDX colorée. Barre d'outils : gras, italique, barré, titres, listes (puces/numérotée/tâches), citation, code, ligne horizontale, alignement (classe Tailwind), commentaire (`{/* */}`), lien (modale), tableau (outils contextuels), aide-mémoire. Pas de souligné.
+- **Rendu** (ADR 0002) : MDX bridé. Registre de composants = `/components` + config. `import`/`export` désactivés dès le MVP ; neutralisation des expressions JS ajoutée avec l'auth. Composants intégrés (`<Menu>`, `<Bouton>`) présents dès le MVP ; l'*authoring* est au backlog. `<Menu>` est piloté par la liste imbriquée écrite entre ses balises (ADR 0010).
+- **Éditeur** (ADR 0005) : CodeMirror 6, édition de source MDX colorée. Barre d'outils : gras, italique, barré, titres, listes (puces/numérotée/tâches), citation, code, ligne horizontale, alignement (classe Tailwind), commentaire (`{/* */}`), lien (modale), insertion de tableau, aide-mémoire. Pas de souligné. UI contextuelle **ancrée au curseur** (tooltips CodeMirror) : icône de modification de lien, opérations de tableau positionnées spatialement (colonne en haut, ligne à gauche, reformatage au coin). Double-clic sur le contenu du `show` → édition.
 - **Liens** (ADR 0006) : liens wiki en relatif par slug (`[texte](ma-page)`) ; externes en `http(s)://`. Modale de lien : cible onglet courant / nouvel onglet / **fenêtre modale** (Dialog ; avertissement si URL externe). Autocomplétion des pages.
 - **Pages spéciales** : slug réservé, seedées, non supprimables mais éditables — les 5 de layout, `page-principale`, `aide-memoire`.
 - **Historique** (ADR 0009) : pleine page, timeline horizontale (récente à droite), toutes les révisions. 3 vues : *Aperçu* (checkbox rendu ↔ code), *Modifications* (diff MDX vs précédente), *Différence avec la courante* (diff MDX). Diffs sur le source uniquement.
@@ -71,6 +71,7 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 7. [Tags = String[] sur la Page](adr/0007-tags-as-page-string-array.md)
 8. [Suppression dure](adr/0008-hard-delete.md)
 9. [Historique : pleine page, diffs sur le source](adr/0009-revisions-view.md)
+10. [Menu piloté par liste imbriquée MDX](adr/0010-menu-authored-nested-list.md)
 
 ## Points validés avant code
 
