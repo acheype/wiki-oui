@@ -8,6 +8,18 @@ export async function getPageWithCurrent(slug: string) {
   });
 }
 
+export async function getPageWithRevisions(slug: string) {
+  return prisma.page.findUnique({
+    where: { slug },
+    include: {
+      revisions: {
+        orderBy: { createdAt: "asc" },
+        include: { restoredFrom: { select: { id: true, createdAt: true } } },
+      },
+    },
+  });
+}
+
 export async function listPageSlugs(): Promise<string[]> {
   const pages = await prisma.page.findMany({
     select: { slug: true },
