@@ -145,6 +145,14 @@
   font-weight: 500;
 }
 
+/* Code blocks share the inline chip look (the plugin defaults to a dark
+   block that clashes with it). */
+.prose pre {
+  background-color: var(--muted);
+  color: var(--foreground);
+  font-weight: 500;
+}
+
 /* GFM task lists: no bullet, and a standard gap between box and text. */
 .prose li.task-list-item {
   list-style: none;
