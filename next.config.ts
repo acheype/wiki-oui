@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import { wikiConfig } from "./wiki.config";
 
 const nextConfig: NextConfig = {
+  // A stray lockfile in the home directory makes Next mis-infer the root.
+  turbopack: { root: import.meta.dirname },
   async redirects() {
     return [
       {
