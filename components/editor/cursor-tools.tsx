@@ -1,0 +1,238 @@
+"use client";
+
+import { syntaxTree } from "@codemirror/language";
+import { StateField, type EditorState, type Extension } from "@codemirror/state";
+import {
+  EditorView,
+  showTooltip,
+  type Tooltip,
+  type TooltipView,
+} from "@codemirror/view";
+import {
+  AlignCenter,
+  AlignHorizontalDistributeCenter,
+  AlignLeft,
+  AlignRight,
+  Minus,
+  Pencil,
+  Plus,
+} from "lucide-react";
+import { createRoot } from "react-dom/client";
+import {
+  addTableColumn,
+  addTableRow,
+  cycleColumnAlignment,
+  deleteTableColumn,
+  deleteTableRow,
+  reformatTable,
+  tableContext,
+  type Alignment,
+  type LinkTarget,
+} from "./commands";
+
+// Cursor-anchored contextual UI (ADR 0005): CodeMirror tooltips computed from
+// the cursor position — a link edit icon, and table strips placed spatially
+// (column ops on top of the column, row ops left of the line, reformat at the
+// table's top-left corner). The same field will later host component editing.
+
+export type LinkInfo = {
+  from: number;
+  to: number;
+  text: string;
+  href: string;
+  target: LinkTarget;
+};
+
+const LINK_MARKDOWN = /^\[([^\]]*)\]\(\s*<?([^)>\s]*)>?\s*\)/;
+const TARGET_ANNOTATION = /^\{\{\s*target:\s*'(_blank|modal)'\s*\}\}/;
+
+export function linkAtCursor(state: EditorState): LinkInfo | null {
+  const range = state.selection.main;
+  if (!range.empty) return null;
+  const tree = syntaxTree(state);
+  for (const side of [-1, 1] as const) {
+    for (
+      let node: ReturnType<typeof tree.resolveInner> | null =
+        tree.resolveInner(range.head, side);
+      node;
+      node = node.parent
+    ) {
+      if (node.name !== "Link") continue;
+      const match = state.sliceDoc(node.from, node.to).match(LINK_MARKDOWN);
+      if (!match) return null;
+      const after = state
+        .sliceDoc(node.to, Math.min(node.to + 60, state.doc.length))
+        .match(TARGET_ANNOTATION);
+      return {
+        from: node.from,
+        to: node.to + (after?.[0].length ?? 0),
+        text: match[1],
+        href: match[2],
+        target: (after?.[1] as LinkTarget | undefined) ?? "self",
+      };
+    }
+  }
+  return null;
+}
+
+function ToolButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      // Keep the editor selection: the button must not steal focus.
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+}
+
+function reactTooltip(className: string, content: React.ReactNode): TooltipView {
+  const dom = document.createElement("div");
+  dom.className = "cm-wiki-tools";
+  const root = createRoot(dom);
+  root.render(<div className={`cm-wiki-strip ${className}`}>{content}</div>);
+  return {
+    dom,
+    // Deferred: React forbids unmounting synchronously from inside a render.
+    destroy: () => setTimeout(() => root.unmount()),
+  };
+}
+
+const ALIGNMENT_ICONS: Record<Alignment, React.ReactNode> = {
+  left: <AlignLeft />,
+  center: <AlignCenter />,
+  right: <AlignRight />,
+};
+
+const ALIGNMENT_LABELS: Record<Alignment, string> = {
+  left: "à gauche",
+  center: "centré",
+  right: "à droite",
+};
+
+function computeTooltips(
+  state: EditorState,
+  onEditLink: (info: LinkInfo) => void
+): Tooltip[] {
+  const tooltips: Tooltip[] = [];
+
+  const link = linkAtCursor(state);
+  if (link) {
+    tooltips.push({
+      pos: state.selection.main.head,
+      above: true,
+      create: () =>
+        reactTooltip(
+          "",
+          <ToolButton label="Modifier le lien" onClick={() => onEditLink(link)}>
+            <Pencil />
+          </ToolButton>
+        ),
+    });
+  }
+
+  const table = tableContext(state);
+  if (table) {
+    const { doc } = state;
+    const line = doc.lineAt(state.selection.main.head);
+    const header = doc.line(table.first);
+
+    // Column operations, on top of the current column (header line anchor).
+    tooltips.push({
+      pos: table.colHeaderPos,
+      above: true,
+      create: (view: EditorView) =>
+        reactTooltip(
+          "",
+          <>
+            <ToolButton
+              label="Ajouter une colonne (à droite)"
+              onClick={() => addTableColumn(view)}
+            >
+              <Plus />
+            </ToolButton>
+            <ToolButton
+              label="Supprimer la colonne"
+              onClick={() => deleteTableColumn(view)}
+            >
+              <Minus />
+            </ToolButton>
+            <ToolButton
+              label={`Alignement de la colonne : ${ALIGNMENT_LABELS[table.alignment]}`}
+              onClick={() => cycleColumnAlignment(view)}
+            >
+              {ALIGNMENT_ICONS[table.alignment]}
+            </ToolButton>
+          </>
+        ),
+    });
+
+    // Reformat, at the table's top-left corner (above-left of the header).
+    tooltips.push({
+      pos: header.from,
+      above: true,
+      create: (view: EditorView) =>
+        reactTooltip(
+          "cm-wiki-strip-corner",
+          <ToolButton
+            label="Reformater le tableau (aligner les pipes)"
+            onClick={() => reformatTable(view)}
+          >
+            <AlignHorizontalDistributeCenter />
+          </ToolButton>
+        ),
+    });
+
+    // Row operations, left of the current line.
+    tooltips.push({
+      pos: line.from,
+      above: false,
+      create: (view: EditorView) =>
+        reactTooltip(
+          "cm-wiki-strip-left",
+          <>
+            <ToolButton
+              label="Ajouter une ligne (en dessous)"
+              onClick={() => addTableRow(view)}
+            >
+              <Plus />
+            </ToolButton>
+            <ToolButton
+              label="Supprimer la ligne"
+              onClick={() => deleteTableRow(view)}
+            >
+              <Minus />
+            </ToolButton>
+          </>
+        ),
+    });
+  }
+
+  return tooltips;
+}
+
+export function cursorTools(
+  onEditLink: (info: LinkInfo) => void
+): Extension {
+  const field = StateField.define<Tooltip[]>({
+    create: (state) => computeTooltips(state, onEditLink),
+    update: (tooltips, tr) =>
+      tr.docChanged || tr.selection
+        ? computeTooltips(tr.state, onEditLink)
+        : tooltips,
+    provide: (f) => showTooltip.computeN([f], (state) => state.field(f)),
+  });
+  return field;
+}

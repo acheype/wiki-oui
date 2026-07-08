@@ -7,7 +7,7 @@ import {
   defaultHighlightStyle,
   syntaxHighlighting,
 } from "@codemirror/language";
-import { EditorState } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { useEffect, useRef, type RefObject } from "react";
 import { toggleInline } from "./commands";
@@ -17,7 +17,8 @@ const editorTheme = EditorView.theme({
   "&.cm-focused": { outline: "none" },
   ".cm-content": {
     fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-    padding: "1rem",
+    // The wide left padding hosts the cursor-anchored row strip (ADR 0005).
+    padding: "1rem 1rem 1rem 3.5rem",
     minHeight: "24rem",
     lineHeight: "1.7",
     caretColor: "var(--foreground)",
@@ -32,11 +33,14 @@ export function CodeMirrorEditor({
   initialDoc,
   viewRef,
   onUpdate,
+  extensions = [],
 }: {
   initialDoc: string;
   /** Filled on mount; the toolbar drives the view through it. */
   viewRef: RefObject<EditorView | null>;
   onUpdate?: (view: EditorView) => void;
+  /** Extra extensions; must be stable, the view is created once on mount. */
+  extensions?: Extension[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onUpdateRef = useRef(onUpdate);
@@ -74,6 +78,7 @@ export function CodeMirrorEditor({
               onUpdateRef.current?.(update.view);
             }
           }),
+          ...extensions,
         ],
       }),
       parent: containerRef.current!,

@@ -8,9 +8,29 @@ import { toast } from "sonner";
 import { savePage } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { CodeMirrorEditor } from "./codemirror-editor";
-import { isInTable } from "./commands";
+import { insertLink, replaceLink, type LinkTarget } from "./commands";
+import { cursorTools, type LinkInfo } from "./cursor-tools";
+import { LinkDialog } from "./link-dialog";
 import { TagsInput } from "./tags-input";
 import { EditorToolbar } from "./toolbar";
+
+type LinkDialogState = {
+  open: boolean;
+  mode: "insert" | "edit";
+  text: string;
+  href: string;
+  target: LinkTarget;
+  /** Range of the link being edited; absent in insert mode. */
+  range?: { from: number; to: number };
+};
+
+const closedLinkDialog: LinkDialogState = {
+  open: false,
+  mode: "insert",
+  text: "",
+  href: "",
+  target: "self",
+};
 
 export function PageEditor({
   slug,
@@ -27,8 +47,23 @@ export function PageEditor({
 }) {
   const viewRef = useRef<EditorView | null>(null);
   const [tags, setTags] = useState(initialTags);
-  const [inTable, setInTable] = useState(false);
+  const [linkDialog, setLinkDialog] = useState(closedLinkDialog);
   const [isPending, startTransition] = useTransition();
+
+  // Created once (the editor view mounts once); setLinkDialog is stable so
+  // the extension's callback never goes stale.
+  const [extensions] = useState(() => [
+    cursorTools((info: LinkInfo) =>
+      setLinkDialog({
+        open: true,
+        mode: "edit",
+        text: info.text,
+        href: info.href,
+        target: info.target,
+        range: { from: info.from, to: info.to },
+      })
+    ),
+  ]);
 
   function save() {
     const content = viewRef.current?.state.doc.toString() ?? initialContent;
@@ -55,18 +90,43 @@ export function PageEditor({
         </Button>
       </div>
 
-      <EditorToolbar viewRef={viewRef} allSlugs={allSlugs} inTable={inTable} />
+      <EditorToolbar
+        viewRef={viewRef}
+        onRequestLink={(selectionText) =>
+          setLinkDialog({ ...closedLinkDialog, open: true, text: selectionText })
+        }
+      />
 
       <CodeMirrorEditor
         initialDoc={initialContent}
         viewRef={viewRef}
-        onUpdate={(view) => setInTable(isInTable(view))}
+        extensions={extensions}
       />
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Tag className="size-4 shrink-0" aria-hidden />
         <TagsInput tags={tags} onChange={setTags} />
       </div>
+
+      <LinkDialog
+        open={linkDialog.open}
+        onOpenChange={(open) =>
+          setLinkDialog(open ? linkDialog : { ...linkDialog, open: false })
+        }
+        mode={linkDialog.mode}
+        initialText={linkDialog.text}
+        initialHref={linkDialog.href}
+        initialTarget={linkDialog.target}
+        allSlugs={allSlugs}
+        onInsert={(link) => {
+          if (!viewRef.current) return;
+          if (linkDialog.mode === "edit" && linkDialog.range) {
+            replaceLink(viewRef.current, linkDialog.range, link);
+          } else {
+            insertLink(viewRef.current, link);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -8,7 +8,6 @@ import {
   Bold,
   CircleQuestionMark,
   Code,
-  Columns3,
   Heading,
   Italic,
   Link2,
@@ -18,13 +17,11 @@ import {
   MessageSquareOff,
   Minus,
   Quote,
-  Rows3,
   Strikethrough,
   Table,
-  Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useState, type RefObject } from "react";
+import type { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -40,11 +37,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  addTableColumn,
-  addTableRow,
-  deleteTableRow,
   insertHorizontalRule,
-  insertLink,
   insertTable,
   setAlignment,
   setHeading,
@@ -54,7 +47,6 @@ import {
   toggleList,
   toggleQuote,
 } from "./commands";
-import { LinkDialog } from "./link-dialog";
 
 type ViewRef = RefObject<EditorView | null>;
 type EditorCommand = (view: EditorView) => void;
@@ -94,16 +86,12 @@ function ToolButton({
 
 export function EditorToolbar({
   viewRef,
-  allSlugs,
-  inTable,
+  onRequestLink,
 }: {
   viewRef: ViewRef;
-  allSlugs: string[];
-  inTable: boolean;
+  /** Opens the link dialog in insert mode with the current selection text. */
+  onRequestLink: (selectionText: string) => void;
 }) {
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [selectionText, setSelectionText] = useState("");
-
   return (
     <TooltipProvider delayDuration={400}>
       <div className="flex flex-wrap items-center gap-0.5 rounded-md border bg-muted/40 px-1.5 py-1">
@@ -229,29 +217,15 @@ export function EditorToolbar({
           viewRef={viewRef}
           command={(view) => {
             const range = view.state.selection.main;
-            setSelectionText(view.state.sliceDoc(range.from, range.to));
-            setLinkOpen(true);
+            onRequestLink(view.state.sliceDoc(range.from, range.to));
           }}
         >
           <Link2 />
         </ToolButton>
 
-        <ToolButton label="Tableau" viewRef={viewRef} command={insertTable}>
+        <ToolButton label="Insérer un tableau" viewRef={viewRef} command={insertTable}>
           <Table />
         </ToolButton>
-        {inTable && (
-          <>
-            <ToolButton label="Ajouter une ligne" viewRef={viewRef} command={addTableRow}>
-              <Rows3 />
-            </ToolButton>
-            <ToolButton label="Ajouter une colonne" viewRef={viewRef} command={addTableColumn}>
-              <Columns3 />
-            </ToolButton>
-            <ToolButton label="Supprimer la ligne" viewRef={viewRef} command={deleteTableRow}>
-              <Trash2 />
-            </ToolButton>
-          </>
-        )}
 
         <div className="ml-auto">
           <Tooltip>
@@ -265,16 +239,6 @@ export function EditorToolbar({
             <TooltipContent>Aide-mémoire (nouvel onglet)</TooltipContent>
           </Tooltip>
         </div>
-
-        <LinkDialog
-          open={linkOpen}
-          onOpenChange={setLinkOpen}
-          initialText={selectionText}
-          allSlugs={allSlugs}
-          onInsert={(link) => {
-            if (viewRef.current) insertLink(viewRef.current, link);
-          }}
-        />
       </div>
     </TooltipProvider>
   );

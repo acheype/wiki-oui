@@ -1,4 +1,4 @@
-import { EditorSelection, type Line } from "@codemirror/state";
+import { EditorSelection, type EditorState, type Line } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 
 // Toolbar commands (ADR 0005). Everything manipulates the MDX source text:
@@ -191,13 +191,16 @@ export function toggleComment(view: EditorView) {
 
 export type LinkTarget = "self" | "_blank" | "modal";
 
-export function insertLink(
-  view: EditorView,
-  link: { text: string; href: string; target: LinkTarget }
-) {
+export type LinkValue = { text: string; href: string; target: LinkTarget };
+
+function linkMarkdown(link: LinkValue): string {
   const annotation =
     link.target === "self" ? "" : `{{ target: '${link.target}' }}`;
-  const markdown = `[${link.text}](${link.href})${annotation}`;
+  return `[${link.text}](${link.href})${annotation}`;
+}
+
+export function insertLink(view: EditorView, link: LinkValue) {
+  const markdown = linkMarkdown(link);
   view.dispatch(
     view.state.changeByRange((range) => ({
       changes: { from: range.from, to: range.to, insert: markdown },
@@ -205,6 +208,112 @@ export function insertLink(
     }))
   );
   view.focus();
+}
+
+// Rewrites an existing link in place (cursor-anchored edit, ADR 0005).
+export function replaceLink(
+  view: EditorView,
+  range: { from: number; to: number },
+  link: LinkValue
+) {
+  const markdown = linkMarkdown(link);
+  view.dispatch({
+    changes: { from: range.from, to: range.to, insert: markdown },
+    selection: EditorSelection.cursor(range.from + markdown.length),
+  });
+  view.focus();
+}
+
+/* ---------------------------------------------------------------- *
+ * GFM tables. Cursor-anchored tools (ADR 0005): the strips rendered
+ * by cursor-tools.tsx call the commands below. All of them operate
+ * on the table around the main selection head.
+ * ---------------------------------------------------------------- */
+
+const TABLE_LINE = /^\s*\|/;
+const SEPARATOR_LINE = /^\s*\|?(\s*:?-+:?\s*\|)*\s*:?-+:?\s*\|?\s*$/;
+
+function isSeparator(text: string): boolean {
+  return TABLE_LINE.test(text) && SEPARATOR_LINE.test(text);
+}
+
+function splitRow(text: string): string[] {
+  let inner = text.trim();
+  if (inner.startsWith("|")) inner = inner.slice(1);
+  if (inner.endsWith("|")) inner = inner.slice(0, -1);
+  return inner.split("|").map((cell) => cell.trim());
+}
+
+function buildRow(cells: string[]): string {
+  return `| ${cells.join(" | ")} |`;
+}
+
+function alignmentOf(separatorCell: string): Alignment {
+  if (separatorCell.startsWith(":") && separatorCell.endsWith(":")) return "center";
+  if (separatorCell.endsWith(":")) return "right";
+  return "left";
+}
+
+function separatorCell(alignment: Alignment, width = 3): string {
+  if (alignment === "center") return `:${"-".repeat(Math.max(1, width - 2))}:`;
+  if (alignment === "right") return `${"-".repeat(Math.max(2, width - 1))}:`;
+  return "-".repeat(width);
+}
+
+export type TableContext = {
+  /** 1-based line numbers of the table block. */
+  first: number;
+  last: number;
+  /** 0-based index of the column the cursor is in. */
+  col: number;
+  /** Doc position of that column's first cell character on the header line. */
+  colHeaderPos: number;
+  onHeader: boolean;
+  onSeparator: boolean;
+  alignment: Alignment;
+};
+
+export function tableContext(state: EditorState): TableContext | null {
+  const { doc } = state;
+  const line = doc.lineAt(state.selection.main.head);
+  if (!TABLE_LINE.test(line.text)) return null;
+
+  let first = line.number;
+  let last = line.number;
+  while (first > 1 && TABLE_LINE.test(doc.line(first - 1).text)) first--;
+  while (last < doc.lines && TABLE_LINE.test(doc.line(last + 1).text)) last++;
+
+  const header = doc.line(first);
+  const cols = splitRow(header.text).length;
+  const offset = state.selection.main.head - line.from;
+  const pipesBefore = (line.text.slice(0, offset).match(/\|/g) ?? []).length;
+  const col = Math.min(Math.max(0, pipesBefore - 1), cols - 1);
+
+  // First cell character of column `col` on the header line.
+  let colHeaderPos = header.from;
+  let seen = -1;
+  for (let i = 0; i < header.text.length; i++) {
+    if (header.text[i] === "|" && ++seen === col) {
+      colHeaderPos = header.from + Math.min(i + 2, header.length);
+      break;
+    }
+  }
+
+  const separatorLine = first + 1 <= last ? doc.line(first + 1) : null;
+  const hasSeparator = separatorLine !== null && isSeparator(separatorLine.text);
+  const alignment = hasSeparator
+    ? alignmentOf(splitRow(separatorLine.text)[col] ?? "---")
+    : "left";
+
+  return {
+    first,
+    last,
+    col,
+    colHeaderPos,
+    onHeader: line.number === first,
+    onSeparator: isSeparator(line.text),
+    alignment,
+  };
 }
 
 const TABLE_SKELETON = [
@@ -223,58 +332,122 @@ export function insertTable(view: EditorView) {
   view.focus();
 }
 
-export function isInTable(view: EditorView): boolean {
-  const line = view.state.doc.lineAt(view.state.selection.main.head);
-  return line.text.trimStart().startsWith("|");
-}
-
-function tableLineRange(view: EditorView): { first: number; last: number } | null {
-  if (!isInTable(view)) return null;
-  const { doc } = view.state;
-  const current = doc.lineAt(view.state.selection.main.head).number;
-  let first = current;
-  let last = current;
-  while (first > 1 && doc.line(first - 1).text.trimStart().startsWith("|")) first--;
-  while (last < doc.lines && doc.line(last + 1).text.trimStart().startsWith("|")) last++;
-  return { first, last };
-}
-
-function columnCount(rowText: string): number {
-  return Math.max(1, rowText.split("|").length - 2);
-}
-
 export function addTableRow(view: EditorView) {
-  const table = tableLineRange(view);
+  const table = tableContext(view.state);
   if (!table) return;
-  const line = view.state.doc.lineAt(view.state.selection.main.head);
-  const cells = columnCount(view.state.doc.line(table.first).text);
-  const row = `|${"  |".repeat(cells)}`;
+  const { doc } = view.state;
+  // From the header (or its separator), the new row goes below the separator.
+  const afterNumber =
+    table.onHeader || table.onSeparator
+      ? Math.min(table.first + 1, table.last)
+      : doc.lineAt(view.state.selection.main.head).number;
+  const after = doc.line(afterNumber);
+  const cells = splitRow(doc.line(table.first).text).length;
+  const row = buildRow(Array(cells).fill(""));
   view.dispatch({
-    changes: { from: line.to, insert: `\n${row}` },
-    selection: { anchor: line.to + 3 },
+    changes: { from: after.to, insert: `\n${row}` },
+    selection: { anchor: after.to + 3 },
   });
   view.focus();
 }
 
-export function addTableColumn(view: EditorView) {
-  const table = tableLineRange(view);
-  if (!table) return;
-  const changes = [];
-  for (let n = table.first; n <= table.last; n++) {
-    const line = view.state.doc.line(n);
-    const isSeparator = /^\s*\|[\s|:-]+\|?\s*$/.test(line.text) && n === table.first + 1;
-    const cell = isSeparator ? " --- |" : "  |";
-    changes.push({ from: line.to, insert: line.text.trimEnd().endsWith("|") ? cell : ` |${cell}` });
-  }
-  view.dispatch({ changes });
-  view.focus();
-}
-
 export function deleteTableRow(view: EditorView) {
-  const table = tableLineRange(view);
-  if (!table) return;
+  const table = tableContext(view.state);
+  // Removing the header or the separator would dismantle the table.
+  if (!table || table.onHeader || table.onSeparator) return;
   const line = view.state.doc.lineAt(view.state.selection.main.head);
   const from = line.from === 0 ? 0 : line.from - 1;
   view.dispatch({ changes: { from, to: line.to, insert: "" } });
+  view.focus();
+}
+
+function replaceTableLines(
+  view: EditorView,
+  table: TableContext,
+  rebuild: (cells: string[], isSeparator: boolean) => string[] | null
+) {
+  const { doc } = view.state;
+  const changes = [];
+  for (let n = table.first; n <= table.last; n++) {
+    const line = doc.line(n);
+    const cells = rebuild(splitRow(line.text), isSeparator(line.text));
+    if (cells === null) continue;
+    changes.push({ from: line.from, to: line.to, insert: buildRow(cells) });
+  }
+  if (changes.length > 0) view.dispatch({ changes });
+  view.focus();
+}
+
+// Inserts to the right of the cursor's column.
+export function addTableColumn(view: EditorView) {
+  const table = tableContext(view.state);
+  if (!table) return;
+  replaceTableLines(view, table, (cells, separator) => {
+    const inserted = [...cells];
+    inserted.splice(table.col + 1, 0, separator ? "---" : "");
+    return inserted;
+  });
+}
+
+export function deleteTableColumn(view: EditorView) {
+  const table = tableContext(view.state);
+  if (!table) return;
+  const cols = splitRow(view.state.doc.line(table.first).text).length;
+  if (cols <= 1) return;
+  replaceTableLines(view, table, (cells) =>
+    cells.filter((_, index) => index !== table.col)
+  );
+}
+
+// Column alignment lives on the separator line: left → center → right → left.
+export function cycleColumnAlignment(view: EditorView) {
+  const table = tableContext(view.state);
+  if (!table || table.first + 1 > table.last) return;
+  const separator = view.state.doc.line(table.first + 1);
+  if (!isSeparator(separator.text)) return;
+  const cells = splitRow(separator.text);
+  const next: Record<Alignment, Alignment> = {
+    left: "center",
+    center: "right",
+    right: "left",
+  };
+  cells[table.col] = separatorCell(next[alignmentOf(cells[table.col] ?? "---")]);
+  view.dispatch({
+    changes: { from: separator.from, to: separator.to, insert: buildRow(cells) },
+  });
+  view.focus();
+}
+
+// "Reformater les pipes" (ADR 0005): pad every cell so the pipes of the
+// whole table line up vertically.
+export function reformatTable(view: EditorView) {
+  const table = tableContext(view.state);
+  if (!table) return;
+  const { doc } = view.state;
+
+  const rows: { cells: string[]; separator: boolean }[] = [];
+  for (let n = table.first; n <= table.last; n++) {
+    const text = doc.line(n).text;
+    rows.push({ cells: splitRow(text), separator: isSeparator(text) });
+  }
+  const cols = Math.max(...rows.map((row) => row.cells.length));
+  const widths = Array(cols).fill(3);
+  for (const row of rows) {
+    if (row.separator) continue;
+    row.cells.forEach((cell, index) => {
+      widths[index] = Math.max(widths[index], cell.length);
+    });
+  }
+  const changes = rows.map((row, index) => {
+    const line = doc.line(table.first + index);
+    const cells = Array.from({ length: cols }, (_, i) => {
+      if (row.separator) {
+        return separatorCell(alignmentOf(row.cells[i] ?? "---"), widths[i]);
+      }
+      return (row.cells[i] ?? "").padEnd(widths[i]);
+    });
+    return { from: line.from, to: line.to, insert: buildRow(cells) };
+  });
+  view.dispatch({ changes });
   view.focus();
 }

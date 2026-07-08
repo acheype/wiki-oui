@@ -19,16 +19,24 @@ const isExternal = (href: string) => /^https?:\/\//.test(href);
 
 // Link modal (ADR 0006): internal links are slug-relative, externals start
 // with http(s)://; the target can be the current tab, a new tab or a Dialog.
+// In "edit" mode (cursor-anchored link icon, ADR 0005) it rewrites an
+// existing link instead of inserting one.
 export function LinkDialog({
   open,
   onOpenChange,
+  mode = "insert",
   initialText,
+  initialHref = "",
+  initialTarget = "self",
   allSlugs,
   onInsert,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode?: "insert" | "edit";
   initialText: string;
+  initialHref?: string;
+  initialTarget?: LinkTarget;
   allSlugs: string[];
   onInsert: (link: { text: string; href: string; target: LinkTarget }) => void;
 }) {
@@ -36,12 +44,17 @@ export function LinkDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Insérer un lien</DialogTitle>
+          <DialogTitle>
+            {mode === "edit" ? "Modifier le lien" : "Insérer un lien"}
+          </DialogTitle>
         </DialogHeader>
         {/* Keyed on open so every opening starts from a fresh form. */}
         <LinkForm
           key={String(open)}
+          mode={mode}
           initialText={initialText}
+          initialHref={initialHref}
+          initialTarget={initialTarget}
           allSlugs={allSlugs}
           onCancel={() => onOpenChange(false)}
           onInsert={(link) => {
@@ -55,19 +68,25 @@ export function LinkDialog({
 }
 
 function LinkForm({
+  mode,
   initialText,
+  initialHref,
+  initialTarget,
   allSlugs,
   onCancel,
   onInsert,
 }: {
+  mode: "insert" | "edit";
   initialText: string;
+  initialHref: string;
+  initialTarget: LinkTarget;
   allSlugs: string[];
   onCancel: () => void;
   onInsert: (link: { text: string; href: string; target: LinkTarget }) => void;
 }) {
   const [text, setText] = useState(initialText);
-  const [href, setHref] = useState("");
-  const [target, setTarget] = useState<LinkTarget>("self");
+  const [href, setHref] = useState(initialHref);
+  const [target, setTarget] = useState<LinkTarget>(initialTarget);
 
   const suggestions = useMemo(() => {
     const query = href.trim().toLowerCase();
@@ -154,7 +173,7 @@ function LinkForm({
           Annuler
         </Button>
         <Button type="submit" disabled={!canInsert}>
-          Insérer le lien
+          {mode === "edit" ? "Modifier" : "Insérer le lien"}
         </Button>
       </DialogFooter>
     </form>
