@@ -21,7 +21,7 @@ Une action qui modifie la base et ne rend **aucune vue** : sauvegarder, supprime
 _Avoid_: Handler (pour une mutation), endpoint
 
 **Révision**:
-Un instantané complet du contenu d'une page à un instant donné, avec son auteur et sa date. Chaque sauvegarde crée une nouvelle révision ; l'historique est la suite des révisions d'une page. (Les tags ne sont pas historisés : ils vivent sur la Page.)
+Un instantané complet du contenu d'une page à un instant donné, avec son auteur et sa date. Chaque sauvegarde qui change le contenu crée une nouvelle révision — enregistrer un contenu identique n'écrit rien ; l'historique est la suite des révisions d'une page. (Les tags ne sont pas historisés : ils vivent sur la Page et se mettent à jour sans révision.)
 _Avoid_: Version (comme table), historique (pour une entrée)
 
 **Révision courante**:

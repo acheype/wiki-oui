@@ -10,35 +10,55 @@ import { specialSlugs, wikiConfig } from "@/wiki.config";
 const AUTHOR = "Anonyme";
 
 export type ActionError = { error: string };
+export type SaveResult = ActionError | { unchanged: true } | void;
 
 function normalizeTags(tags: string[]): string[] {
   return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
+}
+
+function sameTags(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((tag, index) => tag === b[index]);
 }
 
 export async function savePage(input: {
   slug: string;
   content: string;
   tags: string[];
-}): Promise<ActionError | void> {
+}): Promise<SaveResult> {
   const { slug, content } = input;
   if (!isValidSlug(slug)) {
     return { error: `Slug invalide : « ${slug} »` };
   }
   const tags = normalizeTags(input.tags);
 
-  await prisma.$transaction(async (tx) => {
-    const page =
-      (await tx.page.findUnique({ where: { slug } })) ??
-      (await tx.page.create({ data: { slug, ownerName: AUTHOR } }));
-
-    const revision = await tx.revision.create({
-      data: { pageId: page.id, content, authorName: AUTHOR },
-    });
-    await tx.page.update({
-      where: { id: page.id },
-      data: { currentRevisionId: revision.id, tags },
-    });
+  const existing = await prisma.page.findUnique({
+    where: { slug },
+    include: { current: true },
   });
+
+  // Saving identical content must not grow the history (revisions are the
+  // content's history, ADR 0003). Nothing changed at all: tell the caller.
+  // Tags-only change: update the page — tags live outside revisions
+  // (ADR 0007), so none is minted.
+  if (existing && existing.current?.content === content) {
+    if (sameTags(existing.tags, tags)) {
+      return { unchanged: true };
+    }
+    await prisma.page.update({ where: { id: existing.id }, data: { tags } });
+  } else {
+    await prisma.$transaction(async (tx) => {
+      const page =
+        existing ?? (await tx.page.create({ data: { slug, ownerName: AUTHOR } }));
+
+      const revision = await tx.revision.create({
+        data: { pageId: page.id, content, authorName: AUTHOR },
+      });
+      await tx.page.update({
+        where: { id: page.id },
+        data: { currentRevisionId: revision.id, tags },
+      });
+    });
+  }
 
   // Any page can feed the layout (menu, title…), so revalidate the whole tree.
   revalidatePath("/", "layout");

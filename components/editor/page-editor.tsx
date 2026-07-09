@@ -3,6 +3,7 @@
 import type { EditorView } from "@codemirror/view";
 import { Loader2, Save, Tag } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { savePage } from "@/app/actions";
@@ -41,6 +42,7 @@ export function PageEditor({
   allSlugs: string[];
   isNew: boolean;
 }) {
+  const router = useRouter();
   const viewRef = useRef<EditorView | null>(null);
   const [tags, setTags] = useState(initialTags);
   const [linkDialog, setLinkDialog] = useState(closedLinkDialog);
@@ -63,8 +65,13 @@ export function PageEditor({
     const content = viewRef.current?.state.doc.toString() ?? initialContent;
     startTransition(async () => {
       const result = await savePage({ slug, content, tags });
-      if (result?.error) {
+      if (result && "error" in result) {
         toast.error(result.error);
+      } else if (result && "unchanged" in result) {
+        // Back to the show page anyway: the toast outlives the navigation
+        // (the Toaster lives in the root layout).
+        toast.info("Aucune modification : la page est déjà à jour.");
+        router.push(`/${slug}`);
       }
     });
   }
