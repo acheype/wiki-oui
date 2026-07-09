@@ -24,6 +24,8 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 
 <Menu>
 - [Accueil](page-principale)
+- Aide
+  - [Aide-mémoire](aide-memoire)
 </Menu>
 `,
 
