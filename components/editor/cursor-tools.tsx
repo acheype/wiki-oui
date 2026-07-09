@@ -80,7 +80,10 @@ export function linkAtCursor(state: EditorState): LinkInfo | null {
   return null;
 }
 
-function ToolButton({
+// Deliberately not the toolbar's ToolButton: the strips render in a detached
+// React root where the Radix TooltipProvider is out of reach, so the label is
+// a native title and the look comes from the .cm-wiki-strip CSS.
+function StripButton({
   label,
   onClick,
   children,
@@ -141,9 +144,9 @@ function computeTooltips(
       create: () =>
         reactTooltip(
           "",
-          <ToolButton label="Modifier le lien" onClick={() => onEditLink(link)}>
+          <StripButton label="Modifier le lien" onClick={() => onEditLink(link)}>
             <Pencil />
-          </ToolButton>
+          </StripButton>
         ),
     });
   }
@@ -162,24 +165,24 @@ function computeTooltips(
         reactTooltip(
           "",
           <>
-            <ToolButton
+            <StripButton
               label="Ajouter une colonne (à droite)"
               onClick={() => addTableColumn(view)}
             >
               <Plus />
-            </ToolButton>
-            <ToolButton
+            </StripButton>
+            <StripButton
               label="Supprimer la colonne"
               onClick={() => deleteTableColumn(view)}
             >
               <Minus />
-            </ToolButton>
-            <ToolButton
+            </StripButton>
+            <StripButton
               label={`Alignement de la colonne : ${ALIGNMENT_LABELS[table.alignment]}`}
               onClick={() => cycleColumnAlignment(view)}
             >
               {ALIGNMENT_ICONS[table.alignment]}
-            </ToolButton>
+            </StripButton>
           </>
         ),
     });
@@ -191,12 +194,12 @@ function computeTooltips(
       create: (view: EditorView) =>
         reactTooltip(
           "cm-wiki-strip-corner",
-          <ToolButton
+          <StripButton
             label="Reformater le tableau (aligner les pipes)"
             onClick={() => reformatTable(view)}
           >
             <AlignHorizontalDistributeCenter />
-          </ToolButton>
+          </StripButton>
         ),
     });
 
@@ -208,18 +211,18 @@ function computeTooltips(
         reactTooltip(
           "cm-wiki-strip-left",
           <>
-            <ToolButton
+            <StripButton
               label="Ajouter une ligne (en dessous)"
               onClick={() => addTableRow(view)}
             >
               <Plus />
-            </ToolButton>
-            <ToolButton
+            </StripButton>
+            <StripButton
               label="Supprimer la ligne"
               onClick={() => deleteTableRow(view)}
             >
               <Minus />
-            </ToolButton>
+            </StripButton>
           </>
         ),
     });

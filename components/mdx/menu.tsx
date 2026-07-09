@@ -96,7 +96,7 @@ const barItemClass =
   "rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground";
 
 // Reuses the element the registry produced, just restyled for the bar.
-function styled(node: ReactNode, className: string): ReactNode {
+function restyleWikiLink(node: ReactNode, className: string): ReactNode {
   if (isWikiLinkElement(node)) {
     return cloneElement(node, {
       className: cn(className, node.props.className),
@@ -128,7 +128,7 @@ function LeafItem({ item }: { item: MenuItem }) {
   const [node] = item.label;
   if (item.label.length === 1) {
     if (isBoutonElement(node)) return node;
-    if (isWikiLinkElement(node)) return styled(node, barItemClass);
+    if (isWikiLinkElement(node)) return restyleWikiLink(node, barItemClass);
   }
   return <span className={cn(barItemClass, "hover:bg-transparent")}>{item.label}</span>;
 }
@@ -191,7 +191,7 @@ function DropdownTrigger({
   // label also takes this branch: it may render interactive markup, which
   // must not be nested inside the <button> below (invalid HTML).
   if (item.navigates || item.label.some(isComponentElement)) {
-    const trigger = isBouton ? node : styled(node, barItemClass);
+    const trigger = isBouton ? node : restyleWikiLink(node, barItemClass);
     return (
       <span
         className="flex items-center"
