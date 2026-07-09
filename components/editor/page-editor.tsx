@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { savePage } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { CodeMirrorEditor } from "./codemirror-editor";
-import { insertLink, replaceLink, type LinkTarget } from "./commands";
+import { insertLink, replaceLink, type LinkValue } from "./commands";
 import { cursorTools, type LinkInfo } from "./cursor-tools";
 import { LinkDialog } from "./link-dialog";
 import { TagsInput } from "./tags-input";
@@ -17,9 +17,7 @@ import { EditorToolbar } from "./toolbar";
 type LinkDialogState = {
   open: boolean;
   mode: "insert" | "edit";
-  text: string;
-  href: string;
-  target: LinkTarget;
+  value: LinkValue;
   /** Range of the link being edited; absent in insert mode. */
   range?: { from: number; to: number };
 };
@@ -27,9 +25,7 @@ type LinkDialogState = {
 const closedLinkDialog: LinkDialogState = {
   open: false,
   mode: "insert",
-  text: "",
-  href: "",
-  target: "self",
+  value: { text: "", href: "", target: "self" },
 };
 
 export function PageEditor({
@@ -57,9 +53,7 @@ export function PageEditor({
       setLinkDialog({
         open: true,
         mode: "edit",
-        text: info.text,
-        href: info.href,
-        target: info.target,
+        value: { text: info.text, href: info.href, target: info.target },
         range: { from: info.from, to: info.to },
       })
     ),
@@ -93,7 +87,11 @@ export function PageEditor({
       <EditorToolbar
         viewRef={viewRef}
         onRequestLink={(selectionText) =>
-          setLinkDialog({ ...closedLinkDialog, open: true, text: selectionText })
+          setLinkDialog({
+            ...closedLinkDialog,
+            open: true,
+            value: { ...closedLinkDialog.value, text: selectionText },
+          })
         }
       />
 
@@ -114,9 +112,7 @@ export function PageEditor({
           setLinkDialog(open ? linkDialog : { ...linkDialog, open: false })
         }
         mode={linkDialog.mode}
-        initialText={linkDialog.text}
-        initialHref={linkDialog.href}
-        initialTarget={linkDialog.target}
+        initial={linkDialog.value}
         allSlugs={allSlugs}
         onInsert={(link) => {
           if (!viewRef.current) return;

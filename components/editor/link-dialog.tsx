@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { LinkTarget } from "./commands";
+import type { LinkTarget, LinkValue } from "./commands";
 
 const isExternal = (href: string) => /^https?:\/\//.test(href);
 
@@ -25,20 +25,16 @@ export function LinkDialog({
   open,
   onOpenChange,
   mode = "insert",
-  initialText,
-  initialHref = "",
-  initialTarget = "self",
+  initial,
   allSlugs,
   onInsert,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode?: "insert" | "edit";
-  initialText: string;
-  initialHref?: string;
-  initialTarget?: LinkTarget;
+  initial: LinkValue;
   allSlugs: string[];
-  onInsert: (link: { text: string; href: string; target: LinkTarget }) => void;
+  onInsert: (link: LinkValue) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -52,9 +48,7 @@ export function LinkDialog({
         <LinkForm
           key={String(open)}
           mode={mode}
-          initialText={initialText}
-          initialHref={initialHref}
-          initialTarget={initialTarget}
+          initial={initial}
           allSlugs={allSlugs}
           onCancel={() => onOpenChange(false)}
           onInsert={(link) => {
@@ -69,24 +63,20 @@ export function LinkDialog({
 
 function LinkForm({
   mode,
-  initialText,
-  initialHref,
-  initialTarget,
+  initial,
   allSlugs,
   onCancel,
   onInsert,
 }: {
   mode: "insert" | "edit";
-  initialText: string;
-  initialHref: string;
-  initialTarget: LinkTarget;
+  initial: LinkValue;
   allSlugs: string[];
   onCancel: () => void;
-  onInsert: (link: { text: string; href: string; target: LinkTarget }) => void;
+  onInsert: (link: LinkValue) => void;
 }) {
-  const [text, setText] = useState(initialText);
-  const [href, setHref] = useState(initialHref);
-  const [target, setTarget] = useState<LinkTarget>(initialTarget);
+  const [text, setText] = useState(initial.text);
+  const [href, setHref] = useState(initial.href);
+  const [target, setTarget] = useState<LinkTarget>(initial.target);
 
   const suggestions = useMemo(() => {
     const query = href.trim().toLowerCase();
