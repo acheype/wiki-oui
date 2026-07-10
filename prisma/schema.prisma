@@ -8,29 +8,29 @@ datasource db {
 }
 
 model Page {
-  id        String   @id @default(cuid())
+  id String @id @default(uuid(7)) @db.Uuid
   slug      String   @unique
   tags      String[] // Postgres text[] (ADR 0007)
   ownerName String? // "Anonyme" until auth lands; becomes a User FK later
   createdAt DateTime @default(now())
 
-  currentRevisionId String?   @unique // current-revision pointer (ADR 0003)
+  currentRevisionId String?   @unique @db.Uuid // current-revision pointer (ADR 0003)
   current           Revision? @relation("PageCurrent", fields: [currentRevisionId], references: [id])
 
   revisions Revision[] @relation("PageRevisions")
 }
 
 model Revision {
-  id         String   @id @default(cuid())
+  id String @id @default(uuid(7)) @db.Uuid
   content    String // full MDX snapshot, not a delta
   authorName String? // "Anonyme" until auth lands
   createdAt  DateTime @default(now())
 
-  pageId String
+  pageId String @db.Uuid
   page   Page   @relation("PageRevisions", fields: [pageId], references: [id], onDelete: Cascade)
 
   // History label for restores; SetNull so it never blocks a page's hard-delete cascade.
-  restoredFromId String?
+  restoredFromId String? @db.Uuid
   restoredFrom   Revision?  @relation("RestoredFrom", fields: [restoredFromId], references: [id], onDelete: SetNull)
   restoredInto   Revision[] @relation("RestoredFrom")
 

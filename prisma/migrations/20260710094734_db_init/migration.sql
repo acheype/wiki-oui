@@ -1,23 +1,23 @@
 -- CreateTable
 CREATE TABLE "Page" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "slug" TEXT NOT NULL,
     "tags" TEXT[],
     "ownerName" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "currentRevisionId" TEXT,
+    "currentRevisionId" UUID,
 
     CONSTRAINT "Page_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Revision" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL,
     "content" TEXT NOT NULL,
     "authorName" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "pageId" TEXT NOT NULL,
-    "restoredFromId" TEXT,
+    "pageId" UUID NOT NULL,
+    "restoredFromId" UUID,
 
     CONSTRAINT "Revision_pkey" PRIMARY KEY ("id")
 );

@@ -17,27 +17,34 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 - La syntaxe est résumée dans l'[aide-mémoire](aide-memoire).
 `,
 
-  [wikiConfig.layoutPages.titre]: `WikiOui
+  [wikiConfig.layoutPages.title]: `WikiOui
 `,
 
-  [wikiConfig.layoutPages.menuHaut]: `{/* Une liste imbriquée dans <Menu> devient un menu à plusieurs niveaux (voir l'aide-mémoire). */}
+  [wikiConfig.layoutPages.topMenu]: `{/* Une liste imbriquée dans <Menu> devient un menu à plusieurs niveaux (voir l'aide-mémoire).
+   Menu d'exemple à adapter : les pages liées n'existent pas encore — cliquer dessus propose de les créer. */}
 
 <Menu>
-- [Accueil](page-principale)
-- Aide
-  - [Aide-mémoire](aide-memoire)
+- L'association
+  - [Présentation](presentation)
+  - [L'équipe](equipe)
+  - Documents
+    - [Statuts](statuts)
+    - [Comptes rendus](comptes-rendus)
+- Activités
+  - [Agenda](agenda)
+  - [Ateliers](ateliers)
+  - [Sorties nature](sorties-nature)
+- [Contact](contact)
 </Menu>
 `,
 
-  [wikiConfig.layoutPages.rapideHaut]: `[Accueil](page-principale) · [Aide-mémoire](aide-memoire)
-
-<Menu>
-- <Bouton icone="roue" texte="Configuration" />
-  - [Titre du site](page-titre)
-  - [Menu principal](page-menu-haut)
-  - [Accès rapide](page-rapide-haut)
-  - [Bandeau](page-header)
-  - [Pied de page](page-footer)
+  [wikiConfig.layoutPages.topQuickAccess]: `<Menu>
+  - <Button icon="roue"/>
+    - [Titre du site](page-titre)
+    - [Menu principal](page-menu-haut)
+    - [Accès rapide](page-rapide-haut)
+    - [Bandeau](page-header)
+    - [Pied de page](page-footer)
 </Menu>
 `,
 
@@ -90,8 +97,8 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 
 ## Composants
 
-- Menu de navigation : une liste imbriquée entre \`<Menu>\` et \`</Menu>\` devient un menu à plusieurs niveaux. Un item est un texte, un lien ou un \`<Bouton>\`.
-- Bouton : \`<Bouton icone="roue" texte="Configuration" lien="ma-page" />\` — icônes disponibles : roue, maison, aide, crayon, page, calendrier, etoile, utilisateur.
+- Menu de navigation : une liste imbriquée entre \`<Menu>\` et \`</Menu>\` devient un menu à plusieurs niveaux. Un item est un texte, un lien ou un \`<Button>\`.
+- Bouton : \`<Button icon="roue" text="Configuration" link="ma-page" />\` — icônes disponibles : roue, maison, aide, crayon, page, calendrier, etoile, utilisateur.
 
 \`\`\`
 <Menu>
