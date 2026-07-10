@@ -1,4 +1,4 @@
-# WikiOui — Synthèse de conception (MVP)
+# WikiOui — Synthèse de conception
 
 WikiOui est un moteur de wiki : des sites collaboratifs dont chaque page est écrite en MDX et éditable en ligne. Refonte de YesWiki sur une stack moderne. **L'ergonomie est prioritaire** (composants beaux, fluides, ergonomiques).
 
@@ -8,22 +8,61 @@ Glossaire du domaine : [`../CONTEXT.md`](../CONTEXT.md).
 
 Next.js (App Router) · Prisma · PostgreSQL · shadcn/ui · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **pnpm**.
 
-## Périmètre MVP
+## v0.1 — MVP (état actuel)
 
-**Inclus** : CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `edit`, `revisions` · rendu MDX bridé · composants intégrés `<Menu>` (liste imbriquée → menu multi-niveaux, ADR 0010) et `<Button>` · historique (toutes révisions) + diff + restauration · pages spéciales de layout (roue crantée de `page-rapide-haut` vers les pages de configuration du layout) · éditeur riche CodeMirror (barre d'outils markdown, listes de tâches, modale de lien, outils contextuels ancrés au curseur : édition de lien, tableaux) · double-clic sur le contenu pour éditer · tags · suppression dure.
+CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `edit`, `revisions` · rendu MDX bridé · composants intégrés `<Menu>` (liste imbriquée → menu multi-niveaux, ADR 0010) et `<Button>` · historique (toutes révisions) + diff + restauration · pages spéciales de layout (roue crantée de `page-rapide-haut` vers les pages de configuration du layout) · éditeur riche CodeMirror (barre d'outils markdown, listes de tâches, modale de lien, outils contextuels ancrés au curseur : édition de lien, tableaux) · double-clic sur le contenu pour éditer · tags · "hard delete" (suppression définitive).
 
-**Backlog** (le domaine les accueille déjà) : upload de fichiers · système d'authoring de composants (menu « Composants », modales générées depuis YAML, sélecteur d'icônes Iconify) · pages d'administration (Tableau de bord, Documentation, Gestion du site, Formulaire — rejoindront le menu roue crantée par édition de `page-rapide-haut`) · droits d'accès & authentification · durcissement du sandbox (neutralisation des expressions JS) · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud.
+## v0.2 — Upload de fichiers & authoring de composants
+
+### Upload de fichiers
+
+**Trois portes, un pipeline** : bouton **Uploader** de la barre d'outils · **drag & drop** dans l'éditeur (insertion à la position du pointeur au moment du drop) · **collage** (fichier copié ou capture d'écran ; nom généré `capture-AAAA-MM-JJ.png` si le presse-papier est anonyme). Un fichier à la fois — plusieurs fichiers ou un dossier → toast clair. Le fichier part vers `POST /api/files` pendant que la modale affiche nom, taille et **progression d'envoi** (service d'API + `xhr.upload.onprogress` : une Server Action ne sait pas exposer la progression — ADR 0012). Puis selon la **famille** du fichier :
+
+- **image** → `<Image>` : alignement (texte en dessous, gauche, centre, droite), taille (originale ou spécifiée), texte alternatif pour les personnes malvoyantes ; en paramètres avancés : lien web associé au clic · effets graphiques (bord blanc, ombre portée, agrandissement au survol) · clic sur l'image pour l'afficher en grand dans une modale · texte affiché au survol ;
+- **pdf** → mini-choix « intégrer le contenu dans la page » (`<Pdf>`) ou « insérer un lien de téléchargement » (`<FileLink>`) ;
+- **other** → `<FileLink>` : un lien de téléchargement affichant le nom et la taille du fichier ; champs : texte du lien, texte alternatif.
+
+Annuler la modale **juste après l'upload qui a créé le fichier** supprime le fichier (toast « rien n'a été conservé ») ; annuler une réédition ou une insertion depuis le menu ne supprime jamais rien.
+
+**Stockage** (ADR 0012) : répertoire `files/` à la racine — **le répertoire fait foi**, pas de table Prisma ; noms slugifiés, collision → suffixe numérique ; orphelins conservés (bibliothèque du wiki) ; accès via `lib/files.ts` (adaptateur S3 enfichable au backlog). Service par `GET /api/files/[name]` avec `nosniff` partout, `CSP: sandbox` sur les svg, `Content-Disposition: attachment` sur la famille `other` — seul le segment `api` est réservé, il regroupe tous les services d'API.
+
+**Configuration** (`wiki.config.ts`) : `upload.maxFileSize` (défaut 10 Mo), `upload.maxImageSize` (défaut 2 Mo), `upload.allowedExtensions` groupées **par famille** — la famille route vers le bon composant et filtre les combobox `file-list`. Par défaut : **image** = jpg, jpeg, png, gif, webp, avif, bmp, tif, svg ; **pdf** = pdf ; **other** = aiff, anx, axa, axv, asf, avi, flac, flv, json, geojson, mid, mng, mka, mkv, mov, mp3, mp4, mpg, mscz, oga, ogg, ogv, ogx, qt, ra, ram, rm, spx, swf, wav, wmv, 3gp, abw, ai, bz2, bin, blend, c, cls, css, csv, deb, doc, docx, djvu, dvi, eps, gz, h, kml, kmz, md, mm, pas, pgn, ppt, pptx, ps, psd, pub, rpm, rtf, sdd, sdw, sit, sty, sxc, sxi, sxw, tex, tgz, torrent, ttf, txt, xcf, xspf, xls, xlsx, xlsm, yaml, zip, scar, odt, ods, odp, odg, odc, odf, odb, odi, odm, ott, ots, otp, otg.
+
+### Authoring de composants (ComponentBuilder)
+
+Les composants sont des composants MDX placés dans `/components/wiki` (autodécouverts par le registre, ADR 0002). Un composant doté d'un **descripteur YAML co-localisé** (ex. `button.yaml`) apparaît dans le menu « Composants » de l'éditeur ; le sélectionner ouvre son **ComponentBuilder** : une modale de paramétrage **autogénérée** en lisant le composant + son descripteur — aperçu du rendu en haut, champs en dessous (les champs `advanced` derrière « paramètres avancés »). L'aperçu est produit par le **vrai pipeline** (`renderMdx`) via le service d'API `POST /api/render` (debounce, iframe `srcdoc`, hauteur `previewHeight`) : ce que montre l'aperçu est ce que la page rendra, erreurs comprises. Spécification du ComponentBuilder et du YAML : [`component-builder.md`](component-builder.md) (avec table de traduction depuis le format YesWiki, [`reference/yeswiki-actions-builder.md`](reference/yeswiki-actions-builder.md)).
+
+Exemple du bouton : texte · lien (web ou nom d'une page du wiki) · texte affiché au survol · icône via le **sélecteur d'icônes Iconify** · couleur (défaut, primaire, secondaire 1, secondaire 2, succès, info, attention, danger, lien) · ouverture du contenu du lien dans une popup (au clic ou au survol) · position (par défaut, droite, toute la largeur) · ouvrir dans une nouvelle fenêtre (oui/non). (Pas d'équivalent au `nobtn` YesWiki : un bouton ne se rend pas en lien, les composants ne se mélangent pas.)
+
+**Icônes (type `icon`)** : jeux Iconify **embarqués** — données `@iconify-json/{set}` installées par paquet, exposées via `icons.sets` dans la config (défaut : `lucide`, celui de l'UI), rendu **SVG inline côté serveur** (`@iconify/utils`) : zéro appel réseau à l'exécution, intranet et RGPD sereins. La prop stocke l'identifiant Iconify (`icon="lucide:settings"`). Le sélecteur (grille + recherche) cherche dans les jeux embarqués ; noms et tags Iconify étant anglophones, un avertissement discret le signale dans l'interface (lexique français de synonymes : backlog). Pas de rétrocompatibilité avec les noms français du MVP (`roue`, `maison`…) : la map de `button.tsx` disparaît, le seed migre (`icon="lucide:settings"`).
+
+L'insertion se fait au curseur depuis le menu « Composants » de la barre d'outils (dropdown des `label`, tri alphabétique) ; la **réédition** suit le motif des outils ancrés de la v0.1 : curseur dans une balise de composant → crayon flottant → builder pré-rempli (mapping inverse), balise réécrite en place. Pas de crayon sur une balise malformée ou sans descripteur.
+
+Composants couverts en v0.2 — tous au menu « Composants » (insertion et réédition toujours symétriques ; les champs fichier sont des combobox `file-list` des fichiers uploadés) :
+
+- **`Button`** — le bouton intégré ;
+- **`Image`** — affichage d'une image uploadée ;
+- **`Pdf`** — affiche dans la page le contenu d'un PDF via le lecteur intégré du navigateur ;
+- **`FileLink`** — lien de téléchargement d'un fichier uploadé (nom, taille, progression).
+
+Les YAML actuels de `/components/wiki` sont des copies YesWiki de référence, à réécrire dans la spec WikiOui.
+
+**Cas particulier `wiki-link`** : sa modale de paramétrage existe déjà dans le MVP, codée à la main. En v0.2 elle est reconstruite sur le moteur ComponentBuilder avec son propre descripteur `components/wiki/wiki-link.yaml` (champs : texte, cible `page-list`, ouverture). Sa **cible de sérialisation** diffère : il émet un lien markdown `[texte](cible){{ target: '…' }}` (ADR 0006), pas une balise JSX — c'est ce qui le tient hors du menu « Composants ». Ses portes d'entrée : le bouton « Ajouter un lien » de la barre d'outils et le bouton flottant d'édition de lien ancré au curseur.
+
+## Backlog (sans version prévue)
+
+Pages d'administration (Tableau de bord, Documentation, Gestion du site, Formulaire — rejoindront le menu roue crantée par édition de `page-rapide-haut`) · droits d'accès & authentification · durcissement du sandbox (neutralisation des expressions JS) · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud.
 
 ## Architecture en un coup d'œil
 
 - **Routing** (ADR 0001) : les handlers sont des routes Next natives. `app/[slug]/page.tsx` = `show` ; `app/[slug]/edit/page.tsx`, `app/[slug]/revisions/page.tsx`. `/` redirige vers `/page-principale` (`redirects()`). Slug : `^[a-z0-9]+(?:-[a-z0-9]+)*$`, minuscules (majuscules redirigées), tapé dans l'URL (pas de titre séparé).
-- **Handler vs Mutation** : un handler *affiche* une vue (URL). Sauvegarder / supprimer / restaurer sont des **Server Actions** (pas d'URL).
-- **Rendu** (ADR 0002) : MDX bridé. Registre de composants = `/components` + config. `import`/`export` désactivés dès le MVP ; neutralisation des expressions JS ajoutée avec l'auth. Composants intégrés (`<Menu>`, `<Button>`) présents dès le MVP ; l'*authoring* est au backlog. `<Menu>` est piloté par la liste imbriquée écrite entre ses balises (ADR 0010).
+- **Handler de page vs Mutation vs Service d'API** : un handler de page *affiche* une vue (`/{slug}/{handler}`) ; sauvegarder / supprimer / restaurer sont des **Server Actions** (pas d'URL) ; les **Services d'API** (`route.ts`, sous le segment réservé `/api`) servent le code — `GET /api/files/[name]`, `POST /api/files` (mutation portée par un service : la progression d'upload, ADR 0012), `POST /api/render` (aperçu du ComponentBuilder).
+- **Rendu** (ADR 0002) : MDX bridé. Registre de composants = `/components/wiki` (autodécouverte) + config. `import`/`export` désactivés dès le MVP ; neutralisation des expressions JS ajoutée avec l'auth. Composants intégrés (`<Menu>`, `<Button>`) présents dès le MVP ; l'*authoring* (ComponentBuilder) arrive en v0.2. `<Menu>` est piloté par la liste imbriquée écrite entre ses balises (ADR 0010).
 - **Éditeur** (ADR 0005) : CodeMirror 6, édition de source MDX colorée. Barre d'outils : gras, italique, barré, titres, listes (puces/numérotée/tâches), citation, code, ligne horizontale, alignement (classe Tailwind), commentaire (`{/* */}`), lien (modale), insertion de tableau, aide-mémoire. Pas de souligné. UI contextuelle **ancrée au curseur** (tooltips CodeMirror) : icône de modification de lien, opérations de tableau positionnées spatialement (colonne en haut, ligne à gauche, reformatage au coin). Double-clic sur le contenu du `show` → édition.
-- **Liens** (ADR 0006) : liens wiki en relatif par slug (`[texte](ma-page)`) ; externes en `http(s)://`. Modale de lien : cible onglet courant / nouvel onglet / **fenêtre modale** (Dialog ; avertissement si URL externe). Autocomplétion des pages.
+- **Liens** (ADR 0006) : liens wiki en relatif par slug (`[texte](ma-page)`) ; externes en `http(s)://`. Modale de lien : cible onglet courant / nouvel onglet / **fenêtre modale** (Dialog ; avertissement si URL externe). Autocomplétion des pages. En v0.2, cette modale devient un ComponentBuilder généré depuis `components/wiki/wiki-link.yaml`, à sérialisation markdown.
 - **Pages spéciales** : slug réservé, seedées, non supprimables mais éditables — les 5 de layout, `page-principale`, `aide-memoire`.
 - **Historique** (ADR 0009) : pleine page, timeline horizontale (récente à droite), toutes les révisions. 3 vues : *Aperçu* (checkbox rendu ↔ code), *Modifications* (diff MDX vs précédente), *Différence avec la courante* (diff MDX). Diffs sur le source uniquement.
-- **Config** (ADR 0004) : `wiki.config.ts` typé (slugs des pages spéciales, slug d'accueil, plus tard composants/upload).
+- **Config** (ADR 0004) : `wiki.config.ts` typé (slugs des pages spéciales, slug d'accueil ; en v0.2 : `upload.*` — tailles limites et extensions par famille, `icons.sets` — jeux Iconify exposés, composants déclarés hors `/components/wiki`).
 
 ## Schéma Prisma cible
 
@@ -43,6 +82,8 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 8. [Suppression dure](adr/0008-hard-delete.md)
 9. [Historique : pleine page, diffs sur le source](adr/0009-revisions-view.md)
 10. [Menu piloté par liste imbriquée MDX](adr/0010-menu-authored-nested-list.md)
+11. [Classes utilitaires auteurs = liste blanche safelistée](adr/0011-author-utility-classes-safelist.md)
+12. [Fichiers uploadés : le répertoire `files/` fait foi](adr/0012-files-directory-is-source-of-truth.md)
 
 ## Points validés avant code
 

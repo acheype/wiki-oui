@@ -1,0 +1,140 @@
+# ComponentBuilder (spec WikiOui)
+
+Le **ComponentBuilder** est l'interface de paramétrage autogénérée d'un composant (voir [`../CONTEXT.md`](../CONTEXT.md)) : la modale qui permet d'insérer le composant dans une page et de rééditer une occurrence existante — aperçu du rendu en haut, champs en dessous. Ce document spécifie comment elle est construite, à partir de deux sources :
+
+- le **descripteur** : le fichier YAML co-localisé avec le composant (`components/wiki/button.yaml` à côté de `button.tsx`), qui décrit les champs de la modale, leurs types et leur visibilité conditionnelle ;
+- le **composant `.tsx`** lui-même, qui fournit l'aperçu et les valeurs par défaut de ses props.
+
+Le descripteur ne joue **jamais** sur l'autorisation de rendu (ADR 0002) : sa présence ajoute le composant au menu « Composants » de l'éditeur, rien d'autre.
+
+Le format du descripteur s'inspire de l'Actions Builder de YesWiki ([`reference/yeswiki-actions-builder.md`](reference/yeswiki-actions-builder.md)) ; la table de traduction en fin de document récapitule tous les écarts.
+
+## Le descripteur
+
+**Un YAML = un composant.** Pas de groupes d'actions : le nom du composant vient du nom de fichier (`button.yaml` → `<Button>`), et tous les champs vivent dans un seul bloc `properties`.
+
+```yaml
+label: Bouton                       # nom affiché dans le menu « Composants »
+description: Créer un bouton cliquable
+previewHeight: 100px                # hauteur de la zone d'aperçu de la modale
+properties:
+  text:
+    label: Texte du bouton
+    type: text
+    value: Mon bouton               # pré-remplissage à l'insertion (toujours écrit)
+  link:
+    label: Lien web ou nom d'une page de ce wiki
+    hint: Si lien web, n'oubliez pas le "https://"
+    type: page-list
+    required: true
+  color:
+    label: Couleur
+    type: list
+    options:
+      default: Défaut
+      primary: Primaire
+      success: Succès
+  newWindow:
+    label: Ouvrir dans une nouvelle fenêtre
+    type: checkbox
+    advanced: true                  # masqué derrière « paramètres avancés »
+```
+
+Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase anglais). Le ComponentBuilder génère du MDX : `<Button text="Mon bouton" link="ma-page" color="success" newWindow />`.
+
+### Attributs d'un champ
+
+| Clé | Rôle |
+|---|---|
+| `label` | Libellé du champ (français en clair — l'i18n est au backlog) |
+| `hint` | Indication affichée sous le champ |
+| `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `page-list` · `file-list` · `divider` |
+| `options` | Pour `list` : map `valeur: libellé` (la valeur est celle écrite dans la prop) |
+| `value` | Pré-remplissage à l'insertion ; la prop est **toujours** écrite, même inchangée |
+| `required` | Le champ doit être renseigné pour valider la modale |
+| `advanced` | Masqué tant que « paramètres avancés » n'est pas déplié |
+| `showif` | Visibilité conditionnelle (voir ci-dessous) |
+
+Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
+
+### Insertion et réédition : toujours symétriques
+
+Tout composant à descripteur est **insérable** depuis le menu « Composants » et **rééditable** sur n'importe quelle occurrence — y compris écrite à la main. Il n'existe pas d'asymétrie déclarable (pas d'équivalent aux `onlyEdit`/`onlyAdd` de YesWiki, sans besoin identifié pour l'instant) : le round-trip est sûr par construction (idempotence, props inconnues préservées), et le type `file-list` rend utilisables à froid les builders qui référencent un fichier. Les autres portes d'entrée — bouton **Uploader**, bouton **Ajouter un lien** — ne sont que des raccourcis qui ouvrent le même builder pré-rempli. Dans l'éditeur, la réédition s'offre par le motif des outils ancrés (ADR 0005) : curseur dans la balise → crayon flottant → builder en mode édition.
+
+### Les défauts vivent dans le `.tsx`, pas dans le YAML
+
+Il n'y a **pas de clé `default`**. Le composant exporte ses défauts, exhaustifs, vérifiés par le compilateur :
+
+```tsx
+export const buttonDefaults = {
+  text: undefined,
+  link: undefined,
+  color: "primary",
+  newWindow: false,
+} satisfies { [K in keyof Required<ButtonProps>]: ButtonProps[K] };
+```
+
+- **Règle d'omission** : à la génération, toute prop égale à son défaut est omise du MDX. À la ré-édition (mapping inverse), une prop absente du code s'affiche dans la modale avec sa valeur par défaut.
+- **Idempotence** : ouvrir la modale sur un composant existant et valider sans rien changer régénère un code identique.
+- **Props inconnues préservées** : une prop écrite à la main et absente du descripteur (ex. `className`) est recopiée telle quelle à la régénération.
+- **Validation fail-fast au chargement** (même mécanisme que le registre) : tout champ du YAML doit correspondre à une clé des défauts exportés ; tout champ `list` exige un défaut qui soit une clé de ses `options`.
+
+### `showif` : visibilité conditionnelle
+
+Un map `champ: condition` ; plusieurs entrées = **ET** logique. La condition s'écrit :
+
+```yaml
+showif:
+  ratio: portrait        # valeur nue → égalité stricte (valeur stringifiée)
+  displaypdf: true       # booléen YAML : état d'une checkbox
+  caption: notNull       # mot-clé → champ non vide
+  legend: null           # null YAML → champ vide
+  file: /\.(png|jpg)$/   # entre /…/ → expression régulière (recherche)
+```
+
+Une valeur littérale ambiguë (le texte `notNull`, une valeur commençant par `/`) s'écrit en forme regex : `/^notNull$/`. Une regex invalide échoue au chargement.
+
+- **Réactivité** : les champs apparaissent/disparaissent en direct pendant la saisie.
+- **Masqué = vide** : un champ masqué n'émet jamais sa prop dans le MDX généré, et compte comme vide pour les `showif` qui pointent sur lui (le masquage cascade).
+- **Factorisation** : une condition partagée par plusieurs champs se factorise avec les ancres YAML natives (`&image` / `*image`).
+
+## Cible de sérialisation
+
+Par défaut, un builder émet la **balise JSX** de son composant (`<Button … />`) et sait la re-parser. Un descripteur peut déclarer une autre cible avec la clé `emits` ; la seule alternative est le lien markdown :
+
+```yaml
+# components/wiki/wiki-link.yaml
+emits: markdown-link      # émet [texte](cible){{ target: '…' }} au lieu de <WikiLink …/>
+```
+
+Le menu « Composants » ne liste que les descripteurs qui émettent des balises de composant ; `wiki-link` a ses portes dédiées (bouton « Ajouter un lien », bouton flottant d'édition de lien). Le moteur — champs, `advanced`, `showif`, aperçu, mapping inverse, idempotence — est identique dans les deux cas.
+
+## Table de traduction YesWiki → WikiOui
+
+| YesWiki (Actions Builder) | WikiOui |
+|---|---|
+| Un YAML = un *groupe* de plusieurs `actions` | Un YAML = **un composant** (nom dérivé du fichier) |
+| Bloc `commons` partagé entre actions | Champs inlinés dans `properties` ; regex factorisées par ancres YAML |
+| Sections titrées (`title`, `width` par action) | Type `divider` (avec `showif` au besoin) |
+| `_t(AB_…)` + fichier de traduction PHP | Texte français en clair (i18n au backlog) |
+| `{{button class="btn-primary pull-right"}}` | Props MDX dédiées : `<Button color="primary" pull="right" />` |
+| Type `class` + `subproperties` | Supprimé — chaque sous-propriété devient une prop de premier rang |
+| `default` (dans le YAML) | Supprimé — défauts exportés par le `.tsx` (`xxxDefaults`, exhaustifs) |
+| `value` | Conservé, même sémantique (pré-remplissage toujours écrit) |
+| `checkedvalue` / `uncheckedvalue` | Supprimés — une checkbox est une prop booléenne (`newWindow` / rien) |
+| `showif: champ` (raccourci non-vide) | `champ: notNull` |
+| `showif: { champ: notNull }` | `champ: notNull` (inchangé) |
+| `showif: { champ: valeur-ou-regex }` (ambigu) | Valeur nue = égalité stricte ; regex explicite entre `/…/` |
+| `nobtn` (bouton rendu comme lien) | Non repris — un bouton est un bouton, un lien est un lien ; on ne mélange pas les composants |
+| `new-window` (liste à option unique, dans `class`) | Prop `newWindow` (checkbox) |
+| `modal` / `modalbox-hover` (dans `class`) | Prop `popup` (`click` / `hover`) |
+| Action fourre-tout `attach` (image + PDF + fichier) | Éclatée en trois composants : `Image`, `Pdf`, `FileLink` |
+| `onlyEdit` / `onlyAdd` (asymétries ajout/édition) | Non repris (pas de besoin pour l'instant) — tout builder insère **et** réédite |
+| Type `form-field`, `needFormField` | Supprimés (bazar au backlog) |
+| Type `color` | Non repris (aucun composant v0.2 ne l'utilise ; réintroductible) |
+| `onlyForAdmins` | Supprimé (droits d'accès au backlog) |
+| `icon` (nom Fontawesome sur un champ) | Non repris |
+| `mapped` | Non repris |
+| `position` (ordre dans le menu) | Non repris — menu trié alphabétiquement par `label` |
+| `doclink` | Non repris — la documentation des composants vit dans l'aide-mémoire |
+| `isWrapper` / `wrappedContentExample` | Non repris en v0.2 — l'édition des composants wrapper (ex. `<Menu>`) est au backlog, avec préservation des enfants à la réédition |

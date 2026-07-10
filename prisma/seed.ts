@@ -113,7 +113,11 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 Ajoutez un identifiant ou une classe à l'élément qui précède :
 
 - \`# Mon titre {{ id: 'ancre' }}\` — puis \`[lien](autre-page#ancre)\`
-- \`[lien](une-page){{ className: 'btn' }}\` — sans espace avant \`{{\`
+- \`Texte centré {{ className: 'text-center' }}\` — sans espace avant \`{{\`
+
+Classes utilisables (les autres sont sans effet) :
+
+- Alignement : \`text-left\`, \`text-center\`, \`text-right\`, \`text-justify\`
 `,
 };
 
