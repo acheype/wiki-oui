@@ -4,6 +4,7 @@ import { compileMDX } from "next-mdx-remote/rsc";
 import { mdxAnnotations } from "mdx-annotations";
 import remarkGfm from "remark-gfm";
 import type { MDXComponents } from "mdx/types";
+import { pascalCase } from "@/lib/component-descriptor";
 import { WikiLink } from "@/components/wiki/wiki-link";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote strips
@@ -72,13 +73,6 @@ async function buildRegistry(): Promise<MDXComponents> {
     registry[name] = mod[name];
   }
   return registry;
-}
-
-function pascalCase(kebab: string): string {
-  return kebab
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join("");
 }
 
 // The compiled MDX throws at render time on any component missing from the
