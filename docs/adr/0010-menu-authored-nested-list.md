@@ -21,18 +21,18 @@ Option (c). Le contenu de `<Menu>` est une liste à puces imbriquée :
 - [Accueil](page-principale)
 - Projets
   - [Projet A](projet-a)
-- <Bouton icone="roue" texte="Configuration" />
+- <Button icon="roue" text="Configuration" />
   - [Titre du site](page-titre)
 </Menu>
 ```
 
 - **Item texte** : simple déclencheur de déroulant (clic pour ouvrir).
 - **Item lien** : navigue au clic ; s'il a des enfants, son déroulant s'ouvre au survol/focus.
-- **Item `<Bouton>`** : le bouton devient le déclencheur du déroulant (cas de la roue crantée).
+- **Item `<Button>`** : le bouton devient le déclencheur du déroulant (cas de la roue crantée).
 - **Rendu** : niveau 1 en barre horizontale, niveau 2 en déroulant ; l'imbrication au-delà est **aplatie** (indentée dans le même déroulant, pas de sous-menus latéraux).
 - **Sans enfants** : rien n'est rendu — pas de repli automatique.
 
-Le composant `<Bouton>` (icône/texte/lien, props françaises, icônes d'une liste blanche mappée sur lucide) est avancé du backlog au MVP pour servir de déclencheur ; son UI d'authoring (modales YAML, sélecteur Iconify) reste au backlog.
+Le composant `<Button>` (props `icon`/`text`/`link` ; les valeurs d'icônes restent des noms français d'une liste blanche mappée sur lucide) est avancé du backlog au MVP pour servir de déclencheur ; son UI d'authoring (modales YAML, sélecteur Iconify) reste au backlog.
 
 ## Conséquences
 

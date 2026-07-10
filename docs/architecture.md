@@ -10,7 +10,7 @@ Next.js (App Router) · Prisma · PostgreSQL · shadcn/ui · CodeMirror 6 (édit
 
 ## Périmètre MVP
 
-**Inclus** : CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `edit`, `revisions` · rendu MDX bridé · composants intégrés `<Menu>` (liste imbriquée → menu multi-niveaux, ADR 0010) et `<Bouton>` · historique (toutes révisions) + diff + restauration · pages spéciales de layout (roue crantée de `page-rapide-haut` vers les pages de configuration du layout) · éditeur riche CodeMirror (barre d'outils markdown, listes de tâches, modale de lien, outils contextuels ancrés au curseur : édition de lien, tableaux) · double-clic sur le contenu pour éditer · tags · suppression dure.
+**Inclus** : CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `edit`, `revisions` · rendu MDX bridé · composants intégrés `<Menu>` (liste imbriquée → menu multi-niveaux, ADR 0010) et `<Button>` · historique (toutes révisions) + diff + restauration · pages spéciales de layout (roue crantée de `page-rapide-haut` vers les pages de configuration du layout) · éditeur riche CodeMirror (barre d'outils markdown, listes de tâches, modale de lien, outils contextuels ancrés au curseur : édition de lien, tableaux) · double-clic sur le contenu pour éditer · tags · suppression dure.
 
 **Backlog** (le domaine les accueille déjà) : upload de fichiers · système d'authoring de composants (menu « Composants », modales générées depuis YAML, sélecteur d'icônes Iconify) · pages d'administration (Tableau de bord, Documentation, Gestion du site, Formulaire — rejoindront le menu roue crantée par édition de `page-rapide-haut`) · droits d'accès & authentification · durcissement du sandbox (neutralisation des expressions JS) · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud.
 
@@ -18,7 +18,7 @@ Next.js (App Router) · Prisma · PostgreSQL · shadcn/ui · CodeMirror 6 (édit
 
 - **Routing** (ADR 0001) : les handlers sont des routes Next natives. `app/[slug]/page.tsx` = `show` ; `app/[slug]/edit/page.tsx`, `app/[slug]/revisions/page.tsx`. `/` redirige vers `/page-principale` (`redirects()`). Slug : `^[a-z0-9]+(?:-[a-z0-9]+)*$`, minuscules (majuscules redirigées), tapé dans l'URL (pas de titre séparé).
 - **Handler vs Mutation** : un handler *affiche* une vue (URL). Sauvegarder / supprimer / restaurer sont des **Server Actions** (pas d'URL).
-- **Rendu** (ADR 0002) : MDX bridé. Registre de composants = `/components` + config. `import`/`export` désactivés dès le MVP ; neutralisation des expressions JS ajoutée avec l'auth. Composants intégrés (`<Menu>`, `<Bouton>`) présents dès le MVP ; l'*authoring* est au backlog. `<Menu>` est piloté par la liste imbriquée écrite entre ses balises (ADR 0010).
+- **Rendu** (ADR 0002) : MDX bridé. Registre de composants = `/components` + config. `import`/`export` désactivés dès le MVP ; neutralisation des expressions JS ajoutée avec l'auth. Composants intégrés (`<Menu>`, `<Button>`) présents dès le MVP ; l'*authoring* est au backlog. `<Menu>` est piloté par la liste imbriquée écrite entre ses balises (ADR 0010).
 - **Éditeur** (ADR 0005) : CodeMirror 6, édition de source MDX colorée. Barre d'outils : gras, italique, barré, titres, listes (puces/numérotée/tâches), citation, code, ligne horizontale, alignement (classe Tailwind), commentaire (`{/* */}`), lien (modale), insertion de tableau, aide-mémoire. Pas de souligné. UI contextuelle **ancrée au curseur** (tooltips CodeMirror) : icône de modification de lien, opérations de tableau positionnées spatialement (colonne en haut, ligne à gauche, reformatage au coin). Double-clic sur le contenu du `show` → édition.
 - **Liens** (ADR 0006) : liens wiki en relatif par slug (`[texte](ma-page)`) ; externes en `http(s)://`. Modale de lien : cible onglet courant / nouvel onglet / **fenêtre modale** (Dialog ; avertissement si URL externe). Autocomplétion des pages.
 - **Pages spéciales** : slug réservé, seedées, non supprimables mais éditables — les 5 de layout, `page-principale`, `aide-memoire`.
@@ -27,36 +27,7 @@ Next.js (App Router) · Prisma · PostgreSQL · shadcn/ui · CodeMirror 6 (édit
 
 ## Schéma Prisma cible
 
-```prisma
-model Page {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  tags      String[]                       // ADR 0007 (Postgres text[])
-  ownerName String?                        // "Anonyme" au MVP ; FK User plus tard
-  createdAt DateTime @default(now())
-
-  currentRevisionId String?   @unique      // ADR 0003 : pointeur révision courante
-  current           Revision? @relation("PageCurrent", fields: [currentRevisionId], references: [id])
-
-  revisions Revision[] @relation("PageRevisions")
-}
-
-model Revision {
-  id         String   @id @default(cuid())
-  content    String                        // snapshot MDX complet
-  authorName String?                       // "Anonyme" au MVP
-  createdAt  DateTime @default(now())
-
-  pageId String
-  page   Page   @relation("PageRevisions", fields: [pageId], references: [id], onDelete: Cascade)
-
-  restoredFromId String?                   // étiquetage historique (restauration)
-  restoredFrom   Revision?  @relation("RestoredFrom", fields: [restoredFromId], references: [id], onDelete: SetNull)
-  restoredInto   Revision[] @relation("RestoredFrom")
-
-  currentOf Page? @relation("PageCurrent")
-}
-```
+Schéma Prisma : [prisma/schema.prisma](../prisma/schema.prisma).
 
 Notes : création d'une page en deux temps (Page → Revision → pointer `currentRevisionId`). Suppression dure d'une Page → cascade sur ses révisions ; le self-relation `restoredFrom` en `SetNull` pour ne pas bloquer la cascade.
 

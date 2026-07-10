@@ -6,9 +6,9 @@ export interface WikiConfig {
   homeSlug: string;
   /** Special pages whose content feeds the site layout. */
   layoutPages: {
-    titre: string;
-    menuHaut: string;
-    rapideHaut: string;
+    title: string;
+    topMenu: string;
+    topQuickAccess: string;
     header: string;
     footer: string;
   };
@@ -19,9 +19,9 @@ export interface WikiConfig {
 export const wikiConfig = {
   homeSlug: "page-principale",
   layoutPages: {
-    titre: "page-titre",
-    menuHaut: "page-menu-haut",
-    rapideHaut: "page-rapide-haut",
+    title: "page-titre",
+    topMenu: "page-menu-haut",
+    topQuickAccess: "page-rapide-haut",
     header: "page-header",
     footer: "page-footer",
   },

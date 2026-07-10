@@ -1,5 +1,5 @@
 import type { MDXComponents } from "mdx/types";
-import { Bouton } from "./bouton";
+import { Button } from "./button";
 import { Menu } from "./menu";
 import { WikiLink } from "./wiki-link";
 
@@ -7,6 +7,6 @@ import { WikiLink } from "./wiki-link";
 // Anything absent from this map renders nothing.
 export const mdxComponents: MDXComponents = {
   Menu,
-  Bouton,
+  Button,
   a: WikiLink,
 };

@@ -165,14 +165,14 @@
 
 /* --- Composants intégrés dans les slots du bandeau --------------------- */
 
-/* Same <Bouton>, nav-bar look: the slot context restyles it (CONTEXT.md). */
-.layout-slot .wiki-bouton {
+/* Same <Button>, nav-bar look: the slot context restyles it (CONTEXT.md). */
+.layout-slot .wiki-button {
   background: transparent;
   color: var(--muted-foreground);
   height: 2rem;
   box-shadow: none;
 }
-.layout-slot .wiki-bouton:hover {
+.layout-slot .wiki-button:hover {
   background: var(--accent);
   color: var(--accent-foreground);
 }

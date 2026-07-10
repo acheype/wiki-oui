@@ -45,10 +45,10 @@ export default async function RootLayout({
               href={`/${wikiConfig.homeSlug}`}
               className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
             >
-              {await renderMdx(slots.titre)}
+              {await renderMdx(slots.title)}
             </Link>
             <div className="layout-slot min-w-0 flex-1">
-              {await renderMdx(slots.menuHaut)}
+              {await renderMdx(slots.topMenu)}
             </div>
             <div
               className={cn(
@@ -57,7 +57,7 @@ export default async function RootLayout({
                 inlineMdx
               )}
             >
-              {await renderMdx(slots.rapideHaut)}
+              {await renderMdx(slots.topQuickAccess)}
             </div>
           </div>
         </div>

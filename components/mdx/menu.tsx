@@ -12,18 +12,18 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
-import type { BoutonProps } from "./bouton";
+import type { ButtonProps } from "./button";
 
 // Built-in component (ADR 0010): renders the nested list written between its
 // tags as a multi-level menu — level 1 as a horizontal bar, level 2 as a
 // dropdown, deeper levels flattened (indented) inside the same dropdown.
-// Items keep the elements the MDX registry produced (WikiLink, Bouton), so
+// Items keep the elements the MDX registry produced (WikiLink, Button), so
 // link behaviors (modal target, external…) are preserved. Without a list it
 // renders nothing: menus are authored, never derived from the database.
 
 type MenuItem = {
   label: ReactNode[];
-  /** The label itself navigates (wiki link, or Bouton with a `lien`). */
+  /** The label itself navigates (wiki link, or Button with a `link`). */
   navigates: boolean;
   children: MenuItem[];
 };
@@ -34,11 +34,11 @@ function isTag(node: ReactNode, tag: string): node is ElementWithChildren {
   return isValidElement(node) && node.type === tag;
 }
 
-// Type identity (node.type === Bouton) breaks across the RSC boundary: the
+// Type identity (node.type === Button) breaks across the RSC boundary: the
 // flight payload rebuilds client elements with lazy references, so SSR and
 // client disagree and hydration fails. Detect the registry components by
 // their props instead — the sandbox whitelist (ADR 0002) makes the shapes
-// unambiguous: only WikiLink carries `href`, only Bouton its French props.
+// unambiguous: only WikiLink carries `href`, only Button its own props.
 type LinkElement = ReactElement<{
   className?: string;
   style?: CSSProperties;
@@ -55,11 +55,11 @@ function isWikiLinkElement(node: ReactNode): node is LinkElement {
   return isComponentElement(node) && typeof node.props.href === "string";
 }
 
-function isBoutonElement(node: ReactNode): node is ReactElement<BoutonProps> {
+function isButtonElement(node: ReactNode): node is ReactElement<ButtonProps> {
   return (
     isComponentElement(node) &&
     !("href" in node.props) &&
-    ("icone" in node.props || "texte" in node.props || "lien" in node.props)
+    ("icon" in node.props || "text" in node.props || "link" in node.props)
   );
 }
 
@@ -87,7 +87,7 @@ function parseItem(li: ElementWithChildren): MenuItem {
   const navigates = label.some(
     (node) =>
       isWikiLinkElement(node) ||
-      (isBoutonElement(node) && Boolean(node.props.lien))
+      (isButtonElement(node) && Boolean(node.props.link))
   );
   return { label, navigates, children: sublists.flatMap(parseList) };
 }
@@ -127,7 +127,7 @@ export function Menu({ children }: { children?: ReactNode }) {
 function LeafItem({ item }: { item: MenuItem }) {
   const [node] = item.label;
   if (item.label.length === 1) {
-    if (isBoutonElement(node)) return node;
+    if (isButtonElement(node)) return node;
     if (isWikiLinkElement(node)) return restyleWikiLink(node, barItemClass);
   }
   return <span className={cn(barItemClass, "hover:bg-transparent")}>{item.label}</span>;
@@ -184,14 +184,14 @@ function DropdownTrigger({
   onOpen: () => void;
 }) {
   const [node] = item.label;
-  const isBouton = item.label.length === 1 && isBoutonElement(node);
+  const isButton = item.label.length === 1 && isButtonElement(node);
 
   // A navigating trigger keeps its click for navigation (the dropdown opens
   // on hover/focus); a plain one toggles on click. Any component in the
   // label also takes this branch: it may render interactive markup, which
   // must not be nested inside the <button> below (invalid HTML).
   if (item.navigates || item.label.some(isComponentElement)) {
-    const trigger = isBouton ? node : restyleWikiLink(node, barItemClass);
+    const trigger = isButton ? node : restyleWikiLink(node, barItemClass);
     return (
       <span
         className="flex items-center"
@@ -200,7 +200,7 @@ function DropdownTrigger({
         aria-expanded={open}
       >
         {trigger}
-        {!isBouton && <Chevron open={open} />}
+        {!isButton && <Chevron open={open} />}
       </span>
     );
   }
@@ -236,7 +236,7 @@ function DropdownEntries({ items, depth }: { items: MenuItem[]; depth: number })
     const single = item.label.length === 1;
 
     let entry: ReactNode;
-    if (single && isBoutonElement(node)) {
+    if (single && isButtonElement(node)) {
       entry = (
         <div className="px-1 py-0.5" style={indent}>
           {node}
