@@ -1,7 +1,10 @@
+import { readdir } from "node:fs/promises";
+import path from "node:path";
 import { compileMDX } from "next-mdx-remote/rsc";
 import { mdxAnnotations } from "mdx-annotations";
 import remarkGfm from "remark-gfm";
-import { mdxComponents } from "@/components/mdx/registry";
+import type { MDXComponents } from "mdx/types";
+import { WikiLink } from "@/components/wiki/wiki-link";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote strips
 // import/export and JS expressions by default (blockJS) — and it appends its
@@ -9,9 +12,14 @@ import { mdxComponents } from "@/components/mdx/registry";
 // expressions before neutralization kicks in.
 export async function renderMdx(source: string): Promise<React.ReactNode> {
   try {
+    const registry = await loadWikiComponents();
     const { content } = await compileMDX({
       source,
-      components: withUnknownComponentsMuted(source),
+      components: {
+        ...unknownComponentsMuted(source),
+        ...registry,
+        a: WikiLink,
+      },
       options: {
         mdxOptions: {
           remarkPlugins: [mdxAnnotations.remark, remarkGfm],
@@ -32,16 +40,57 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
   }
 }
 
+// Component registry (ADR 0002): every .tsx file in components/wiki/ is
+// callable from page content — presence in the folder IS the whitelist.
+// Each file must export a component named as the PascalCase of its file name
+// (button.tsx → Button). A co-located descriptor (button.yaml) only affects
+// the editor's component menu (authoring backlog), never what may render.
+const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "components/wiki");
+
+let registryCache: Promise<MDXComponents> | undefined;
+
+function loadWikiComponents(): Promise<MDXComponents> {
+  // No cache in dev so adding a component doesn't require a restart.
+  if (process.env.NODE_ENV === "development") return buildRegistry();
+  return (registryCache ??= buildRegistry());
+}
+
+async function buildRegistry(): Promise<MDXComponents> {
+  const files = await readdir(WIKI_COMPONENTS_DIR);
+  const registry: MDXComponents = {};
+  for (const file of files) {
+    if (!file.endsWith(".tsx")) continue;
+    const base = file.slice(0, -".tsx".length);
+    const name = pascalCase(base);
+    // The extension keeps the bundler's directory scan to .tsx files only.
+    const mod = await import(`../components/wiki/${base}.tsx`);
+    if (typeof mod[name] !== "function") {
+      throw new Error(
+        `components/wiki/${file} must export a component named ${name}`,
+      );
+    }
+    registry[name] = mod[name];
+  }
+  return registry;
+}
+
+function pascalCase(kebab: string): string {
+  return kebab
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+}
+
 // The compiled MDX throws at render time on any component missing from the
 // registry. Mapping every capitalized tag found in the source to a no-op
 // beforehand turns "unknown component" into "renders nothing" (ADR 0002).
 // Over-matching (e.g. inside code fences) is harmless: unused keys are ignored.
-function withUnknownComponentsMuted(source: string) {
+function unknownComponentsMuted(source: string) {
   const components: Record<string, React.ComponentType> = {};
   for (const [, name] of source.matchAll(/<([A-Z][A-Za-z0-9]*)/g)) {
     components[name] = UnknownComponent;
   }
-  return { ...components, ...mdxComponents };
+  return components;
 }
 
 function UnknownComponent() {

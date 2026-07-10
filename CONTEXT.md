@@ -33,7 +33,7 @@ Un élément riche insérable dans le contenu d'une page (ex. Bouton, Image). Re
 _Avoid_: Widget, plugin, action
 
 **Registre de composants**:
-La liste blanche des composants autorisés au rendu, construite automatiquement à partir du répertoire `/components` plus ceux déclarés dans le fichier de configuration. Une balise hors registre n'est pas rendue.
+La liste blanche des composants autorisés au rendu, construite automatiquement à partir du répertoire `/components/wiki` plus ceux déclarés dans le fichier de configuration. Une balise hors registre n'est pas rendue. La présence d'un descripteur co-localisé (`button.yaml`) est un fait indépendant : il pilote le menu « Composants » de l'éditeur, pas l'autorisation de rendu.
 
 **Page spéciale**:
 Une page à **slug réservé**, créée au seed de la base, **non supprimable mais éditable** (comme n'importe quelle page : flux d'édition normal, rendu MDX normal). C'est le seul trait qui la définit ; « alimenter le layout » n'est qu'une propriété de certaines d'entre elles. Les pages spéciales : les 5 pages de layout (`page-titre`, `page-menu-haut`, `page-rapide-haut`, `page-header`, `page-footer`), `page-principale` (l'accueil, cible de la redirection `/` → `/page-principale` ; contenu ordinaire), et `aide-memoire`. Le menu n'a pas de rendu spécial : le contenu par défaut de `page-menu-haut` appelle le composant intégré `<Menu>`, et celui de `page-rapide-haut` expose les 5 pages de layout derrière un bouton roue crantée (`<Menu>` + `<Button>`).

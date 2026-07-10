@@ -10,7 +10,7 @@ Le contenu est éditable en ligne dans un textarea, sans auth au MVP : n'importe
 
 Pipeline MDX (`next-mdx-remote` + remark-gfm + mdx-annotations) avec :
 
-- **Registre de composants = répertoire `/components` + fichier de configuration.** Toute balise hors registre n'est pas rendue.
+- **Registre de composants = répertoire `/components/wiki` + fichier de configuration.** Tout composant `.tsx` de ce répertoire est appelable depuis le contenu ; toute balise hors registre n'est pas rendue. Un descripteur co-localisé (`button.yaml`) ne joue que sur le menu « Composants » de l'éditeur (backlog), jamais sur l'autorisation de rendu.
 - **`import` / `export` désactivés d'office**, dès le MVP (gratuit, gros gain de sûreté).
 - **Neutralisation des expressions JS `{…}`** ajoutée pour les contributeurs non-admins **au moment où l'authentification et les droits arrivent** (post-MVP). Attention : `mdx-annotations` repose sur les expressions (`{{ id: 'x' }}` est un objet JS fusionné en props) — la neutralisation devra s'appliquer **après** le passage du plugin, qui consomme les annotations ; elle ne peut pas bloquer les expressions en amont du pipeline.
 
