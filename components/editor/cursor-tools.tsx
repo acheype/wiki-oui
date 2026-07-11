@@ -29,6 +29,7 @@ import {
   TAG_SCAN_WINDOW,
   tagToBuilderState,
   type PropValues,
+  type Range,
 } from "@/lib/component-descriptor";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
 import {
@@ -48,9 +49,7 @@ import {
 // (column ops on top of the column, row ops left of the line, reformat at the
 // table's top-left corner). The same field will later host component editing.
 
-export type LinkInfo = {
-  from: number;
-  to: number;
+export type LinkInfo = Range & {
   text: string;
   href: string;
   target: LinkTarget;
@@ -88,9 +87,7 @@ export function linkAtCursor(state: EditorState): LinkInfo | null {
   return null;
 }
 
-export type ComponentInfo = {
-  from: number;
-  to: number;
+export type ComponentInfo = Range & {
   spec: ComponentBuilderSpec;
   values: PropValues;
   unknownAttributes: string[];

@@ -15,7 +15,7 @@ import {
   insertionState,
   type BuilderState,
 } from "./component-builder";
-import { emitsMarkdownLink } from "@/lib/component-descriptor";
+import { emitsMarkdownLink, type Range } from "@/lib/component-descriptor";
 import { insertSnippet, replaceSnippet } from "./commands";
 import {
   cursorTools,
@@ -34,7 +34,7 @@ type BuilderDialogState = {
   spec: ComponentBuilderSpec | null;
   initial: BuilderState | null;
   /** Range of the tag being edited; absent in insert mode. */
-  range?: { from: number; to: number };
+  range?: Range;
 };
 
 const closedBuilderDialog: BuilderDialogState = {
@@ -102,7 +102,7 @@ export function PageEditor({
     spec: ComponentBuilderSpec | undefined,
     missingSpecLabel: string,
     values: Record<string, string | undefined>,
-    range?: { from: number; to: number }
+    range?: Range
   ) {
     if (!spec) {
       toast.error(`Descripteur introuvable : ${missingSpecLabel}.`);
@@ -126,7 +126,7 @@ export function PageEditor({
   // toolbar link button and the anchored link pencil (docs/component-builder.md).
   function openWikiLinkBuilder(
     values: Record<string, string | undefined>,
-    range?: { from: number; to: number }
+    range?: Range
   ) {
     openBuilder(
       builders.find((builder) => emitsMarkdownLink(builder.descriptor)),

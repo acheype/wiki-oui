@@ -273,11 +273,14 @@ function parseTagPrefix(
 // Exported so componentAtCursor slices the same window out of the document.
 export const TAG_SCAN_WINDOW = 2000;
 
+/** A span of document offsets, as used across the editor (CodeMirror positions). */
+export type Range = { from: number; to: number };
+
 /** Finds the well-formed self-closing component tag enclosing `offset`. */
 export function findComponentTag(
   text: string,
   offset: number
-): { from: number; to: number; tag: ParsedTag } | null {
+): (Range & { tag: ParsedTag }) | null {
   const windowStart = Math.max(0, offset - TAG_SCAN_WINDOW);
   for (let from = offset; from >= windowStart; from--) {
     if (text[from] !== "<" || !/[A-Z]/.test(text[from + 1] ?? "")) continue;

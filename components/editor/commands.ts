@@ -1,5 +1,6 @@
 import { EditorSelection, type EditorState, type Line } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
+import type { Range } from "@/lib/component-descriptor";
 
 // Toolbar commands (ADR 0005). Everything manipulates the MDX source text:
 // the editor has no rich model, so each command is a text transformation.
@@ -206,7 +207,7 @@ export function insertSnippet(view: EditorView, snippet: string) {
 // Rewrites an existing component tag in place (cursor-anchored pencil).
 export function replaceSnippet(
   view: EditorView,
-  range: { from: number; to: number },
+  range: Range,
   snippet: string
 ) {
   view.dispatch({
