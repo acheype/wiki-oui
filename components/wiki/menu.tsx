@@ -63,6 +63,16 @@ function isButtonElement(node: ReactNode): node is ReactElement<ButtonProps> {
   );
 }
 
+// A no-link Button is a server component that renders to a bare host <button>
+// before this client Menu ever inspects it, so its props are already gone and
+// only the tag survives. Recognize that tag: such a trigger is its own
+// affordance and, like a live <Button>, must never sit inside the trigger
+// <button> below — a button nested in a button is invalid HTML (hydration
+// error). Linked Buttons render to an <a> instead and are caught as wiki links.
+function isRenderedButton(node: ReactNode): boolean {
+  return isValidElement(node) && node.type === "button";
+}
+
 function meaningfulChildren(node: ReactNode): ReactNode[] {
   return Children.toArray(node).filter(
     (child) => !(typeof child === "string" && child.trim() === "")
@@ -184,14 +194,19 @@ function DropdownTrigger({
   onOpen: () => void;
 }) {
   const [node] = item.label;
-  const isButton = item.label.length === 1 && isButtonElement(node);
+  // A lone Button-like trigger — a live <Button> element, or the bare <button>
+  // a no-link Button rendered to before we saw it — is self-sufficient: it
+  // renders as-is, with no wrapping <button> and no chevron of its own.
+  const isBareButton =
+    item.label.length === 1 &&
+    (isButtonElement(node) || isRenderedButton(node));
 
   // A navigating trigger keeps its click for navigation (the dropdown opens
-  // on hover/focus); a plain one toggles on click. Any component in the
-  // label also takes this branch: it may render interactive markup, which
-  // must not be nested inside the <button> below (invalid HTML).
-  if (item.navigates || item.label.some(isComponentElement)) {
-    const trigger = isButton ? node : restyleWikiLink(node, barItemClass);
+  // on hover/focus); a plain one toggles on click. A label holding interactive
+  // markup also takes this branch: it must not be nested inside the <button>
+  // below (invalid HTML).
+  if (item.navigates || isBareButton || item.label.some(isComponentElement)) {
+    const trigger = isBareButton ? node : restyleWikiLink(node, barItemClass);
     return (
       <span
         className="flex items-center"
@@ -200,7 +215,7 @@ function DropdownTrigger({
         aria-expanded={open}
       >
         {trigger}
-        {!isButton && <Chevron open={open} />}
+        {!isBareButton && <Chevron open={open} />}
       </span>
     );
   }
