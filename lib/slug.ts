@@ -14,3 +14,9 @@ const WIKI_HREF_PATTERN =
 export function isWikiHref(href: string): boolean {
   return WIKI_HREF_PATTERN.test(href);
 }
+
+// External link (ADR 0006): an absolute http(s) URL, as opposed to an internal
+// wiki href (isWikiHref) or a bare slug typed by the author.
+export function isExternalHref(href: string): boolean {
+  return /^https?:\/\//.test(href);
+}

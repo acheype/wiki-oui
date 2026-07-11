@@ -1,7 +1,7 @@
 // No "use client": the ComponentBuilder loader must read wikiLinkDefaults as
 // a real object; the interactive modal lives in internal/modal-link.tsx.
 import Link from "next/link";
-import { isWikiHref } from "@/lib/slug";
+import { isExternalHref, isWikiHref } from "@/lib/slug";
 import { ModalLink } from "./internal/modal-link";
 
 type WikiLinkProps = React.ComponentPropsWithoutRef<"a">;
@@ -18,7 +18,7 @@ export const wikiLinkDefaults = {
 // Renders every `a` coming out of the MDX pipeline (ADR 0006).
 // target comes from the author via an annotation: "_blank" or "modal".
 export function WikiLink({ href = "", target, children, ...rest }: WikiLinkProps) {
-  const isExternal = /^https?:\/\//.test(href);
+  const isExternal = isExternalHref(href);
   const isInternal = isWikiHref(href);
   // Author links are slug-relative; resolve from the site root so they work
   // from handler URLs like /ma-page/edit too.

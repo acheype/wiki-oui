@@ -34,6 +34,7 @@ import {
   visibleFields,
 } from "@/lib/component-descriptor";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+import { isExternalHref } from "@/lib/slug";
 import { IconPicker } from "./icon-picker";
 import { useDebouncedJson } from "./use-debounced-json";
 
@@ -471,7 +472,7 @@ function PageListInput({
   onChange: (value: PropValue) => void;
 }) {
   const candidates =
-    value.trim() === "" || /^https?:\/\//.test(value.trim())
+    value.trim() === "" || isExternalHref(value.trim())
       ? NO_CANDIDATES
       : allSlugs;
   return (
