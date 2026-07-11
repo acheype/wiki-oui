@@ -161,7 +161,7 @@
   }
 }
 
-/* --- Rendu MDX : corrections sur @tailwindcss/typography --------------- */
+/* --- MDX rendering: @tailwindcss/typography fixes --------------------- */
 
 /* The plugin renders literal backticks around inline code (::before/::after)
    and no background: swap them for a chip. */
@@ -194,7 +194,7 @@
   accent-color: var(--primary);
 }
 
-/* --- Composants intégrés dans les slots du bandeau --------------------- */
+/* --- Components embedded in the banner slots -------------------------- */
 
 /* Same <Button>, nav-bar look: the slot context restyles it (CONTEXT.md). */
 .layout-slot .wiki-button {
@@ -208,7 +208,7 @@
   color: var(--accent-foreground);
 }
 
-/* --- Éditeur : UI contextuelle ancrée au curseur (ADR 0005) ------------ */
+/* --- Editor: cursor-anchored contextual UI (ADR 0005) ---------------- */
 
 .cm-tooltip.cm-wiki-tools {
   background: transparent;
