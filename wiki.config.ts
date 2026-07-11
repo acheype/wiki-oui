@@ -14,6 +14,14 @@ export interface WikiConfig {
   };
   /** Special pages that feed no layout slot but are still reserved. */
   otherSpecialPages: string[];
+  icons: {
+    /**
+     * Embedded Iconify sets offered by the icon picker. Each name needs its
+     * data package installed (@iconify-json/{set}) and registered in
+     * lib/icons.ts — rendering is server-side inline SVG, no network call.
+     */
+    sets: string[];
+  };
 }
 
 export const wikiConfig = {
@@ -26,6 +34,9 @@ export const wikiConfig = {
     footer: "page-footer",
   },
   otherSpecialPages: ["aide-memoire"],
+  icons: {
+    sets: ["lucide"],
+  },
 } as const satisfies WikiConfig;
 
 /** Reserved slugs: seeded at startup, editable, never deletable. */

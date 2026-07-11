@@ -39,7 +39,7 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 `,
 
   [wikiConfig.layoutPages.topQuickAccess]: `<Menu>
-  - <Button icon="roue"/>
+  - <Button icon="lucide:settings"/>
     - [Titre du site](page-titre)
     - [Menu principal](page-menu-haut)
     - [Accès rapide](page-rapide-haut)
@@ -98,7 +98,7 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 ## Composants
 
 - Menu de navigation : une liste imbriquée entre \`<Menu>\` et \`</Menu>\` devient un menu à plusieurs niveaux. Un item est un texte, un lien ou un \`<Button>\`.
-- Bouton : \`<Button icon="roue" text="Configuration" link="ma-page" />\` — icônes disponibles : roue, maison, aide, crayon, page, calendrier, etoile, utilisateur.
+- Bouton : \`<Button icon="lucide:settings" text="Configuration" link="ma-page" />\` — les icônes viennent des jeux Iconify embarqués (noms en anglais), à choisir via le sélecteur de l'éditeur.
 
 \`\`\`
 <Menu>

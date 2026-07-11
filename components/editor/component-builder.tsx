@@ -30,6 +30,7 @@ import {
   visibleFields,
 } from "@/lib/component-descriptor";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+import { IconPicker } from "./icon-picker";
 
 // The ComponentBuilder modal (docs/component-builder.md): fully generated
 // from a descriptor + the component's exported defaults — preview on top
@@ -332,6 +333,14 @@ function FieldControl({
   onChange: (value: PropValue) => void;
 }) {
   switch (spec.type) {
+    case "icon":
+      return (
+        <IconPicker
+          id={id}
+          value={typeof value === "string" ? value : undefined}
+          onChange={onChange}
+        />
+      );
     case "list":
       return (
         <Select
@@ -372,8 +381,8 @@ function FieldControl({
           onChange={onChange}
         />
       );
-    // icon gets the Iconify picker and file-list the uploads combobox in
-    // later v0.2 steps; free text keeps them usable meanwhile.
+    // file-list gets the uploads combobox with the upload step of v0.2;
+    // free text keeps it usable meanwhile.
     default:
       return (
         <Input

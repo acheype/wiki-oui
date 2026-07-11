@@ -1,30 +1,9 @@
 // No "use client": the ComponentBuilder loader must read buttonDefaults as a
 // real object (a client module would only expose client references to RSC).
-import {
-  Calendar,
-  CircleQuestionMark,
-  FileText,
-  House,
-  Pencil,
-  Settings,
-  Star,
-  User,
-} from "lucide-react";
 import { Button as UIButton } from "@/components/ui/button";
+import { iconSvg } from "@/lib/icons";
 import { isWikiHref } from "@/lib/slug";
 import { ModalLink, WikiLink } from "./wiki-link";
-
-// French icon whitelist: replaced by the Iconify picker later in v0.2.
-const icons: Record<string, React.ComponentType<{ className?: string }>> = {
-  roue: Settings,
-  maison: House,
-  aide: CircleQuestionMark,
-  crayon: Pencil,
-  page: FileText,
-  calendrier: Calendar,
-  etoile: Star,
-  utilisateur: User,
-};
 
 export type ButtonColor =
   | "default"
@@ -38,6 +17,7 @@ export type ButtonColor =
   | "link";
 
 export type ButtonProps = {
+  /** Iconify id from the embedded sets, e.g. `lucide:settings`. */
   icon?: string;
   text?: string;
   link?: string;
@@ -101,12 +81,16 @@ export function Button({
   newWindow = buttonDefaults.newWindow,
   popup = buttonDefaults.popup,
 }: ButtonProps) {
-  const Icon = icon ? icons[icon] : undefined;
-  const iconOnly = !text && Icon !== undefined;
+  // Server-side inline SVG (lib/icons.ts); an unknown id renders no icon.
+  const svg = icon ? iconSvg(icon) : null;
+  const iconOnly = !text && svg !== null;
 
   const content = (
     <>
-      {Icon && <Icon />}
+      {svg && (
+        // The shadcn button sizes any descendant svg (size-4).
+        <span aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />
+      )}
       {!iconOnly && <span>{text ?? icon ?? "Bouton"}</span>}
     </>
   );
