@@ -27,6 +27,7 @@ import {
   type FileFamily,
   type PropValue,
   type PropValues,
+  type Range,
   emitsMarkdownLink,
   generateMarkdownLink,
   generateTag,
@@ -47,6 +48,16 @@ export type BuilderState = {
   unknownAttributes: string[];
 };
 
+// What an open builder holds. null means closed; the last non-null value is
+// kept by the caller for the Radix close animation (see PageEditor).
+export type BuilderDialogState = {
+  mode: "insert" | "edit";
+  spec: ComponentBuilderSpec;
+  initial: BuilderState;
+  /** Range of the tag being edited; absent in insert mode. */
+  range?: Range;
+};
+
 /** Insert-mode starting point: defaults overlaid with the YAML pre-fills. */
 export function insertionState(spec: ComponentBuilderSpec): BuilderState {
   const values: PropValues = {};
@@ -63,43 +74,39 @@ export function insertionState(spec: ComponentBuilderSpec): BuilderState {
 export function ComponentBuilderDialog({
   open,
   onOpenChange,
-  spec,
-  mode,
-  initial,
+  state,
   allSlugs,
   onSubmit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  spec: ComponentBuilderSpec | null;
-  mode: "insert" | "edit";
-  initial: BuilderState | null;
+  state: BuilderDialogState | null;
   allSlugs: string[];
   onSubmit: (tag: string) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-        {spec && (
+        {state && (
           <>
             <DialogHeader>
               <DialogTitle>
-                {mode === "edit"
-                  ? `Modifier « ${spec.descriptor.label} »`
-                  : `Insérer « ${spec.descriptor.label} »`}
+                {state.mode === "edit"
+                  ? `Modifier « ${state.spec.descriptor.label} »`
+                  : `Insérer « ${state.spec.descriptor.label} »`}
               </DialogTitle>
-              {spec.descriptor.description && (
+              {state.spec.descriptor.description && (
                 <DialogDescription>
-                  {spec.descriptor.description}
+                  {state.spec.descriptor.description}
                 </DialogDescription>
               )}
             </DialogHeader>
             {/* Keyed on open so every opening starts from a fresh form. */}
             <BuilderForm
               key={String(open)}
-              spec={spec}
-              mode={mode}
-              initial={initial ?? insertionState(spec)}
+              spec={state.spec}
+              mode={state.mode}
+              initial={state.initial}
               allSlugs={allSlugs}
               onCancel={() => onOpenChange(false)}
               onSubmit={(tag) => {

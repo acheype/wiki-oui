@@ -13,7 +13,7 @@ import { CodeMirrorEditor } from "./codemirror-editor";
 import {
   ComponentBuilderDialog,
   insertionState,
-  type BuilderState,
+  type BuilderDialogState,
 } from "./component-builder";
 import { emitsMarkdownLink, type Range } from "@/lib/component-descriptor";
 import { insertSnippet, replaceSnippet } from "./commands";
@@ -27,22 +27,6 @@ import { EditorToolbar } from "./toolbar";
 import { uploadFile } from "./upload";
 import { UploadDialog, type UploadDialogState } from "./upload-dialog";
 import { uploadDoors } from "./upload-extension";
-
-type BuilderDialogState = {
-  open: boolean;
-  mode: "insert" | "edit";
-  spec: ComponentBuilderSpec | null;
-  initial: BuilderState | null;
-  /** Range of the tag being edited; absent in insert mode. */
-  range?: Range;
-};
-
-const closedBuilderDialog: BuilderDialogState = {
-  open: false,
-  mode: "insert",
-  spec: null,
-  initial: null,
-};
 
 export function PageEditor({
   slug,
@@ -67,7 +51,12 @@ export function PageEditor({
   // A ref, because the dialog-close handler must read it synchronously.
   const postUploadName = useRef<string | null>(null);
   const [tags, setTags] = useState(initialTags);
-  const [builderDialog, setBuilderDialog] = useState(closedBuilderDialog);
+  const [builderDialog, setBuilderDialog] =
+    useState<BuilderDialogState | null>(null);
+  // The Radix close animation fades the dialog out after builderDialog is
+  // nulled, so keep the last state around to render the fading content.
+  const lastBuilderDialog = useRef<BuilderDialogState | null>(null);
+  if (builderDialog) lastBuilderDialog.current = builderDialog;
   const [upload, setUpload] = useState<UploadDialogState>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -83,7 +72,6 @@ export function PageEditor({
         ),
       onEditComponent: (info: ComponentInfo) =>
         setBuilderDialog({
-          open: true,
           mode: "edit",
           spec: info.spec,
           initial: {
@@ -113,8 +101,6 @@ export function PageEditor({
       if (value !== undefined && value !== "") initial.values[field] = value;
     }
     setBuilderDialog({
-      ...closedBuilderDialog,
-      open: true,
       mode: range ? "edit" : "insert",
       spec,
       initial,
@@ -225,8 +211,7 @@ export function PageEditor({
         builders={builders}
         onRequestComponent={(spec) =>
           setBuilderDialog({
-            ...closedBuilderDialog,
-            open: true,
+            mode: "insert",
             spec,
             initial: insertionState(spec),
           })
@@ -272,25 +257,24 @@ export function PageEditor({
       />
 
       <ComponentBuilderDialog
-        open={builderDialog.open}
+        open={builderDialog !== null}
         onOpenChange={(open) => {
-          if (!open) discardPostUpload();
-          setBuilderDialog(
-            open ? builderDialog : { ...builderDialog, open: false }
-          );
+          if (open) return;
+          discardPostUpload();
+          setBuilderDialog(null);
         }}
-        spec={builderDialog.spec}
-        mode={builderDialog.mode}
-        initial={builderDialog.initial}
+        state={builderDialog ?? lastBuilderDialog.current}
         allSlugs={allSlugs}
         onSubmit={(tag) => {
           // The inserted tag references the file: the upload is kept.
           postUploadName.current = null;
-          if (!viewRef.current) return;
-          if (builderDialog.mode === "edit" && builderDialog.range) {
-            replaceSnippet(viewRef.current, builderDialog.range, tag);
+          const view = viewRef.current;
+          const active = builderDialog ?? lastBuilderDialog.current;
+          if (!view || !active) return;
+          if (active.mode === "edit" && active.range) {
+            replaceSnippet(view, active.range, tag);
           } else {
-            insertSnippet(viewRef.current, tag);
+            insertSnippet(view, tag);
           }
         }}
       />
