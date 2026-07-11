@@ -1,9 +1,14 @@
-// Server component: iconSvg() inlines the icon SVG at render time (lib/icons.ts).
-// A client <Icon> route would free it to be client too (ADR 0013, separate step).
+"use client";
+
+// Client component (ADR 0013 icon hybrid): the icon is fetched client-side by
+// <Icon> (GET /api/icons/[id]) instead of inlined on the server, so Button
+// bundles no Iconify data — at the cost of the icon appearing just after
+// hydration rather than in the SSR HTML. Being client, Button also keeps its
+// props across the RSC boundary, so <Menu> recognizes it by shape (menu.tsx).
 import { Button as UIButton } from "@/components/ui/button";
-import { iconSvg } from "@/lib/icons";
 import { isWikiHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { Icon } from "./internal/icon";
 import { ModalLink } from "./internal/modal-link";
 import { WikiLink } from "./wiki-link";
 
@@ -76,17 +81,12 @@ export function Button({
   newWindow = false,
   popup = "none",
 }: ButtonProps) {
-  // Server-side inline SVG (lib/icons.ts); an unknown id renders no icon.
-  const svg = icon ? iconSvg(icon) : null;
-  const iconOnly = !text && svg !== null;
+  const iconOnly = Boolean(icon) && !text;
 
   const content = (
     <>
-      {svg && (
-        // The shadcn button sizes any descendant svg (size-4).
-        <span aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />
-      )}
-      {!iconOnly && <span>{text ?? icon ?? "Bouton"}</span>}
+      {icon && <Icon id={icon} />}
+      {!iconOnly && <span>{text ?? "Bouton"}</span>}
     </>
   );
 

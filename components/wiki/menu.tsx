@@ -55,22 +55,29 @@ function isWikiLinkElement(node: ReactNode): node is LinkElement {
   return isComponentElement(node) && typeof node.props.href === "string";
 }
 
+// Button's own prop names — none of which WikiLink (the only other component
+// that can be a lone menu trigger, and always carrying `href`) exposes — so
+// their presence identifies a <Button> by shape. Kept in sync with ButtonProps
+// (button.tsx); recognizing the full vocabulary catches a styling-only trigger
+// like `<Button color="primary" />`, not just one with icon/text/link.
+const BUTTON_PROP_NAMES: (keyof ButtonProps)[] = [
+  "icon",
+  "text",
+  "link",
+  "title",
+  "color",
+  "float",
+  "fullWidth",
+  "newWindow",
+  "popup",
+];
+
 function isButtonElement(node: ReactNode): node is ReactElement<ButtonProps> {
   return (
     isComponentElement(node) &&
     !("href" in node.props) &&
-    ("icon" in node.props || "text" in node.props || "link" in node.props)
+    BUTTON_PROP_NAMES.some((name) => name in node.props)
   );
-}
-
-// A no-link Button is a server component that renders to a bare host <button>
-// before this client Menu ever inspects it, so its props are already gone and
-// only the tag survives. Recognize that tag: such a trigger is its own
-// affordance and, like a live <Button>, must never sit inside the trigger
-// <button> below — a button nested in a button is invalid HTML (hydration
-// error). Linked Buttons render to an <a> instead and are caught as wiki links.
-function isRenderedButton(node: ReactNode): boolean {
-  return isValidElement(node) && node.type === "button";
 }
 
 function meaningfulChildren(node: ReactNode): ReactNode[] {
@@ -194,12 +201,11 @@ function DropdownTrigger({
   onOpen: () => void;
 }) {
   const [node] = item.label;
-  // A lone Button-like trigger — a live <Button> element, or the bare <button>
-  // a no-link Button rendered to before we saw it — is self-sufficient: it
-  // renders as-is, with no wrapping <button> and no chevron of its own.
-  const isBareButton =
-    item.label.length === 1 &&
-    (isButtonElement(node) || isRenderedButton(node));
+  // A lone Button trigger is self-sufficient: it renders as-is, with no
+  // wrapping <button> (a button nested in a button is invalid HTML) and no
+  // chevron. Button is a client component (ADR 0013), so it reaches this
+  // client Menu as an element with its props intact — isButtonElement spots it.
+  const isBareButton = item.label.length === 1 && isButtonElement(node);
 
   // A navigating trigger keeps its click for navigation (the dropdown opens
   // on hover/focus); a plain one toggles on click. A label holding interactive
