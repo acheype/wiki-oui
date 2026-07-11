@@ -88,21 +88,25 @@ function Button({ color = "primary" }: ButtonProps) { … }
 
 ### Vérification du descripteur
 
-Deux niveaux, l'un toujours actif, l'autre réservé au développement du composant (ADR 0013).
+Deux familles de checks, **complémentaires** — la signature ne remplace qu'*un seul* ancien check structurel (« champ ∈ défauts exportés » devient « champ ∈ props »).
 
-**Structurels** — au chargement des specs, toujours : le YAML est-il auto-cohérent ? Type de champ connu ; `default` d'une `list` parmi ses `options` ; cibles de `showif` existantes et regex valides ; `family` connue ; `emits` valide.
+**Structurels** — le YAML est-il auto-cohérent, sans regarder le composant : type de champ connu ; `default` d'une `list` ∈ ses `options` ; cibles de `showif` existantes et regex valides ; `family` connue ; `emits` valide.
 
-**Signature** — au **build** et en **dev**, jamais au runtime de prod : le YAML colle-t-il au composant ? On parse la *source* du `.tsx` (jamais on ne l'importe, pour rester indifférent à `"use client"`) et on croise :
+**Signature** — le YAML colle-t-il au composant ? On parse la *source* du `.tsx` (jamais on ne l'importe, pour rester indifférent à `"use client"` ; le projet TS est chargé pour résoudre types importés, unions et défauts — un défaut est tracé jusqu'à un littéral : direct, constante, propriété d'objet, importés compris). **Uniquement pour les émetteurs de balise** (les émetteurs `markdown-link` n'ont que les structurels), et on **saute les champs `divider`** :
 
-| Détecte | Erreur |
+| Détecte | Constat |
 |---|---|
-| champ YAML ∉ props du composant | nom de prop erroné |
-| prop requise en TS sans `default` YAML | obligatoire oublié |
-| type du champ ≠ type de la prop | incompatibilité |
-| `options`/`default` d'une `list` hors de l'union de la prop | valeur invalide |
-| `default` YAML ≠ défaut de déstructuration | dérive des défauts |
+| champ YAML ∉ props du composant | erreur — nom de prop erroné |
+| prop obligatoire au runtime (requise en TS + sans défaut de déstructuration) sans `required` | erreur — obligatoire oublié |
+| type du champ ≠ type de la prop | erreur — incompatibilité |
+| `options` / `default` d'une `list` hors de l'union de la prop | erreur — valeur invalide |
+| `default` YAML ≠ défaut de déstructuration du composant | erreur — dérive des défauts |
+| type de `value` ≠ type de la prop | erreur — pré-remplissage mal typé |
+| `default` calculé au runtime (appel de fonction…) | **avertissement** — non vérifiable |
 
-Ces erreurs **font échouer le build** (`prebuild`) et s'affichent en **bandeau dans la modale en dev** — qui ajoute un composant voit immédiatement ce qui ne correspond pas. En prod, un build vert garantit la cohérence ; `ts-morph` reste une *devDependency*, hors bundle. Le rendu correct, lui, reste couvert par l'aperçu live de la modale (vrai pipeline).
+`default` est vérifié **en type et en dérive** (il pilote l'omission → il doit égaler le défaut du composant) ; `value`, pré-remplissage toujours écrit, **en type seulement** — il a le droit de différer.
+
+**Surfaçage uniforme, par `throw`** (pas de bandeau) : structurel comme signature `throw`ent un message clair. Le structurel tourne partout ; le signature en **dev** (chargement de l'éditeur) et au **build** (`prebuild`). En **dev**, l'overlay d'erreur Next s'affiche sur la page — le développeur voit *pourquoi*, corrige, sauve. Au **build**, le `prebuild` échoue. En **prod**, le structurel reste fail-fast, le signature est absent (`ts-morph` est une *devDependency* hors bundle ; un build vert garantit la cohérence). Le seul avertissement (`default` non vérifiable) part en `console.warn`, non bloquant. Le rendu correct, lui, reste couvert par l'aperçu live de la modale (vrai pipeline).
 
 ### `showif` : visibilité conditionnelle
 
