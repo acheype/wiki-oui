@@ -156,6 +156,17 @@ function BuilderForm({
   const setValue = (field: string, value: PropValue) =>
     setValues((current) => ({ ...current, [field]: value }));
 
+  const renderField = ([field, descriptorField]: [string, DescriptorField]) => (
+    <BuilderField
+      key={field}
+      id={`builder-${field}`}
+      spec={descriptorField}
+      value={values[field] ?? spec.defaults[field]}
+      allSlugs={allSlugs}
+      onChange={(value) => setValue(field, value)}
+    />
+  );
+
   return (
     <form
       className="grid gap-4"
@@ -166,16 +177,7 @@ function BuilderForm({
     >
       <TagPreview source={tag} height={spec.descriptor.previewHeight} />
 
-      {plainFields.map(([field, descriptorField]) => (
-        <BuilderField
-          key={field}
-          id={`builder-${field}`}
-          spec={descriptorField}
-          value={values[field] ?? spec.defaults[field]}
-          allSlugs={allSlugs}
-          onChange={(value) => setValue(field, value)}
-        />
-      ))}
+      {plainFields.map(renderField)}
 
       {advancedFields.length > 0 && (
         <div className="grid gap-4">
@@ -191,17 +193,7 @@ function BuilderForm({
             />
             Paramètres avancés
           </button>
-          {advancedOpen &&
-            advancedFields.map(([field, descriptorField]) => (
-              <BuilderField
-                key={field}
-                id={`builder-${field}`}
-                spec={descriptorField}
-                value={values[field] ?? spec.defaults[field]}
-                allSlugs={allSlugs}
-                onChange={(value) => setValue(field, value)}
-              />
-            ))}
+          {advancedOpen && advancedFields.map(renderField)}
         </div>
       )}
 
