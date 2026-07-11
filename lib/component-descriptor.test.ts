@@ -3,6 +3,7 @@ import {
   type ComponentDescriptor,
   type DescriptorField,
   findComponentTag,
+  generateMarkdownLink,
   generateTag,
   parseTag,
   tagToBuilderState,
@@ -394,5 +395,36 @@ describe("findComponentTag", () => {
     expect(findComponentTag(doc, doc.indexOf("entre"))).toBeNull();
     const malformed = 'Texte <Button text="Go >< fin';
     expect(findComponentTag(malformed, malformed.indexOf("Go"))).toBeNull();
+  });
+});
+
+// wiki-link's serialization target (docs/component-builder.md, `emits`).
+describe("generateMarkdownLink", () => {
+  const defaults = { text: undefined, link: undefined, target: "self" };
+
+  it("omits the annotation when the target is the default", () => {
+    expect(
+      generateMarkdownLink(defaults, {
+        text: "Notre équipe",
+        link: "equipe",
+        target: "self",
+      })
+    ).toBe("[Notre équipe](equipe)");
+  });
+
+  it("annotates a non-default target", () => {
+    expect(
+      generateMarkdownLink(defaults, {
+        text: "Docs",
+        link: "https://exemple.org",
+        target: "_blank",
+      })
+    ).toBe("[Docs](https://exemple.org){{ target: '_blank' }}");
+  });
+
+  it("falls back on the link when the text is empty", () => {
+    expect(generateMarkdownLink(defaults, { link: "equipe" })).toBe(
+      "[equipe](equipe)"
+    );
   });
 });

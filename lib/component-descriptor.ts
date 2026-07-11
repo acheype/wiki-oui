@@ -372,3 +372,20 @@ export function camelCase(kebab: string): string {
   const pascal = pascalCase(kebab);
   return pascal.charAt(0).toLowerCase() + pascal.slice(1);
 }
+
+// The markdown-link serialization target (`emits: markdown-link`,
+// docs/component-builder.md): fixed field semantics — text, link, target —
+// emitting `[text](link)` with a target annotation when not the default
+// (ADR 0006). wiki-link is its only user; the rest of the engine (fields,
+// showif, preview, inverse mapping) is shared with tag emitters.
+export function generateMarkdownLink(
+  defaults: PropDefaults,
+  values: PropValues
+): string {
+  const link = String(values.link ?? "").trim();
+  const text = String(values.text ?? "").trim() || link;
+  const target = values.target ?? defaults.target;
+  const annotation =
+    target === defaults.target ? "" : `{{ target: '${target}' }}`;
+  return `[${text}](${link})${annotation}`;
+}

@@ -1,16 +1,19 @@
-"use client";
-
+// No "use client": the ComponentBuilder loader must read wikiLinkDefaults as
+// a real object; the interactive modal lives in internal/modal-link.tsx.
 import Link from "next/link";
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { isWikiHref } from "@/lib/slug";
+import { ModalLink } from "./internal/modal-link";
 
 type WikiLinkProps = React.ComponentPropsWithoutRef<"a">;
+
+// Builder-facing defaults (docs/component-builder.md): wiki-link emits a
+// markdown link `[text](link){{ target: '…' }}` (ADR 0006), so its fields
+// map to the markdown parts, not to the component props below.
+export const wikiLinkDefaults = {
+  text: undefined,
+  link: undefined,
+  target: "self",
+};
 
 // Renders every `a` coming out of the MDX pipeline (ADR 0006).
 // target comes from the author via an annotation: "_blank" or "modal".
@@ -49,48 +52,5 @@ export function WikiLink({ href = "", target, children, ...rest }: WikiLinkProps
     <a href={href} {...rest}>
       {children}
     </a>
-  );
-}
-
-// Also the popup rendering of <Button> (trigger "hover" opens on mouse-over).
-export function ModalLink({
-  href,
-  trigger = "click",
-  children,
-  ...rest
-}: React.ComponentPropsWithoutRef<"a"> & {
-  href: string;
-  trigger?: "click" | "hover";
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <a
-        href={href}
-        {...rest}
-        onClick={(event) => {
-          event.preventDefault();
-          setOpen(true);
-        }}
-        onMouseEnter={trigger === "hover" ? () => setOpen(true) : undefined}
-      >
-        {children}
-      </a>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="truncate pr-6 text-sm font-normal text-muted-foreground">
-              {href}
-            </DialogTitle>
-          </DialogHeader>
-          <iframe
-            src={href}
-            title={href}
-            className="h-[70vh] w-full rounded-md border bg-background"
-          />
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }

@@ -26,6 +26,7 @@ import {
   type DescriptorField,
   type PropValue,
   type PropValues,
+  generateMarkdownLink,
   generateTag,
   visibleFields,
 } from "@/lib/component-descriptor";
@@ -137,13 +138,16 @@ function BuilderForm({
   const plainFields = fields.filter(([, f]) => !f.advanced);
   const advancedFields = fields.filter(([, f]) => f.advanced);
 
-  const tag = generateTag(
-    spec.name,
-    spec.descriptor,
-    spec.defaults,
-    values,
-    initial.unknownAttributes
-  );
+  const tag =
+    spec.descriptor.emits === "markdown-link"
+      ? generateMarkdownLink(spec.defaults, values)
+      : generateTag(
+          spec.name,
+          spec.descriptor,
+          spec.defaults,
+          values,
+          initial.unknownAttributes
+        );
 
   const missingRequired = fields.some(
     ([field, descriptorField]) =>
@@ -275,6 +279,14 @@ function BuilderField({
   onChange: (value: PropValue) => void;
 }) {
   if (spec.type === "divider") {
+    // A ⚠️-prefixed divider is a conditional notice, not a section title.
+    if (spec.label.startsWith("⚠️")) {
+      return (
+        <p className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500">
+          {spec.label}
+        </p>
+      );
+    }
     return (
       <div className="mt-1 grid gap-1">
         <p className="text-sm font-medium">{spec.label}</p>

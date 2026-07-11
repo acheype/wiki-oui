@@ -1,0 +1,30 @@
+# ComponentBuilder descriptor of the link modal (docs/component-builder.md).
+# emits markdown-link: the builder writes [texte](cible){{ target: '…' }}
+# (ADR 0006) instead of a JSX tag, which keeps it out of the components menu
+# — its doors are the toolbar link button and the anchored link pencil.
+label: Lien
+description: Insérer un lien vers une page du wiki ou une URL externe
+emits: markdown-link
+previewHeight: 80px
+properties:
+  text:
+    label: Texte affiché
+    type: text
+  link:
+    label: Page du wiki ou URL externe
+    hint: Si lien web, n'oubliez pas le "https://"
+    type: page-list
+    required: true
+  target:
+    label: Ouvrir dans
+    type: list
+    options:
+      self: L'onglet courant
+      _blank: Un nouvel onglet
+      modal: Une fenêtre modale
+  externalModalWarning:
+    label: "⚠️ Beaucoup de sites externes refusent d'être affichés dans une fenêtre modale ; le contenu risque de rester vide."
+    type: divider
+    showif:
+      target: modal
+      link: /^https?:\/\//

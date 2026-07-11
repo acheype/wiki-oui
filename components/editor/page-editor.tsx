@@ -15,38 +15,17 @@ import {
   insertionState,
   type BuilderState,
 } from "./component-builder";
-import {
-  insertLink,
-  insertSnippet,
-  replaceLink,
-  replaceSnippet,
-  type LinkValue,
-} from "./commands";
+import { insertSnippet, replaceSnippet } from "./commands";
 import {
   cursorTools,
   type ComponentInfo,
   type LinkInfo,
 } from "./cursor-tools";
-import { LinkDialog } from "./link-dialog";
 import { TagsInput } from "./tags-input";
 import { EditorToolbar } from "./toolbar";
 import { deleteUploadedFile, uploadFile } from "./upload";
 import { UploadDialog, type UploadDialogState } from "./upload-dialog";
 import { uploadDoors } from "./upload-extension";
-
-type LinkDialogState = {
-  open: boolean;
-  mode: "insert" | "edit";
-  value: LinkValue;
-  /** Range of the link being edited; absent in insert mode. */
-  range?: { from: number; to: number };
-};
-
-const closedLinkDialog: LinkDialogState = {
-  open: false,
-  mode: "insert",
-  value: { text: "", href: "", target: "self" },
-};
 
 type BuilderDialogState = {
   open: boolean;
@@ -87,7 +66,6 @@ export function PageEditor({
   // A ref, because the dialog-close handler must read it synchronously.
   const postUploadName = useRef<string | null>(null);
   const [tags, setTags] = useState(initialTags);
-  const [linkDialog, setLinkDialog] = useState(closedLinkDialog);
   const [builderDialog, setBuilderDialog] = useState(closedBuilderDialog);
   const [upload, setUpload] = useState<UploadDialogState>(null);
   const [isPending, startTransition] = useTransition();
@@ -98,12 +76,10 @@ export function PageEditor({
     cursorTools({
       builders,
       onEditLink: (info: LinkInfo) =>
-        setLinkDialog({
-          open: true,
-          mode: "edit",
-          value: { text: info.text, href: info.href, target: info.target },
-          range: { from: info.from, to: info.to },
-        }),
+        openWikiLinkBuilder(
+          { text: info.text, link: info.href, target: info.target },
+          { from: info.from, to: info.to }
+        ),
       onEditComponent: (info: ComponentInfo) =>
         setBuilderDialog({
           open: true,
@@ -118,6 +94,33 @@ export function PageEditor({
     }),
     uploadDoors((file) => handleUploadFile(file)),
   ]);
+
+  // The wiki-link builder (emits markdown-link) has its own doors: the
+  // toolbar link button and the anchored link pencil (docs/component-builder.md).
+  function openWikiLinkBuilder(
+    values: Record<string, string | undefined>,
+    range?: { from: number; to: number }
+  ) {
+    const spec = builders.find(
+      (builder) => builder.descriptor.emits === "markdown-link"
+    );
+    if (!spec) {
+      toast.error("Le descripteur du lien (wiki-link.yaml) est introuvable.");
+      return;
+    }
+    const initial = insertionState(spec);
+    for (const [field, value] of Object.entries(values)) {
+      if (value !== undefined && value !== "") initial.values[field] = value;
+    }
+    setBuilderDialog({
+      ...closedBuilderDialog,
+      open: true,
+      mode: range ? "edit" : "insert",
+      spec,
+      initial,
+      range,
+    });
+  }
 
   function openBuilderForFile(componentName: "Image" | "Pdf" | "FileLink", fileName: string) {
     const spec = builders.find((builder) => builder.name === componentName);
@@ -203,11 +206,7 @@ export function PageEditor({
       <EditorToolbar
         viewRef={viewRef}
         onRequestLink={(selectionText) =>
-          setLinkDialog({
-            ...closedLinkDialog,
-            open: true,
-            value: { ...closedLinkDialog.value, text: selectionText },
-          })
+          openWikiLinkBuilder({ text: selectionText || undefined })
         }
         builders={builders}
         onRequestComponent={(spec) =>
@@ -282,23 +281,6 @@ export function PageEditor({
         }}
       />
 
-      <LinkDialog
-        open={linkDialog.open}
-        onOpenChange={(open) =>
-          setLinkDialog(open ? linkDialog : { ...linkDialog, open: false })
-        }
-        mode={linkDialog.mode}
-        initial={linkDialog.value}
-        allSlugs={allSlugs}
-        onInsert={(link) => {
-          if (!viewRef.current) return;
-          if (linkDialog.mode === "edit" && linkDialog.range) {
-            replaceLink(viewRef.current, linkDialog.range, link);
-          } else {
-            insertLink(viewRef.current, link);
-          }
-        }}
-      />
     </div>
   );
 }

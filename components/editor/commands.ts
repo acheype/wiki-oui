@@ -191,39 +191,6 @@ export function toggleComment(view: EditorView) {
 
 export type LinkTarget = "self" | "_blank" | "modal";
 
-export type LinkValue = { text: string; href: string; target: LinkTarget };
-
-function linkMarkdown(link: LinkValue): string {
-  const annotation =
-    link.target === "self" ? "" : `{{ target: '${link.target}' }}`;
-  return `[${link.text}](${link.href})${annotation}`;
-}
-
-export function insertLink(view: EditorView, link: LinkValue) {
-  const markdown = linkMarkdown(link);
-  view.dispatch(
-    view.state.changeByRange((range) => ({
-      changes: { from: range.from, to: range.to, insert: markdown },
-      range: EditorSelection.cursor(range.from + markdown.length),
-    }))
-  );
-  view.focus();
-}
-
-// Rewrites an existing link in place (cursor-anchored edit, ADR 0005).
-export function replaceLink(
-  view: EditorView,
-  range: { from: number; to: number },
-  link: LinkValue
-) {
-  const markdown = linkMarkdown(link);
-  view.dispatch({
-    changes: { from: range.from, to: range.to, insert: markdown },
-    selection: EditorSelection.cursor(range.from + markdown.length),
-  });
-  view.focus();
-}
-
 // Inserts a ComponentBuilder-generated snippet at the cursor, replacing the
 // selection if any (insertion from the « Composants » menu).
 export function insertSnippet(view: EditorView, snippet: string) {

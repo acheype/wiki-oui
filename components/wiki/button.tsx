@@ -3,7 +3,8 @@
 import { Button as UIButton } from "@/components/ui/button";
 import { iconSvg } from "@/lib/icons";
 import { isWikiHref } from "@/lib/slug";
-import { ModalLink, WikiLink } from "./wiki-link";
+import { ModalLink } from "./internal/modal-link";
+import { WikiLink } from "./wiki-link";
 
 export type ButtonColor =
   | "default"
