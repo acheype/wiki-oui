@@ -15,6 +15,7 @@ import {
   insertionState,
   type BuilderState,
 } from "./component-builder";
+import { emitsMarkdownLink } from "@/lib/component-descriptor";
 import { insertSnippet, replaceSnippet } from "./commands";
 import {
   cursorTools,
@@ -95,17 +96,16 @@ export function PageEditor({
     uploadDoors((file) => handleUploadFile(file)),
   ]);
 
-  // The wiki-link builder (emits markdown-link) has its own doors: the
-  // toolbar link button and the anchored link pencil (docs/component-builder.md).
-  function openWikiLinkBuilder(
+  // Opens a builder with the insertion defaults overlaid by `values`; in
+  // edit mode `range` is the source span the submit rewrites.
+  function openBuilder(
+    spec: ComponentBuilderSpec | undefined,
+    missingSpecLabel: string,
     values: Record<string, string | undefined>,
     range?: { from: number; to: number }
   ) {
-    const spec = builders.find(
-      (builder) => builder.descriptor.emits === "markdown-link"
-    );
     if (!spec) {
-      toast.error("Le descripteur du lien (wiki-link.yaml) est introuvable.");
+      toast.error(`Descripteur introuvable : ${missingSpecLabel}.`);
       return;
     }
     const initial = insertionState(spec);
@@ -122,15 +122,29 @@ export function PageEditor({
     });
   }
 
-  function openBuilderForFile(componentName: "Image" | "Pdf" | "FileLink", fileName: string) {
-    const spec = builders.find((builder) => builder.name === componentName);
-    if (!spec) {
-      toast.error(`Le composant ${componentName} n'a pas de descripteur.`);
-      return;
-    }
-    const initial = insertionState(spec);
-    initial.values.file = fileName;
-    setBuilderDialog({ ...closedBuilderDialog, open: true, spec, initial });
+  // The wiki-link builder (emits markdown-link) has its own doors: the
+  // toolbar link button and the anchored link pencil (docs/component-builder.md).
+  function openWikiLinkBuilder(
+    values: Record<string, string | undefined>,
+    range?: { from: number; to: number }
+  ) {
+    openBuilder(
+      builders.find((builder) => emitsMarkdownLink(builder.descriptor)),
+      "wiki-link.yaml",
+      values,
+      range
+    );
+  }
+
+  function openBuilderForFile(
+    componentName: "Image" | "Pdf" | "FileLink",
+    fileName: string
+  ) {
+    openBuilder(
+      builders.find((builder) => builder.name === componentName),
+      componentName,
+      { file: fileName }
+    );
   }
 
   async function handleUploadFile(file: File) {

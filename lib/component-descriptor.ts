@@ -16,6 +16,10 @@ const FIELD_TYPES = [
 
 export type FieldType = (typeof FIELD_TYPES)[number];
 
+/** File families (ADR 0012): route uploads and filter file-list fields. */
+export const FILE_FAMILIES = ["image", "pdf", "other"] as const;
+export type FileFamily = (typeof FILE_FAMILIES)[number];
+
 export interface DescriptorField {
   label: string;
   hint?: string;
@@ -25,7 +29,7 @@ export interface DescriptorField {
   /** Insertion pre-fill; the prop is always written, even when unchanged. */
   value?: string | number | boolean;
   /** For `file-list`: restricts the combobox to one file family. */
-  family?: "image" | "pdf" | "other";
+  family?: FileFamily;
   required?: boolean;
   advanced?: boolean;
   showif?: Record<string, unknown>;
@@ -38,6 +42,11 @@ export interface ComponentDescriptor {
   /** Serialization target; JSX component tag unless "markdown-link". */
   emits?: "markdown-link";
   properties: Record<string, DescriptorField>;
+}
+
+/** True for wiki-link: serialized as a markdown link, kept out of the menu. */
+export function emitsMarkdownLink(descriptor: ComponentDescriptor): boolean {
+  return descriptor.emits === "markdown-link";
 }
 
 /** Prop values as the component exports them (`xxxDefaults`). */
@@ -64,6 +73,11 @@ export function validateDescriptor(
   defaults: PropDefaults
 ): void {
   const source = `components/wiki/${name}.yaml`;
+  if (descriptor.emits !== undefined && descriptor.emits !== "markdown-link") {
+    throw new Error(
+      `${source}: unknown emits target "${descriptor.emits}" (the only alternative is markdown-link)`
+    );
+  }
   for (const [field, spec] of Object.entries(descriptor.properties)) {
     if (!FIELD_TYPES.includes(spec.type)) {
       throw new Error(
@@ -95,10 +109,10 @@ export function validateDescriptor(
     if (
       spec.type === "file-list" &&
       spec.family !== undefined &&
-      !["image", "pdf", "other"].includes(spec.family)
+      !FILE_FAMILIES.includes(spec.family)
     ) {
       throw new Error(
-        `${source}: file-list field "${field}" has unknown family "${spec.family}" (image, pdf, other)`
+        `${source}: file-list field "${field}" has unknown family "${spec.family}" (${FILE_FAMILIES.join(", ")})`
       );
     }
     if (spec.type === "list") {
@@ -118,18 +132,22 @@ export function validateDescriptor(
 export type PropValues = Record<string, PropValue>;
 
 // showif evaluation (docs/component-builder.md): several entries AND up;
-// fields react live while typing, so this stays pure and cheap.
+// fields react live while typing, so this stays pure and cheap. A key
+// absent from values reads as its exported default, so insertion and
+// re-edit see the same visibility for the same generated tag.
 export function visibleFields(
   descriptor: ComponentDescriptor,
+  defaults: PropDefaults,
   values: PropValues
 ): string[] {
   return Object.keys(descriptor.properties).filter((field) =>
-    isVisible(descriptor, values, field)
+    isVisible(descriptor, defaults, values, field)
   );
 }
 
 function isVisible(
   descriptor: ComponentDescriptor,
+  defaults: PropDefaults,
   values: PropValues,
   field: string,
   trail: string[] = []
@@ -140,16 +158,17 @@ function isVisible(
   // hidden (their value reads as empty) rather than crash the builder.
   if (trail.includes(field)) return false;
   return Object.entries(showif).every(([target, condition]) => {
-    const value = isVisible(descriptor, values, target, [...trail, field])
-      ? values[target]
+    const value = isVisible(descriptor, defaults, values, target, [...trail, field])
+      ? (target in values ? values[target] : defaults[target])
       : undefined;
     return holds(condition, value);
   });
 }
 
-// "Empty" backs both the notNull/null keywords and the hidden-field cascade:
-// unset, blank text and unchecked checkbox all count as nothing to show.
-function isEmpty(value: PropValue): boolean {
+// "Empty" backs the notNull/null keywords, the hidden-field cascade and the
+// builder's required-field guard: unset, blank text and unchecked checkbox
+// all count as nothing to show.
+export function isEmpty(value: PropValue): boolean {
   return value === undefined || value === "" || value === false;
 }
 
@@ -174,7 +193,7 @@ export function generateTag(
   values: PropValues,
   unknownAttributes: string[] = []
 ): string {
-  const visible = visibleFields(descriptor, values);
+  const visible = visibleFields(descriptor, defaults, values);
   const attributes: string[] = [];
   for (const [field, spec] of Object.entries(descriptor.properties)) {
     if (spec.type === "divider") continue;
@@ -251,7 +270,8 @@ function parseTagPrefix(
 
 // How far behind the cursor a tag opening may start. Generated tags are
 // one-liners; hand-written ones larger than this window just get no pencil.
-const TAG_SCAN_WINDOW = 2000;
+// Exported so componentAtCursor slices the same window out of the document.
+export const TAG_SCAN_WINDOW = 2000;
 
 /** Finds the well-formed self-closing component tag enclosing `offset`. */
 export function findComponentTag(

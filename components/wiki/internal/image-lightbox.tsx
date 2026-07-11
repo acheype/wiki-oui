@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 // Client innard of <Image lightbox>: the wiki components themselves stay
 // server modules (their defaults must be readable by the descriptor loader),
@@ -23,7 +24,7 @@ export function ImageLightbox({
     <>
       <button
         type="button"
-        className={`cursor-zoom-in ${className ?? ""}`}
+        className={cn("cursor-zoom-in", className)}
         onClick={() => setOpen(true)}
         aria-label={`Afficher l'image en grand${alt ? ` : ${alt}` : ""}`}
       >

@@ -24,10 +24,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import {
   type DescriptorField,
+  type FileFamily,
   type PropValue,
   type PropValues,
+  emitsMarkdownLink,
   generateMarkdownLink,
   generateTag,
+  isEmpty,
   visibleFields,
 } from "@/lib/component-descriptor";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
@@ -35,7 +38,7 @@ import { IconPicker } from "./icon-picker";
 
 // The ComponentBuilder modal (docs/component-builder.md): fully generated
 // from a descriptor + the component's exported defaults — preview on top
-// (real pipeline via POST /api/render), fields below, advanced ones folded.
+// (real pipeline via GET /api/render), fields below, advanced ones folded.
 
 export type BuilderState = {
   values: PropValues;
@@ -109,10 +112,6 @@ export function ComponentBuilderDialog({
   );
 }
 
-function isEmpty(value: PropValue): boolean {
-  return value === undefined || value === "" || value === false;
-}
-
 function BuilderForm({
   spec,
   mode,
@@ -131,7 +130,7 @@ function BuilderForm({
   const [values, setValues] = useState<PropValues>(initial.values);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const visible = visibleFields(spec.descriptor, values);
+  const visible = visibleFields(spec.descriptor, spec.defaults, values);
   const fields = Object.entries(spec.descriptor.properties).filter(
     ([field]) => visible.includes(field)
   );
@@ -139,7 +138,7 @@ function BuilderForm({
   const advancedFields = fields.filter(([, f]) => f.advanced);
 
   const tag =
-    spec.descriptor.emits === "markdown-link"
+    emitsMarkdownLink(spec.descriptor)
       ? generateMarkdownLink(spec.defaults, values)
       : generateTag(
           spec.name,
@@ -171,7 +170,6 @@ function BuilderForm({
         <BuilderField
           key={field}
           id={`builder-${field}`}
-          field={field}
           spec={descriptorField}
           value={values[field] ?? spec.defaults[field]}
           allSlugs={allSlugs}
@@ -198,7 +196,6 @@ function BuilderForm({
               <BuilderField
                 key={field}
                 id={`builder-${field}`}
-                field={field}
                 spec={descriptorField}
                 value={values[field] ?? spec.defaults[field]}
                 allSlugs={allSlugs}
@@ -265,14 +262,12 @@ function TagPreview({ source, height }: { source: string; height?: string }) {
 
 function BuilderField({
   id,
-  field,
   spec,
   value,
   allSlugs,
   onChange,
 }: {
   id: string;
-  field: string;
   spec: DescriptorField;
   value: PropValue;
   allSlugs: string[];
@@ -319,7 +314,6 @@ function BuilderField({
       </Label>
       <FieldControl
         id={id}
-        field={field}
         spec={spec}
         value={value}
         allSlugs={allSlugs}
@@ -338,7 +332,6 @@ function FieldControl({
   onChange,
 }: {
   id: string;
-  field: string;
   spec: DescriptorField;
   value: PropValue;
   allSlugs: string[];
@@ -402,8 +395,7 @@ function FieldControl({
           onChange={onChange}
         />
       );
-    // file-list gets the uploads combobox with the upload step of v0.2;
-    // free text keeps it usable meanwhile.
+    // text and url fields share a plain input.
     default:
       return (
         <Input
@@ -418,96 +410,27 @@ function FieldControl({
   }
 }
 
-// Same suggestion chips as the link dialog (ADR 0006): free text accepted,
-// wiki slugs suggested while typing.
-function PageListInput({
+// Input + suggestion chips, shared by page-list and file-list: free text
+// stays accepted, candidates are suggested while typing.
+function SuggestionInput({
   id,
   value,
-  allSlugs,
+  placeholder,
+  candidates,
   onChange,
 }: {
   id: string;
   value: string;
-  allSlugs: string[];
+  placeholder: string;
+  candidates: string[];
   onChange: (value: PropValue) => void;
 }) {
   const suggestions = useMemo(() => {
     const query = value.trim().toLowerCase();
-    if (query === "" || /^https?:\/\//.test(query)) return [];
-    return allSlugs
-      .filter((slug) => slug.includes(query) && slug !== query)
-      .slice(0, 6);
-  }, [value, allSlugs]);
-
-  return (
-    <>
-      <Input
-        id={id}
-        value={value}
-        autoComplete="off"
-        placeholder="ma-page ou https://…"
-        onChange={(event) =>
-          onChange(event.target.value === "" ? undefined : event.target.value)
-        }
-      />
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {suggestions.map((slug) => (
-            <Button
-              key={slug}
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-6 rounded-full px-2 font-mono text-xs"
-              onClick={() => onChange(slug)}
-            >
-              {slug}
-            </Button>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-// Combobox over the uploaded-files library (files/ directory, ADR 0012),
-// filterable by family; free text stays accepted.
-function FileListInput({
-  id,
-  value,
-  family,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  family?: "image" | "pdf" | "other";
-  onChange: (value: PropValue) => void;
-}) {
-  const [files, setFiles] = useState<string[]>([]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    (async () => {
-      try {
-        const query = family ? `?family=${family}` : "";
-        const response = await fetch(`/api/files${query}`, {
-          signal: controller.signal,
-        });
-        const body = (await response.json()) as { files: { name: string }[] };
-        setFiles(body.files.map((file) => file.name));
-      } catch {
-        // Offline or aborted: the field degrades to free text.
-      }
-    })();
-    return () => controller.abort();
-  }, [family]);
-
-  const suggestions = useMemo(() => {
-    const query = value.trim().toLowerCase();
-    return files
+    return candidates
       .filter((name) => name.includes(query) && name !== query)
       .slice(0, 6);
-  }, [value, files]);
+  }, [value, candidates]);
 
   return (
     <>
@@ -515,7 +438,7 @@ function FileListInput({
         id={id}
         value={value}
         autoComplete="off"
-        placeholder="nom-du-fichier.ext"
+        placeholder={placeholder}
         onChange={(event) =>
           onChange(event.target.value === "" ? undefined : event.target.value)
         }
@@ -537,6 +460,78 @@ function FileListInput({
         </div>
       )}
     </>
+  );
+}
+
+const NO_CANDIDATES: string[] = [];
+
+// Wiki pages (ADR 0006): no suggestions on an empty query or an external URL.
+function PageListInput({
+  id,
+  value,
+  allSlugs,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  allSlugs: string[];
+  onChange: (value: PropValue) => void;
+}) {
+  const candidates =
+    value.trim() === "" || /^https?:\/\//.test(value.trim())
+      ? NO_CANDIDATES
+      : allSlugs;
+  return (
+    <SuggestionInput
+      id={id}
+      value={value}
+      placeholder="ma-page ou https://…"
+      candidates={candidates}
+      onChange={onChange}
+    />
+  );
+}
+
+// Combobox over the uploaded-files library (files/ directory, ADR 0012),
+// filterable by family.
+function FileListInput({
+  id,
+  value,
+  family,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  family?: FileFamily;
+  onChange: (value: PropValue) => void;
+}) {
+  const [files, setFiles] = useState<string[]>(NO_CANDIDATES);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const query = family ? `?family=${family}` : "";
+        const response = await fetch(`/api/files${query}`, {
+          signal: controller.signal,
+        });
+        const body = (await response.json()) as { files: { name: string }[] };
+        setFiles(body.files.map((file) => file.name));
+      } catch {
+        // Offline or aborted: the field degrades to free text.
+      }
+    })();
+    return () => controller.abort();
+  }, [family]);
+
+  return (
+    <SuggestionInput
+      id={id}
+      value={value}
+      placeholder="nom-du-fichier.ext"
+      candidates={files}
+      onChange={onChange}
+    />
   );
 }
 

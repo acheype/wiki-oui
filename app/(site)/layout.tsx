@@ -17,6 +17,14 @@ export default async function SiteLayout({
   children: React.ReactNode;
 }>) {
   const slots = await getLayoutContents();
+  // The five slot renders are independent: pipeline them.
+  const [title, topMenu, topQuickAccess, header, footer] = await Promise.all([
+    renderMdx(slots.title),
+    renderMdx(slots.topMenu),
+    renderMdx(slots.topQuickAccess),
+    renderMdx(slots.header),
+    renderMdx(slots.footer),
+  ]);
 
   return (
     <>
@@ -26,10 +34,10 @@ export default async function SiteLayout({
             href={`/${wikiConfig.homeSlug}`}
             className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
           >
-            {await renderMdx(slots.title)}
+            {title}
           </Link>
           <div className="layout-slot min-w-0 flex-1">
-            {await renderMdx(slots.topMenu)}
+            {topMenu}
           </div>
           <div
             className={cn(
@@ -38,7 +46,7 @@ export default async function SiteLayout({
               inlineMdx
             )}
           >
-            {await renderMdx(slots.topQuickAccess)}
+            {topQuickAccess}
           </div>
         </div>
       </div>
@@ -46,7 +54,7 @@ export default async function SiteLayout({
       {!isBlankMdx(slots.header) && (
         <div className="border-b bg-muted/40">
           <div className={cn("mx-auto max-w-5xl px-4 py-3 text-sm", inlineMdx)}>
-            {await renderMdx(slots.header)}
+            {header}
           </div>
         </div>
       )}
@@ -62,7 +70,7 @@ export default async function SiteLayout({
             inlineMdx
           )}
         >
-          {await renderMdx(slots.footer)}
+          {footer}
         </div>
       </footer>
     </>

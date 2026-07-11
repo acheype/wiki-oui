@@ -3,6 +3,7 @@
 import { Button as UIButton } from "@/components/ui/button";
 import { iconSvg } from "@/lib/icons";
 import { isWikiHref } from "@/lib/slug";
+import { cn } from "@/lib/utils";
 import { ModalLink } from "./internal/modal-link";
 import { WikiLink } from "./wiki-link";
 
@@ -48,24 +49,31 @@ export const buttonDefaults = {
   popup: "none",
 } satisfies { [K in keyof Required<ButtonProps>]: ButtonProps[K] };
 
-// Palette colors ride on shadcn variants when one matches; the others get
-// explicit classes on the theme colors added for v0.2 (globals.css).
-const colorVariants: Partial<
-  Record<ButtonColor, React.ComponentProps<typeof UIButton>["variant"]>
+// One entry per palette color, enforced by the compiler: either a shadcn
+// variant or explicit classes on the theme colors added for v0.2 (globals.css).
+const colorStyles: Record<
+  ButtonColor,
+  {
+    variant?: React.ComponentProps<typeof UIButton>["variant"];
+    className?: string;
+  }
 > = {
-  default: "outline",
-  primary: "default",
-  "secondary-1": "secondary",
-  danger: "destructive",
-  link: "link",
-};
-
-const colorClasses: Partial<Record<ButtonColor, string>> = {
-  "secondary-2":
-    "bg-secondary-2 text-secondary-2-foreground shadow-xs hover:bg-secondary-2/90",
-  success: "bg-success text-success-foreground shadow-xs hover:bg-success/90",
-  info: "bg-info text-info-foreground shadow-xs hover:bg-info/90",
-  warning: "bg-warning text-warning-foreground shadow-xs hover:bg-warning/90",
+  default: { variant: "outline" },
+  primary: { variant: "default" },
+  "secondary-1": { variant: "secondary" },
+  "secondary-2": {
+    className:
+      "bg-secondary-2 text-secondary-2-foreground shadow-xs hover:bg-secondary-2/90",
+  },
+  success: {
+    className: "bg-success text-success-foreground shadow-xs hover:bg-success/90",
+  },
+  info: { className: "bg-info text-info-foreground shadow-xs hover:bg-info/90" },
+  warning: {
+    className: "bg-warning text-warning-foreground shadow-xs hover:bg-warning/90",
+  },
+  danger: { variant: "destructive" },
+  link: { variant: "link" },
 };
 
 // Built-in component (CONTEXT.md). One semantic, two looks: a full shadcn
@@ -96,21 +104,19 @@ export function Button({
     </>
   );
 
-  const className = [
+  const className = cn(
     "wiki-button",
-    colorClasses[color],
+    colorStyles[color].className,
     float === "right" && "float-right",
-    fullWidth && "w-full",
-  ]
-    .filter(Boolean)
-    .join(" ");
+    fullWidth && "w-full"
+  );
 
   return (
     <UIButton
       asChild={Boolean(link)}
       type={link ? undefined : "button"}
       size={iconOnly ? "icon" : "default"}
-      variant={colorVariants[color]}
+      variant={colorStyles[color].variant}
       className={className}
       aria-label={iconOnly ? (title ?? text ?? icon) : undefined}
       title={title ?? (iconOnly ? (text ?? icon) : undefined)}

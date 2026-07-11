@@ -24,7 +24,9 @@ import {
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
 import {
+  emitsMarkdownLink,
   findComponentTag,
+  TAG_SCAN_WINDOW,
   tagToBuilderState,
   type PropValues,
 } from "@/lib/component-descriptor";
@@ -103,9 +105,9 @@ export function componentAtCursor(
 ): ComponentInfo | null {
   const range = state.selection.main;
   if (!range.empty) return null;
-  // A window around the cursor bounds the scan (generated tags are short).
-  const windowFrom = Math.max(0, range.head - 2000);
-  const windowTo = Math.min(state.doc.length, range.head + 2000);
+  // Slice the parser's own scan window out of the document (not the whole doc).
+  const windowFrom = Math.max(0, range.head - TAG_SCAN_WINDOW);
+  const windowTo = Math.min(state.doc.length, range.head + TAG_SCAN_WINDOW);
   const found = findComponentTag(
     state.sliceDoc(windowFrom, windowTo),
     range.head - windowFrom
@@ -113,8 +115,7 @@ export function componentAtCursor(
   if (!found) return null;
   const spec = builders.find(
     (builder) =>
-      builder.name === found.tag.name &&
-      builder.descriptor.emits !== "markdown-link"
+      builder.name === found.tag.name && !emitsMarkdownLink(builder.descriptor)
   );
   if (!spec) return null;
   const builderState = tagToBuilderState(

@@ -72,6 +72,17 @@ describe("validateDescriptor", () => {
     );
   });
 
+  it("rejects an unknown emits target", () => {
+    const descriptor = buttonDescriptor();
+    // @ts-expect-error -- a YAML typo lands here untyped
+    descriptor.emits = "markdown";
+    expect(() =>
+      validateDescriptor("button", descriptor, buttonDefaults)
+    ).toThrow(
+      'components/wiki/button.yaml: unknown emits target "markdown" (the only alternative is markdown-link)'
+    );
+  });
+
   it("rejects an invalid showif regex at load time", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.showif = { text: "/(/" };
@@ -129,40 +140,40 @@ function withShowif(showif: DescriptorField["showif"]): ComponentDescriptor {
 
 describe("visibleFields", () => {
   it("shows a field without showif", () => {
-    expect(visibleFields(withShowif(undefined), {})).toContain("height");
+    expect(visibleFields(withShowif(undefined), {}, {})).toContain("height");
   });
 
   it("matches a bare value by strict equality on the stringified value", () => {
     const descriptor = withShowif({ ratio: "portrait" });
-    expect(visibleFields(descriptor, { ratio: "portrait" })).toContain("height");
-    expect(visibleFields(descriptor, { ratio: "paysage" })).not.toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: "portrait" })).toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: "paysage" })).not.toContain("height");
   });
 
   it("matches a boolean condition against the checkbox state", () => {
     const descriptor = withShowif({ ratio: true });
     descriptor.properties.ratio.type = "checkbox";
-    expect(visibleFields(descriptor, { ratio: true })).toContain("height");
-    expect(visibleFields(descriptor, { ratio: false })).not.toContain("height");
-    expect(visibleFields(descriptor, {})).not.toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: true })).toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: false })).not.toContain("height");
+    expect(visibleFields(descriptor, {}, {})).not.toContain("height");
   });
 
   it("treats notNull as \"field holds something\"", () => {
     const descriptor = withShowif({ ratio: "notNull" });
-    expect(visibleFields(descriptor, { ratio: "16/9" })).toContain("height");
-    expect(visibleFields(descriptor, { ratio: "" })).not.toContain("height");
-    expect(visibleFields(descriptor, {})).not.toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: "16/9" })).toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: "" })).not.toContain("height");
+    expect(visibleFields(descriptor, {}, {})).not.toContain("height");
   });
 
   it("treats a null condition as \"field is empty\"", () => {
     const descriptor = withShowif({ ratio: null });
-    expect(visibleFields(descriptor, {})).toContain("height");
-    expect(visibleFields(descriptor, { ratio: "16/9" })).not.toContain("height");
+    expect(visibleFields(descriptor, {}, {})).toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: "16/9" })).not.toContain("height");
   });
 
   it("matches a /…/ condition as a regex search", () => {
     const descriptor = withShowif({ ratio: "/\\.(png|jpg)$/" });
-    expect(visibleFields(descriptor, { ratio: "photo.png" })).toContain("height");
-    expect(visibleFields(descriptor, { ratio: "doc.pdf" })).not.toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: "photo.png" })).toContain("height");
+    expect(visibleFields(descriptor, {}, { ratio: "doc.pdf" })).not.toContain("height");
   });
 
   it("ANDs several showif entries", () => {
@@ -179,10 +190,20 @@ describe("visibleFields", () => {
       },
     };
     expect(
-      visibleFields(descriptor, { ratio: "portrait", legend: "Vue du ciel" })
+      visibleFields(descriptor, {}, { ratio: "portrait", legend: "Vue du ciel" })
     ).toContain("height");
     expect(
-      visibleFields(descriptor, { ratio: "portrait" })
+      visibleFields(descriptor, {}, { ratio: "portrait" })
+    ).not.toContain("height");
+  });
+
+  it("reads an absent value as its exported default (insert = re-edit)", () => {
+    const descriptor = withShowif({ ratio: "none" });
+    // ratio missing from values, but its default is "none": height shows,
+    // exactly as it would when re-editing the identical generated tag.
+    expect(visibleFields(descriptor, { ratio: "none" }, {})).toContain("height");
+    expect(
+      visibleFields(descriptor, { ratio: "none" }, { ratio: "portrait" })
     ).not.toContain("height");
   });
 
@@ -202,8 +223,8 @@ describe("visibleFields", () => {
     // caption holds a stale value but is hidden (modal unchecked): its
     // dependents must see it as empty.
     const values = { modal: false, caption: "Vue du ciel" };
-    expect(visibleFields(descriptor, values)).not.toContain("caption");
-    expect(visibleFields(descriptor, values)).not.toContain("captionColor");
+    expect(visibleFields(descriptor, {}, values)).not.toContain("caption");
+    expect(visibleFields(descriptor, {}, values)).not.toContain("captionColor");
   });
 });
 

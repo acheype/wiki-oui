@@ -1,4 +1,5 @@
-import type { FileFamily } from "@/lib/files";
+import type { FileFamily } from "@/lib/component-descriptor";
+import { captureFileName } from "@/lib/format";
 
 // Client side of POST /api/files (ADR 0012): XHR because upload progress
 // requires xhr.upload.onprogress — fetch cannot report emission progress.
@@ -8,6 +9,8 @@ export type UploadedFile = {
   family: FileFamily;
   size: number;
 };
+
+const UPLOAD_FAILED = "Échec de l'envoi du fichier.";
 
 export function uploadFile(
   file: File,
@@ -23,15 +26,15 @@ export function uploadFile(
       try {
         const body = JSON.parse(xhr.responseText);
         if (xhr.status >= 400) {
-          reject(new Error(body.error ?? "Échec de l'envoi du fichier."));
+          reject(new Error(body.error ?? UPLOAD_FAILED));
         } else {
           resolve(body as UploadedFile);
         }
       } catch {
-        reject(new Error("Échec de l'envoi du fichier."));
+        reject(new Error(UPLOAD_FAILED));
       }
     };
-    xhr.onerror = () => reject(new Error("Échec de l'envoi du fichier."));
+    xhr.onerror = () => reject(new Error(UPLOAD_FAILED));
     const form = new FormData();
     form.append("file", file);
     xhr.send(form);
@@ -48,7 +51,6 @@ export async function deleteUploadedFile(name: string): Promise<void> {
 // dated name instead (docs/architecture.md).
 export function withClipboardName(file: File): File {
   if (!/^image\.[a-z0-9]+$/i.test(file.name)) return file;
-  const extension = file.name.split(".").pop();
-  const date = new Date().toISOString().slice(0, 10);
-  return new File([file], `capture-${date}.${extension}`, { type: file.type });
+  const extension = file.name.split(".").pop() ?? "png";
+  return new File([file], captureFileName(extension), { type: file.type });
 }

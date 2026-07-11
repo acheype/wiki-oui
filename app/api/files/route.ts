@@ -1,9 +1,6 @@
-import {
-  fileFamily,
-  listFiles,
-  saveFile,
-  type FileFamily,
-} from "@/lib/files";
+import { FILE_FAMILIES } from "@/lib/component-descriptor";
+import { fileFamily, listFiles, saveFile } from "@/lib/files";
+import { formatFileSize } from "@/lib/format";
 import { wikiConfig } from "@/wiki.config";
 
 // Upload service (ADR 0012): a mutation carried by an API service because
@@ -32,7 +29,7 @@ export async function POST(request: Request) {
   if (file.size > limit) {
     return Response.json(
       {
-        error: `Fichier trop lourd (${Math.round(file.size / 100_000) / 10} Mo) : la limite est de ${limit / 1_000_000} Mo${family === "image" ? " pour une image" : ""}.`,
+        error: `Fichier trop lourd (${formatFileSize(file.size)}) : la limite est de ${formatFileSize(limit)}${family === "image" ? " pour une image" : ""}.`,
       },
       { status: 400 }
     );
@@ -45,8 +42,6 @@ export async function POST(request: Request) {
 // Library listing for the file-list comboboxes, filterable by family.
 export async function GET(request: Request) {
   const familyParam = new URL(request.url).searchParams.get("family");
-  const family = (["image", "pdf", "other"] as const).find(
-    (candidate) => candidate === familyParam
-  ) as FileFamily | undefined;
+  const family = FILE_FAMILIES.find((candidate) => candidate === familyParam);
   return Response.json({ files: await listFiles(family) });
 }

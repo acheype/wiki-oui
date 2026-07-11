@@ -1,4 +1,5 @@
 import { fileUrl } from "@/lib/files";
+import { cn } from "@/lib/utils";
 import { ImageLightbox } from "./internal/image-lightbox";
 import { WikiLink } from "./wiki-link";
 
@@ -62,15 +63,13 @@ export function Image({
 
   const src = fileUrl(file);
   const wrapped = Boolean(link) || lightbox;
-  const imgClassName = [
+  const imgClassName = cn(
     "h-auto max-w-full",
     whiteBorder && "border-8 border-white shadow-sm",
     shadow && "shadow-lg",
     hoverZoom && "transition-transform duration-300 hover:scale-105",
-    !wrapped && alignClasses[align],
-  ]
-    .filter(Boolean)
-    .join(" ");
+    !wrapped && alignClasses[align]
+  );
 
   const img = (
     // eslint-disable-next-line @next/next/no-img-element -- served by our files API, dimensions unknown

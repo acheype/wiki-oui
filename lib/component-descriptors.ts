@@ -34,12 +34,12 @@ export function loadComponentBuilders(): Promise<ComponentBuilderSpec[]> {
 
 async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
   const files = await readdir(WIKI_COMPONENTS_DIR);
-  const specs: ComponentBuilderSpec[] = [];
-  for (const file of files.filter((f) => f.endsWith(".yaml")).sort()) {
-    const base = file.slice(0, -".yaml".length);
-    specs.push(await buildSpec(base));
-  }
-  return specs;
+  return Promise.all(
+    files
+      .filter((file) => file.endsWith(".yaml"))
+      .sort()
+      .map((file) => buildSpec(file.slice(0, -".yaml".length)))
+  );
 }
 
 async function buildSpec(base: string): Promise<ComponentBuilderSpec> {

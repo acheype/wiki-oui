@@ -10,28 +10,35 @@ import { wikiConfig } from "@/wiki.config";
 
 const INSTALLED_SETS: Record<string, IconifyJSON> = { lucide };
 
-const activeSets: [string, IconifyJSON][] = wikiConfig.icons.sets.map(
-  (name) => {
+// Sorted names are precomputed once: the picker searches on every keystroke.
+const activeSets: { name: string; set: IconifyJSON; sortedNames: string[] }[] =
+  wikiConfig.icons.sets.map((name) => {
     const set = INSTALLED_SETS[name];
     if (!set) {
       throw new Error(
         `wiki.config.ts icons.sets: "${name}" is not registered in lib/icons.ts (is @iconify-json/${name} installed?)`
       );
     }
-    return [name, set];
-  }
-);
+    const sortedNames = [
+      ...Object.keys(set.icons),
+      ...Object.keys(set.aliases ?? {}),
+    ].sort();
+    return { name, set, sortedNames };
+  });
+
+function svgFromSet(set: IconifyJSON, name: string): string | null {
+  const data = getIconData(set, name);
+  if (!data) return null;
+  const svg = iconToSVG(data, { height: "1em", width: "1em" });
+  return iconToHTML(replaceIDs(svg.body), svg.attributes);
+}
 
 /** Inline SVG markup for an Iconify id (`lucide:settings`), or null. */
 export function iconSvg(id: string): string | null {
   const [prefix, name] = id.split(":");
   if (!name) return null;
-  const set = activeSets.find(([setName]) => setName === prefix)?.[1];
-  if (!set) return null;
-  const data = getIconData(set, name);
-  if (!data) return null;
-  const svg = iconToSVG(data, { height: "1em", width: "1em" });
-  return iconToHTML(replaceIDs(svg.body), svg.attributes);
+  const set = activeSets.find((entry) => entry.name === prefix)?.set;
+  return set ? svgFromSet(set, name) : null;
 }
 
 export interface IconMatch {
@@ -45,16 +52,11 @@ export interface IconMatch {
 export function searchIcons(query: string, limit = 60): IconMatch[] {
   const needle = query.trim().toLowerCase();
   const matches: IconMatch[] = [];
-  for (const [setName, set] of activeSets) {
-    const names = [
-      ...Object.keys(set.icons),
-      ...Object.keys(set.aliases ?? {}),
-    ].sort();
-    for (const name of names) {
+  for (const { name: setName, set, sortedNames } of activeSets) {
+    for (const name of sortedNames) {
       if (needle !== "" && !name.includes(needle)) continue;
-      const id = `${setName}:${name}`;
-      const svg = iconSvg(id);
-      if (svg) matches.push({ id, svg });
+      const svg = svgFromSet(set, name);
+      if (svg) matches.push({ id: `${setName}:${name}`, svg });
       if (matches.length >= limit) return matches;
     }
   }

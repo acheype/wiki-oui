@@ -5,7 +5,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* --- Classes utilitaires auteurs (ADR 0011) ----------------------------
+/* --- Author utility classes (ADR 0011) ---------------------------------
    Page content lives in the database and is never scanned by Tailwind:
    every class authors may use must be safelisted here, family by family,
    and documented in the aide-memoire page. */

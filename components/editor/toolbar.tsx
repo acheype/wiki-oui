@@ -23,7 +23,8 @@ import {
   Upload,
 } from "lucide-react";
 import Link from "next/link";
-import type { RefObject } from "react";
+import { useMemo, type RefObject } from "react";
+import { emitsMarkdownLink } from "@/lib/component-descriptor";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +53,8 @@ import {
 } from "./commands";
 
 type ViewRef = RefObject<EditorView | null>;
+
+const labelCollator = new Intl.Collator("fr");
 type EditorCommand = (view: EditorView) => void;
 
 function ToolButton({
@@ -105,9 +108,15 @@ export function EditorToolbar({
 }) {
   // Alphabetical labels; markdown-link emitters (wiki-link) have their own
   // doors and stay out of the menu (docs/component-builder.md).
-  const menuBuilders = builders
-    .filter((builder) => builder.descriptor.emits !== "markdown-link")
-    .sort((a, b) => a.descriptor.label.localeCompare(b.descriptor.label, "fr"));
+  const menuBuilders = useMemo(
+    () =>
+      builders
+        .filter((builder) => !emitsMarkdownLink(builder.descriptor))
+        .sort((a, b) =>
+          labelCollator.compare(a.descriptor.label, b.descriptor.label)
+        ),
+    [builders]
+  );
 
   return (
     <TooltipProvider delayDuration={400}>

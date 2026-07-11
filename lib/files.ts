@@ -1,6 +1,8 @@
 import { statSync } from "node:fs";
 import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { FILE_FAMILIES, type FileFamily } from "@/lib/component-descriptor";
+import { captureFileName } from "@/lib/format";
 import { wikiConfig } from "@/wiki.config";
 
 // Uploaded files (ADR 0012): the files/ directory at the repo root is the
@@ -9,7 +11,7 @@ import { wikiConfig } from "@/wiki.config";
 
 export const FILES_DIR = path.join(process.cwd(), "files");
 
-export type FileFamily = "image" | "pdf" | "other";
+export type { FileFamily };
 
 export interface StoredFile {
   name: string;
@@ -32,7 +34,7 @@ export function fileUrl(name: string): string {
 export function fileFamily(name: string): FileFamily | null {
   const extension = path.extname(name).slice(1).toLowerCase();
   const { allowedExtensions } = wikiConfig.upload;
-  for (const family of ["image", "pdf", "other"] as const) {
+  for (const family of FILE_FAMILIES) {
     if ((allowedExtensions[family] as readonly string[]).includes(extension)) {
       return family;
     }
@@ -58,21 +60,22 @@ export async function listFiles(family?: FileFamily): Promise<StoredFile[]> {
   } catch {
     return []; // the directory appears with the first upload
   }
-  const files: StoredFile[] = [];
-  for (const name of entries.sort()) {
-    const fileFamilyName = fileFamily(name);
-    if (fileFamilyName === null) continue;
-    if (family && fileFamilyName !== family) continue;
-    const info = await stat(filePath(name));
-    if (!info.isFile()) continue;
-    files.push({
-      name,
-      family: fileFamilyName,
-      size: info.size,
-      modifiedAt: info.mtime,
-    });
-  }
-  return files;
+  const files = await Promise.all(
+    entries.sort().map(async (name): Promise<StoredFile | null> => {
+      const fileFamilyName = fileFamily(name);
+      if (fileFamilyName === null) return null;
+      if (family && fileFamilyName !== family) return null;
+      const info = await stat(filePath(name));
+      if (!info.isFile()) return null;
+      return {
+        name,
+        family: fileFamilyName,
+        size: info.size,
+        modifiedAt: info.mtime,
+      };
+    })
+  );
+  return files.filter((file) => file !== null);
 }
 
 // Original name slugified (lowercase, accents transliterated), extension
@@ -86,8 +89,7 @@ export function storageName(originalName: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  const fallback = `capture-${new Date().toISOString().slice(0, 10)}`;
-  return `${base || fallback}.${extension}`;
+  return base ? `${base}.${extension}` : captureFileName(extension);
 }
 
 /**

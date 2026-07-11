@@ -7,6 +7,11 @@ export function formatDateTime(date: Date): string {
   return dateTimeFormat.format(date);
 }
 
+// Generated name for anonymous uploads — pasted captures (ADR 0012).
+export function captureFileName(extension: string): string {
+  return `capture-${new Date().toISOString().slice(0, 10)}.${extension}`;
+}
+
 // French notation: "1,2 Mo" (uploaded file sizes, ADR 0012).
 export function formatFileSize(bytes: number): string {
   if (bytes < 1000) return `${bytes} o`;
