@@ -35,6 +35,7 @@ import {
 } from "@/lib/component-descriptor";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
 import { IconPicker } from "./icon-picker";
+import { useDebouncedJson } from "./use-debounced-json";
 
 // The ComponentBuilder modal (docs/component-builder.md): fully generated
 // from a descriptor + the component's exported defaults — preview on top
@@ -497,24 +498,14 @@ function FileListInput({
   family?: FileFamily;
   onChange: (value: PropValue) => void;
 }) {
-  const [files, setFiles] = useState<string[]>(NO_CANDIDATES);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    (async () => {
-      try {
-        const query = family ? `?family=${family}` : "";
-        const response = await fetch(`/api/files${query}`, {
-          signal: controller.signal,
-        });
-        const body = (await response.json()) as { files: { name: string }[] };
-        setFiles(body.files.map((file) => file.name));
-      } catch {
-        // Offline or aborted: the field degrades to free text.
-      }
-    })();
-    return () => controller.abort();
-  }, [family]);
+  const data = useDebouncedJson<{ files: { name: string }[] }>(
+    `/api/files${family ? `?family=${family}` : ""}`,
+    0
+  );
+  const files = useMemo(
+    () => data?.files.map((file) => file.name) ?? NO_CANDIDATES,
+    [data]
+  );
 
   return (
     <SuggestionInput

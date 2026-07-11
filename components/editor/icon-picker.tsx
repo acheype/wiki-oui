@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,6 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { IconMatch } from "@/lib/icons";
+import { useDebouncedJson } from "./use-debounced-json";
 
 const SEARCH_DEBOUNCE_MS = 200;
 
@@ -25,28 +26,11 @@ export function IconPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [icons, setIcons] = useState<IconMatch[] | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/icons?query=${encodeURIComponent(query)}`,
-          { signal: controller.signal }
-        );
-        const body = (await response.json()) as { icons: IconMatch[] };
-        setIcons(body.icons);
-      } catch {
-        // Aborted by a newer keystroke: keep the current grid.
-      }
-    }, SEARCH_DEBOUNCE_MS);
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [query, open]);
+  const data = useDebouncedJson<{ icons: IconMatch[] }>(
+    open ? `/api/icons?query=${encodeURIComponent(query)}` : null,
+    SEARCH_DEBOUNCE_MS
+  );
+  const icons = data?.icons ?? null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
