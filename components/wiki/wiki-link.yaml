@@ -18,6 +18,7 @@ properties:
   target:
     label: Ouvrir dans
     type: list
+    default: self
     options:
       self: L'onglet courant
       _blank: Un nouvel onglet

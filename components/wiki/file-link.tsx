@@ -11,12 +11,6 @@ export type FileLinkProps = {
   title?: string;
 };
 
-export const fileLinkDefaults = {
-  file: undefined,
-  text: undefined,
-  title: undefined,
-} satisfies { [K in keyof Required<FileLinkProps>]: FileLinkProps[K] };
-
 // Download link showing the file name and its size (docs/architecture.md).
 export function FileLink({ file, text, title }: FileLinkProps) {
   if (!file) return null;

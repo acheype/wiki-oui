@@ -14,6 +14,7 @@ properties:
   align:
     label: Position
     type: list
+    default: none
     options:
       none: Texte en dessous
       left: Gauche
@@ -34,6 +35,7 @@ properties:
   lightbox:
     label: Permettre de cliquer sur l'image pour l'afficher en grand
     type: checkbox
+    default: false
     advanced: true
     showif:
       link: null
@@ -48,12 +50,15 @@ properties:
   whiteBorder:
     label: Bord blanc
     type: checkbox
+    default: false
     advanced: true
   shadow:
     label: Ombre portée
     type: checkbox
+    default: false
     advanced: true
   hoverZoom:
     label: Agrandissement au survol
     type: checkbox
+    default: false
     advanced: true

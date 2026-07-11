@@ -11,7 +11,8 @@ import {
   visibleFields,
 } from "./component-descriptor";
 
-// Minimal valid descriptor to derive test cases from.
+// Minimal valid descriptor to derive test cases from. Defaults live in the
+// descriptor itself now (ADR 0013): the list field carries its own `default`.
 function buttonDescriptor(): ComponentDescriptor {
   return {
     label: "Bouton",
@@ -20,44 +21,33 @@ function buttonDescriptor(): ComponentDescriptor {
       color: {
         label: "Couleur",
         type: "list",
+        default: "primary",
         options: { default: "Défaut", primary: "Primaire" },
       },
     },
   };
 }
 
-const buttonDefaults = { text: undefined, color: "primary" };
-
 describe("validateDescriptor", () => {
-  it("rejects a field that matches no exported default", () => {
+  it("accepts an extra field with no default: structural validation ignores props", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.colour = { label: "Couleur", type: "text" };
-    expect(() =>
-      validateDescriptor("button", descriptor, buttonDefaults)
-    ).toThrow(
-      "components/wiki/button.yaml: field \"colour\" has no matching key in the exported defaults"
+    expect(() => validateDescriptor("button", descriptor)).not.toThrow();
+  });
+
+  it("rejects a list field whose default is not one of its options", () => {
+    const descriptor = buttonDescriptor();
+    descriptor.properties.color.default = "brand";
+    expect(() => validateDescriptor("button", descriptor)).toThrow(
+      'components/wiki/button.yaml: list field "color" needs a default among its options (default, primary), got "brand"'
     );
   });
 
-  it("rejects a list field whose exported default is not one of its options", () => {
-    expect(() =>
-      validateDescriptor("button", buttonDescriptor(), {
-        text: undefined,
-        color: "brand",
-      })
-    ).toThrow(
-      'components/wiki/button.yaml: list field "color" needs an exported default among its options (default, primary), got "brand"'
-    );
-  });
-
-  it("rejects a list field without an exported default (strict policy)", () => {
-    expect(() =>
-      validateDescriptor("button", buttonDescriptor(), {
-        text: undefined,
-        color: undefined,
-      })
-    ).toThrow(
-      'components/wiki/button.yaml: list field "color" needs an exported default among its options (default, primary), got undefined'
+  it("rejects a list field without a default (strict policy)", () => {
+    const descriptor = buttonDescriptor();
+    descriptor.properties.color.default = undefined;
+    expect(() => validateDescriptor("button", descriptor)).toThrow(
+      'components/wiki/button.yaml: list field "color" needs a default among its options (default, primary), got undefined'
     );
   });
 
@@ -65,9 +55,7 @@ describe("validateDescriptor", () => {
     const descriptor = buttonDescriptor();
     // @ts-expect-error -- a YAML typo lands here untyped
     descriptor.properties.text.type = "chekbox";
-    expect(() =>
-      validateDescriptor("button", descriptor, buttonDefaults)
-    ).toThrow(
+    expect(() => validateDescriptor("button", descriptor)).toThrow(
       'components/wiki/button.yaml: field "text" has unknown type "chekbox"'
     );
   });
@@ -76,9 +64,7 @@ describe("validateDescriptor", () => {
     const descriptor = buttonDescriptor();
     // @ts-expect-error -- a YAML typo lands here untyped
     descriptor.emits = "markdown";
-    expect(() =>
-      validateDescriptor("button", descriptor, buttonDefaults)
-    ).toThrow(
+    expect(() => validateDescriptor("button", descriptor)).toThrow(
       'components/wiki/button.yaml: unknown emits target "markdown" (the only alternative is markdown-link)'
     );
   });
@@ -86,9 +72,7 @@ describe("validateDescriptor", () => {
   it("rejects an invalid showif regex at load time", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.showif = { text: "/(/" };
-    expect(() =>
-      validateDescriptor("button", descriptor, buttonDefaults)
-    ).toThrow(
+    expect(() => validateDescriptor("button", descriptor)).toThrow(
       'components/wiki/button.yaml: showif of "color" holds an invalid regex for "text": /(/'
     );
   });
@@ -96,9 +80,7 @@ describe("validateDescriptor", () => {
   it("rejects a showif pointing at an unknown field", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.showif = { size: "notNull" };
-    expect(() =>
-      validateDescriptor("button", descriptor, buttonDefaults)
-    ).toThrow(
+    expect(() => validateDescriptor("button", descriptor)).toThrow(
       'components/wiki/button.yaml: showif of "color" points at unknown field "size"'
     );
   });
@@ -111,19 +93,15 @@ describe("validateDescriptor", () => {
       // @ts-expect-error -- a YAML typo lands here untyped
       family: "images",
     };
-    expect(() =>
-      validateDescriptor("button", descriptor, buttonDefaults)
-    ).toThrow(
+    expect(() => validateDescriptor("button", descriptor)).toThrow(
       'components/wiki/button.yaml: file-list field "text" has unknown family "images" (image, pdf, other)'
     );
   });
 
-  it("accepts a divider without a matching default: it emits no prop", () => {
+  it("accepts a divider without a default: it emits no prop", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.appearance = { label: "Apparence", type: "divider" };
-    expect(() =>
-      validateDescriptor("button", descriptor, buttonDefaults)
-    ).not.toThrow();
+    expect(() => validateDescriptor("button", descriptor)).not.toThrow();
   });
 });
 

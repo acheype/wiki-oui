@@ -26,6 +26,12 @@ export interface DescriptorField {
   type: FieldType;
   /** For `list`: value → display label. The value is what the prop stores. */
   options?: Record<string, string>;
+  /**
+   * Omission-rule reference (ADR 0013): the prop is dropped from the MDX when
+   * equal to this, and an absent prop re-edits with it. Must equal the
+   * component's own destructuring default (verified by lib/verify-descriptors).
+   */
+  default?: PropValue;
   /** Insertion pre-fill; the prop is always written, even when unchanged. */
   value?: string | number | boolean;
   /** For `file-list`: restricts the combobox to one file family. */
@@ -49,9 +55,23 @@ export function emitsMarkdownLink(descriptor: ComponentDescriptor): boolean {
   return descriptor.emits === "markdown-link";
 }
 
-/** Prop values as the component exports them (`xxxDefaults`). */
+/** A prop value carried by a field's `default`/`value` and the generated tag. */
 export type PropValue = string | number | boolean | undefined;
+/** Omission-rule defaults keyed by prop name, derived from the descriptor. */
 export type PropDefaults = Record<string, PropValue>;
+
+// The omission-rule defaults come from the descriptor itself (ADR 0013): each
+// field's `default` (a divider emits no prop; a field without a `default` is
+// empty/undefined). The engine keeps taking `defaults` explicitly so the
+// editor can pass the same map it holds on the loaded spec.
+export function descriptorDefaults(descriptor: ComponentDescriptor): PropDefaults {
+  const defaults: PropDefaults = {};
+  for (const [field, spec] of Object.entries(descriptor.properties)) {
+    if (spec.type === "divider") continue;
+    defaults[field] = spec.default;
+  }
+  return defaults;
+}
 
 // A showif condition written between slashes is a regex (search semantics);
 // ambiguous literals are spelled in regex form (docs/component-builder.md).
@@ -64,13 +84,14 @@ function isRegexCondition(condition: unknown): condition is string {
   );
 }
 
-// Fail-fast validation (same spirit as buildRegistry in lib/mdx.tsx): a
-// broken descriptor must stop the loader with an explicit message, never
-// produce a half-working builder.
+// Structural validation (ADR 0013): is the YAML self-consistent, without
+// looking at the component? Same fail-fast spirit as buildRegistry in
+// lib/mdx.tsx — a broken descriptor stops the loader with an explicit
+// message. The YAML ↔ component match is a separate pass
+// (lib/verify-descriptors, dev + build only).
 export function validateDescriptor(
   name: string,
-  descriptor: ComponentDescriptor,
-  defaults: PropDefaults
+  descriptor: ComponentDescriptor
 ): void {
   const source = `components/wiki/${name}.yaml`;
   if (descriptor.emits !== undefined && descriptor.emits !== "markdown-link") {
@@ -85,11 +106,6 @@ export function validateDescriptor(
       );
     }
     if (spec.type === "divider") continue;
-    if (!(field in defaults)) {
-      throw new Error(
-        `${source}: field "${field}" has no matching key in the exported defaults`
-      );
-    }
     for (const [target, condition] of Object.entries(spec.showif ?? {})) {
       if (!(target in descriptor.properties)) {
         throw new Error(
@@ -117,11 +133,11 @@ export function validateDescriptor(
     }
     if (spec.type === "list") {
       const options = Object.keys(spec.options ?? {});
-      const fallback = defaults[field];
+      const fallback = spec.default;
       if (typeof fallback !== "string" || !options.includes(fallback)) {
         const got = fallback === undefined ? "undefined" : `"${fallback}"`;
         throw new Error(
-          `${source}: list field "${field}" needs an exported default among its options (${options.join(", ")}), got ${got}`
+          `${source}: list field "${field}" needs a default among its options (${options.join(", ")}), got ${got}`
         );
       }
     }

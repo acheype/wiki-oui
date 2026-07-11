@@ -6,11 +6,6 @@ export type PdfProps = {
   ratio?: "portrait" | "landscape" | "square";
 };
 
-export const pdfDefaults = {
-  file: undefined,
-  ratio: "portrait",
-} satisfies { [K in keyof Required<PdfProps>]: PdfProps[K] };
-
 const ratioClasses: Record<NonNullable<PdfProps["ratio"]>, string> = {
   portrait: "aspect-[3/4]",
   landscape: "aspect-[4/3]",
@@ -18,7 +13,7 @@ const ratioClasses: Record<NonNullable<PdfProps["ratio"]>, string> = {
 };
 
 // Shows a PDF inside the page through the browser's built-in reader.
-export function Pdf({ file, ratio = pdfDefaults.ratio }: PdfProps) {
+export function Pdf({ file, ratio = "portrait" }: PdfProps) {
   if (!file) return null;
   return (
     <iframe

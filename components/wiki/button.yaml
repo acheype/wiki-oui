@@ -18,6 +18,7 @@ properties:
   color:
     label: Couleur
     type: list
+    default: primary
     options:
       default: Défaut
       primary: Primaire
@@ -36,6 +37,7 @@ properties:
     label: Ouvrir le contenu du lien dans une popup
     hint: Fonctionne vers une page de ce wiki
     type: list
+    default: none
     advanced: true
     options:
       none: Non
@@ -44,12 +46,14 @@ properties:
   newWindow:
     label: Ouvrir dans une nouvelle fenêtre
     type: checkbox
+    default: false
     advanced: true
     showif:
       popup: none
   float:
     label: Position
     type: list
+    default: none
     advanced: true
     options:
       none: Par défaut
@@ -57,6 +61,7 @@ properties:
   fullWidth:
     label: Toute la largeur
     type: checkbox
+    default: false
     advanced: true
     showif:
       float: none

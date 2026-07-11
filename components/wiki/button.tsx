@@ -1,5 +1,5 @@
-// No "use client": the ComponentBuilder loader must read buttonDefaults as a
-// real object (a client module would only expose client references to RSC).
+// Server component: iconSvg() inlines the icon SVG at render time (lib/icons.ts).
+// A client <Icon> route would free it to be client too (ADR 0013, separate step).
 import { Button as UIButton } from "@/components/ui/button";
 import { iconSvg } from "@/lib/icons";
 import { isWikiHref } from "@/lib/slug";
@@ -34,20 +34,6 @@ export type ButtonProps = {
   /** Opens the linked content in a popup (works towards wiki pages). */
   popup?: "none" | "click" | "hover";
 };
-
-// Exhaustive defaults consumed by the ComponentBuilder (omission rule,
-// inverse mapping — docs/component-builder.md).
-export const buttonDefaults = {
-  icon: undefined,
-  text: undefined,
-  link: undefined,
-  title: undefined,
-  color: "primary",
-  float: "none",
-  fullWidth: false,
-  newWindow: false,
-  popup: "none",
-} satisfies { [K in keyof Required<ButtonProps>]: ButtonProps[K] };
 
 // One entry per palette color, enforced by the compiler: either a shadcn
 // variant or explicit classes on the theme colors added for v0.2 (globals.css).
@@ -84,11 +70,11 @@ export function Button({
   text,
   link,
   title,
-  color = buttonDefaults.color,
-  float = buttonDefaults.float,
-  fullWidth = buttonDefaults.fullWidth,
-  newWindow = buttonDefaults.newWindow,
-  popup = buttonDefaults.popup,
+  color = "primary",
+  float = "none",
+  fullWidth = false,
+  newWindow = false,
+  popup = "none",
 }: ButtonProps) {
   // Server-side inline SVG (lib/icons.ts); an unknown id renders no icon.
   const svg = icon ? iconSvg(icon) : null;

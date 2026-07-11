@@ -4,7 +4,7 @@ import { parse } from "yaml";
 import {
   type ComponentDescriptor,
   type PropDefaults,
-  camelCase,
+  descriptorDefaults,
   pascalCase,
   validateDescriptor,
 } from "./component-descriptor";
@@ -18,7 +18,7 @@ export interface ComponentBuilderSpec {
   /** Component tag name, e.g. "Button" (from the file base name). */
   name: string;
   descriptor: ComponentDescriptor;
-  /** The `xxxDefaults` object exported by the co-located .tsx. */
+  /** Omission-rule defaults, derived from the descriptor (ADR 0013). */
   defaults: PropDefaults;
 }
 
@@ -52,16 +52,10 @@ async function buildSpec(base: string): Promise<ComponentBuilderSpec> {
     );
   }
 
-  const defaultsName = `${camelCase(base)}Defaults`;
-  // The extension keeps the bundler's directory scan to .tsx files only.
-  const mod = await import(`../components/wiki/${base}.tsx`);
-  const defaults = mod[defaultsName];
-  if (typeof defaults !== "object" || defaults === null) {
-    throw new Error(
-      `components/wiki/${base}.tsx must export its defaults as "${defaultsName}" (docs/component-builder.md)`
-    );
-  }
-
-  validateDescriptor(base, descriptor, defaults);
-  return { name: pascalCase(base), descriptor, defaults };
+  validateDescriptor(base, descriptor);
+  return {
+    name: pascalCase(base),
+    descriptor,
+    defaults: descriptorDefaults(descriptor),
+  };
 }

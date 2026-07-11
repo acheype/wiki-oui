@@ -23,20 +23,6 @@ export type ImageProps = {
   hoverZoom?: boolean;
 };
 
-export const imageDefaults = {
-  file: undefined,
-  alt: undefined,
-  align: "none",
-  width: undefined,
-  height: undefined,
-  link: undefined,
-  lightbox: false,
-  caption: undefined,
-  whiteBorder: false,
-  shadow: false,
-  hoverZoom: false,
-} satisfies { [K in keyof Required<ImageProps>]: ImageProps[K] };
-
 // Layout goes on the outermost element (the image itself, or its link /
 // lightbox wrapper); the graphic effects stay on the <img>.
 const alignClasses: Record<NonNullable<ImageProps["align"]>, string> = {
@@ -49,15 +35,15 @@ const alignClasses: Record<NonNullable<ImageProps["align"]>, string> = {
 export function Image({
   file,
   alt,
-  align = imageDefaults.align,
+  align = "none",
   width,
   height,
   link,
-  lightbox = imageDefaults.lightbox,
+  lightbox = false,
   caption,
-  whiteBorder = imageDefaults.whiteBorder,
-  shadow = imageDefaults.shadow,
-  hoverZoom = imageDefaults.hoverZoom,
+  whiteBorder = false,
+  shadow = false,
+  hoverZoom = false,
 }: ImageProps) {
   if (!file) return null;
 
