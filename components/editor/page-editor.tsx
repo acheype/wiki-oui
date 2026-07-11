@@ -170,7 +170,7 @@ export function PageEditor({
     if (!postUploadName.current) return;
     void discardUploadedFile(postUploadName.current);
     postUploadName.current = null;
-    toast.info("Annulé : rien n'a été conservé.");
+    toast.info("Aucun changement n'a été enregistré.");
   }
 
   function save() {
@@ -182,7 +182,7 @@ export function PageEditor({
       } else if (result && "unchanged" in result) {
         // Back to the show page anyway: the toast outlives the navigation
         // (the Toaster lives in the root layout).
-        toast.info("Aucune modification : la page est déjà à jour.");
+        toast.info("Aucune modification n'a été effectuée.");
         router.push(`/${slug}`);
       }
     });
