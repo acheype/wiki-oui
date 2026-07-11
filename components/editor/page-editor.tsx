@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { savePage } from "@/app/actions";
+import { discardUploadedFile, savePage } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
 import { CodeMirrorEditor } from "./codemirror-editor";
@@ -24,7 +24,7 @@ import {
 } from "./cursor-tools";
 import { TagsInput } from "./tags-input";
 import { EditorToolbar } from "./toolbar";
-import { deleteUploadedFile, uploadFile } from "./upload";
+import { uploadFile } from "./upload";
 import { UploadDialog, type UploadDialogState } from "./upload-dialog";
 import { uploadDoors } from "./upload-extension";
 
@@ -182,7 +182,7 @@ export function PageEditor({
   // Cancelling right after the upload that created the file removes it.
   function discardPostUpload() {
     if (!postUploadName.current) return;
-    void deleteUploadedFile(postUploadName.current);
+    void discardUploadedFile(postUploadName.current);
     postUploadName.current = null;
     toast.info("Annulé : rien n'a été conservé.");
   }

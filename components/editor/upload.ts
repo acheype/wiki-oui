@@ -41,12 +41,6 @@ export function uploadFile(
   });
 }
 
-// Cancelling the component modal right after the upload that created the
-// file deletes it (« annuler = rien ne s'est passé », ADR 0012).
-export async function deleteUploadedFile(name: string): Promise<void> {
-  await fetch(`/api/files/${encodeURIComponent(name)}`, { method: "DELETE" });
-}
-
 // Browsers name pasted screenshots "image.png": anonymous clipboards get a
 // dated name instead (docs/architecture.md).
 export function withClipboardName(file: File): File {

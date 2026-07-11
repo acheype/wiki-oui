@@ -20,7 +20,7 @@ CRUD de pages par slug · routing page/handler natif Next · handlers `show`, `e
 
 - **image** → `<Image>` : alignement (texte en dessous, gauche, centre, droite), taille (originale ou spécifiée), texte alternatif pour les personnes malvoyantes ; en paramètres avancés : lien web associé au clic · effets graphiques (bord blanc, ombre portée, agrandissement au survol) · clic sur l'image pour l'afficher en grand dans une modale · texte affiché au survol ;
 - **pdf** → mini-choix « intégrer le contenu dans la page » (`<Pdf>`) ou « insérer un lien de téléchargement » (`<FileLink>`) ;
-- **other** → `<FileLink>` : un lien de téléchargement affichant le nom et la taille du fichier ; champs : texte du lien, texte alternatif.
+- **other** → `<FileLink>` : un lien de téléchargement affichant le nom et la taille du fichier ; champs : texte du lien, texte affiché au survol.
 
 Annuler la modale **juste après l'upload qui a créé le fichier** supprime le fichier (toast « rien n'a été conservé ») ; annuler une réédition ou une insertion depuis le menu ne supprime jamais rien.
 
@@ -43,9 +43,9 @@ Composants couverts en v0.2 — tous au menu « Composants » (insertion et ré�
 - **`Button`** — le bouton intégré ;
 - **`Image`** — affichage d'une image uploadée ;
 - **`Pdf`** — affiche dans la page le contenu d'un PDF via le lecteur intégré du navigateur ;
-- **`FileLink`** — lien de téléchargement d'un fichier uploadé (nom, taille, progression).
+- **`FileLink`** — lien de téléchargement d'un fichier uploadé (nom, taille).
 
-Les YAML actuels de `/components/wiki` sont des copies YesWiki de référence, à réécrire dans la spec WikiOui.
+Chaque composant de `/components/wiki` porte son descripteur WikiOui (`button.yaml`, `image.yaml`, `pdf.yaml`, `file-link.yaml`, `wiki-link.yaml`) ; `<Menu>` (wrapper) attend l'édition des composants à enfants, au backlog.
 
 **Cas particulier `wiki-link`** : sa modale de paramétrage existe déjà dans le MVP, codée à la main. En v0.2 elle est reconstruite sur le moteur ComponentBuilder avec son propre descripteur `components/wiki/wiki-link.yaml` (champs : texte, cible `page-list`, ouverture). Sa **cible de sérialisation** diffère : il émet un lien markdown `[texte](cible){{ target: '…' }}` (ADR 0006), pas une balise JSX — c'est ce qui le tient hors du menu « Composants ». Ses portes d'entrée : le bouton « Ajouter un lien » de la barre d'outils et le bouton flottant d'édition de lien ancré au curseur.
 

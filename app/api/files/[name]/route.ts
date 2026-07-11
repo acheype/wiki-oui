@@ -2,7 +2,7 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { deleteFile, fileFamily, filePath } from "@/lib/files";
+import { fileFamily, filePath } from "@/lib/files";
 
 const INLINE_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
@@ -48,12 +48,4 @@ export async function GET(request: Request, { params }: Params) {
     createReadStream(filePath(name))
   ) as ReadableStream;
   return new Response(stream, { headers });
-}
-
-// Only door that removes a file: cancelling the component modal right after
-// the upload that created it (« annuler = rien ne s'est passé », ADR 0012).
-export async function DELETE(_request: Request, { params }: Params) {
-  const name = path.basename(decodeURIComponent((await params).name));
-  await deleteFile(name).catch(() => null); // already gone = fine
-  return Response.json({ ok: true });
 }

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { deleteFile } from "@/lib/files";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
@@ -81,6 +82,14 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   // Server-action redirects bypass next.config redirects(): aim straight at
   // the home slug instead of "/".
   redirect(`/${wikiConfig.homeSlug}`);
+}
+
+// Only door that removes an uploaded file: cancelling the component modal
+// right after the upload that created it (« annuler = rien ne s'est passé »,
+// ADR 0012). A mutation, hence a Server Action — the API-service exception
+// covers the upload only (progress needs the request, the deletion doesn't).
+export async function discardUploadedFile(name: string): Promise<void> {
+  await deleteFile(name).catch(() => null); // already gone = fine
 }
 
 export async function restoreRevision(
