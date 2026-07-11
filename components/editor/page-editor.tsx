@@ -30,6 +30,9 @@ import {
 import { LinkDialog } from "./link-dialog";
 import { TagsInput } from "./tags-input";
 import { EditorToolbar } from "./toolbar";
+import { deleteUploadedFile, uploadFile } from "./upload";
+import { UploadDialog, type UploadDialogState } from "./upload-dialog";
+import { uploadDoors } from "./upload-extension";
 
 type LinkDialogState = {
   open: boolean;
@@ -78,9 +81,15 @@ export function PageEditor({
 }) {
   const router = useRouter();
   const viewRef = useRef<EditorView | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Name of a file whose upload just created it: cancelling the component
+  // modal then deletes it (« annuler = rien ne s'est passé », ADR 0012).
+  // A ref, because the dialog-close handler must read it synchronously.
+  const postUploadName = useRef<string | null>(null);
   const [tags, setTags] = useState(initialTags);
   const [linkDialog, setLinkDialog] = useState(closedLinkDialog);
   const [builderDialog, setBuilderDialog] = useState(closedBuilderDialog);
+  const [upload, setUpload] = useState<UploadDialogState>(null);
   const [isPending, startTransition] = useTransition();
 
   // Created once (the editor view mounts once); the setters are stable and
@@ -107,7 +116,59 @@ export function PageEditor({
           range: { from: info.from, to: info.to },
         }),
     }),
+    uploadDoors((file) => handleUploadFile(file)),
   ]);
+
+  function openBuilderForFile(componentName: "Image" | "Pdf" | "FileLink", fileName: string) {
+    const spec = builders.find((builder) => builder.name === componentName);
+    if (!spec) {
+      toast.error(`Le composant ${componentName} n'a pas de descripteur.`);
+      return;
+    }
+    const initial = insertionState(spec);
+    initial.values.file = fileName;
+    setBuilderDialog({ ...closedBuilderDialog, open: true, spec, initial });
+  }
+
+  async function handleUploadFile(file: File) {
+    setUpload({
+      phase: "uploading",
+      fileName: file.name,
+      size: file.size,
+      progress: 0,
+    });
+    try {
+      const uploaded = await uploadFile(file, (progress) =>
+        setUpload((current) =>
+          current?.phase === "uploading" ? { ...current, progress } : current
+        )
+      );
+      postUploadName.current = uploaded.name;
+      if (uploaded.family === "pdf") {
+        // Mini-choice: embed the content (<Pdf>) or a download link.
+        setUpload({ phase: "pdf-choice", name: uploaded.name });
+      } else {
+        setUpload(null);
+        openBuilderForFile(
+          uploaded.family === "image" ? "Image" : "FileLink",
+          uploaded.name
+        );
+      }
+    } catch (error) {
+      setUpload(null);
+      toast.error(
+        error instanceof Error ? error.message : "Échec de l'envoi du fichier."
+      );
+    }
+  }
+
+  // Cancelling right after the upload that created the file removes it.
+  function discardPostUpload() {
+    if (!postUploadName.current) return;
+    void deleteUploadedFile(postUploadName.current);
+    postUploadName.current = null;
+    toast.info("Annulé : rien n'a été conservé.");
+  }
 
   function save() {
     const content = viewRef.current?.state.doc.toString() ?? initialContent;
@@ -157,6 +218,17 @@ export function PageEditor({
             initial: insertionState(spec),
           })
         }
+        onRequestUpload={() => fileInputRef.current?.click()}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (file) handleUploadFile(file);
+        }}
       />
 
       <CodeMirrorEditor
@@ -170,18 +242,37 @@ export function PageEditor({
         <TagsInput tags={tags} onChange={setTags} />
       </div>
 
+      <UploadDialog
+        state={upload}
+        onOpenChange={(open) => {
+          if (open) return;
+          // Closing the mini-choice is a post-upload cancellation.
+          if (upload?.phase === "pdf-choice") discardPostUpload();
+          setUpload(null);
+        }}
+        onPdfChoice={(component) => {
+          if (upload?.phase !== "pdf-choice") return;
+          const name = upload.name;
+          setUpload(null);
+          openBuilderForFile(component, name);
+        }}
+      />
+
       <ComponentBuilderDialog
         open={builderDialog.open}
-        onOpenChange={(open) =>
+        onOpenChange={(open) => {
+          if (!open) discardPostUpload();
           setBuilderDialog(
             open ? builderDialog : { ...builderDialog, open: false }
-          )
-        }
+          );
+        }}
         spec={builderDialog.spec}
         mode={builderDialog.mode}
         initial={builderDialog.initial}
         allSlugs={allSlugs}
         onSubmit={(tag) => {
+          // The inserted tag references the file: the upload is kept.
+          postUploadName.current = null;
           if (!viewRef.current) return;
           if (builderDialog.mode === "edit" && builderDialog.range) {
             replaceSnippet(viewRef.current, builderDialog.range, tag);

@@ -381,6 +381,15 @@ function FieldControl({
           onChange={onChange}
         />
       );
+    case "file-list":
+      return (
+        <FileListInput
+          id={id}
+          value={typeof value === "string" ? value : ""}
+          family={spec.family}
+          onChange={onChange}
+        />
+      );
     // file-list gets the uploads combobox with the upload step of v0.2;
     // free text keeps it usable meanwhile.
     default:
@@ -441,6 +450,76 @@ function PageListInput({
               onClick={() => onChange(slug)}
             >
               {slug}
+            </Button>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+// Combobox over the uploaded-files library (files/ directory, ADR 0012),
+// filterable by family; free text stays accepted.
+function FileListInput({
+  id,
+  value,
+  family,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  family?: "image" | "pdf" | "other";
+  onChange: (value: PropValue) => void;
+}) {
+  const [files, setFiles] = useState<string[]>([]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const query = family ? `?family=${family}` : "";
+        const response = await fetch(`/api/files${query}`, {
+          signal: controller.signal,
+        });
+        const body = (await response.json()) as { files: { name: string }[] };
+        setFiles(body.files.map((file) => file.name));
+      } catch {
+        // Offline or aborted: the field degrades to free text.
+      }
+    })();
+    return () => controller.abort();
+  }, [family]);
+
+  const suggestions = useMemo(() => {
+    const query = value.trim().toLowerCase();
+    return files
+      .filter((name) => name.includes(query) && name !== query)
+      .slice(0, 6);
+  }, [value, files]);
+
+  return (
+    <>
+      <Input
+        id={id}
+        value={value}
+        autoComplete="off"
+        placeholder="nom-du-fichier.ext"
+        onChange={(event) =>
+          onChange(event.target.value === "" ? undefined : event.target.value)
+        }
+      />
+      {suggestions.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {suggestions.map((name) => (
+            <Button
+              key={name}
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-6 rounded-full px-2 font-mono text-xs"
+              onClick={() => onChange(name)}
+            >
+              {name}
             </Button>
           ))}
         </div>

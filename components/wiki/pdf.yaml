@@ -6,6 +6,7 @@ properties:
   file:
     label: Fichier uploadé
     type: file-list
+    family: pdf
     required: true
   ratio:
     label: Ratio pour l'affichage

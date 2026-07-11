@@ -22,6 +22,22 @@ export interface WikiConfig {
      */
     sets: string[];
   };
+  upload: {
+    /** Bytes; checked before any write (ADR 0012). */
+    maxFileSize: number;
+    /** Bytes; tighter limit for the image family. */
+    maxImageSize: number;
+    /**
+     * Allowed extensions grouped by family: the family routes an upload to
+     * its component (image → <Image>, pdf → mini-choice, other → <FileLink>)
+     * and filters the file-list comboboxes.
+     */
+    allowedExtensions: {
+      image: string[];
+      pdf: string[];
+      other: string[];
+    };
+  };
 }
 
 export const wikiConfig = {
@@ -36,6 +52,28 @@ export const wikiConfig = {
   otherSpecialPages: ["aide-memoire"],
   icons: {
     sets: ["lucide"],
+  },
+  upload: {
+    maxFileSize: 10_000_000,
+    maxImageSize: 2_000_000,
+    allowedExtensions: {
+      // prettier-ignore
+      image: ["jpg", "jpeg", "png", "gif", "webp", "avif", "bmp", "tif", "svg"],
+      pdf: ["pdf"],
+      // prettier-ignore
+      other: [
+        "aiff", "anx", "axa", "axv", "asf", "avi", "flac", "flv", "json",
+        "geojson", "mid", "mng", "mka", "mkv", "mov", "mp3", "mp4", "mpg",
+        "mscz", "oga", "ogg", "ogv", "ogx", "qt", "ra", "ram", "rm", "spx",
+        "swf", "wav", "wmv", "3gp", "abw", "ai", "bz2", "bin", "blend", "c",
+        "cls", "css", "csv", "deb", "doc", "docx", "djvu", "dvi", "eps",
+        "gz", "h", "kml", "kmz", "md", "mm", "pas", "pgn", "ppt", "pptx",
+        "ps", "psd", "pub", "rpm", "rtf", "sdd", "sdw", "sit", "sty", "sxc",
+        "sxi", "sxw", "tex", "tgz", "torrent", "ttf", "txt", "xcf", "xspf",
+        "xls", "xlsx", "xlsm", "yaml", "zip", "scar", "odt", "ods", "odp",
+        "odg", "odc", "odf", "odb", "odi", "odm", "ott", "ots", "otp", "otg",
+      ],
+    },
   },
 } as const satisfies WikiConfig;
 

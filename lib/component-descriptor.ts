@@ -24,6 +24,8 @@ export interface DescriptorField {
   options?: Record<string, string>;
   /** Insertion pre-fill; the prop is always written, even when unchanged. */
   value?: string | number | boolean;
+  /** For `file-list`: restricts the combobox to one file family. */
+  family?: "image" | "pdf" | "other";
   required?: boolean;
   advanced?: boolean;
   showif?: Record<string, unknown>;
@@ -89,6 +91,15 @@ export function validateDescriptor(
           );
         }
       }
+    }
+    if (
+      spec.type === "file-list" &&
+      spec.family !== undefined &&
+      !["image", "pdf", "other"].includes(spec.family)
+    ) {
+      throw new Error(
+        `${source}: file-list field "${field}" has unknown family "${spec.family}" (image, pdf, other)`
+      );
     }
     if (spec.type === "list") {
       const options = Object.keys(spec.options ?? {});

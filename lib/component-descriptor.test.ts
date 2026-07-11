@@ -91,6 +91,21 @@ describe("validateDescriptor", () => {
     );
   });
 
+  it("rejects an invalid family on a file-list field", () => {
+    const descriptor = buttonDescriptor();
+    descriptor.properties.text = {
+      label: "Fichier",
+      type: "file-list",
+      // @ts-expect-error -- a YAML typo lands here untyped
+      family: "images",
+    };
+    expect(() =>
+      validateDescriptor("button", descriptor, buttonDefaults)
+    ).toThrow(
+      'components/wiki/button.yaml: file-list field "text" has unknown family "images" (image, pdf, other)'
+    );
+  });
+
   it("accepts a divider without a matching default: it emits no prop", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.appearance = { label: "Apparence", type: "divider" };

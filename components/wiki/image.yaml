@@ -6,6 +6,7 @@ properties:
   file:
     label: Fichier uploadé
     type: file-list
+    family: image
     required: true
   alt:
     label: Texte alternatif (pour les personnes malvoyantes)

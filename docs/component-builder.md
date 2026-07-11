@@ -51,6 +51,7 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `page-list` · `file-list` · `divider` |
 | `options` | Pour `list` : map `valeur: libellé` (la valeur est celle écrite dans la prop) |
 | `value` | Pré-remplissage à l'insertion ; la prop est **toujours** écrite, même inchangée |
+| `family` | Pour `file-list` : restreint la combobox à une famille de fichiers (`image` · `pdf` · `other`) |
 | `required` | Le champ doit être renseigné pour valider la modale |
 | `advanced` | Masqué tant que « paramètres avancés » n'est pas déplié |
 | `showif` | Visibilité conditionnelle (voir ci-dessous) |

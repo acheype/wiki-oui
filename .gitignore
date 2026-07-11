@@ -44,3 +44,6 @@ next-env.d.ts
 
 # prisma generated client
 /lib/generated/
+
+# uploaded files (ADR 0012): instance data, backed up alongside pg_dump
+/files/

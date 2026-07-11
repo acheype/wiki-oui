@@ -20,6 +20,7 @@ import {
   Quote,
   Strikethrough,
   Table,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 import type { RefObject } from "react";
@@ -91,6 +92,7 @@ export function EditorToolbar({
   onRequestLink,
   builders,
   onRequestComponent,
+  onRequestUpload,
 }: {
   viewRef: ViewRef;
   /** Opens the link dialog in insert mode with the current selection text. */
@@ -98,6 +100,8 @@ export function EditorToolbar({
   builders: ComponentBuilderSpec[];
   /** Opens the ComponentBuilder in insert mode. */
   onRequestComponent: (spec: ComponentBuilderSpec) => void;
+  /** Opens the file picker of the upload pipeline (ADR 0012). */
+  onRequestUpload: () => void;
 }) {
   // Alphabetical labels; markdown-link emitters (wiki-link) have their own
   // doors and stay out of the menu (docs/component-builder.md).
@@ -239,6 +243,22 @@ export function EditorToolbar({
         <ToolButton label="Insérer un tableau" viewRef={viewRef} command={insertTable}>
           <Table />
         </ToolButton>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={onRequestUpload}
+              aria-label="Uploader un fichier"
+            >
+              <Upload />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Uploader un fichier</TooltipContent>
+        </Tooltip>
 
         {menuBuilders.length > 0 && (
           <DropdownMenu>
