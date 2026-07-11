@@ -1,0 +1,17 @@
+# ComponentBuilder descriptor of <FileLink> (docs/component-builder.md).
+label: Lien de téléchargement
+description: Insérer un lien de téléchargement d'un fichier uploadé
+previewHeight: 80px
+properties:
+  file:
+    label: Fichier uploadé
+    type: file-list
+    required: true
+  text:
+    label: Texte du lien
+    hint: Vide = nom du fichier
+    type: text
+  title:
+    label: Texte affiché au survol
+    type: text
+    advanced: true

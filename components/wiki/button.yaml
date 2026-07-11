@@ -1,87 +1,62 @@
-label: _t(AB_buttons_label)
-position: 2
+# ComponentBuilder descriptor of <Button> (docs/component-builder.md).
+label: Bouton
+description: Créer un bouton cliquable
 previewHeight: 100px
-actions:
-  button:
-    label: _t(AB_buttons_action_button_label)
-    description: _t(AB_buttons_action_button_description)
-    properties:
-      text:
-        label: _t(AB_buttons_action_button_text_label)
-        value: _t(AB_buttons_action_button_text_default)
-        default: ''
-        type: text
-      link:
-        label: _t(AB_buttons_action_button_link_label)
-        value: https://yeswiki.net
-        hint: _t(AB_buttons_action_button_link_hint)
-        type: page-list
-        required: true
-      title:
-        label: _t(AB_buttons_action_button_title_label)
-        advanced: true
-        type: text
-      icon:
-        label: _t(AB_buttons_action_button_icon_label)
-        type: icon
-      class:
-        label: _t(AB_buttons_action_button_class_label)
-        type: class
-        subproperties:
-          color:
-            label: _t(AB_buttons_action_button_color_label)
-            type: list
-            value: 'btn-primary'
-            options:
-              btn-default: _t(AB_buttons_action_button_color_default)
-              btn-primary: _t(AB_buttons_action_button_color_primary)
-              btn-secondary-1: _t(AB_buttons_action_button_color_secondary1)
-              btn-secondary-2: _t(AB_buttons_action_button_color_secondary2)
-              btn-success: _t(AB_buttons_action_button_color_success)
-              btn-info: _t(AB_buttons_action_button_color_info)
-              btn-warning: _t(AB_buttons_action_button_color_warning)
-              btn-danger: _t(AB_buttons_action_button_color_danger)
-              btn-link: _t(AB_buttons_action_button_color_link)
-          size:
-            label: _t(AB_buttons_action_button_size_label)
-            advanced: true
-            type: list
-            options:
-              '': _t(AB_buttons_action_button_size_standard)
-              btn-xs: _t(AB_buttons_action_button_size_small)
-              btn-sm: _t(AB_buttons_action_button_size_medium)
-              btn-lg: _t(AB_buttons_action_button_size_big)
-          modal:
-            label: _t(AB_buttons_action_button_modal_label)
-            hint: _t(AB_buttons_action_button_modal_hint)
-            type: list
-            advanced: true
-            options:
-              modalbox: _t(AB_buttons_action_button_modal_modalbox)
-              modalbox-hover: _t(AB_buttons_action_button_modal_modalbox_hover)
-          pull:
-            label: _t(AB_buttons_action_button_pull_label)
-            advanced: true
-            type: list
-            options:
-              #             pull-left: _t(AB_buttons_action_button_pull_left) idée que les gens puissent choisir cette option
-              pull-right: _t(AB_buttons_action_button_pull_right)
-              btn-block: _t(AB_buttons_action_button_pull_block)
-          new-window:
-            label: _t(AB_buttons_action_button_new_window_label)
-            advanced: true
-            type: list
-            options:
-              new-window: _t(AB_buttons_action_button_new_window_yes)
-      hideifnoaccess:
-        advanced: true
-        label: _t(AB_buttons_action_button_hideifnoaccess_label)
-        type: checkbox
-        default: 'false'
-      nobtn:
-        advanced: true
-        label: _t(AB_buttons_action_button_nobtn_label)
-        type: checkbox
-        default: '0'
-        checkedvalue: 1
-        uncheckedvalue: 0
+properties:
+  text:
+    label: Texte du bouton
+    type: text
+    value: Mon bouton
+  link:
+    label: Lien web ou nom d'une page de ce wiki
+    hint: Si lien web, n'oubliez pas le "https://"
+    type: page-list
+    required: true
+  icon:
+    label: Icône
+    type: icon
+  color:
+    label: Couleur
+    type: list
+    options:
+      default: Défaut
+      primary: Primaire
+      secondary-1: Secondaire 1
+      secondary-2: Secondaire 2
+      success: Succès
+      info: Info
+      warning: Attention
+      danger: Danger
+      link: Lien
+  title:
+    label: Texte affiché au survol
+    type: text
+    advanced: true
+  popup:
+    label: Ouvrir le contenu du lien dans une popup
+    hint: Fonctionne vers une page de ce wiki
+    type: list
+    advanced: true
+    options:
+      none: Non
+      click: Lors du clic
+      hover: Au survol
+  newWindow:
+    label: Ouvrir dans une nouvelle fenêtre
+    type: checkbox
+    advanced: true
+    showif:
+      popup: none
+  float:
+    label: Position
+    type: list
+    advanced: true
+    options:
+      none: Par défaut
+      right: Droite
+  fullWidth:
+    label: Toute la largeur
+    type: checkbox
+    advanced: true
+    showif:
+      float: none

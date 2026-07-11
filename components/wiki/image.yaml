@@ -1,0 +1,58 @@
+# ComponentBuilder descriptor of <Image> (docs/component-builder.md).
+label: Image
+description: Afficher une image uploadée
+previewHeight: 240px
+properties:
+  file:
+    label: Fichier uploadé
+    type: file-list
+    required: true
+  alt:
+    label: Texte alternatif (pour les personnes malvoyantes)
+    type: text
+  align:
+    label: Position
+    type: list
+    options:
+      none: Texte en dessous
+      left: Gauche
+      center: Centre
+      right: Droite
+  width:
+    label: Largeur (pixels)
+    hint: Vide = taille d'origine
+    type: number
+  height:
+    label: Hauteur (pixels)
+    type: number
+    advanced: true
+  link:
+    label: Lien web associé au clic
+    type: page-list
+    advanced: true
+  lightbox:
+    label: Permettre de cliquer sur l'image pour l'afficher en grand
+    type: checkbox
+    advanced: true
+    showif:
+      link: null
+  caption:
+    label: Texte affiché au survol
+    type: text
+    advanced: true
+  effects:
+    label: Effets graphiques
+    type: divider
+    advanced: true
+  whiteBorder:
+    label: Bord blanc
+    type: checkbox
+    advanced: true
+  shadow:
+    label: Ombre portée
+    type: checkbox
+    advanced: true
+  hoverZoom:
+    label: Agrandissement au survol
+    type: checkbox
+    advanced: true

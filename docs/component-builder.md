@@ -117,8 +117,15 @@ Le menu « Composants » ne liste que les descripteurs qui émettent des balises
 | Bloc `commons` partagé entre actions | Champs inlinés dans `properties` ; regex factorisées par ancres YAML |
 | Sections titrées (`title`, `width` par action) | Type `divider` (avec `showif` au besoin) |
 | `_t(AB_…)` + fichier de traduction PHP | Texte français en clair (i18n au backlog) |
-| `{{button class="btn-primary pull-right"}}` | Props MDX dédiées : `<Button color="primary" pull="right" />` |
+| `{{button class="btn-primary pull-right"}}` | Props MDX dédiées : `<Button color="primary" float="right" />` |
 | Type `class` + `subproperties` | Supprimé — chaque sous-propriété devient une prop de premier rang |
+| Vocabulaire Bootstrap des classes | Remplacé par le vocabulaire Tailwind : `pull-right` → `float="right"` ; `btn-block` → `fullWidth` |
+| `btn-default`, `btn-primary`, `btn-secondary-1`… | Valeurs de la prop `color` : `default`, `primary`, `secondary-1`, `secondary-2`, `success`, `info`, `warning` (ex-attention), `danger`, `link` |
+| `attach` : classes `position` (none/left/center/right) | Prop `align` d'`<Image>` (`none`/`left`/`center`/`right`) |
+| `attach` : classes `effect-whiteborder` / `effect-lightshadow` / `effect-zoom` | Props booléennes d'`<Image>` : `whiteBorder` / `shadow` / `hoverZoom` |
+| `attach` : `nofullimagelink` (négatif) | Prop `lightbox` d'`<Image>` (sens positif inversé) |
+| `attach` : `displaypdf` (checkbox) | Le mini-choix post-upload route vers `<Pdf>` ou `<FileLink>` |
+| `attach` : ratio `portrait`/`paysage`/`carre` | Valeurs anglaises de la prop `ratio` de `<Pdf>` : `portrait`/`landscape`/`square` |
 | `default` (dans le YAML) | Supprimé — défauts exportés par le `.tsx` (`xxxDefaults`, exhaustifs) |
 | `value` | Conservé, même sémantique (pré-remplissage toujours écrit) |
 | `checkedvalue` / `uncheckedvalue` | Supprimés — une checkbox est une prop booléenne (`newWindow` / rien) |

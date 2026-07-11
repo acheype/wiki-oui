@@ -52,11 +52,16 @@ export function WikiLink({ href = "", target, children, ...rest }: WikiLinkProps
   );
 }
 
-function ModalLink({
+// Also the popup rendering of <Button> (trigger "hover" opens on mouse-over).
+export function ModalLink({
   href,
+  trigger = "click",
   children,
   ...rest
-}: React.ComponentPropsWithoutRef<"a"> & { href: string }) {
+}: React.ComponentPropsWithoutRef<"a"> & {
+  href: string;
+  trigger?: "click" | "hover";
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -68,6 +73,7 @@ function ModalLink({
           event.preventDefault();
           setOpen(true);
         }}
+        onMouseEnter={trigger === "hover" ? () => setOpen(true) : undefined}
       >
         {children}
       </a>
