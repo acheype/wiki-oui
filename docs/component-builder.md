@@ -2,8 +2,8 @@
 
 Le **ComponentBuilder** est l'interface de paramétrage autogénérée d'un composant (voir [`../CONTEXT.md`](../CONTEXT.md)) : la modale qui permet d'insérer le composant dans une page et de rééditer une occurrence existante — aperçu du rendu en haut, champs en dessous. Ce document spécifie comment elle est construite, à partir de deux sources :
 
-- le **descripteur** : le fichier YAML co-localisé avec le composant (`components/wiki/button.yaml` à côté de `button.tsx`), qui décrit les champs de la modale, leurs types et leur visibilité conditionnelle ;
-- le **composant `.tsx`** lui-même, qui fournit l'aperçu et les valeurs par défaut de ses props.
+- le **descripteur** : le fichier YAML co-localisé avec le composant (`components/wiki/button.yaml` à côté de `button.tsx`), qui décrit les champs de la modale — types, visibilité conditionnelle et **valeurs par défaut** ;
+- le **composant `.tsx`** lui-même, qui fournit l'aperçu (via le vrai pipeline de rendu). Il n'expose rien au builder : c'est un composant React ordinaire, client ou serveur (ADR 0013).
 
 Le descripteur ne joue **jamais** sur l'autorisation de rendu (ADR 0002) : sa présence ajoute le composant au menu « Composants » de l'éditeur, rien d'autre.
 
@@ -30,6 +30,7 @@ properties:
   color:
     label: Couleur
     type: list
+    default: primary                # référence de la règle d'omission
     options:
       default: Défaut
       primary: Primaire
@@ -37,6 +38,7 @@ properties:
   newWindow:
     label: Ouvrir dans une nouvelle fenêtre
     type: checkbox
+    default: false
     advanced: true                  # masqué derrière « paramètres avancés »
 ```
 
@@ -50,6 +52,7 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | `hint` | Indication affichée sous le champ |
 | `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `page-list` · `file-list` · `divider` |
 | `options` | Pour `list` : map `valeur: libellé` (la valeur est celle écrite dans la prop) |
+| `default` | Valeur de référence de la **règle d'omission** ; doit égaler le défaut réel de la prop du composant (vérifié, voir « Vérification »). Absent = défaut vide |
 | `value` | Pré-remplissage à l'insertion ; la prop est **toujours** écrite, même inchangée |
 | `family` | Pour `file-list` : restreint la combobox à une famille de fichiers (`image` · `pdf` · `other`) |
 | `required` | Le champ doit être renseigné pour valider la modale |
@@ -62,23 +65,44 @@ Le type `divider` incruste un titre de section entre les champs (il ne génère 
 
 Tout composant à descripteur est **insérable** depuis le menu « Composants » et **rééditable** sur n'importe quelle occurrence — y compris écrite à la main. Il n'existe pas d'asymétrie déclarable (pas d'équivalent aux `onlyEdit`/`onlyAdd` de YesWiki, sans besoin identifié pour l'instant) : le round-trip est sûr par construction (idempotence, props inconnues préservées), et le type `file-list` rend utilisables à froid les builders qui référencent un fichier. Les autres portes d'entrée — bouton **Uploader**, bouton **Ajouter un lien** — ne sont que des raccourcis qui ouvrent le même builder pré-rempli. Dans l'éditeur, la réédition s'offre par le motif des outils ancrés (ADR 0005) : curseur dans la balise → crayon flottant → builder en mode édition.
 
-### Les défauts vivent dans le `.tsx`, pas dans le YAML
+### Les défauts vivent dans le YAML (ADR 0013)
 
-Il n'y a **pas de clé `default`**. Le composant exporte ses défauts, exhaustifs, vérifiés par le compilateur :
+Chaque champ déclare son `default` dans le descripteur ; le composant n'exporte plus rien. Il garde ses propres défauts inline (déstructuration), qui servent son rendu ; le `default` du YAML sert le builder. La cohérence des deux est **vérifiée** (voir « Vérification »), pas imposée par un contrat de compilation.
 
+```yaml
+color:
+  label: Couleur
+  type: list
+  default: primary          # référence de la règle d'omission
+  options: { … }
+```
 ```tsx
-export const buttonDefaults = {
-  text: undefined,
-  link: undefined,
-  color: "primary",
-  newWindow: false,
-} satisfies { [K in keyof Required<ButtonProps>]: ButtonProps[K] };
+// button.tsx : le même défaut, côté composant — c'est ce que le vérificateur croise
+function Button({ color = "primary" }: ButtonProps) { … }
 ```
 
-- **Règle d'omission** : à la génération, toute prop égale à son défaut est omise du MDX. À la ré-édition (mapping inverse), une prop absente du code s'affiche dans la modale avec sa valeur par défaut.
+- **Règle d'omission** : à la génération, toute prop égale à son `default` est omise du MDX. À la ré-édition (mapping inverse), une prop absente du code s'affiche dans la modale avec son `default`.
 - **Idempotence** : ouvrir la modale sur un composant existant et valider sans rien changer régénère un code identique.
 - **Props inconnues préservées** : une prop écrite à la main et absente du descripteur (ex. `className`) est recopiée telle quelle à la régénération.
-- **Validation fail-fast au chargement** (même mécanisme que le registre) : tout champ du YAML doit correspondre à une clé des défauts exportés ; tout champ `list` exige un défaut qui soit une clé de ses `options`.
+- Un champ **sans** `default` (ex. `text`, `link`) a un défaut vide (`undefined`) : sa prop n'est écrite que si l'auteur la renseigne.
+
+### Vérification du descripteur
+
+Deux niveaux, l'un toujours actif, l'autre réservé au développement du composant (ADR 0013).
+
+**Structurels** — au chargement des specs, toujours : le YAML est-il auto-cohérent ? Type de champ connu ; `default` d'une `list` parmi ses `options` ; cibles de `showif` existantes et regex valides ; `family` connue ; `emits` valide.
+
+**Signature** — au **build** et en **dev**, jamais au runtime de prod : le YAML colle-t-il au composant ? On parse la *source* du `.tsx` (jamais on ne l'importe, pour rester indifférent à `"use client"`) et on croise :
+
+| Détecte | Erreur |
+|---|---|
+| champ YAML ∉ props du composant | nom de prop erroné |
+| prop requise en TS sans `default` YAML | obligatoire oublié |
+| type du champ ≠ type de la prop | incompatibilité |
+| `options`/`default` d'une `list` hors de l'union de la prop | valeur invalide |
+| `default` YAML ≠ défaut de déstructuration | dérive des défauts |
+
+Ces erreurs **font échouer le build** (`prebuild`) et s'affichent en **bandeau dans la modale en dev** — qui ajoute un composant voit immédiatement ce qui ne correspond pas. En prod, un build vert garantit la cohérence ; `ts-morph` reste une *devDependency*, hors bundle. Le rendu correct, lui, reste couvert par l'aperçu live de la modale (vrai pipeline).
 
 ### `showif` : visibilité conditionnelle
 
@@ -127,7 +151,7 @@ Le menu « Composants » ne liste que les descripteurs qui émettent des balises
 | `attach` : `nofullimagelink` (négatif) | Prop `lightbox` d'`<Image>` (sens positif inversé) |
 | `attach` : `displaypdf` (checkbox) | Le mini-choix post-upload route vers `<Pdf>` ou `<FileLink>` |
 | `attach` : ratio `portrait`/`paysage`/`carre` | Valeurs anglaises de la prop `ratio` de `<Pdf>` : `portrait`/`landscape`/`square` |
-| `default` (dans le YAML) | Supprimé — défauts exportés par le `.tsx` (`xxxDefaults`, exhaustifs) |
+| `default` (dans le YAML) | **Conservé dans le YAML** (ADR 0013) ; doit égaler le défaut réel de la prop du composant, vérifié par signature |
 | `value` | Conservé, même sémantique (pré-remplissage toujours écrit) |
 | `checkedvalue` / `uncheckedvalue` | Supprimés — une checkbox est une prop booléenne (`newWindow` / rien) |
 | `showif: champ` (raccourci non-vide) | `champ: notNull` |
