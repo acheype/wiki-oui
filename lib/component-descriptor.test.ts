@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type ComponentDescriptor,
   type DescriptorField,
+  findComponentTag,
   generateTag,
   parseTag,
   tagToBuilderState,
@@ -361,5 +362,22 @@ describe("idempotence", () => {
     const normalized = roundTrip(handWritten);
     expect(normalized).toBe('<Button text="Go" color="success" newWindow />');
     expect(roundTrip(normalized)).toBe(normalized);
+  });
+});
+
+describe("findComponentTag", () => {
+  const doc = 'Avant <Button text="Go" /> entre <Pdf file="doc.pdf" /> après';
+
+  it("finds the tag enclosing the cursor", () => {
+    const offsetInPdf = doc.indexOf("doc.pdf");
+    const found = findComponentTag(doc, offsetInPdf);
+    expect(found?.tag.name).toBe("Pdf");
+    expect(doc.slice(found!.from, found!.to)).toBe('<Pdf file="doc.pdf" />');
+  });
+
+  it("returns null between tags or inside a malformed tag", () => {
+    expect(findComponentTag(doc, doc.indexOf("entre"))).toBeNull();
+    const malformed = 'Texte <Button text="Go >< fin';
+    expect(findComponentTag(malformed, malformed.indexOf("Go"))).toBeNull();
   });
 });

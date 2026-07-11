@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { PageEditor } from "@/components/editor/page-editor";
+import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { getPageWithCurrent, listPageSlugs } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 
@@ -24,9 +25,10 @@ export default async function EditPage({ params }: Props) {
     notFound();
   }
 
-  const [page, allSlugs] = await Promise.all([
+  const [page, allSlugs, builders] = await Promise.all([
     getPageWithCurrent(slug),
     listPageSlugs(),
+    loadComponentBuilders(),
   ]);
 
   return (
@@ -35,6 +37,7 @@ export default async function EditPage({ params }: Props) {
       initialContent={page?.current?.content ?? ""}
       initialTags={page?.tags ?? []}
       allSlugs={allSlugs}
+      builders={builders}
       isNew={!page}
     />
   );

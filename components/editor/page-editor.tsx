@@ -8,9 +8,25 @@ import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { savePage } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
 import { CodeMirrorEditor } from "./codemirror-editor";
-import { insertLink, replaceLink, type LinkValue } from "./commands";
-import { cursorTools, type LinkInfo } from "./cursor-tools";
+import {
+  ComponentBuilderDialog,
+  insertionState,
+  type BuilderState,
+} from "./component-builder";
+import {
+  insertLink,
+  insertSnippet,
+  replaceLink,
+  replaceSnippet,
+  type LinkValue,
+} from "./commands";
+import {
+  cursorTools,
+  type ComponentInfo,
+  type LinkInfo,
+} from "./cursor-tools";
 import { LinkDialog } from "./link-dialog";
 import { TagsInput } from "./tags-input";
 import { EditorToolbar } from "./toolbar";
@@ -29,36 +45,68 @@ const closedLinkDialog: LinkDialogState = {
   value: { text: "", href: "", target: "self" },
 };
 
+type BuilderDialogState = {
+  open: boolean;
+  mode: "insert" | "edit";
+  spec: ComponentBuilderSpec | null;
+  initial: BuilderState | null;
+  /** Range of the tag being edited; absent in insert mode. */
+  range?: { from: number; to: number };
+};
+
+const closedBuilderDialog: BuilderDialogState = {
+  open: false,
+  mode: "insert",
+  spec: null,
+  initial: null,
+};
+
 export function PageEditor({
   slug,
   initialContent,
   initialTags,
   allSlugs,
+  builders,
   isNew,
 }: {
   slug: string;
   initialContent: string;
   initialTags: string[];
   allSlugs: string[];
+  builders: ComponentBuilderSpec[];
   isNew: boolean;
 }) {
   const router = useRouter();
   const viewRef = useRef<EditorView | null>(null);
   const [tags, setTags] = useState(initialTags);
   const [linkDialog, setLinkDialog] = useState(closedLinkDialog);
+  const [builderDialog, setBuilderDialog] = useState(closedBuilderDialog);
   const [isPending, startTransition] = useTransition();
 
-  // Created once (the editor view mounts once); setLinkDialog is stable so
-  // the extension's callback never goes stale.
+  // Created once (the editor view mounts once); the setters are stable and
+  // builders are static per page load, so nothing here goes stale.
   const [extensions] = useState(() => [
-    cursorTools((info: LinkInfo) =>
-      setLinkDialog({
-        open: true,
-        mode: "edit",
-        value: { text: info.text, href: info.href, target: info.target },
-        range: { from: info.from, to: info.to },
-      })
-    ),
+    cursorTools({
+      builders,
+      onEditLink: (info: LinkInfo) =>
+        setLinkDialog({
+          open: true,
+          mode: "edit",
+          value: { text: info.text, href: info.href, target: info.target },
+          range: { from: info.from, to: info.to },
+        }),
+      onEditComponent: (info: ComponentInfo) =>
+        setBuilderDialog({
+          open: true,
+          mode: "edit",
+          spec: info.spec,
+          initial: {
+            values: info.values,
+            unknownAttributes: info.unknownAttributes,
+          },
+          range: { from: info.from, to: info.to },
+        }),
+    }),
   ]);
 
   function save() {
@@ -100,6 +148,15 @@ export function PageEditor({
             value: { ...closedLinkDialog.value, text: selectionText },
           })
         }
+        builders={builders}
+        onRequestComponent={(spec) =>
+          setBuilderDialog({
+            ...closedBuilderDialog,
+            open: true,
+            spec,
+            initial: insertionState(spec),
+          })
+        }
       />
 
       <CodeMirrorEditor
@@ -112,6 +169,27 @@ export function PageEditor({
         <Tag className="size-4 shrink-0" aria-hidden />
         <TagsInput tags={tags} onChange={setTags} />
       </div>
+
+      <ComponentBuilderDialog
+        open={builderDialog.open}
+        onOpenChange={(open) =>
+          setBuilderDialog(
+            open ? builderDialog : { ...builderDialog, open: false }
+          )
+        }
+        spec={builderDialog.spec}
+        mode={builderDialog.mode}
+        initial={builderDialog.initial}
+        allSlugs={allSlugs}
+        onSubmit={(tag) => {
+          if (!viewRef.current) return;
+          if (builderDialog.mode === "edit" && builderDialog.range) {
+            replaceSnippet(viewRef.current, builderDialog.range, tag);
+          } else {
+            insertSnippet(viewRef.current, tag);
+          }
+        }}
+      />
 
       <LinkDialog
         open={linkDialog.open}

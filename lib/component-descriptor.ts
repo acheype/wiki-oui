@@ -210,21 +210,53 @@ export interface ParsedTag {
 // not fully understand: the caller then treats the tag as malformed and
 // offers no pencil (docs/architecture.md).
 export function parseTag(source: string): ParsedTag | null {
+  const prefix = parseTagPrefix(source);
+  return prefix && prefix.length === source.length ? prefix.tag : null;
+}
+
+// Same parse, but on a text that continues after the tag; reports how far
+// the tag reaches so findComponentTag can locate it inside a document.
+function parseTagPrefix(
+  source: string
+): { tag: ParsedTag; length: number } | null {
   const open = source.match(/^<([A-Z][A-Za-z0-9]*)/);
   if (!open) return null;
   const name = open[1];
-  let rest = source.slice(open[0].length);
+  let offset = open[0].length;
   const attributes: TagAttribute[] = [];
   for (;;) {
-    const spacing = rest.match(/^\s*/)![0];
-    rest = rest.slice(spacing.length);
-    if (rest === "/>") return { name, attributes };
+    const spacing = source.slice(offset).match(/^\s*/)![0];
+    offset += spacing.length;
+    if (source.startsWith("/>", offset)) {
+      return { tag: { name, attributes }, length: offset + 2 };
+    }
     if (spacing === "") return null;
-    const attribute = matchAttribute(rest);
+    const attribute = matchAttribute(source.slice(offset));
     if (!attribute) return null;
     attributes.push(attribute.parsed);
-    rest = rest.slice(attribute.length);
+    offset += attribute.length;
   }
+}
+
+// How far behind the cursor a tag opening may start. Generated tags are
+// one-liners; hand-written ones larger than this window just get no pencil.
+const TAG_SCAN_WINDOW = 2000;
+
+/** Finds the well-formed self-closing component tag enclosing `offset`. */
+export function findComponentTag(
+  text: string,
+  offset: number
+): { from: number; to: number; tag: ParsedTag } | null {
+  const windowStart = Math.max(0, offset - TAG_SCAN_WINDOW);
+  for (let from = offset; from >= windowStart; from--) {
+    if (text[from] !== "<" || !/[A-Z]/.test(text[from + 1] ?? "")) continue;
+    const prefix = parseTagPrefix(text.slice(from, from + TAG_SCAN_WINDOW));
+    if (!prefix) continue;
+    const to = from + prefix.length;
+    if (to < offset) return null; // nearest tag ends before the cursor
+    return { from, to, tag: prefix.tag };
+  }
+  return null;
 }
 
 function matchAttribute(

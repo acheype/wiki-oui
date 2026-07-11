@@ -13,7 +13,7 @@ L'identifiant textuel d'une page, et sa seule identité : il est tapé directeme
 _Avoid_: Id, nom de page, permalink
 
 **Handler de page**:
-Une **vue** d'une page, rendue à une URL de niveau 2 : `https://site/{slug}/{handler}` (ex. `edit`, `revisions`). Un handler de page *affiche* quelque chose à un humain. Implémenté comme un segment de route Next natif : `app/[slug]/{handler}/page.tsx`. Le handler par défaut est `show`, servi par `app/[slug]/page.tsx` ; `/{slug}` est un raccourci de `/{slug}/show`.
+Une **vue** d'une page, rendue à une URL de niveau 2 : `https://site/{slug}/{handler}` (ex. `edit`, `revisions`). Un handler de page *affiche* quelque chose à un humain. Implémenté comme un segment de route Next natif dans le groupe de routes du chrome : `app/(site)/[slug]/{handler}/page.tsx`. Le handler par défaut est `show`, servi par `app/(site)/[slug]/page.tsx` ; `/{slug}` est un raccourci de `/{slug}/show`.
 _Avoid_: Route, action, contrôleur ; « Route Handler » (jargon Next : désigne un Service d'API, pas un handler de page)
 
 **Mutation**:
@@ -21,7 +21,7 @@ Une action qui modifie la base et ne rend **aucune vue** : sauvegarder, supprime
 _Avoid_: Handler (pour une mutation), endpoint
 
 **Service d'API**:
-Un endpoint HTTP **programmatique** : consommé par du code (la modale d'aperçu, la balise `<img>` qui charge un fichier), jamais visité comme une page. Implémenté en Route Handler Next (`route.ts`), regroupé sous le segment réservé `/api` : `GET /api/files/{nom}` (servir un fichier), `POST /api/files` (upload — mutation portée par un service), `POST /api/render` (rendu d'un fragment MDX pour l'aperçu du ComponentBuilder). Le triptyque complet : handler de page = vue pour un humain · mutation = écriture · service d'API = service pour du code.
+Un endpoint HTTP **programmatique** : consommé par du code (la modale d'aperçu, la balise `<img>` qui charge un fichier), jamais visité comme une page par un humain. Regroupé sous le segment réservé `/api`, implémenté en Route Handler Next (`route.ts`) : `GET /api/files/{nom}` (servir un fichier), `POST /api/files` (upload — mutation portée par un service). Cas particulier : un service dont la réponse est une page HTML complète est porté par une `page.tsx` **nue** (hors du groupe `(site)`, donc sans chrome) — `GET /api/render?source=…`, l'aperçu du ComponentBuilder, rendu par le vrai pipeline de pages. Le triptyque complet : handler de page = vue pour un humain · mutation = écriture · service d'API = service pour du code.
 _Avoid_: handler (pour un service) ; réserver un segment d'URL de niveau 1 par service (un seul segment réservé : `api`)
 
 **Révision**:

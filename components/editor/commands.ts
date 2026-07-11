@@ -224,6 +224,31 @@ export function replaceLink(
   view.focus();
 }
 
+// Inserts a ComponentBuilder-generated snippet at the cursor, replacing the
+// selection if any (insertion from the « Composants » menu).
+export function insertSnippet(view: EditorView, snippet: string) {
+  view.dispatch(
+    view.state.changeByRange((range) => ({
+      changes: { from: range.from, to: range.to, insert: snippet },
+      range: EditorSelection.cursor(range.from + snippet.length),
+    }))
+  );
+  view.focus();
+}
+
+// Rewrites an existing component tag in place (cursor-anchored pencil).
+export function replaceSnippet(
+  view: EditorView,
+  range: { from: number; to: number },
+  snippet: string
+) {
+  view.dispatch({
+    changes: { from: range.from, to: range.to, insert: snippet },
+    selection: EditorSelection.cursor(range.from + snippet.length),
+  });
+  view.focus();
+}
+
 /* ---------------------------------------------------------------- *
  * GFM tables. Cursor-anchored tools (ADR 0005): the strips rendered
  * by cursor-tools.tsx call the commands below. All of them operate

@@ -24,6 +24,12 @@ import {
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
 import {
+  findComponentTag,
+  tagToBuilderState,
+  type PropValues,
+} from "@/lib/component-descriptor";
+import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+import {
   addTableColumn,
   addTableRow,
   cycleColumnAlignment,
@@ -80,6 +86,51 @@ export function linkAtCursor(state: EditorState): LinkInfo | null {
   return null;
 }
 
+export type ComponentInfo = {
+  from: number;
+  to: number;
+  spec: ComponentBuilderSpec;
+  values: PropValues;
+  unknownAttributes: string[];
+};
+
+// Enclosing well-formed component tag whose descriptor is known. Malformed
+// tags, unknown components and non-literal props get no pencil
+// (docs/component-builder.md).
+export function componentAtCursor(
+  state: EditorState,
+  builders: ComponentBuilderSpec[]
+): ComponentInfo | null {
+  const range = state.selection.main;
+  if (!range.empty) return null;
+  // A window around the cursor bounds the scan (generated tags are short).
+  const windowFrom = Math.max(0, range.head - 2000);
+  const windowTo = Math.min(state.doc.length, range.head + 2000);
+  const found = findComponentTag(
+    state.sliceDoc(windowFrom, windowTo),
+    range.head - windowFrom
+  );
+  if (!found) return null;
+  const spec = builders.find(
+    (builder) =>
+      builder.name === found.tag.name &&
+      builder.descriptor.emits !== "markdown-link"
+  );
+  if (!spec) return null;
+  const builderState = tagToBuilderState(
+    spec.descriptor,
+    spec.defaults,
+    found.tag
+  );
+  if (!builderState) return null;
+  return {
+    from: windowFrom + found.from,
+    to: windowFrom + found.to,
+    spec,
+    ...builderState,
+  };
+}
+
 // Deliberately not the toolbar's ToolButton: the strips render in a detached
 // React root where the Radix TooltipProvider is out of reach, so the label is
 // a native title and the look comes from the .cm-wiki-strip CSS.
@@ -132,7 +183,7 @@ const ALIGNMENT_LABELS: Record<Alignment, string> = {
 
 function computeTooltips(
   state: EditorState,
-  onEditLink: (info: LinkInfo) => void
+  options: CursorToolsOptions
 ): Tooltip[] {
   const tooltips: Tooltip[] = [];
 
@@ -144,7 +195,28 @@ function computeTooltips(
       create: () =>
         reactTooltip(
           "",
-          <StripButton label="Modifier le lien" onClick={() => onEditLink(link)}>
+          <StripButton
+            label="Modifier le lien"
+            onClick={() => options.onEditLink(link)}
+          >
+            <Pencil />
+          </StripButton>
+        ),
+    });
+  }
+
+  const component = componentAtCursor(state, options.builders);
+  if (component) {
+    tooltips.push({
+      pos: state.selection.main.head,
+      above: true,
+      create: () =>
+        reactTooltip(
+          "",
+          <StripButton
+            label={`Modifier « ${component.spec.descriptor.label} »`}
+            onClick={() => options.onEditComponent(component)}
+          >
             <Pencil />
           </StripButton>
         ),
@@ -235,12 +307,16 @@ const editorFocusChanged = StateEffect.define<boolean>();
 
 type ToolsState = { focused: boolean; tooltips: readonly Tooltip[] };
 
+export type CursorToolsOptions = {
+  onEditLink: (info: LinkInfo) => void;
+  onEditComponent: (info: ComponentInfo) => void;
+  builders: ComponentBuilderSpec[];
+};
+
 // Tools only show while the editor has focus: they vanish when the link
 // dialog opens (it takes focus) instead of floating above the modal. The
 // strip buttons prevent mousedown default, so using them keeps focus.
-export function cursorTools(
-  onEditLink: (info: LinkInfo) => void
-): Extension {
+export function cursorTools(options: CursorToolsOptions): Extension {
   const field = StateField.define<ToolsState>({
     create: () => ({ focused: false, tooltips: [] }),
     update(value, tr) {
@@ -253,7 +329,7 @@ export function cursorTools(
       }
       return {
         focused,
-        tooltips: focused ? computeTooltips(tr.state, onEditLink) : [],
+        tooltips: focused ? computeTooltips(tr.state, options) : [],
       };
     },
     provide: (f) =>

@@ -16,12 +16,14 @@ import {
   ListTodo,
   MessageSquareOff,
   Minus,
+  Puzzle,
   Quote,
   Strikethrough,
   Table,
 } from "lucide-react";
 import Link from "next/link";
 import type { RefObject } from "react";
+import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -87,11 +89,22 @@ function ToolButton({
 export function EditorToolbar({
   viewRef,
   onRequestLink,
+  builders,
+  onRequestComponent,
 }: {
   viewRef: ViewRef;
   /** Opens the link dialog in insert mode with the current selection text. */
   onRequestLink: (selectionText: string) => void;
+  builders: ComponentBuilderSpec[];
+  /** Opens the ComponentBuilder in insert mode. */
+  onRequestComponent: (spec: ComponentBuilderSpec) => void;
 }) {
+  // Alphabetical labels; markdown-link emitters (wiki-link) have their own
+  // doors and stay out of the menu (docs/component-builder.md).
+  const menuBuilders = builders
+    .filter((builder) => builder.descriptor.emits !== "markdown-link")
+    .sort((a, b) => a.descriptor.label.localeCompare(b.descriptor.label, "fr"));
+
   return (
     <TooltipProvider delayDuration={400}>
       <div className="flex flex-wrap items-center gap-0.5 rounded-md border bg-muted/40 px-1.5 py-1">
@@ -226,6 +239,37 @@ export function EditorToolbar({
         <ToolButton label="Insérer un tableau" viewRef={viewRef} command={insertTable}>
           <Table />
         </ToolButton>
+
+        {menuBuilders.length > 0 && (
+          <DropdownMenu>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onMouseDown={(event) => event.preventDefault()}
+                    aria-label="Composants"
+                  >
+                    <Puzzle />
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>Composants</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent align="start">
+              {menuBuilders.map((builder) => (
+                <DropdownMenuItem
+                  key={builder.name}
+                  onSelect={() => onRequestComponent(builder)}
+                >
+                  {builder.descriptor.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
 
         <div className="ml-auto">
           <Tooltip>
