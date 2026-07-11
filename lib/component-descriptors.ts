@@ -15,7 +15,9 @@ import {
 // presence in the folder is the whitelist, loading fails fast and loud.
 
 export interface ComponentBuilderSpec {
-  /** Component tag name, e.g. "Button" (from the file base name). */
+  /** Kebab file base, e.g. "file-link"; the authoritative on-disk identity. */
+  base: string;
+  /** Component tag name, e.g. "Button" (PascalCase of the file base). */
   name: string;
   descriptor: ComponentDescriptor;
   /** Omission-rule defaults, derived from the descriptor (ADR 0013). */
@@ -34,12 +36,20 @@ export function loadComponentBuilders(): Promise<ComponentBuilderSpec[]> {
 
 async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
   const files = await readdir(WIKI_COMPONENTS_DIR);
-  return Promise.all(
+  const specs = await Promise.all(
     files
       .filter((file) => file.endsWith(".yaml"))
       .sort()
       .map((file) => buildSpec(file.slice(0, -".yaml".length)))
   );
+  // Signature check on editor load, in dev only (ADR 0013): a YAML ↔ component
+  // drift throws here, surfacing on the Next error overlay. The dynamic import
+  // keeps ts-morph out of the production bundle (this branch is compiled away).
+  if (process.env.NODE_ENV === "development") {
+    const { verifyDescriptorSignatures } = await import("./verify-descriptors");
+    verifyDescriptorSignatures(specs);
+  }
+  return specs;
 }
 
 async function buildSpec(base: string): Promise<ComponentBuilderSpec> {
@@ -54,6 +64,7 @@ async function buildSpec(base: string): Promise<ComponentBuilderSpec> {
 
   validateDescriptor(base, descriptor);
   return {
+    base,
     name: pascalCase(base),
     descriptor,
     defaults: descriptorDefaults(descriptor),

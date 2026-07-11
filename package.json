@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "tsx scripts/verify-descriptors.ts",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -54,6 +55,7 @@
     "eslint-config-next": "16.2.10",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
+    "ts-morph": "^28.0.0",
     "tsx": "^4.23.0",
     "typescript": "^5",
     "vitest": "^4.1.10"
