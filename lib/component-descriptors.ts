@@ -1,6 +1,5 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import path from "node:path";
-import { parse } from "yaml";
 import {
   type ComponentDescriptor,
   type PropDefaults,
@@ -8,6 +7,7 @@ import {
   pascalCase,
   validateDescriptor,
 } from "./component-descriptor";
+import { readDescriptorSource } from "./descriptor-source";
 
 // Server-side loader of the ComponentBuilder descriptors: every .yaml file
 // in components/wiki/ describes the builder of its co-located .tsx component
@@ -47,22 +47,20 @@ async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
   // keeps ts-morph out of the production bundle (this branch is compiled away).
   if (process.env.NODE_ENV === "development") {
     const { verifyDescriptorSignatures } = await import("./verify-descriptors");
-    verifyDescriptorSignatures(specs);
+    await verifyDescriptorSignatures(specs);
   }
   return specs;
 }
 
 async function buildSpec(base: string): Promise<ComponentBuilderSpec> {
-  const descriptor = parse(
-    await readFile(path.join(WIKI_COMPONENTS_DIR, `${base}.yaml`), "utf8")
-  ) as ComponentDescriptor;
+  const { descriptor, lineOf } = await readDescriptorSource(base);
   if (typeof descriptor?.label !== "string" || !descriptor.properties) {
     throw new Error(
       `components/wiki/${base}.yaml: a descriptor needs at least "label" and "properties"`
     );
   }
 
-  validateDescriptor(base, descriptor);
+  validateDescriptor(base, descriptor, lineOf);
   return {
     base,
     name: pascalCase(base),

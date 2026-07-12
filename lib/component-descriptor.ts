@@ -60,6 +60,13 @@ export type PropValue = string | number | boolean | undefined;
 /** Omission-rule defaults keyed by prop name, derived from the descriptor. */
 export type PropDefaults = Record<string, PropValue>;
 
+// Resolves a descriptor path (e.g. ["properties","color","type"]) to its
+// 1-based line in the YAML source, or undefined when unknown. Built from the
+// parsed document by the loader (lib/descriptor-source.ts); error messages use
+// it to point at the exact offending line. Absent = no line shown (e.g. a
+// descriptor built by hand in a test).
+export type LineLookup = (path: (string | number)[]) => number | undefined;
+
 // The omission-rule defaults come from the descriptor itself (ADR 0013): each
 // field's `default` (a divider emits no prop; a field without a `default` is
 // empty/undefined). The engine keeps taking `defaults` explicitly so the
@@ -91,25 +98,38 @@ function isRegexCondition(condition: unknown): condition is string {
 // (lib/verify-descriptors, dev + build only).
 export function validateDescriptor(
   name: string,
-  descriptor: ComponentDescriptor
+  descriptor: ComponentDescriptor,
+  lineOf?: LineLookup
 ): void {
   const source = `components/wiki/${name}.yaml`;
+  // Prefixes the message with the file and, when known, the first of the
+  // candidate paths that resolves to a line — so it points at the offending
+  // key (e.g. the `type:` line), falling back to the field, then the file.
+  const at = (...candidates: (string | number)[][]): string => {
+    for (const candidate of candidates) {
+      const line = lineOf?.(candidate);
+      if (line !== undefined) return `${source}:${line}`;
+    }
+    return source;
+  };
+
   if (descriptor.emits !== undefined && descriptor.emits !== "markdown-link") {
     throw new Error(
-      `${source}: unknown emits target "${descriptor.emits}" (the only alternative is markdown-link)`
+      `${at(["emits"])}: unknown emits target "${descriptor.emits}" (the only alternative is markdown-link)`
     );
   }
   for (const [field, spec] of Object.entries(descriptor.properties)) {
     if (!FIELD_TYPES.includes(spec.type)) {
       throw new Error(
-        `${source}: field "${field}" has unknown type "${spec.type}"`
+        `${at(["properties", field, "type"], ["properties", field])}: field "${field}" has unknown type "${spec.type}"`
       );
     }
     if (spec.type === "divider") continue;
     for (const [target, condition] of Object.entries(spec.showif ?? {})) {
+      const where = at(["properties", field, "showif", target], ["properties", field]);
       if (!(target in descriptor.properties)) {
         throw new Error(
-          `${source}: showif of "${field}" points at unknown field "${target}"`
+          `${where}: showif of "${field}" points at unknown field "${target}"`
         );
       }
       if (isRegexCondition(condition)) {
@@ -117,7 +137,7 @@ export function validateDescriptor(
           new RegExp(condition.slice(1, -1));
         } catch {
           throw new Error(
-            `${source}: showif of "${field}" holds an invalid regex for "${target}": ${condition}`
+            `${where}: showif of "${field}" holds an invalid regex for "${target}": ${condition}`
           );
         }
       }
@@ -128,7 +148,7 @@ export function validateDescriptor(
       !FILE_FAMILIES.includes(spec.family)
     ) {
       throw new Error(
-        `${source}: file-list field "${field}" has unknown family "${spec.family}" (${FILE_FAMILIES.join(", ")})`
+        `${at(["properties", field, "family"], ["properties", field])}: file-list field "${field}" has unknown family "${spec.family}" (${FILE_FAMILIES.join(", ")})`
       );
     }
     if (spec.type === "list") {
@@ -137,7 +157,7 @@ export function validateDescriptor(
       if (typeof fallback !== "string" || !options.includes(fallback)) {
         const got = fallback === undefined ? "undefined" : `"${fallback}"`;
         throw new Error(
-          `${source}: list field "${field}" needs a default among its options (${options.join(", ")}), got ${got}`
+          `${at(["properties", field, "default"], ["properties", field])}: list field "${field}" needs a default among its options (${options.join(", ")}), got ${got}`
         );
       }
     }

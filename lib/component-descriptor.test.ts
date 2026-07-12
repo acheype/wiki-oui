@@ -103,6 +103,19 @@ describe("validateDescriptor", () => {
     descriptor.properties.appearance = { label: "Apparence", type: "divider" };
     expect(() => validateDescriptor("button", descriptor)).not.toThrow();
   });
+
+  it("points the message at the offending line when a lookup is given", () => {
+    const descriptor = buttonDescriptor();
+    // @ts-expect-error -- a YAML typo lands here untyped
+    descriptor.properties.color.type = "lst";
+    // Stub the lookup the loader builds from the parsed YAML: the `type:` key
+    // of `color` sits on line 20.
+    const lineOf = (path: (string | number)[]) =>
+      path.join(".") === "properties.color.type" ? 20 : undefined;
+    expect(() => validateDescriptor("button", descriptor, lineOf)).toThrow(
+      'components/wiki/button.yaml:20: field "color" has unknown type "lst"'
+    );
+  });
 });
 
 // Descriptor with a single showif-carrying field, for visibility tests.

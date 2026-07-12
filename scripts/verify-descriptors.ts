@@ -6,7 +6,7 @@ import { verifyDescriptorSignatures } from "../lib/verify-descriptors";
 
 async function main() {
   const specs = await loadComponentBuilders();
-  verifyDescriptorSignatures(specs);
+  await verifyDescriptorSignatures(specs);
   console.log(`Verified ${specs.length} ComponentBuilder descriptor(s).`);
 }
 

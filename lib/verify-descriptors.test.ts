@@ -12,6 +12,7 @@ import {
 // A coherent button-like signature to mutate per case.
 function buttonSignature(): ComponentSignature {
   return {
+    file: "components/wiki/button.tsx",
     props: {
       text: { tsOptional: true, type: { kind: "string" } },
       link: { tsOptional: true, type: { kind: "string" } },
@@ -58,7 +59,7 @@ describe("checkSignature", () => {
     descriptor.properties.colour = { label: "Couleur", type: "text" };
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'Button: descriptor field "colour" is not a prop of the component'
+      'components/wiki/button.yaml: field "colour" is not a prop of <Button> (components/wiki/button.tsx)'
     );
   });
 
@@ -69,7 +70,7 @@ describe("checkSignature", () => {
     signature.props.link.tsOptional = false; // required in TS, no default
     const { errors } = checkSignature("Button", descriptor, signature);
     expect(errors).toContain(
-      'Button: prop "link" is required at runtime but its descriptor field is missing "required: true"'
+      'components/wiki/button.yaml: field "link" must set "required: true" — prop "link" is required at runtime in <Button> (components/wiki/button.tsx)'
     );
   });
 
@@ -78,7 +79,7 @@ describe("checkSignature", () => {
     descriptor.properties.newWindow.type = "text";
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'Button: descriptor field "newWindow" (type text) does not match prop type boolean'
+      'components/wiki/button.yaml: field "newWindow" (type text) does not match prop "newWindow": boolean in <Button> (components/wiki/button.tsx)'
     );
   });
 
@@ -89,7 +90,7 @@ describe("checkSignature", () => {
     delete descriptor.properties.color.default;
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'Button: descriptor field "color" (type text) faces the enum prop "default" | "primary"; use type: list'
+      'components/wiki/button.yaml: field "color" (type text) faces the enum prop "default" | "primary" of <Button>; use type: list (components/wiki/button.tsx)'
     );
   });
 
@@ -98,7 +99,7 @@ describe("checkSignature", () => {
     descriptor.properties.color.options = { default: "Défaut", brand: "Marque" };
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'Button: list field "color" option "brand" is outside the prop union (default, primary)'
+      "components/wiki/button.yaml: list field \"color\" option \"brand\" is outside <Button>'s prop union (default, primary) (components/wiki/button.tsx)"
     );
   });
 
@@ -107,7 +108,7 @@ describe("checkSignature", () => {
     descriptor.properties.color.default = "brand";
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'Button: list field "color" default "brand" is outside the prop union (default, primary)'
+      "components/wiki/button.yaml: list field \"color\" default \"brand\" is outside <Button>'s prop union (default, primary) (components/wiki/button.tsx)"
     );
   });
 
@@ -116,7 +117,7 @@ describe("checkSignature", () => {
     descriptor.properties.newWindow.default = true;
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'Button: descriptor field "newWindow" default true differs from the component default false'
+      "components/wiki/button.yaml: field \"newWindow\" default true differs from <Button>'s default false (components/wiki/button.tsx)"
     );
   });
 
@@ -126,7 +127,7 @@ describe("checkSignature", () => {
     delete signature.props.newWindow.destructuringDefault;
     const { errors } = checkSignature("Button", descriptor, signature);
     expect(errors).toContain(
-      'Button: descriptor field "newWindow" default false differs from the component default undefined'
+      "components/wiki/button.yaml: field \"newWindow\" default false differs from <Button>'s default undefined (components/wiki/button.tsx)"
     );
   });
 
@@ -135,7 +136,7 @@ describe("checkSignature", () => {
     descriptor.properties.text.value = 42;
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'Button: descriptor field "text" value 42 does not fit prop type string'
+      'components/wiki/button.yaml: field "text" value 42 does not fit prop "text": string in <Button> (components/wiki/button.tsx)'
     );
   });
 
@@ -146,7 +147,20 @@ describe("checkSignature", () => {
     const { errors, warnings } = checkSignature("Button", descriptor, signature);
     expect(errors).toEqual([]);
     expect(warnings).toContain(
-      'Button: descriptor field "color" default is computed at runtime and cannot be verified against the component'
+      "components/wiki/button.yaml: field \"color\" default is computed at runtime in <Button> and cannot be verified (components/wiki/button.tsx)"
+    );
+  });
+
+  it("points at the offending line on both sides when positions are known", () => {
+    const descriptor = buttonDescriptor();
+    descriptor.properties.newWindow.default = true; // drift
+    const signature = buttonSignature();
+    signature.props.newWindow.defaultLine = 81; // component-side line
+    const lineOf = (path: (string | number)[]) =>
+      path.join(".") === "properties.newWindow.default" ? 44 : undefined;
+    const { errors } = checkSignature("Button", descriptor, signature, lineOf);
+    expect(errors).toContain(
+      "components/wiki/button.yaml:44: field \"newWindow\" default true differs from <Button>'s default false (components/wiki/button.tsx:81)"
     );
   });
 
@@ -163,10 +177,10 @@ describe("extractSignature", () => {
     const project = new Project({ useInMemoryFileSystem: true });
     if (extra) project.createSourceFile("defaults.ts", extra);
     const file = project.createSourceFile("component.tsx", source);
-    return extractSignature(file, name);
+    return extractSignature(file, name, "component.tsx");
   }
 
-  it("reads names, optionality, types and inline literal defaults", () => {
+  it("reads names, optionality, types, inline literal defaults and their lines", () => {
     const signature = signatureOf(
       `type ButtonProps = {
          text?: string;
@@ -184,15 +198,19 @@ describe("extractSignature", () => {
        }: ButtonProps) { return null; }`,
       "Button"
     );
-    expect(signature.props.text).toEqual({ tsOptional: true, type: { kind: "string" } });
+    expect(signature.file).toBe("component.tsx");
+    expect(signature.props.text).toMatchObject({ tsOptional: true, type: { kind: "string" } });
     expect(signature.props.link.tsOptional).toBe(false);
-    expect(signature.props.color).toEqual({
+    expect(signature.props.color).toMatchObject({
       tsOptional: true,
       type: { kind: "union", values: ["default", "primary"] },
       destructuringDefault: { literal: "primary" },
     });
     expect(signature.props.count.destructuringDefault).toEqual({ literal: 3 });
     expect(signature.props.newWindow.destructuringDefault).toEqual({ literal: false });
+    // Positions come through for messages: the prop declaration and its default.
+    expect(typeof signature.props.color.line).toBe("number");
+    expect(typeof signature.props.color.defaultLine).toBe("number");
   });
 
   it("traces a default through an imported constant", () => {
@@ -222,17 +240,17 @@ describe("extractSignature", () => {
 describe("verifyDescriptorSignatures (shipped components)", () => {
   it("passes on the shipped descriptors", async () => {
     const specs = await loadComponentBuilders();
-    expect(() => verifyDescriptorSignatures(specs)).not.toThrow();
+    await expect(verifyDescriptorSignatures(specs)).resolves.toBeUndefined();
   });
 
-  it("throws when a shipped descriptor drifts from its component", async () => {
+  it("throws, with both file locations, when a shipped descriptor drifts", async () => {
     const specs = await loadComponentBuilders();
     const button = specs.find((spec) => spec.name === "Button")!;
     const original = button.descriptor.properties.color.default;
     button.descriptor.properties.color.default = "success";
     try {
-      expect(() => verifyDescriptorSignatures(specs)).toThrow(
-        /differs from the component default/
+      await expect(verifyDescriptorSignatures(specs)).rejects.toThrow(
+        /components\/wiki\/button\.yaml:\d+: field "color" default "success" differs from <Button>'s default "primary" \(components\/wiki\/button\.tsx:\d+\)/
       );
     } finally {
       button.descriptor.properties.color.default = original;
