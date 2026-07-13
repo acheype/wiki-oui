@@ -22,9 +22,9 @@ import {
   type ComponentInfo,
   type LinkInfo,
 } from "./cursor-tools";
-import { TagsInput } from "./tags-input";
+import { TagsInput } from "@/components/fields/tags-input";
 import { EditorToolbar } from "./toolbar";
-import { uploadFile } from "./upload";
+import { uploadFile } from "@/components/fields/upload";
 import { UploadDialog, type UploadDialogState } from "./upload-dialog";
 import { uploadDoors } from "./upload-extension";
 

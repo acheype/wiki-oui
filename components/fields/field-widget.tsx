@@ -8,6 +8,7 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,20 @@ import type { FormFieldType } from "@/lib/form-descriptor";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { IconPicker } from "./icon-picker";
+import { TagsInput } from "./tags-input";
+import { UploadInput } from "./upload-input";
 import { useDebouncedJson } from "./use-debounced-json";
+
+// Leaflet touches window at import time: the map widget loads client-only.
+const GeolocationInput = dynamic(
+  () => import("./geolocation-input").then((mod) => mod.GeolocationInput),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-64 animate-pulse rounded-md border bg-muted/40" />
+    ),
+  }
+);
 
 export type WidgetType = FieldType | FormFieldType;
 
@@ -58,6 +72,17 @@ export interface FieldWidgetSpec {
   rows?: number;
   initTodayButton?: boolean;
   fillingMode?: "normal" | "tags" | "dragAndDrop";
+  /** geolocation: bindings to the form's address fields + locate button. */
+  streetField?: string;
+  street1Field?: string;
+  street2Field?: string;
+  postalCodeField?: string;
+  townField?: string;
+  countyField?: string;
+  stateField?: string;
+  geolocateButton?: boolean;
+  /** customContent: admin-written MDX shown in the entry form. */
+  entryContent?: string;
 }
 
 /** What a widget can hold: component props stay scalar, entry values go richer. */
@@ -69,6 +94,8 @@ export interface FieldEnvironment {
   allSlugs?: string[];
   /** Existing forms, for the form-list selector. */
   forms?: { slug: string; name: string }[];
+  /** Live sibling entry values, for geocoding bound address fields. */
+  entryValues?: Record<string, unknown>;
 }
 
 const EMPTY_ENVIRONMENT: FieldEnvironment = {};
@@ -290,6 +317,50 @@ export function FieldWidget({
           onChange={onChange}
         />
       );
+    case "image":
+    case "file":
+      return (
+        <UploadInput
+          id={id}
+          value={typeof value === "string" ? value : ""}
+          kind={spec.type}
+          invalid={invalid}
+          onChange={onChange}
+        />
+      );
+    case "geolocation":
+      return (
+        <GeolocationInput
+          value={
+            value !== null &&
+            typeof value === "object" &&
+            !Array.isArray(value)
+              ? value
+              : undefined
+          }
+          bindings={spec}
+          geolocateButton={spec.geolocateButton}
+          entryValues={environment.entryValues}
+          onChange={(point) => onChange(point)}
+        />
+      );
+    case "tags":
+      return (
+        <TagsInput
+          tags={Array.isArray(value) ? value : []}
+          onChange={onChange}
+        />
+      );
+    case "customContent":
+      // Admin-written MDX, rendered by the sandboxed pipeline — the same
+      // bare-page service the ComponentBuilder preview uses.
+      return spec.entryContent ? (
+        <iframe
+          src={`/api/render?source=${encodeURIComponent(spec.entryContent)}`}
+          title={spec.label}
+          className="min-h-28 w-full rounded-md border bg-background"
+        />
+      ) : null;
     case "form-list":
       return (
         <Select
