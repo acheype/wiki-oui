@@ -5,7 +5,7 @@ WikiOui est un moteur de wiki : il permet de créer facilement des sites collabo
 ## Language
 
 **Page**:
-L'unité de contenu du wiki, identifiée par un slug unique. Son contenu est écrit en MDX. Une page a un historique de révisions. Elle n'a **pas de champ titre distinct** : son titre visible est le premier titre `#` de son contenu. La ligne `Page` n'est créée qu'à la **première sauvegarde** (visiter une page inexistante n'écrit rien).
+L'unité de contenu du wiki, identifiée par un slug unique. Son contenu est écrit en MDX — sauf pour une **fiche** (v0.3), dont le contenu est un snapshot de valeurs de champs. Une page a un historique de révisions. Elle n'a **pas de champ titre distinct** : son titre visible est le premier titre `#` de son contenu (pour une fiche : son champ titre). La ligne `Page` n'est créée qu'à la **première sauvegarde** (visiter une page inexistante n'écrit rien).
 _Avoid_: Article, document, nœud
 
 **Slug**:
@@ -17,7 +17,7 @@ Une **vue** d'une page, rendue à une URL de niveau 2 : `https://site/{slug}/{ha
 _Avoid_: Route, action, contrôleur ; « Route Handler » (jargon Next : désigne un Service d'API, pas un handler de page)
 
 **Mutation**:
-Une action qui modifie la base et ne rend **aucune vue** : sauvegarder, supprimer, restaurer. Implémentée comme une **Server Action** (pas d'URL, POST implicite). Tout ce qui est dans la barre d'actions n'est donc pas un handler : `Éditer`/`Historique` sont des handlers de page (vues), `Supprimer`/`Restaurer` sont des mutations. Exceptionnellement, une mutation est **portée par un Service d'API** quand la Server Action ne sait pas transporter l'exigence UX (l'upload et sa progression, ADR 0012).
+Une action qui modifie la base et ne rend **aucune vue** : sauvegarder, supprimer, restaurer. Implémentée comme une **Server Action** (pas d'URL, POST implicite). Tout ce qui est dans la barre d'actions n'est donc pas un handler : `Éditer`/`Historique` sont des handlers de page (vues), `Supprimer`/`Restaurer` sont des mutations. Exceptionnellement, une mutation est **portée par un Service d'API** quand la Server Action ne sait pas transporter l'exigence UX (l'upload et sa progression, ADR 0012). Depuis la v0.3, une Server Action peut aussi porter une **lecture** pour un composant client (écrans d'administration des formulaires, ADR 0014) — c'est le même transport, mais ce n'est pas une Mutation.
 _Avoid_: Handler (pour une mutation), endpoint
 
 **Service d'API**:
@@ -25,7 +25,7 @@ Un endpoint HTTP **programmatique** : consommé par du code (la modale d'aperçu
 _Avoid_: handler (pour un service) ; réserver un segment d'URL de niveau 1 par service (un seul segment réservé : `api`)
 
 **Révision**:
-Un instantané complet du contenu d'une page à un instant donné, avec son auteur et sa date. Chaque sauvegarde qui change le contenu crée une nouvelle révision — enregistrer un contenu identique n'écrit rien ; l'historique est la suite des révisions d'une page. (Les tags ne sont pas historisés : ils vivent sur la Page et se mettent à jour sans révision.)
+Un instantané complet du contenu d'une page à un instant donné, avec son auteur et sa date — le MDX (`content`) pour une page ordinaire, le snapshot JSON des valeurs de champs (`data`) pour une fiche. Chaque sauvegarde qui change le contenu crée une nouvelle révision — enregistrer un contenu identique n'écrit rien ; l'historique est la suite des révisions d'une page. (Les tags ne sont pas historisés : ils vivent sur la Page et se mettent à jour sans révision.)
 _Avoid_: Version (comme table), historique (pour une entrée)
 
 **Révision courante**:
@@ -40,7 +40,7 @@ _Avoid_: Widget, plugin, action
 La liste blanche des composants autorisés au rendu, construite automatiquement à partir du répertoire `/components/wiki` plus ceux déclarés dans le fichier de configuration. Une balise hors registre n'est pas rendue. La présence d'un descripteur co-localisé (`button.yaml`) est un fait indépendant : il pilote le menu « Composants » de l'éditeur et la génération du ComponentBuilder, pas l'autorisation de rendu.
 
 **Page spéciale**:
-Une page à **slug réservé**, créée au seed de la base, **non supprimable mais éditable** (comme n'importe quelle page : flux d'édition normal, rendu MDX normal). C'est le seul trait qui la définit ; « alimenter le layout » n'est qu'une propriété de certaines d'entre elles. Les pages spéciales : les 5 pages de layout (`page-titre`, `page-menu-haut`, `page-rapide-haut`, `page-header`, `page-footer`), `page-principale` (l'accueil, cible de la redirection `/` → `/page-principale` ; contenu ordinaire), et `aide-memoire`. Le menu n'a pas de rendu spécial : le contenu par défaut de `page-menu-haut` appelle le composant intégré `<Menu>`, et celui de `page-rapide-haut` expose les 5 pages de layout derrière un bouton roue crantée (`<Menu>` + `<Button>`).
+Une page à **slug réservé**, créée au seed de la base, **non supprimable mais éditable** (comme n'importe quelle page : flux d'édition normal, rendu MDX normal). C'est le seul trait qui la définit ; « alimenter le layout » n'est qu'une propriété de certaines d'entre elles. Les pages spéciales : les 5 pages de layout (`page-titre`, `page-menu-haut`, `page-rapide-haut`, `page-header`, `page-footer`), `page-principale` (l'accueil, cible de la redirection `/` → `/page-principale` ; contenu ordinaire), `aide-memoire`, et depuis la v0.3 les écrans d'administration des formulaires : `formulaires` (rend `<FormsAdmin>`) et `fiches` (rend `<EntriesAdmin>`). Le menu n'a pas de rendu spécial : le contenu par défaut de `page-menu-haut` appelle le composant intégré `<Menu>`, et celui de `page-rapide-haut` expose les 5 pages de layout derrière un bouton roue crantée (`<Menu>` + `<Button>`).
 _Avoid_: Page seedée, template, page système, fragment
 
 **Lien wiki**:
@@ -76,10 +76,28 @@ _Avoid_: auto-listing des pages, barre de navigation codée en dur
 Composant intégré affichant un bouton défini par une icône (`icon`, dont la valeur est un nom français d'une liste blanche), un libellé (`text`) et éventuellement un lien (`link`). Dans le contenu d'une page il prend l'apparence d'un bouton pleine forme ; dans un slot du bandeau, celle d'un bouton discret de barre de navigation — la différence est purement CSS. Utilisé comme item parent d'un `<Menu>`, il en devient le déclencheur (ex. la roue crantée de `page-rapide-haut`). Son interface graphique de configuration (ComponentBuilder) arrive en v0.2.
 _Avoid_: bouton d'action serveur (il ne déclenche pas de mutation)
 
+**Formulaire**:
+Une définition de champs de saisie (une liste de champs typés et paramétrés), construite en ligne via le FormBuilder et stockée en base (entité `Form` — **pas** une page, ADR 0014). Identifié par un **id slug** unique dérivé de son `name`, personnalisable à la création puis **immuable**. Sa suppression emporte ses fiches (confirmation explicite). Jamais historisé : enregistrer écrase.
+_Avoid_: Bazar, ID numérique de formulaire, page de formulaire
+
+**Fiche**:
+Une **Page** dont le contenu est structuré par un formulaire (`Page.formId`) : ses valeurs de champs vivent en snapshot JSON `data` sur chaque Révision (historisées comme du contenu). Saisie et éditée par le **formulaire généré** (jamais CodeMirror), rendue par la vue par défaut ou le gabarit du formulaire. Son slug est dérivé de son titre à la création (révélable, personnalisable) puis figé ; en mode **titre automatique**, le titre est recalculé à chaque sauvegarde depuis un template `{champ}`.
+_Avoid_: Entrée (réservé aux noms de code : entry), fiche-page séparée de Page
+
+**FormBuilder**:
+L'interface de construction d'un formulaire (page spéciale `formulaires`) : palette de types de champs, drag & drop vers le canvas, panneau de paramétrage par champ, éditeur de gabarit. Produit le descripteur JSON `Form.schema`, validé à l'enregistrement (méta-schéma Zod + règles croisées). Spécification : [`docs/forms.md`](docs/forms.md).
+_Avoid_: ComponentBuilder (son cousin pour les composants), éditeur de page
+
+**Gabarit de fiche**:
+Le template MDX optionnel d'un formulaire (`Form.template`) qui met en page ses fiches au rendu : les `{champ}` sont substitués par les valeurs de la fiche (échappées — texte brut), puis le résultat passe par le pipeline MDX sandboxé. Vide, c'est le **rendu par défaut** auto-généré qui s'applique. Un `{champ}` inconnu est refusé à l'enregistrement du formulaire ; une valeur absente rend vide.
+_Avoid_: template (réserver au nom de colonne), thème
+
 ## Portée
 
 **v0.1 (MVP, état actuel)** : CRUD de pages par slug, routing page/handler, handlers `show` et `edit`, rendu MDX, révisions (historique + restauration), pages spéciales de layout, les composants intégrés `<Menu>` et `<Button>`, et un éditeur riche (barre d'outils de formatage markdown, modale de lien, outils contextuels ancrés au curseur ; double-clic sur le contenu d'une page pour passer en édition).
 
 **v0.2** : upload de fichiers (bouton, drag & drop, collage → `Image`, `Pdf` ou `FileLink` selon la famille ; répertoire `files/` faisant foi ; limites et extensions par famille dans la config) et authoring de composants (menu « Composants », ComponentBuilder généré depuis les YAML de `/components/wiki`, sélecteur d'icônes Iconify) pour `Button`, `Image`, `Pdf` et `FileLink` ; la modale de lien wiki devient un ComponentBuilder à sérialisation markdown (`wiki-link.yaml`).
+
+**v0.3 (en cours)** : formulaires & fiches (ADR 0014/0015, spec [`docs/forms.md`](docs/forms.md)) — FormBuilder (pages spéciales `formulaires` et `fiches`), 14 types de champs, saisie via `<EntryForm>`, rendu par défaut + gabarit MDX optionnel, renderer de champs partagé avec le ComponentBuilder, Zod comme contrat runtime, API de redimensionnement d'images. `<EntriesView>` (vues riches des fiches) : plus tard.
 
 Backlog sans version prévue (mais le domaine doit pouvoir l'accueillir) : droits d'accès et authentification, pages d'administration, recherche/filtre par tags et vues. Détail dans [`docs/architecture.md`](docs/architecture.md).
