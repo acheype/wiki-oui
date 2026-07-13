@@ -47,3 +47,6 @@ next-env.d.ts
 
 # uploaded files (ADR 0012): instance data, backed up alongside pg_dump
 /files/
+
+# On-demand resized image variants (lib/image-resize.ts)
+.image-cache/

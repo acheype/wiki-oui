@@ -3,6 +3,7 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { fileFamily, filePath } from "@/lib/files";
+import { parseResizeRequest, resizedVariant } from "@/lib/image-resize";
 
 const INLINE_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
@@ -34,7 +35,6 @@ export async function GET(request: Request, { params }: Params) {
   const extension = path.extname(name).slice(1).toLowerCase();
   const headers = new Headers({
     "X-Content-Type-Options": "nosniff",
-    "Content-Length": String(info.size),
     "Content-Type": INLINE_TYPES[extension] ?? "application/octet-stream",
   });
   if (extension === "svg") {
@@ -44,6 +44,18 @@ export async function GET(request: Request, { params }: Params) {
     headers.set("Content-Disposition", `attachment; filename="${name}"`);
   }
 
+  // ?w=&h= serves a cached resized variant (docs/forms.md); a non-image or
+  // undecodable source falls through to the untouched original.
+  const resize = parseResizeRequest(new URL(request.url).searchParams);
+  if (family === "image" && resize) {
+    const variant = await resizedVariant(name, resize);
+    if (variant) {
+      headers.set("Content-Length", String(variant.length));
+      return new Response(new Uint8Array(variant), { headers });
+    }
+  }
+
+  headers.set("Content-Length", String(info.size));
   const stream = Readable.toWeb(
     createReadStream(filePath(name))
   ) as ReadableStream;
