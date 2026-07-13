@@ -1,0 +1,10 @@
+# ComponentBuilder descriptor of <EntryForm> (docs/forms.md): inserts a
+# form's entry form into a page. `id` is a form slug, picked from the list
+# of existing forms (form-list type, ADR 0015).
+label: Formulaire de saisie
+description: Insérer le formulaire de saisie d'une fiche
+properties:
+  id:
+    label: Formulaire
+    type: form-list
+    required: true

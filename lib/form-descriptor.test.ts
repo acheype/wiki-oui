@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   type FormDescriptor,
+  computeAutomaticTitle,
   deriveEntrySchema,
   extractFieldReferences,
+  initialEntryValues,
   parseFormDescriptor,
   substituteFieldReferences,
   unknownFieldReferences,
@@ -410,6 +412,87 @@ describe("substituteFieldReferences", () => {
 
   it("stringifies non-text values", () => {
     expect(substituteFieldReferences("{age} ans", { age: 34 })).toBe("34 ans");
+  });
+});
+
+describe("initialEntryValues", () => {
+  it("seeds declared default values, leaving others empty", () => {
+    const descriptor: FormDescriptor = {
+      fields: [
+        { type: "title", name: "title", label: "Titre de la fiche" },
+        { type: "text", name: "prenom", label: "Prénom", defaultValue: "Alice" },
+        { type: "text", name: "nom", label: "Nom" },
+        {
+          type: "multiChoice",
+          name: "ateliers",
+          label: "Ateliers",
+          options: { jardin: "Jardin" },
+          defaultValue: ["jardin"],
+        },
+      ],
+    };
+    expect(initialEntryValues(descriptor)).toEqual({
+      title: "",
+      prenom: "Alice",
+      nom: "",
+      ateliers: ["jardin"],
+    });
+  });
+
+  it("prefills from an existing snapshot over the defaults", () => {
+    const descriptor: FormDescriptor = {
+      fields: [
+        { type: "title", name: "title", label: "Titre de la fiche" },
+        { type: "text", name: "prenom", label: "Prénom", defaultValue: "Alice" },
+      ],
+    };
+    expect(initialEntryValues(descriptor, { prenom: "Bob" })).toEqual({
+      title: "",
+      prenom: "Bob",
+    });
+  });
+
+  it("omits value-less fields (customContent, automatic title)", () => {
+    const descriptor: FormDescriptor = {
+      fields: [
+        {
+          type: "title",
+          name: "title",
+          label: "Titre de la fiche",
+          automatic: true,
+          template: "{prenom}",
+        },
+        { type: "text", name: "prenom", label: "Prénom" },
+        { type: "customContent", name: "note", label: "Note" },
+      ],
+    };
+    expect(Object.keys(initialEntryValues(descriptor))).toEqual(["prenom"]);
+  });
+});
+
+describe("computeAutomaticTitle", () => {
+  it("returns the manual title value when the title is not automatic", () => {
+    const descriptor = contactDescriptor();
+    expect(computeAutomaticTitle(descriptor, { title: "Alice" })).toBe("Alice");
+  });
+
+  it("recomputes an automatic title from its template", () => {
+    const descriptor: FormDescriptor = {
+      fields: [
+        {
+          type: "title",
+          name: "title",
+          label: "Titre de la fiche",
+          automatic: true,
+          template: "{prenom} {nom} (asso)",
+        },
+        { type: "text", name: "prenom", label: "Prénom" },
+        { type: "text", name: "nom", label: "Nom" },
+      ],
+    };
+    expect(
+      computeAutomaticTitle(descriptor, { prenom: "Alice", nom: "Dupont" })
+    ).toBe("Alice Dupont (asso)");
   });
 });
 

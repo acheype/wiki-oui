@@ -45,6 +45,7 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
     - [Accès rapide](page-rapide-haut)
     - [Bandeau](page-header)
     - [Pied de page](page-footer)
+    - [Formulaires](formulaires)
 </Menu>
 `,
 
@@ -52,6 +53,15 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 `,
 
   [wikiConfig.layoutPages.footer]: `Propulsé par **WikiOui**.
+`,
+
+  // The admin screens live in the wiki (ADR 0014): a special page whose
+  // default content calls the built-in component. Editable, hence breakable
+  // by edition — re-editing the page repairs it.
+  formulaires: `<FormsAdmin />
+`,
+
+  fiches: `<EntriesAdmin />
 `,
 
   "aide-memoire": `# Aide-mémoire

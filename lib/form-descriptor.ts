@@ -27,6 +27,24 @@ export const FORM_FIELD_TYPES = [
 
 export type FormFieldType = (typeof FORM_FIELD_TYPES)[number];
 
+/** Palette entry: the French label the FormBuilder shows for each type. */
+export const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
+  text: "Texte court",
+  textarea: "Texte long",
+  email: "Email",
+  url: "Url",
+  date: "Champ date",
+  list: "Liste déroulante",
+  radio: "Boutons radio",
+  multiChoice: "Cases à cocher",
+  image: "Image",
+  file: "Upload de fichier",
+  geolocation: "Géolocalisation",
+  tags: "Mots-clés",
+  customContent: "Custom html/wiki",
+  title: "Titre de la fiche",
+};
+
 // Common trunk (docs/forms.md): label · name (fixed identity, ADR 0014) ·
 // required · hint; placeholder on text-like types only.
 const fieldBase = z.object({
@@ -139,11 +157,14 @@ export type ParseFormResult =
   | { descriptor?: never; issues: FormDescriptorIssue[] };
 
 // A {champ} reference: a field-name-shaped token between braces. Anything
-// else between braces (MDX comments, expressions…) is not a reference.
-const FIELD_REFERENCE_PATTERN = /\{([a-z0-9]+(?:-[a-z0-9]+)*)\}/g;
+// else between braces (MDX comments, expressions…) is not a reference. A
+// fresh regex per call keeps the global-flag `lastIndex` from being shared.
+export function fieldReferencePattern(): RegExp {
+  return /\{([a-z0-9]+(?:-[a-z0-9]+)*)\}/g;
+}
 
 export function extractFieldReferences(text: string): string[] {
-  return [...text.matchAll(FIELD_REFERENCE_PATTERN)].map(([, name]) => name);
+  return [...text.matchAll(fieldReferencePattern())].map(([, name]) => name);
 }
 
 /** Template references matching no field — refused at form save. */
@@ -159,6 +180,24 @@ export function isOptionsField(field: FormField): field is OptionsField {
   return field.type === "list" || field.type === "radio" || field.type === "multiChoice";
 }
 
+// The entry slugs an entry's data points at through its form-sourced option
+// fields (docs/forms.md): their stored values are target-entry slugs, turned
+// into wiki links at render.
+export function formSourcedValues(
+  descriptor: FormDescriptor,
+  data: EntryData
+): string[] {
+  const slugs = new Set<string>();
+  for (const field of descriptor.fields) {
+    if (!isOptionsField(field) || !field.sourceFormId) continue;
+    const value = data[field.name];
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (typeof item === "string" && item !== "") slugs.add(item);
+    }
+  }
+  return [...slugs];
+}
+
 // Replaces {champ} references with entry values, an absent value rendering
 // as an empty string, silently (docs/forms.md). Plain-text substitution:
 // MDX escaping is the entry template renderer's concern, on top of this.
@@ -166,7 +205,7 @@ export function substituteFieldReferences(
   text: string,
   data: Record<string, unknown>
 ): string {
-  return text.replace(FIELD_REFERENCE_PATTERN, (_, name: string) => {
+  return text.replace(fieldReferencePattern(), (_, name: string) => {
     const value = data[name];
     if (value === undefined || value === null) return "";
     if (Array.isArray(value)) return value.join(", ");
@@ -259,6 +298,50 @@ function fieldValueSchema(field: FormField): z.ZodType | null {
       // submitted (docs/forms.md).
       return field.automatic ? null : z.string(REQUIRED).min(1, REQUIRED);
   }
+}
+
+/** A field-values object, the shape of an entry's `data` snapshot. */
+export type EntryData = Record<string, unknown>;
+
+// The form's starting values: declared defaults, overlaid by an existing
+// snapshot when editing. Value-less fields (customContent, automatic title)
+// get no key. Empty means "" for scalars, [] for the multiple types.
+export function initialEntryValues(
+  descriptor: FormDescriptor,
+  snapshot?: EntryData
+): EntryData {
+  const values: EntryData = {};
+  for (const field of descriptor.fields) {
+    if (fieldValueSchema(field) === null) continue;
+    if (snapshot && field.name in snapshot) {
+      values[field.name] = snapshot[field.name];
+      continue;
+    }
+    if ("defaultValue" in field && field.defaultValue !== undefined) {
+      values[field.name] = field.defaultValue;
+    } else if (field.type === "multiChoice" || field.type === "tags") {
+      values[field.name] = [];
+    } else if (field.type === "geolocation") {
+      values[field.name] = undefined;
+    } else {
+      values[field.name] = "";
+    }
+  }
+  return values;
+}
+
+// The title stored on save (docs/forms.md): the manual title value, or —
+// in automatic mode — the template recomputed from the current values.
+export function computeAutomaticTitle(
+  descriptor: FormDescriptor,
+  data: EntryData
+): string {
+  const title = descriptor.fields.find((field) => field.type === "title");
+  if (title?.type === "title" && title.automatic && title.template) {
+    return substituteFieldReferences(title.template, data).trim();
+  }
+  const value = data.title;
+  return typeof value === "string" ? value : "";
 }
 
 // The Zod schema derived from a form's descriptor (ADR 0015): the single

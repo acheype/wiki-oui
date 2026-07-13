@@ -9,7 +9,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { listFormChoices } from "@/app/form-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -363,21 +364,13 @@ export function FieldWidget({
       ) : null;
     case "form-list":
       return (
-        <Select
-          value={typeof value === "string" && value !== "" ? value : undefined}
-          onValueChange={onChange}
-        >
-          <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
-            <SelectValue placeholder="Choisir un formulaire…" />
-          </SelectTrigger>
-          <SelectContent>
-            {(environment.forms ?? []).map((form) => (
-              <SelectItem key={form.slug} value={form.slug}>
-                {form.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <FormListInput
+          id={id}
+          value={typeof value === "string" ? value : ""}
+          forms={environment.forms}
+          invalid={invalid}
+          onChange={onChange}
+        />
       );
     // text-like inputs: text (and its number subtype), url, email, title.
     default:
@@ -627,6 +620,52 @@ function FileListInput({
       candidates={files}
       onChange={onChange}
     />
+  );
+}
+
+// Selector over the existing forms (docs/forms.md). Self-fetches through the
+// Server Action when the envelope doesn't inject the list (the ComponentBuilder
+// path), the same self-loading spirit as file-list.
+function FormListInput({
+  id,
+  value,
+  forms,
+  invalid,
+  onChange,
+}: {
+  id: string;
+  value: string;
+  forms?: { slug: string; name: string }[];
+  invalid?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [loaded, setLoaded] = useState<{ slug: string; name: string }[]>([]);
+  useEffect(() => {
+    if (forms) return;
+    let live = true;
+    listFormChoices().then((choices) => live && setLoaded(choices));
+    return () => {
+      live = false;
+    };
+  }, [forms]);
+  const choices = forms ?? loaded;
+
+  return (
+    <Select
+      value={value !== "" ? value : undefined}
+      onValueChange={onChange}
+    >
+      <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
+        <SelectValue placeholder="Choisir un formulaire…" />
+      </SelectTrigger>
+      <SelectContent>
+        {choices.map((form) => (
+          <SelectItem key={form.slug} value={form.slug}>
+            {form.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
 
