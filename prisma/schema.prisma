@@ -7,6 +7,20 @@ datasource db {
   provider = "postgresql"
 }
 
+// A form definition (ADR 0014): written at runtime by the FormBuilder,
+// never historized (saving overwrites). Deleting a form deletes its entries.
+model Form {
+  id        String   @id @default(uuid(7)) @db.Uuid // technical PK, never shown
+  slug      String   @unique // the user-facing "id", immutable after creation
+  name      String
+  schema    Json // field descriptor, written by the FormBuilder
+  template  String? // optional MDX template for entry rendering
+  createdAt DateTime @default(now())
+  ownerName String? // "Anonyme" until auth lands; becomes a User FK later
+
+  entries Page[]
+}
+
 model Page {
   id String @id @default(uuid(7)) @db.Uuid
   slug      String   @unique
@@ -18,11 +32,19 @@ model Page {
   current           Revision? @relation("PageCurrent", fields: [currentRevisionId], references: [id])
 
   revisions Revision[] @relation("PageRevisions")
+
+  // null = MDX page; set = entry of this form (ADR 0014). Deleting the form
+  // cascades to its entries.
+  formId String? @db.Uuid
+  form   Form?   @relation(fields: [formId], references: [id], onDelete: Cascade)
 }
 
 model Revision {
   id String @id @default(uuid(7)) @db.Uuid
-  content    String // full MDX snapshot, not a delta
+  content    String? // full MDX snapshot, not a delta — MDX pages
+  data       Json? // field-values snapshot — entries (ADR 0014)
+  // Invariant (enforced by a CHECK in the migration): exactly one of
+  // (content, data) is set, per the page's nature.
   authorName String? // "Anonyme" until auth lands
   createdAt  DateTime @default(now())
 

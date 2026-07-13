@@ -51,6 +51,10 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
 
   const query = await searchParams;
   const revisions = page.revisions; // oldest first
+  // An entry's snapshot is JSON `data`, not MDX (ADR 0014); its history
+  // views come with the entry screens (v0.3) — until then, show nothing.
+  const sourceOf = (revision: { content: string | null }) =>
+    revision.content ?? "";
   const current =
     revisions.find((revision) => revision.id === page.currentRevisionId) ??
     revisions[revisions.length - 1];
@@ -143,11 +147,11 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
           <CodeToggle />
           {showCode ? (
             <pre className="overflow-x-auto rounded-md border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
-              {selected.content}
+              {sourceOf(selected)}
             </pre>
           ) : (
             <article className="prose prose-neutral max-w-none dark:prose-invert">
-              {await renderMdx(selected.content)}
+              {await renderMdx(sourceOf(selected))}
             </article>
           )}
         </div>
@@ -155,13 +159,13 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
 
       {view === "modifications" &&
         (previous ? (
-          <DiffView from={previous.content} to={selected.content} />
+          <DiffView from={sourceOf(previous)} to={sourceOf(selected)} />
         ) : (
           <div className="flex flex-col gap-3">
             <p className="text-sm text-muted-foreground">
               Première révision : création de la page.
             </p>
-            <DiffView from="" to={selected.content} />
+            <DiffView from="" to={sourceOf(selected)} />
           </div>
         ))}
 
@@ -171,7 +175,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
             Cette révision est la révision courante.
           </p>
         ) : (
-          <DiffView from={selected.content} to={current.content} />
+          <DiffView from={sourceOf(selected)} to={sourceOf(current)} />
         ))}
     </div>
   );

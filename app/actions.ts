@@ -104,12 +104,15 @@ export async function restoreRevision(
   }
 
   // A restore is a NEW revision labeled with its origin (ADR 0003/0009):
-  // history stays append-only, nothing is rewound.
+  // history stays append-only, nothing is rewound. Copying both snapshot
+  // columns preserves the content-xor-data invariant (ADR 0014) for MDX
+  // pages and entries alike.
   await prisma.$transaction(async (tx) => {
     const revision = await tx.revision.create({
       data: {
         pageId: source.pageId,
         content: source.content,
+        data: source.data ?? undefined,
         authorName: AUTHOR,
         restoredFromId: source.id,
       },
