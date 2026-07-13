@@ -1,9 +1,9 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { Field } from "@/components/fields/field-widget";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -12,19 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
   type DescriptorField,
-  type FileFamily,
   type PropValue,
   type PropValues,
   type Range,
@@ -35,13 +24,11 @@ import {
   visibleFields,
 } from "@/lib/component-descriptor";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
-import { isExternalHref } from "@/lib/slug";
-import { IconPicker } from "./icon-picker";
-import { useDebouncedJson } from "./use-debounced-json";
 
 // The ComponentBuilder modal (docs/component-builder.md): fully generated
 // from a descriptor + the component's exported defaults — preview on top
 // (real pipeline via GET /api/render), fields below, advanced ones folded.
+// The widgets themselves live in the shared field renderer (ADR 0015).
 
 export type BuilderState = {
   values: PropValues;
@@ -166,13 +153,15 @@ function BuilderForm({
     setValues((current) => ({ ...current, [field]: value }));
 
   const renderField = ([field, descriptorField]: [string, DescriptorField]) => (
-    <BuilderField
+    <Field
       key={field}
       id={`builder-${field}`}
       spec={descriptorField}
       value={values[field] ?? spec.defaults[field]}
-      allSlugs={allSlugs}
-      onChange={(value) => setValue(field, value)}
+      environment={{ allSlugs }}
+      // Component props stay scalar: none of the descriptor field types
+      // produces the richer entry values (arrays, points).
+      onChange={(value) => setValue(field, value as PropValue)}
     />
   );
 
@@ -255,286 +244,4 @@ function TagPreview({ source, height }: { source: string; height?: string }) {
       <p className="font-mono text-xs text-muted-foreground">{source}</p>
     </div>
   );
-}
-
-/* ------------------------------------------------------------------ *
- * Field renderers, one per descriptor field type.
- * ------------------------------------------------------------------ */
-
-function BuilderField({
-  id,
-  spec,
-  value,
-  allSlugs,
-  onChange,
-}: {
-  id: string;
-  spec: DescriptorField;
-  value: PropValue;
-  allSlugs: string[];
-  onChange: (value: PropValue) => void;
-}) {
-  if (spec.type === "divider") {
-    // A ⚠️-prefixed divider is a conditional notice, not a section title.
-    if (spec.label.startsWith("⚠️")) {
-      return (
-        <p className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-500">
-          {spec.label}
-        </p>
-      );
-    }
-    return (
-      <div className="mt-1 grid gap-1">
-        <p className="text-sm font-medium">{spec.label}</p>
-        <Separator />
-      </div>
-    );
-  }
-
-  if (spec.type === "checkbox") {
-    return (
-      <div className="grid gap-1.5">
-        <Label className="flex items-center gap-2 font-normal">
-          <Checkbox
-            checked={value === true}
-            onCheckedChange={(checked) => onChange(checked === true)}
-          />
-          {spec.label}
-          {spec.required && <RequiredMark />}
-        </Label>
-        <FieldHint hint={spec.hint} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>
-        {spec.label}
-        {spec.required && <RequiredMark />}
-      </Label>
-      <FieldControl
-        id={id}
-        spec={spec}
-        value={value}
-        allSlugs={allSlugs}
-        onChange={onChange}
-      />
-      <FieldHint hint={spec.hint} />
-    </div>
-  );
-}
-
-function FieldControl({
-  id,
-  spec,
-  value,
-  allSlugs,
-  onChange,
-}: {
-  id: string;
-  spec: DescriptorField;
-  value: PropValue;
-  allSlugs: string[];
-  onChange: (value: PropValue) => void;
-}) {
-  switch (spec.type) {
-    case "icon":
-      return (
-        <IconPicker
-          id={id}
-          value={typeof value === "string" ? value : undefined}
-          onChange={onChange}
-        />
-      );
-    case "list":
-      return (
-        <Select
-          value={typeof value === "string" ? value : undefined}
-          onValueChange={onChange}
-        >
-          <SelectTrigger id={id} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(spec.options ?? {}).map(([optionValue, label]) => (
-              <SelectItem key={optionValue} value={optionValue}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      );
-    case "number":
-      return (
-        <Input
-          id={id}
-          type="number"
-          value={typeof value === "number" ? value : ""}
-          onChange={(event) =>
-            onChange(
-              event.target.value === "" ? undefined : Number(event.target.value)
-            )
-          }
-        />
-      );
-    case "page-list":
-      return (
-        <PageListInput
-          id={id}
-          value={typeof value === "string" ? value : ""}
-          allSlugs={allSlugs}
-          onChange={onChange}
-        />
-      );
-    case "file-list":
-      return (
-        <FileListInput
-          id={id}
-          value={typeof value === "string" ? value : ""}
-          family={spec.family}
-          onChange={onChange}
-        />
-      );
-    // text and url fields share a plain input.
-    default:
-      return (
-        <Input
-          id={id}
-          type={spec.type === "url" ? "url" : "text"}
-          value={typeof value === "string" ? value : ""}
-          onChange={(event) =>
-            onChange(event.target.value === "" ? undefined : event.target.value)
-          }
-        />
-      );
-  }
-}
-
-// Input + suggestion chips, shared by page-list and file-list: free text
-// stays accepted, candidates are suggested while typing.
-function SuggestionInput({
-  id,
-  value,
-  placeholder,
-  candidates,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  placeholder: string;
-  candidates: string[];
-  onChange: (value: PropValue) => void;
-}) {
-  const suggestions = useMemo(() => {
-    const query = value.trim().toLowerCase();
-    return candidates
-      .filter((name) => name.includes(query) && name !== query)
-      .slice(0, 6);
-  }, [value, candidates]);
-
-  return (
-    <>
-      <Input
-        id={id}
-        value={value}
-        autoComplete="off"
-        placeholder={placeholder}
-        onChange={(event) =>
-          onChange(event.target.value === "" ? undefined : event.target.value)
-        }
-      />
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {suggestions.map((name) => (
-            <Button
-              key={name}
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-6 rounded-full px-2 font-mono text-xs"
-              onClick={() => onChange(name)}
-            >
-              {name}
-            </Button>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-const NO_CANDIDATES: string[] = [];
-
-// Wiki pages (ADR 0006): no suggestions on an empty query or an external URL.
-function PageListInput({
-  id,
-  value,
-  allSlugs,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  allSlugs: string[];
-  onChange: (value: PropValue) => void;
-}) {
-  const candidates =
-    value.trim() === "" || isExternalHref(value.trim())
-      ? NO_CANDIDATES
-      : allSlugs;
-  return (
-    <SuggestionInput
-      id={id}
-      value={value}
-      placeholder="ma-page ou https://…"
-      candidates={candidates}
-      onChange={onChange}
-    />
-  );
-}
-
-// Combobox over the uploaded-files library (files/ directory, ADR 0012),
-// filterable by family.
-function FileListInput({
-  id,
-  value,
-  family,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  family?: FileFamily;
-  onChange: (value: PropValue) => void;
-}) {
-  const data = useDebouncedJson<{ files: { name: string }[] }>(
-    `/api/files${family ? `?family=${family}` : ""}`,
-    0
-  );
-  const files = useMemo(
-    () => data?.files.map((file) => file.name) ?? NO_CANDIDATES,
-    [data]
-  );
-
-  return (
-    <SuggestionInput
-      id={id}
-      value={value}
-      placeholder="nom-du-fichier.ext"
-      candidates={files}
-      onChange={onChange}
-    />
-  );
-}
-
-function RequiredMark() {
-  return (
-    <span className="text-destructive" aria-hidden>
-      *
-    </span>
-  );
-}
-
-function FieldHint({ hint }: { hint?: string }) {
-  if (!hint) return null;
-  return <p className="text-xs text-muted-foreground">{hint}</p>;
 }
