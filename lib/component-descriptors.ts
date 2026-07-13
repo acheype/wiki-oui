@@ -53,14 +53,9 @@ async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
 }
 
 async function buildSpec(base: string): Promise<ComponentBuilderSpec> {
-  const { descriptor, lineOf } = await readDescriptorSource(base);
-  if (typeof descriptor?.label !== "string" || !descriptor.properties) {
-    throw new Error(
-      `components/wiki/${base}.yaml: a descriptor needs at least "label" and "properties"`
-    );
-  }
-
-  validateDescriptor(base, descriptor, lineOf);
+  const { raw, lineOf } = await readDescriptorSource(base);
+  // Meta-schema parse (ADR 0015): raw unknown in, typed descriptor out.
+  const descriptor = validateDescriptor(base, raw, lineOf);
   return {
     base,
     name: pascalCase(base),

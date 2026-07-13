@@ -35,6 +35,34 @@ describe("validateDescriptor", () => {
     expect(() => validateDescriptor("button", descriptor)).not.toThrow();
   });
 
+  // The loader edge (ADR 0015): raw parsed YAML goes in, the typed
+  // descriptor comes out — no cast.
+  it("returns the typed descriptor parsed from raw unknown data", () => {
+    const raw: unknown = JSON.parse(JSON.stringify(buttonDescriptor()));
+    expect(validateDescriptor("button", raw)).toEqual(buttonDescriptor());
+  });
+
+  it("rejects a descriptor without label or properties", () => {
+    expect(() => validateDescriptor("button", { properties: {} })).toThrow(
+      'components/wiki/button.yaml: a descriptor needs at least "label" and "properties"'
+    );
+    expect(() => validateDescriptor("button", { label: "Bouton" })).toThrow(
+      'components/wiki/button.yaml: a descriptor needs at least "label" and "properties"'
+    );
+  });
+
+  it("rejects a field without a label, pointing at its line", () => {
+    const raw = {
+      label: "Bouton",
+      properties: { text: { type: "text" } },
+    };
+    const lineOf = (path: (string | number)[]) =>
+      path.join(".") === "properties.text" ? 6 : undefined;
+    expect(() => validateDescriptor("button", raw, lineOf)).toThrow(
+      /^components\/wiki\/button\.yaml:6: /
+    );
+  });
+
   it("rejects a list field whose default is not one of its options", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.default = "brand";

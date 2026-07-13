@@ -72,6 +72,7 @@ const FIELD_BASE_TYPE: Record<
   icon: "string",
   "page-list": "string",
   "file-list": "string",
+  "form-list": "string", // holds a form slug (ADR 0015)
   number: "number",
   checkbox: "boolean",
 };

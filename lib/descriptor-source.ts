@@ -1,17 +1,18 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { LineCounter, isMap, isScalar, parseDocument } from "yaml";
-import type { ComponentDescriptor, LineLookup } from "./component-descriptor";
+import type { LineLookup } from "./component-descriptor";
 
 // Reads a co-located descriptor YAML *with source positions* (ADR 0013): the
-// plain descriptor for the engine, plus a LineLookup that error messages use
+// raw parsed data for the meta-schema (ADR 0015 — typing happens at
+// validateDescriptor, not here), plus a LineLookup that error messages use
 // to point at the exact offending line. Shared by the loader (structural
 // checks) and the signature verifier (dev + build).
 
 const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "components/wiki");
 
 export interface DescriptorSource {
-  descriptor: ComponentDescriptor;
+  raw: unknown;
   lineOf: LineLookup;
 }
 
@@ -23,7 +24,7 @@ export async function readDescriptorSource(base: string): Promise<DescriptorSour
   const lineCounter = new LineCounter();
   const doc = parseDocument(text, { lineCounter });
   return {
-    descriptor: doc.toJS() as ComponentDescriptor,
+    raw: doc.toJS(),
     lineOf: (nodePath) => lineOfKey(doc, lineCounter, nodePath),
   };
 }

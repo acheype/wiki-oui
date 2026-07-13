@@ -2,6 +2,8 @@
 // shared by the loader and the editor UI. No fs, no React — the co-located
 // YAML files are read and parsed by the server-side loader.
 
+import { z } from "zod";
+
 const FIELD_TYPES = [
   "text",
   "number",
@@ -11,6 +13,7 @@ const FIELD_TYPES = [
   "list",
   "page-list",
   "file-list",
+  "form-list",
   "divider",
 ] as const;
 
@@ -20,35 +23,42 @@ export type FieldType = (typeof FIELD_TYPES)[number];
 export const FILE_FAMILIES = ["image", "pdf", "other"] as const;
 export type FileFamily = (typeof FILE_FAMILIES)[number];
 
-export interface DescriptorField {
-  label: string;
-  hint?: string;
-  type: FieldType;
-  /** For `list`: value → display label. The value is what the prop stores. */
-  options?: Record<string, string>;
-  /**
-   * Omission-rule reference (ADR 0013): the prop is dropped from the MDX when
-   * equal to this, and an absent prop re-edits with it. Must equal the
-   * component's own destructuring default (verified by lib/verify-descriptors).
-   */
-  default?: PropValue;
-  /** Insertion pre-fill; the prop is always written, even when unchanged. */
-  value?: string | number | boolean;
-  /** For `file-list`: restricts the combobox to one file family. */
-  family?: FileFamily;
-  required?: boolean;
-  advanced?: boolean;
-  showif?: Record<string, unknown>;
-}
+const propValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 
-export interface ComponentDescriptor {
-  label: string;
-  description?: string;
-  previewHeight?: string;
+// Meta-schema of a descriptor (ADR 0015): the shape contract at the loader
+// edge, replacing the hand-maintained interface and its cast. Cross-field
+// rules (showif targets, list defaults…) stay imperative in
+// validateDescriptor — Zod only covers the shape.
+const descriptorFieldSchema = z.object({
+  label: z.string(),
+  hint: z.string().optional(),
+  type: z.enum(FIELD_TYPES),
+  /** For `list`: value → display label. The value is what the prop stores. */
+  options: z.record(z.string(), z.string()).optional(),
+  // Omission-rule reference (ADR 0013): the prop is dropped from the MDX
+  // when equal to this, and an absent prop re-edits with it. Must equal the
+  // component's destructuring default (verified by lib/verify-descriptors).
+  default: propValueSchema.optional(),
+  /** Insertion pre-fill; the prop is always written, even when unchanged. */
+  value: propValueSchema.optional(),
+  /** For `file-list`: restricts the combobox to one file family. */
+  family: z.enum(FILE_FAMILIES).optional(),
+  required: z.boolean().optional(),
+  advanced: z.boolean().optional(),
+  showif: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const componentDescriptorSchema = z.object({
+  label: z.string(),
+  description: z.string().optional(),
+  previewHeight: z.string().optional(),
   /** Serialization target; JSX component tag unless "markdown-link". */
-  emits?: "markdown-link";
-  properties: Record<string, DescriptorField>;
-}
+  emits: z.literal("markdown-link").optional(),
+  properties: z.record(z.string(), descriptorFieldSchema),
+});
+
+export type DescriptorField = z.infer<typeof descriptorFieldSchema>;
+export type ComponentDescriptor = z.infer<typeof componentDescriptorSchema>;
 
 /** True for wiki-link: serialized as a markdown link, kept out of the menu. */
 export function emitsMarkdownLink(descriptor: ComponentDescriptor): boolean {
@@ -91,16 +101,28 @@ function isRegexCondition(condition: unknown): condition is string {
   );
 }
 
-// Structural validation (ADR 0013): is the YAML self-consistent, without
-// looking at the component? Same fail-fast spirit as buildRegistry in
-// lib/mdx.tsx — a broken descriptor stops the loader with an explicit
-// message. The YAML ↔ component match is a separate pass
-// (lib/verify-descriptors, dev + build only).
+// Reads the value a failing Zod issue points at, for the error message.
+function valueAt(raw: unknown, nodePath: readonly PropertyKey[]): unknown {
+  let node: unknown = raw;
+  for (const key of nodePath) {
+    if (node === null || typeof node !== "object") return undefined;
+    node = (node as Record<PropertyKey, unknown>)[key];
+  }
+  return node;
+}
+
+// Structural validation (ADR 0013 / ADR 0015): is the raw parsed YAML a
+// well-formed descriptor, without looking at the component? Shape comes from
+// the Zod meta-schema (the loader's cast is gone: raw unknown in, typed
+// descriptor out), cross-field rules stay imperative below. Same fail-fast
+// spirit as buildRegistry in lib/mdx.tsx — a broken descriptor stops the
+// loader with an explicit message. The YAML ↔ component match is a separate
+// pass (lib/verify-descriptors, dev + build only).
 export function validateDescriptor(
   name: string,
-  descriptor: ComponentDescriptor,
+  raw: unknown,
   lineOf?: LineLookup
-): void {
+): ComponentDescriptor {
   const source = `components/wiki/${name}.yaml`;
   // Prefixes the message with the file and, when known, the first of the
   // candidate paths that resolves to a line — so it points at the offending
@@ -113,17 +135,13 @@ export function validateDescriptor(
     return source;
   };
 
-  if (descriptor.emits !== undefined && descriptor.emits !== "markdown-link") {
-    throw new Error(
-      `${at(["emits"])}: unknown emits target "${descriptor.emits}" (the only alternative is markdown-link)`
-    );
+  const result = componentDescriptorSchema.safeParse(raw);
+  if (!result.success) {
+    throw new Error(shapeErrorMessage(raw, result.error.issues[0], at));
   }
+  const descriptor = result.data;
+
   for (const [field, spec] of Object.entries(descriptor.properties)) {
-    if (!FIELD_TYPES.includes(spec.type)) {
-      throw new Error(
-        `${at(["properties", field, "type"], ["properties", field])}: field "${field}" has unknown type "${spec.type}"`
-      );
-    }
     if (spec.type === "divider") continue;
     for (const [target, condition] of Object.entries(spec.showif ?? {})) {
       const where = at(["properties", field, "showif", target], ["properties", field]);
@@ -142,15 +160,6 @@ export function validateDescriptor(
         }
       }
     }
-    if (
-      spec.type === "file-list" &&
-      spec.family !== undefined &&
-      !FILE_FAMILIES.includes(spec.family)
-    ) {
-      throw new Error(
-        `${at(["properties", field, "family"], ["properties", field])}: file-list field "${field}" has unknown family "${spec.family}" (${FILE_FAMILIES.join(", ")})`
-      );
-    }
     if (spec.type === "list") {
       const options = Object.keys(spec.options ?? {});
       const fallback = spec.default;
@@ -162,6 +171,38 @@ export function validateDescriptor(
       }
     }
   }
+  return descriptor;
+}
+
+// Human wording for the first meta-schema violation, preserving the messages
+// the imperative checks used to produce (unknown type/emits/family…).
+function shapeErrorMessage(
+  raw: unknown,
+  issue: { path: readonly PropertyKey[]; message: string },
+  at: (...candidates: (string | number)[][]) => string
+): string {
+  const path = issue.path.map((key) => key as string | number);
+  if (
+    path.length === 0 ||
+    (path.length === 1 && (path[0] === "label" || path[0] === "properties"))
+  ) {
+    return `${at([])}: a descriptor needs at least "label" and "properties"`;
+  }
+  if (path[0] === "emits") {
+    return `${at(["emits"])}: unknown emits target "${valueAt(raw, path)}" (the only alternative is markdown-link)`;
+  }
+  if (path[0] === "properties" && path.length >= 3) {
+    const field = String(path[1]);
+    const where = at(path, ["properties", field]);
+    if (path[2] === "type" && path.length === 3) {
+      return `${where}: field "${field}" has unknown type "${valueAt(raw, path)}"`;
+    }
+    if (path[2] === "family" && path.length === 3) {
+      return `${where}: file-list field "${field}" has unknown family "${valueAt(raw, path)}" (${FILE_FAMILIES.join(", ")})`;
+    }
+    return `${where}: field "${field}": ${issue.message} at "${path.slice(2).join(".")}"`;
+  }
+  return `${at(path)}: ${issue.message} at "${path.join(".")}"`;
 }
 
 /** Current builder field values, keyed by prop name. */

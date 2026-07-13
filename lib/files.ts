@@ -3,6 +3,7 @@ import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { FILE_FAMILIES, type FileFamily } from "@/lib/component-descriptor";
 import { captureFileName } from "@/lib/format";
+import { slugify } from "@/lib/slug";
 import { wikiConfig } from "@/wiki.config";
 
 // Uploaded files (ADR 0012): the files/ directory at the repo root is the
@@ -78,17 +79,11 @@ export async function listFiles(family?: FileFamily): Promise<StoredFile[]> {
   return files.filter((file) => file !== null);
 }
 
-// Original name slugified (lowercase, accents transliterated), extension
-// normalized; empty base (anonymous pasted capture) gets a generated name.
+// Original name slugified (lib/slug.ts), extension normalized; empty base
+// (anonymous pasted capture) gets a generated name.
 export function storageName(originalName: string): string {
   const extension = path.extname(originalName).slice(1).toLowerCase();
-  const base = path
-    .basename(originalName, path.extname(originalName))
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  const base = slugify(path.basename(originalName, path.extname(originalName)));
   return base ? `${base}.${extension}` : captureFileName(extension);
 }
 
