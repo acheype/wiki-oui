@@ -13,6 +13,7 @@ import {
   computeAutomaticTitle,
   deriveEntrySchema,
   parseFormDescriptor,
+  readEntryData,
   unknownFieldReferences,
 } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
@@ -178,12 +179,6 @@ export async function listFormChoices(): Promise<
 // truth on prefill.
 function tagsFieldName(descriptor: FormDescriptor): string | undefined {
   return descriptor.fields.find((field) => field.type === "tags")?.name;
-}
-
-function readEntryData(value: unknown): EntryData {
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as EntryData)
-    : {};
 }
 
 export interface EntryFormData {
@@ -356,11 +351,7 @@ export async function listEntries(formSlug?: string): Promise<EntrySummary[]> {
   });
   return pages.flatMap((page) => {
     if (!page.form) return [];
-    const data = page.current?.data;
-    const title =
-      data !== null && typeof data === "object" && !Array.isArray(data)
-        ? String((data as Record<string, unknown>).title ?? page.slug)
-        : page.slug;
+    const title = String(readEntryData(page.current?.data).title ?? page.slug);
     return [
       {
         slug: page.slug,

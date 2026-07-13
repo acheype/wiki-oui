@@ -152,35 +152,92 @@ function TypeSpecificSettings({
   switch (field.type) {
     case "text":
       return (
-        <div className="grid gap-1.5">
-          <Label htmlFor="setting-subtype">Type de saisie</Label>
-          <Select
-            value={field.subtype ?? "text"}
-            onValueChange={(subtype) =>
-              onChange({ subtype: subtype as "text" | "number" })
+        <div className="grid gap-3">
+          <div className="grid gap-1.5">
+            <Label htmlFor="setting-subtype">Type de saisie</Label>
+            <Select
+              value={field.subtype ?? "text"}
+              onValueChange={(subtype) =>
+                onChange({ subtype: subtype as "text" | "number" })
+              }
+            >
+              <SelectTrigger id="setting-subtype" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Texte</SelectItem>
+                <SelectItem value="number">Nombre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <TextSetting
+            id="setting-default"
+            label="Valeur par défaut"
+            value={field.defaultValue ?? ""}
+            onChange={(value) =>
+              onChange({ defaultValue: value === "" ? undefined : value })
             }
-          >
-            <SelectTrigger id="setting-subtype" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="text">Texte</SelectItem>
-              <SelectItem value="number">Nombre</SelectItem>
-            </SelectContent>
-          </Select>
+          />
+          <NumberSetting
+            id="setting-maxlength"
+            label="Longueur maximale"
+            value={field.maxLength}
+            onChange={(maxLength) => onChange({ maxLength })}
+          />
+          <TextSetting
+            id="setting-pattern"
+            label="Motif de validation (regex, avancé)"
+            value={field.pattern ?? ""}
+            onChange={(value) =>
+              onChange({ pattern: value === "" ? undefined : value })
+            }
+          />
         </div>
       );
     case "textarea":
       return (
-        <label className="flex items-center gap-2 text-sm font-normal">
-          <Checkbox
-            checked={field.allowMdx === true}
-            onCheckedChange={(checked) =>
-              onChange({ allowMdx: checked === true })
+        <div className="grid gap-3">
+          <NumberSetting
+            id="setting-rows"
+            label="Nombre de lignes"
+            value={field.rows}
+            onChange={(rows) => onChange({ rows })}
+          />
+          <TextSetting
+            id="setting-default"
+            label="Valeur par défaut"
+            value={field.defaultValue ?? ""}
+            onChange={(value) =>
+              onChange({ defaultValue: value === "" ? undefined : value })
             }
           />
-          Autoriser la mise en forme MDX de la valeur
-        </label>
+          <label className="flex items-center gap-2 text-sm font-normal">
+            <Checkbox
+              checked={field.allowMdx === true}
+              onCheckedChange={(checked) =>
+                onChange({ allowMdx: checked === true })
+              }
+            />
+            Autoriser la mise en forme MDX de la valeur
+          </label>
+        </div>
+      );
+    case "image":
+      return (
+        <div className="grid gap-3">
+          <NumberSetting
+            id="setting-resize-width"
+            label="Largeur d'affichage (pixels)"
+            value={field.resizeWidth}
+            onChange={(resizeWidth) => onChange({ resizeWidth })}
+          />
+          <NumberSetting
+            id="setting-resize-height"
+            label="Hauteur d'affichage (pixels)"
+            value={field.resizeHeight}
+            onChange={(resizeHeight) => onChange({ resizeHeight })}
+          />
+        </div>
       );
     case "date":
       return (
@@ -288,6 +345,31 @@ function OptionsSettings({
           onChange={(next) => onChange({ options: next })}
         />
       )}
+
+      {field.type !== "list" && (
+        <div className="grid gap-1.5">
+          <Label>Mode de saisie</Label>
+          <Select
+            value={field.fillingMode ?? "normal"}
+            onValueChange={(mode) =>
+              onChange({ fillingMode: mode as typeof field.fillingMode })
+            }
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">
+                {field.type === "radio" ? "Boutons radio" : "Cases à cocher"}
+              </SelectItem>
+              <SelectItem value="tags">Pastilles cliquables</SelectItem>
+              {field.type === "multiChoice" && (
+                <SelectItem value="dragAndDrop">Glisser-déposer</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }
@@ -357,8 +439,12 @@ function GeolocationSettings({
   );
   const bindings = [
     ["streetField", "Rue"],
+    ["street1Field", "Complément d'adresse 1"],
+    ["street2Field", "Complément d'adresse 2"],
     ["postalCodeField", "Code postal"],
     ["townField", "Ville"],
+    ["countyField", "Département"],
+    ["stateField", "Région / État"],
   ] as const;
 
   return (
@@ -445,6 +531,40 @@ function TextSetting({
     <div className="grid gap-1.5">
       <Label htmlFor={id}>{label}</Label>
       <Input id={id} value={value} onChange={(event) => onChange(event.target.value)} />
+    </div>
+  );
+}
+
+// A positive-integer parameter (maxLength, rows, resize dimensions); empty
+// clears it back to undefined.
+function NumberSetting({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type="number"
+        min={1}
+        value={value ?? ""}
+        onChange={(event) => {
+          const parsed = Number(event.target.value);
+          onChange(
+            event.target.value === "" || !Number.isFinite(parsed) || parsed <= 0
+              ? undefined
+              : Math.floor(parsed)
+          );
+        }}
+      />
     </div>
   );
 }

@@ -89,15 +89,23 @@ async function renderField(
     case "textarea":
       if (isEmpty(value)) return null;
       return field.allowMdx ? await renderMdx(String(value)) : <p>{String(value)}</p>;
-    case "image":
-      return isEmpty(value) ? null : (
+    case "image": {
+      if (isEmpty(value)) return null;
+      // Honor the field's configured display size (docs/forms.md); default to
+      // a page-width bound when neither dimension is set.
+      const resize = new URLSearchParams();
+      if (field.resizeWidth) resize.set("w", String(field.resizeWidth));
+      if (field.resizeHeight) resize.set("h", String(field.resizeHeight));
+      if (![...resize].length) resize.set("w", "800");
+      return (
         // eslint-disable-next-line @next/next/no-img-element -- pool file, resize API
         <img
-          src={`/api/files/${encodeURIComponent(String(value))}?w=800`}
+          src={`/api/files/${encodeURIComponent(String(value))}?${resize}`}
           alt=""
           className="max-w-full rounded-md"
         />
       );
+    }
     case "file":
       return isEmpty(value) ? null : (
         <a

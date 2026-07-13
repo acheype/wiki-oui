@@ -8,9 +8,9 @@ import { PageActions } from "@/components/page/page-actions";
 import { Button } from "@/components/ui/button";
 import { renderTemplateSource } from "@/lib/entry-render";
 import {
-  type EntryData,
   formSourcedValues,
   parseFormDescriptor,
+  readEntryData,
 } from "@/lib/form-descriptor";
 import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
@@ -74,10 +74,7 @@ async function renderEntry(
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) return null;
-  const data: EntryData =
-    rawData !== null && typeof rawData === "object" && !Array.isArray(rawData)
-      ? (rawData as EntryData)
-      : {};
+  const data = readEntryData(rawData);
 
   if (form.template && form.template.trim() !== "") {
     return renderMdx(renderTemplateSource(form.template, parsed.descriptor, data));
@@ -94,11 +91,8 @@ async function renderEntry(
     : [];
   const linkTitles: Record<string, string> = {};
   for (const target of targets) {
-    const targetData = target.current?.data;
-    if (targetData !== null && typeof targetData === "object" && !Array.isArray(targetData)) {
-      const title = (targetData as EntryData).title;
-      if (typeof title === "string") linkTitles[target.slug] = title;
-    }
+    const title = readEntryData(target.current?.data).title;
+    if (typeof title === "string") linkTitles[target.slug] = title;
   }
 
   return (

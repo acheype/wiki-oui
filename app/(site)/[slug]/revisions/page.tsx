@@ -2,14 +2,17 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { EntryView } from "@/components/forms/entry-view";
 import { CodeToggle } from "@/components/revisions/code-toggle";
 import { DiffView } from "@/components/revisions/diff-view";
 import { RestoreButton } from "@/components/revisions/restore-button";
 import { RevisionTimeline } from "@/components/revisions/timeline";
 import { Button } from "@/components/ui/button";
+import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
 import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
 import { getPageWithRevisions } from "@/lib/pages";
+import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 
@@ -51,10 +54,20 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
 
   const query = await searchParams;
   const revisions = page.revisions; // oldest first
-  // An entry's snapshot is JSON `data`, not MDX (ADR 0014); its history
-  // views come with the entry screens (v0.3) — until then, show nothing.
-  const sourceOf = (revision: { content: string | null }) =>
-    revision.content ?? "";
+
+  // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
+  // work on a pretty-printed JSON of the values, the preview renders the
+  // entry's default view (below).
+  const form = page.formId
+    ? await prisma.form.findUnique({ where: { id: page.formId } })
+    : null;
+  const entryDescriptor = form
+    ? parseFormDescriptor(form.schema).descriptor ?? null
+    : null;
+  const sourceOf = (revision: { content: string | null; data: unknown }) =>
+    entryDescriptor
+      ? JSON.stringify(readEntryData(revision.data), null, 2)
+      : revision.content ?? "";
   const current =
     revisions.find((revision) => revision.id === page.currentRevisionId) ??
     revisions[revisions.length - 1];
@@ -151,7 +164,15 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
             </pre>
           ) : (
             <article className="prose prose-neutral max-w-none dark:prose-invert">
-              {await renderMdx(sourceOf(selected))}
+              {entryDescriptor ? (
+                <EntryView
+                  descriptor={entryDescriptor}
+                  data={readEntryData(selected.data)}
+                  linkTitles={{}}
+                />
+              ) : (
+                await renderMdx(sourceOf(selected))
+              )}
             </article>
           )}
         </div>

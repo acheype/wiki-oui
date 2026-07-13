@@ -8,6 +8,7 @@ import {
   type EntryData,
   type FormDescriptor,
   fieldReferencePattern,
+  valueToText,
 } from "./form-descriptor";
 
 // Escapes MDX-significant characters in author-supplied text. Component and
@@ -41,11 +42,4 @@ export function renderTemplateSource(
     const rawMdx = field.type === "textarea" && field.allowMdx === true;
     return rawMdx ? text : escapeMdxText(text);
   });
-}
-
-function valueToText(value: unknown): string {
-  if (value === undefined || value === null) return "";
-  if (Array.isArray(value)) return value.join(", ");
-  if (typeof value === "object") return "";
-  return String(value);
 }

@@ -198,6 +198,15 @@ export function formSourcedValues(
   return [...slugs];
 }
 
+// A single entry value as plain display text: absent → "", multiple → joined,
+// a structured value (geolocation point) → "" (rendered elsewhere).
+export function valueToText(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "object") return "";
+  return String(value);
+}
+
 // Replaces {champ} references with entry values, an absent value rendering
 // as an empty string, silently (docs/forms.md). Plain-text substitution:
 // MDX escaping is the entry template renderer's concern, on top of this.
@@ -205,13 +214,9 @@ export function substituteFieldReferences(
   text: string,
   data: Record<string, unknown>
 ): string {
-  return text.replace(fieldReferencePattern(), (_, name: string) => {
-    const value = data[name];
-    if (value === undefined || value === null) return "";
-    if (Array.isArray(value)) return value.join(", ");
-    if (typeof value === "object") return "";
-    return String(value);
-  });
+  return text.replace(fieldReferencePattern(), (_, name: string) =>
+    valueToText(data[name])
+  );
 }
 
 const REQUIRED = "Ce champ est obligatoire.";
@@ -302,6 +307,14 @@ function fieldValueSchema(field: FormField): z.ZodType | null {
 
 /** A field-values object, the shape of an entry's `data` snapshot. */
 export type EntryData = Record<string, unknown>;
+
+// Narrows a stored `Revision.data` (Prisma Json, hence unknown) to an entry
+// object — the plain-object guard shared by every reader of a snapshot.
+export function readEntryData(value: unknown): EntryData {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as EntryData)
+    : {};
+}
 
 // The form's starting values: declared defaults, overlaid by an existing
 // snapshot when editing. Value-less fields (customContent, automatic title)
