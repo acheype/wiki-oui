@@ -57,13 +57,15 @@ export type CanvasField = FormField & {
 let nextId = 0;
 const freshId = () => `field-${nextId++}`;
 
-// The default title field present in every new form (docs/forms.md).
+// The default title field present in every new form (docs/forms.md). The
+// palette names the type explicitly ("Titre de la fiche"); the label stored
+// here is what an author fills in and a reader sees, where "Titre" suffices.
 function titleField(frozen: boolean): CanvasField {
   return {
     _id: freshId(),
     type: "title",
     name: "title",
-    label: "Titre de la fiche",
+    label: "Titre",
     frozen,
   };
 }

@@ -1,3 +1,4 @@
+import { Prose } from "@/components/page/prose";
 import { renderMdx } from "@/lib/mdx";
 
 // ComponentBuilder preview (docs/component-builder.md): the modal's iframe
@@ -17,9 +18,7 @@ export default async function RenderPreview({
   const { source } = await searchParams;
   return (
     <div className="p-3">
-      <article className="prose prose-neutral max-w-none dark:prose-invert">
-        {await renderMdx(source ?? "")}
-      </article>
+      <Prose>{await renderMdx(source ?? "")}</Prose>
     </div>
   );
 }

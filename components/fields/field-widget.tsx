@@ -137,7 +137,7 @@ export function Field({
 
   if (spec.type === "checkbox") {
     return (
-      <div className="grid gap-1.5">
+      <div>
         <Label className="flex items-center gap-2 font-normal">
           <Checkbox
             checked={value === true}
@@ -152,9 +152,11 @@ export function Field({
     );
   }
 
+  // Spacing reads as one unit: the label sits closer to its control than the
+  // controls sit to each other, and the hint hugs the control it describes.
   return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>
+    <div>
+      <Label htmlFor={id} className="mb-2">
         {spec.label}
         {spec.required && <RequiredMark />}
       </Label>
@@ -679,10 +681,10 @@ function RequiredMark() {
 
 function FieldHint({ hint }: { hint?: string }) {
   if (!hint) return null;
-  return <p className="text-xs text-muted-foreground">{hint}</p>;
+  return <p className="mt-1.5 text-xs text-muted-foreground">{hint}</p>;
 }
 
 function FieldError({ error }: { error?: string }) {
   if (!error) return null;
-  return <p className="text-xs text-destructive">{error}</p>;
+  return <p className="mt-1.5 text-xs text-destructive">{error}</p>;
 }

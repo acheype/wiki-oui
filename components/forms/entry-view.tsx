@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { Prose } from "@/components/page/prose";
 import { renderMdx } from "@/lib/mdx";
 import {
   type EntryData,
@@ -36,9 +37,9 @@ export async function EntryView({
     })
   );
   return (
-    <div className="flex flex-col gap-4">
-      <h1>{title}</h1>
-      <dl className="grid gap-4">
+    <div>
+      <h1 className="mb-6 text-3xl font-semibold tracking-tight">{title}</h1>
+      <dl className="grid gap-5">
         {rows.map(
           (row) =>
             row && (
@@ -66,7 +67,9 @@ async function renderField(
 
   switch (field.type) {
     case "customContent":
-      return field.displayContent ? await renderMdx(field.displayContent) : null;
+      return field.displayContent ? (
+        <Prose>{await renderMdx(field.displayContent)}</Prose>
+      ) : null;
     case "email":
       return isEmpty(value) ? null : (
         <a href={`mailto:${value}`} className="text-primary underline">
@@ -88,7 +91,11 @@ async function renderField(
       return isEmpty(value) ? null : localizedDate(String(value));
     case "textarea":
       if (isEmpty(value)) return null;
-      return field.allowMdx ? await renderMdx(String(value)) : <p>{String(value)}</p>;
+      return field.allowMdx ? (
+        <Prose>{await renderMdx(String(value))}</Prose>
+      ) : (
+        <p className="whitespace-pre-line">{String(value)}</p>
+      );
     case "image": {
       if (isEmpty(value)) return null;
       // Honor the field's configured display size (docs/forms.md); default to

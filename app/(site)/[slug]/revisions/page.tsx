@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EntryView } from "@/components/forms/entry-view";
+import { Prose } from "@/components/page/prose";
 import { CodeToggle } from "@/components/revisions/code-toggle";
 import { DiffView } from "@/components/revisions/diff-view";
 import { RestoreButton } from "@/components/revisions/restore-button";
@@ -163,7 +164,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
               {sourceOf(selected)}
             </pre>
           ) : (
-            <article className="prose prose-neutral max-w-none dark:prose-invert">
+            <article>
               {entryDescriptor ? (
                 <EntryView
                   descriptor={entryDescriptor}
@@ -171,7 +172,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
                   linkTitles={{}}
                 />
               ) : (
-                await renderMdx(sourceOf(selected))
+                <Prose>{await renderMdx(sourceOf(selected))}</Prose>
               )}
             </article>
           )}

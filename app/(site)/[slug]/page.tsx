@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { DoubleClickToEdit } from "@/components/page/double-click-to-edit";
 import { EntryView } from "@/components/forms/entry-view";
 import { PageActions } from "@/components/page/page-actions";
+import { Prose } from "@/components/page/prose";
 import { Button } from "@/components/ui/button";
 import { renderTemplateSource } from "@/lib/entry-render";
 import {
@@ -49,8 +50,12 @@ export default async function ShowPage({ params }: Props) {
     <div>
       <PageActions slug={slug} tags={page.tags} />
       <DoubleClickToEdit slug={slug}>
-        <article className="prose prose-neutral max-w-none dark:prose-invert">
-          {page.formId ? await renderEntry(page.formId, page.current?.data) : await renderMdx(page.current?.content ?? "")}
+        <article>
+          {page.formId ? (
+            await renderEntry(page.formId, page.current?.data)
+          ) : (
+            <Prose>{await renderMdx(page.current?.content ?? "")}</Prose>
+          )}
         </article>
       </DoubleClickToEdit>
       <p className="mt-10 border-t pt-3 text-xs text-muted-foreground">
@@ -77,7 +82,13 @@ async function renderEntry(
   const data = readEntryData(rawData);
 
   if (form.template && form.template.trim() !== "") {
-    return renderMdx(renderTemplateSource(form.template, parsed.descriptor, data));
+    return (
+      <Prose>
+        {await renderMdx(
+          renderTemplateSource(form.template, parsed.descriptor, data)
+        )}
+      </Prose>
+    );
   }
 
   // Resolve form-sourced option values (entry slugs) to their current titles

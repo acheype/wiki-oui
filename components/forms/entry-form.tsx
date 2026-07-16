@@ -102,7 +102,7 @@ export function EntryForm({
   }
 
   return (
-    <form className="grid gap-4" onSubmit={handleSubmit(submit)}>
+    <form className="grid gap-5" onSubmit={handleSubmit(submit)}>
       {form.schema.fields.map((field) => {
         // Automatic title is computed on save, never entered.
         if (field.type === "title" && automaticTitle) return null;
@@ -183,15 +183,17 @@ function SlugField({
     );
   }
   return (
-    <div className="grid gap-1.5">
-      <Label htmlFor="entry-slug">Adresse de la fiche (slug)</Label>
+    <div>
+      <Label htmlFor="entry-slug" className="mb-2">
+        Adresse de la fiche (slug)
+      </Label>
       <Input
         id="entry-slug"
         value={slug}
         placeholder="dérivée du titre si vide"
         onChange={(event) => onChange(slugify(event.target.value))}
       />
-      <p className="text-xs text-muted-foreground">
+      <p className="mt-1.5 text-xs text-muted-foreground">
         Laissée vide, elle est dérivée du titre. Figée après la première
         sauvegarde.
       </p>

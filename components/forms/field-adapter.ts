@@ -13,7 +13,9 @@ export function toWidgetSpec(
     type: field.type,
     label: field.label,
     hint: field.hint,
-    required: field.required,
+    // A manual title is always required by the derived schema, whatever the
+    // descriptor says: the widget must show it (deriveEntrySchema, ADR 0015).
+    required: field.type === "title" ? true : field.required,
   };
   if ("placeholder" in field) spec.placeholder = field.placeholder;
   if (field.type === "text") {

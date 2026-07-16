@@ -3,10 +3,14 @@ import { EntriesAdmin as EntriesAdminScreen } from "@/components/forms/entries-a
 
 // Built-in component rendered by the `fiches` special page (ADR 0014). The
 // screen reads the URL via useSearchParams, hence the Suspense boundary.
+// `not-prose`: an app screen inside an MDX page must escape the host page's
+// typographic margins, so entry creation here matches /{slug}/edit exactly.
 export function EntriesAdmin() {
   return (
-    <Suspense>
-      <EntriesAdminScreen />
-    </Suspense>
+    <div className="not-prose">
+      <Suspense>
+        <EntriesAdminScreen />
+      </Suspense>
+    </div>
   );
 }
