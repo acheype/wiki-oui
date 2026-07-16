@@ -55,7 +55,7 @@ describe("what would silently do nothing", () => {
   });
 
   it("flags a missing required attribute", () => {
-    expect(messages("<Image />")[0]).toContain("attend l'attribut « file »");
+    expect(messages("<Image />")[0]).toContain("« file » est obligatoire");
   });
 
   it("flags an unknown attribute", () => {
@@ -66,13 +66,13 @@ describe("what would silently do nothing", () => {
 
   it("flags a value outside the declared options", () => {
     expect(messages('<Image file="a.png" align="middle" />')[0]).toContain(
-      "n'est pas une valeur attendue"
+      "n'accepte pas la valeur « middle »"
     );
   });
 
   it("flags a non-literal expression, as the sandbox drops it", () => {
     expect(messages('<Image file="a.png" width={someVar} />')[0]).toContain(
-      "seules les valeurs littérales"
+      "expression à évaluer"
     );
   });
 
@@ -108,6 +108,16 @@ describe("a value the prop cannot use", () => {
     );
   });
 
+  // Renders correctly today, and is still wrong: `type: number` promises the
+  // component a number, <Image> merely survives a string. The builder is the
+  // contract in code and shows this field *empty*, so the tag and the tool
+  // already disagree.
+  it("flags a numeric string on a number prop", () => {
+    expect(messages('<Image file="a.png" width="200" />')[0]).toContain(
+      "attend un nombre entre accolades"
+    );
+  });
+
   it("flags a bare attribute on a number prop, which means {true}", () => {
     expect(messages('<Image file="a.png" width />')[0]).toContain(
       "attend un nombre"
@@ -118,7 +128,7 @@ describe("a value the prop cannot use", () => {
     // Verified: whiteBorder="false" turns the border ON — every non-empty
     // string is truthy, so this does the opposite of what is written.
     expect(messages('<Image file="a.png" whiteBorder="false" />')[0]).toContain(
-      "toute autre valeur est comprise comme vraie"
+      "Toute autre valeur est comprise comme vraie"
     );
   });
 
@@ -130,11 +140,6 @@ describe("a value the prop cannot use", () => {
 });
 
 describe("a value the prop can use, which must stay silent", () => {
-  it("accepts a numeric string on a number prop", () => {
-    // Verified: width="400" reaches the resize API as ?w=400 and works.
-    expect(lint('<Image file="a.png" width="400" />')).toEqual([]);
-  });
-
   it("accepts a number literal on a number prop", () => {
     expect(lint('<Image file="a.png" width={400} />')).toEqual([]);
   });
@@ -164,7 +169,9 @@ describe("MDX that does not even parse", () => {
   it.each(BROKEN)("reports %j instead of throwing", (source) => {
     const found = lint(source);
     expect(found).toHaveLength(1);
-    expect(found[0].message).toContain("ne compile pas");
+    expect(found[0].message).toContain("erreur de compilation");
+    // The compiler's own words go to `details`, never inlined into the prose.
+    expect(found[0].details).toBeTruthy();
   });
 
   it("points at the line it broke on", () => {

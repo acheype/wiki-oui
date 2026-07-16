@@ -18,6 +18,8 @@ import { type EstreeProgram, staticLiteralValue } from "./mdx-literal-props";
 export interface PageWarning {
   /** French, author-facing: it goes straight to the editor's panel. */
   message: string;
+  /** Raw technical text (a compiler's own words), shown in monospace. */
+  details?: string;
   line?: number;
 }
 
@@ -45,9 +47,9 @@ export function lintPageSource(
     return [
       {
         line: (error as { line?: number }).line,
-        message: `le MDX de cette page ne compile pas, rien ne s'affichera : ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        message:
+          "Le contenu MDX de cette page contient une erreur de compilation. La page ne pourra pas être affichée.",
+        details: error instanceof Error ? error.message : String(error),
       },
     ];
   }
@@ -68,7 +70,7 @@ export function lintPageSource(
     if (!known.has(name)) {
       warnings.push({
         line,
-        message: `le composant « ${name} » n'existe pas : rien ne sera affiché.`,
+        message: `Le composant « ${name} » n'existe pas. Rien ne sera affiché.`,
       });
       return;
     }
@@ -85,7 +87,7 @@ export function lintPageSource(
       if (attribute.type === "mdxJsxExpressionAttribute") {
         warnings.push({
           line,
-          message: `sur « ${name} », les attributs étalés ({...}) sont ignorés.`,
+          message: `Sur « ${name} », les attributs étalés ({...}) sont ignorés.`,
         });
         continue;
       }
@@ -97,7 +99,7 @@ export function lintPageSource(
       if (!property || property.type === "divider") {
         warnings.push({
           line,
-          message: `« ${name} » n'a pas d'attribut « ${attributeName} » : il sera ignoré.`,
+          message: `« ${name} » n'a pas d'attribut « ${attributeName} ». Il sera ignoré.`,
         });
         continue;
       }
@@ -106,7 +108,7 @@ export function lintPageSource(
       if (received === UNREADABLE) {
         warnings.push({
           line,
-          message: `« ${attributeName} » sur « ${name} » sera ignoré : seules les valeurs littérales sont acceptées, pas une expression à évaluer.`,
+          message: `L'attribut « ${attributeName} » de « ${name} » contient une expression à évaluer. Seules les valeurs littérales sont acceptées, il sera ignoré.`,
         });
         continue;
       }
@@ -115,7 +117,7 @@ export function lintPageSource(
       if (misfit) {
         warnings.push({
           line,
-          message: `« ${attributeName} » sur « ${name} » ${misfit}`,
+          message: `L'attribut « ${attributeName} » de « ${name} » ${misfit}`,
         });
         continue;
       }
@@ -124,7 +126,7 @@ export function lintPageSource(
       if (declared && typeof received === "string" && !(received in declared)) {
         warnings.push({
           line,
-          message: `« ${attributeName}="${received}" » sur « ${name} » n'est pas une valeur attendue (${Object.keys(declared).join(", ")}).`,
+          message: `L'attribut « ${attributeName} » de « ${name} » n'accepte pas la valeur « ${received} ». Valeurs possibles : ${Object.keys(declared).join(", ")}.`,
         });
       }
     }
@@ -133,7 +135,7 @@ export function lintPageSource(
       if (property.required && !written.has(attributeName)) {
         warnings.push({
           line,
-          message: `« ${name} » attend l'attribut « ${attributeName} » : sans lui, rien ne sera affiché.`,
+          message: `L'attribut « ${attributeName} » est obligatoire sur « ${name} ». Sans lui, rien ne sera affiché.`,
         });
       }
     }
@@ -156,15 +158,20 @@ function attributeValue(value: MdxAttributeValue): unknown {
   return literal ? literal.value : UNREADABLE;
 }
 
-// Whether a value will do what the author meant, phrased as the complaint
-// when it will not. The test is usability, not type identity: JSX coerces, so
-// `width="400"` works and must not be nagged about, while `width="abc"` and a
-// bare `width` (which means `width={true}`) reach the resize API as `?w=abc`
-// and `?w=true` and are dropped — verified, both render the full-size image.
+// Whether the value honours what the descriptor promised, phrased as the
+// complaint when it does not. The reference is the contract, not what one
+// component happens to survive: `type: number` promises the component a
+// number, and `<Image>` only tolerates `width="200"` because imageUrl calls
+// String() on it — another component doing `width.toFixed(0)` would throw.
+//
+// The builder's own field is that contract in code, and the yardstick here:
+// the number widget shows `typeof value === "number"` alone, the text widget
+// shows a string or a number, the checkbox only `true`. A value its field
+// cannot display is a value the source and the tooling disagree about.
 //
 // A checkbox is the sharpest trap: every non-empty string is truthy, so
-// `whiteBorder="false"` turns the border *on*. That is worse than doing
-// nothing — it does the opposite of what is written.
+// `whiteBorder="false"` turns the border *on* — worse than doing nothing, it
+// does the opposite of what is written.
 function propMisfit(kind: PropKind, value: unknown): string | null {
   switch (kind) {
     case "none":
@@ -172,19 +179,16 @@ function propMisfit(kind: PropKind, value: unknown): string | null {
     case "boolean":
       return typeof value === "boolean"
         ? null
-        : "attend {true} ou {false} : toute autre valeur est comprise comme vraie, y compris « false ».";
+        : "attend {true} ou {false}. Toute autre valeur est comprise comme vraie, y compris « false ».";
     case "number":
-      if (typeof value === "number") return null;
-      // A numeric string is coerced on the way in and works as written.
-      if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
-        return null;
-      }
-      return "attend un nombre : la valeur sera ignorée.";
+      return typeof value === "number"
+        ? null
+        : "attend un nombre entre accolades, par exemple {200}.";
     case "string":
       // A number reads back as its text; a boolean renders as nothing at all.
       return typeof value === "string" || typeof value === "number"
         ? null
-        : "attend du texte : rien ne sera affiché.";
+        : "attend du texte. Rien ne sera affiché.";
   }
 }
 

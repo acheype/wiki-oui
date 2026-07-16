@@ -36,17 +36,26 @@ export function WarningsPanel({
 
       <ul className="grid gap-1.5">
         {warnings.map((warning, index) => (
-          <li key={index} className="flex flex-wrap items-baseline gap-x-1.5">
-            {warning.line !== undefined && (
-              <button
-                type="button"
-                onClick={() => onGoToLine(warning.line as number)}
-                className="shrink-0 font-medium text-primary underline underline-offset-2 hover:no-underline"
-              >
-                Ligne {warning.line}
-              </button>
+          <li key={index}>
+            <span className="flex flex-wrap items-baseline gap-x-1.5">
+              {warning.line !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => onGoToLine(warning.line as number)}
+                  className="shrink-0 font-medium text-primary underline underline-offset-2 hover:no-underline"
+                >
+                  Ligne {warning.line}
+                </button>
+              )}
+              <span className="text-muted-foreground">{warning.message}</span>
+            </span>
+            {warning.details && (
+              // A compiler's own words: kept verbatim, and scrollable rather
+              // than allowed to widen the panel.
+              <pre className="mt-1 overflow-x-auto rounded border bg-background/60 px-2 py-1 font-mono text-xs whitespace-pre-wrap text-muted-foreground">
+                {warning.details}
+              </pre>
             )}
-            <span className="text-muted-foreground">{warning.message}</span>
           </li>
         ))}
       </ul>
