@@ -9,7 +9,7 @@ La première version de `<Menu>` listait automatiquement toutes les pages : zér
 Alternatives considérées :
 
 - **(a) Auto-listing + filtres** (tags, préfixes de slug) : garde la magie mais l'ordre et la hiérarchie restent hors de portée de l'auteur ; la configuration fuit vers les tags.
-- **(b) Props structurées** (`items={...}` ou YAML) : expressif mais illisible et fragile pour un auteur wiki — et les expressions JS sont neutralisées par le sandbox (ADR 0002).
+- **(b) Props structurées** (`items={...}` ou YAML) : expressif mais illisible et fragile pour un auteur wiki. *(Amendé le 2026-07-16 : cette option invoquait aussi la neutralisation des expressions JS par le sandbox ; ADR 0002 admet désormais les littéraux statiques, donc un `items={[…]}` passerait. La décision tient sur son seul motif de lisibilité.)*
 - **(c) Enfants markdown** : une liste imbriquée est la représentation naturelle d'un menu pour un auteur, sans aucune syntaxe nouvelle ; MDX parse nativement le markdown à l'intérieur d'une balise JSX, vérifié avec le pipeline du projet.
 
 ## Décision
