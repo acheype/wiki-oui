@@ -14,10 +14,21 @@ import { specialSlugs, wikiConfig } from "@/wiki.config";
 const AUTHOR = "Anonyme";
 
 export type ActionError = { error: string };
-export type SaveResult =
-  | ActionError
-  | { unchanged: true }
-  | { saved: true; warnings: PageWarning[] };
+export type SaveResult = ActionError | { unchanged: true } | { saved: true };
+
+/**
+ * What the render will silently ignore in this source (ADR 0002). Separate
+ * from savePage on purpose: the editor asks *before* saving, so the author
+ * can still fix it — and still gets the answer when nothing changed, the one
+ * case a save-time report would stay mute about.
+ */
+export async function lintPage(content: string): Promise<PageWarning[]> {
+  const [registry, builders] = await Promise.all([
+    listWikiComponentNames(),
+    loadComponentBuilders(),
+  ]);
+  return lintPageSource(content, registry, builders);
+}
 
 function normalizeTags(tags: string[]): string[] {
   return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
@@ -69,16 +80,9 @@ export async function savePage(input: {
 
   // Any page can feed the layout (menu, title…), so revalidate the whole tree.
   revalidatePath("/", "layout");
-
-  // Warnings never block a save: the page is already stored, and a wiki must
-  // accept a work in progress. Returning rather than redirecting lets the
-  // editor show them — a redirect here would end the request, and the author
-  // would never learn what the sandbox is about to drop (ADR 0002).
-  const [registry, builders] = await Promise.all([
-    listWikiComponentNames(),
-    loadComponentBuilders(),
-  ]);
-  return { saved: true, warnings: lintPageSource(content, registry, builders) };
+  // Returning rather than redirecting: the editor owns the navigation, so it
+  // can speak (a toast, the warnings panel) before leaving the page.
+  return { saved: true };
 }
 
 export async function deletePage(slug: string): Promise<ActionError | void> {

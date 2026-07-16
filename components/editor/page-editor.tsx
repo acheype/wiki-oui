@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { discardUploadedFile, savePage } from "@/app/actions";
+import { discardUploadedFile, lintPage, savePage } from "@/app/actions";
 import type { PageWarning } from "@/lib/page-lint";
 import { Button } from "@/components/ui/button";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
@@ -17,7 +17,7 @@ import {
   type BuilderDialogState,
 } from "./component-builder";
 import { emitsMarkdownLink, type Range } from "@/lib/component-descriptor";
-import { insertSnippet, replaceSnippet } from "./commands";
+import { goToLine, insertSnippet, replaceSnippet } from "./commands";
 import {
   cursorTools,
   type ComponentInfo,
@@ -28,6 +28,7 @@ import { EditorToolbar } from "./toolbar";
 import { uploadFile } from "@/components/fields/upload";
 import { UploadDialog, type UploadDialogState } from "./upload-dialog";
 import { uploadDoors } from "./upload-extension";
+import { WarningsPanel } from "./warnings-panel";
 
 export function PageEditor({
   slug,
@@ -59,6 +60,8 @@ export function PageEditor({
   const lastBuilderDialog = useRef<BuilderDialogState | null>(null);
   if (builderDialog) lastBuilderDialog.current = builderDialog;
   const [upload, setUpload] = useState<UploadDialogState>(null);
+  // What the render would ignore; shown after a save attempt found something.
+  const [warnings, setWarnings] = useState<PageWarning[]>([]);
   const [isPending, startTransition] = useTransition();
 
   // Created once (the editor view mounts once); the setters are stable and
@@ -174,48 +177,43 @@ export function PageEditor({
     toast.info("Aucun changement n'a été enregistré.");
   }
 
-  // The page is saved either way — this only tells the author what the render
-  // will drop, so it stays visible long enough to be read and acted upon.
-  function warnOfIgnoredContent(warnings: PageWarning[]) {
-    toast.warning(
-      warnings.length === 1
-        ? "Un élément de la page sera ignoré"
-        : `${warnings.length} éléments de la page seront ignorés`,
-      {
-        duration: 12_000,
-        description: (
-          <ul className="mt-1 list-disc space-y-1 pl-4">
-            {warnings.map((warning, index) => (
-              <li key={index}>
-                {warning.line !== undefined && (
-                  <span className="font-medium">Ligne {warning.line} : </span>
-                )}
-                {warning.message}
-              </li>
-            ))}
-          </ul>
-        ),
-      }
-    );
+  function currentContent(): string {
+    return viewRef.current?.state.doc.toString() ?? initialContent;
   }
 
+  // First click: ask what the render would ignore, and stop there if anything
+  // would be. The author is still in front of the source, so this is the one
+  // moment a fix costs nothing — hence a panel rather than a toast, which
+  // would vanish while they read it.
   function save() {
-    const content = viewRef.current?.state.doc.toString() ?? initialContent;
+    const content = currentContent();
     startTransition(async () => {
-      const result = await savePage({ slug, content, tags });
-      // Every toast here outlives the navigation (the Toaster lives in the
-      // root layout), so the author reads it on the page that just saved.
-      if ("error" in result) {
-        toast.error(result.error);
+      const found = await lintPage(content);
+      if (found.length > 0) {
+        setWarnings(found);
         return;
       }
-      if ("unchanged" in result) {
-        toast.info("Aucune modification n'a été effectuée.");
-      } else if (result.warnings.length > 0) {
-        warnOfIgnoredContent(result.warnings);
-      }
-      router.push(`/${slug}`);
+      await persist(content);
     });
+  }
+
+  // « Enregistrer quand même » — the warnings are acknowledged, not fixed.
+  function saveAnyway() {
+    startTransition(() => persist(currentContent()));
+  }
+
+  async function persist(content: string) {
+    const result = await savePage({ slug, content, tags });
+    if ("error" in result) {
+      toast.error(result.error);
+      return;
+    }
+    if ("unchanged" in result) {
+      // The toast outlives the navigation (the Toaster lives in the root
+      // layout), so the author reads it on the page they land on.
+      toast.info("Aucune modification n'a été effectuée.");
+    }
+    router.push(`/${slug}`);
   }
 
   return (
@@ -269,6 +267,15 @@ export function PageEditor({
         <Tag className="size-4 shrink-0" aria-hidden />
         <TagsInput tags={tags} onChange={setTags} />
       </div>
+
+      {warnings.length > 0 && (
+        <WarningsPanel
+          warnings={warnings}
+          isPending={isPending}
+          onGoToLine={(line) => viewRef.current && goToLine(viewRef.current, line)}
+          onSaveAnyway={saveAnyway}
+        />
+      )}
 
       <UploadDialog
         state={upload}

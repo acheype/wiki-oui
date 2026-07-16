@@ -1,5 +1,6 @@
 import { EditorSelection, type EditorState, type Line } from "@codemirror/state";
-import type { EditorView } from "@codemirror/view";
+// A value import: scrollIntoView is a static method, not only a type.
+import { EditorView } from "@codemirror/view";
 import type { Range } from "@/lib/component-descriptor";
 
 // Toolbar commands (ADR 0005). Everything manipulates the MDX source text:
@@ -191,6 +192,21 @@ export function toggleComment(view: EditorView) {
 }
 
 export type LinkTarget = "self" | "_blank" | "modal";
+
+// Reveals a 1-based line: the save-time warnings link to the line they are
+// about. The line is *selected*, not merely reached — a bare cursor landing
+// somewhere off-screen shows the author nothing. A line past the end (the
+// source shrank since the warning was computed) clamps rather than throws.
+export function goToLine(view: EditorView, line: number) {
+  const target = view.state.doc.line(
+    Math.min(Math.max(line, 1), view.state.doc.lines)
+  );
+  view.dispatch({
+    selection: EditorSelection.range(target.from, target.to),
+    effects: EditorView.scrollIntoView(target.from, { y: "center" }),
+  });
+  view.focus();
+}
 
 // Inserts a ComponentBuilder-generated snippet at the cursor, replacing the
 // selection if any (insertion from the « Composants » menu).
