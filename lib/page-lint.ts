@@ -2,8 +2,9 @@ import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
+import { type PropKind, propKind } from "./component-descriptor";
 import type { ComponentBuilderSpec } from "./component-descriptors";
-import { type EstreeProgram, isStaticLiteralExpression } from "./mdx-literal-props";
+import { type EstreeProgram, staticLiteralValue } from "./mdx-literal-props";
 
 // What a page's MDX says versus what the registry and the descriptors can
 // honour (ADR 0002). Every rule here answers the same question — "will this
@@ -101,14 +102,8 @@ export function lintPageSource(
         continue;
       }
 
-      const value = attribute.value;
-      if (
-        value !== null &&
-        value !== undefined &&
-        typeof value !== "string" &&
-        value.type === "mdxJsxAttributeValueExpression" &&
-        !isStaticLiteralExpression(value.data?.estree)
-      ) {
+      const received = attributeValue(attribute.value);
+      if (received === UNREADABLE) {
         warnings.push({
           line,
           message: `« ${attributeName} » sur « ${name} » sera ignoré : seules les valeurs littérales sont acceptées, pas une expression à évaluer.`,
@@ -116,11 +111,20 @@ export function lintPageSource(
         continue;
       }
 
-      const declared = property.options;
-      if (declared && typeof value === "string" && !(value in declared)) {
+      const misfit = propMisfit(propKind(property.type), received);
+      if (misfit) {
         warnings.push({
           line,
-          message: `« ${attributeName}="${value}" » sur « ${name} » n'est pas une valeur attendue (${Object.keys(declared).join(", ")}).`,
+          message: `« ${attributeName} » sur « ${name} » ${misfit}`,
+        });
+        continue;
+      }
+
+      const declared = property.options;
+      if (declared && typeof received === "string" && !(received in declared)) {
+        warnings.push({
+          line,
+          message: `« ${attributeName}="${received}" » sur « ${name} » n'est pas une valeur attendue (${Object.keys(declared).join(", ")}).`,
         });
       }
     }
@@ -138,7 +142,59 @@ export function lintPageSource(
   return warnings;
 }
 
+/** A well-formed expression the sandbox will drop, so it has no value at all. */
+const UNREADABLE = Symbol("unreadable");
+
+// The value the component will actually receive, in JSX's own terms: a bare
+// attribute is `true`, a quoted one is that string, an expression is what it
+// evaluates to.
+function attributeValue(value: MdxAttributeValue): unknown {
+  if (value === null || value === undefined) return true;
+  if (typeof value === "string") return value;
+  if (value.type !== "mdxJsxAttributeValueExpression") return value;
+  const literal = staticLiteralValue(value.data?.estree);
+  return literal ? literal.value : UNREADABLE;
+}
+
+// Whether a value will do what the author meant, phrased as the complaint
+// when it will not. The test is usability, not type identity: JSX coerces, so
+// `width="400"` works and must not be nagged about, while `width="abc"` and a
+// bare `width` (which means `width={true}`) reach the resize API as `?w=abc`
+// and `?w=true` and are dropped — verified, both render the full-size image.
+//
+// A checkbox is the sharpest trap: every non-empty string is truthy, so
+// `whiteBorder="false"` turns the border *on*. That is worse than doing
+// nothing — it does the opposite of what is written.
+function propMisfit(kind: PropKind, value: unknown): string | null {
+  switch (kind) {
+    case "none":
+      return null; // a divider is builder chrome, it carries no prop
+    case "boolean":
+      return typeof value === "boolean"
+        ? null
+        : "attend {true} ou {false} : toute autre valeur est comprise comme vraie, y compris « false ».";
+    case "number":
+      if (typeof value === "number") return null;
+      // A numeric string is coerced on the way in and works as written.
+      if (typeof value === "string" && value.trim() !== "" && !Number.isNaN(Number(value))) {
+        return null;
+      }
+      return "attend un nombre : la valeur sera ignorée.";
+    case "string":
+      // A number reads back as its text; a boolean renders as nothing at all.
+      return typeof value === "string" || typeof value === "number"
+        ? null
+        : "attend du texte : rien ne sera affiché.";
+  }
+}
+
 // Minimal shape of the mdast-util-mdx-jsx nodes walked here.
+type MdxAttributeValue =
+  | string
+  | null
+  | undefined
+  | { type: string; data?: { estree?: EstreeProgram } };
+
 interface MdxJsxNode {
   type: string;
   name?: string | null;
@@ -146,9 +202,6 @@ interface MdxJsxNode {
   attributes?: {
     type: string;
     name?: string | null;
-    value?:
-      | string
-      | null
-      | { type: string; data?: { estree?: EstreeProgram } };
+    value?: MdxAttributeValue;
   }[];
 }

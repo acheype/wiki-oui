@@ -17,6 +17,7 @@ const BUILDERS = [
         file: { label: "Fichier", type: "file-list", required: true },
         alt: { label: "Texte alternatif", type: "text" },
         width: { label: "Largeur", type: "number" },
+        whiteBorder: { label: "Bord blanc", type: "checkbox", default: false },
         align: {
           label: "Position",
           type: "list",
@@ -94,6 +95,59 @@ describe("what would silently do nothing", () => {
     expect(messages('<Image file="a.png" effects="oui" />')[0]).toContain(
       "n'a pas d'attribut « effects »"
     );
+  });
+});
+
+// One rule for every prop: will the value do what the author wrote? The test
+// is usability, not type identity — each expectation below was checked against
+// the real render before being written down.
+describe("a value the prop cannot use", () => {
+  it("flags a non-numeric string on a number prop", () => {
+    expect(messages('<Image file="a.png" width="abc" />')[0]).toContain(
+      "attend un nombre"
+    );
+  });
+
+  it("flags a bare attribute on a number prop, which means {true}", () => {
+    expect(messages('<Image file="a.png" width />')[0]).toContain(
+      "attend un nombre"
+    );
+  });
+
+  it("flags a string on a checkbox, quoting the trap", () => {
+    // Verified: whiteBorder="false" turns the border ON — every non-empty
+    // string is truthy, so this does the opposite of what is written.
+    expect(messages('<Image file="a.png" whiteBorder="false" />')[0]).toContain(
+      "toute autre valeur est comprise comme vraie"
+    );
+  });
+
+  it("flags a bare attribute on a text prop: it renders nothing", () => {
+    expect(messages('<Image file="a.png" alt />')[0]).toContain(
+      "attend du texte"
+    );
+  });
+});
+
+describe("a value the prop can use, which must stay silent", () => {
+  it("accepts a numeric string on a number prop", () => {
+    // Verified: width="400" reaches the resize API as ?w=400 and works.
+    expect(lint('<Image file="a.png" width="400" />')).toEqual([]);
+  });
+
+  it("accepts a number literal on a number prop", () => {
+    expect(lint('<Image file="a.png" width={400} />')).toEqual([]);
+  });
+
+  it("accepts a number on a text prop: it reads back as its text", () => {
+    expect(lint('<Image file="a.png" alt={42} />')).toEqual([]);
+  });
+
+  it("accepts both booleans on a checkbox", () => {
+    expect(lint('<Image file="a.png" whiteBorder={true} />')).toEqual([]);
+    expect(lint('<Image file="a.png" whiteBorder={false} />')).toEqual([]);
+    // The JSX shorthand: a bare attribute is `true`.
+    expect(lint('<Image file="a.png" whiteBorder />')).toEqual([]);
   });
 });
 

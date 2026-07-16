@@ -19,6 +19,32 @@ const FIELD_TYPES = [
 
 export type FieldType = (typeof FIELD_TYPES)[number];
 
+/** What a field's prop actually holds once it reaches the component. */
+export type PropKind = "string" | "number" | "boolean" | "none";
+
+// Exhaustive on purpose (no `default`): a new field type must state what its
+// prop holds, or the compiler objects. The save-time report leans on this to
+// tell an author that `width="abc"` or `whiteBorder="false"` will not do what
+// they wrote (lib/page-lint.ts).
+export function propKind(type: FieldType): PropKind {
+  switch (type) {
+    case "divider":
+      return "none";
+    case "checkbox":
+      return "boolean";
+    case "number":
+      return "number";
+    case "text":
+    case "url":
+    case "icon":
+    case "list":
+    case "page-list":
+    case "file-list":
+    case "form-list":
+      return "string";
+  }
+}
+
 /** File families (ADR 0012): route uploads and filter file-list fields. */
 export const FILE_FAMILIES = ["image", "pdf", "other"] as const;
 export type FileFamily = (typeof FILE_FAMILIES)[number];
