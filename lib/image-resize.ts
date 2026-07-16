@@ -52,7 +52,7 @@ export async function resizedVariant(
   const info = await stat(source).catch(() => null);
   if (!info?.isFile()) return null;
 
-  const cachePath = variantPath(name, request, info.mtimeMs);
+  const cachePath = variantPath(name, request, info);
   const cached = await readFile(cachePath).catch(() => null);
   if (cached) return cached;
 
@@ -70,17 +70,42 @@ export async function resizedVariant(
   return output;
 }
 
-// Cache key folds in the source mtime, so re-uploading under the same name
-// (a new file, ADR 0012 forbids silent replacement — but a future overwrite)
-// never serves a stale variant.
+/** What makes a file's bytes distinguishable without reading them. */
+export interface FileStamp {
+  mtimeMs: number;
+  size: number;
+}
+
+/**
+ * Identity of the bytes a files URL yields *right now*: the pool name, the
+ * requested box, and the source's stamp. Serves twice — as the disk cache's
+ * key and as the HTTP ETag — so the cache and the browser can never disagree
+ * on what "the same image" means.
+ *
+ * ADR 0012 forbids silent replacement (`saveFile` uses the `wx` flag), but a
+ * delete frees the name for a different file: the stamp is what makes that
+ * new file a different resource. mtime alone would tie on a same-millisecond
+ * reupload, so size joins it — the classic weak validator of web servers. A
+ * true guarantee would hash the bytes, which costs reading 10 MB to save
+ * sending 10 MB.
+ */
+export function variantKey(
+  name: string,
+  box: ResizeRequest,
+  stamp: FileStamp
+): string {
+  return createHash("sha1")
+    .update(
+      `${name}|${box.width ?? ""}|${box.height ?? ""}|${stamp.mtimeMs}|${stamp.size}`
+    )
+    .digest("hex");
+}
+
 function variantPath(
   name: string,
   request: ResizeRequest,
-  mtimeMs: number
+  stamp: FileStamp
 ): string {
-  const key = createHash("sha1")
-    .update(`${name}|${request.width ?? ""}|${request.height ?? ""}|${mtimeMs}`)
-    .digest("hex");
   const extension = path.extname(name);
-  return path.join(CACHE_DIR, `${key}${extension}`);
+  return path.join(CACHE_DIR, `${variantKey(name, request, stamp)}${extension}`);
 }
