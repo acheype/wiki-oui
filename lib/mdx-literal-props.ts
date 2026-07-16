@@ -13,15 +13,11 @@ import { SKIP, visit } from "unist-util-visit";
 // `<Image width={400} />` silently lose its width. Content expressions
 // ({variable}, {func()}) and spreads stay barred — a wiki page is data.
 
-/** An attribute value expression we refuse, for the compile-time report. */
-export interface RejectedProp {
-  component: string;
-  attribute: string;
-}
-
-// A factory returning the remark plugin, so a caller can collect what was
-// refused: unified calls the plugin, and the plugin returns the transformer.
-export function allowLiteralPropsOnly(rejected: RejectedProp[] = []) {
+// A factory returning the remark plugin: unified calls the plugin, and the
+// plugin returns the transformer. Refusals are dropped in silence here — the
+// author is told at save time instead (lib/page-lint.ts), the only moment a
+// page has an author to tell.
+export function allowLiteralPropsOnly() {
   return function attributeSandbox() {
     return (tree: unknown) => {
       visit(tree as never, (rawNode, index, rawParent) => {
@@ -52,20 +48,19 @@ export function allowLiteralPropsOnly(rejected: RejectedProp[] = []) {
           if (value === null || value === undefined) return true;
           if (typeof value === "string") return true;
           if (value.type !== "mdxJsxAttributeValueExpression") return true;
-          if (isStaticLiteralExpression(value.data?.estree)) return true;
-          rejected.push({
-            component: node.name ?? "?",
-            attribute: attribute.name ?? "?",
-          });
-          return false;
+          return isStaticLiteralExpression(value.data?.estree);
         });
       });
     };
   };
 }
 
-// The estree of `{…}` is a Program wrapping one expression statement.
-function isStaticLiteralExpression(program: EstreeProgram | undefined): boolean {
+// The estree of `{…}` is a Program wrapping one expression statement. Shared
+// with the save-time report (lib/page-lint.ts), so what the sandbox drops and
+// what the author is warned about can never drift apart.
+export function isStaticLiteralExpression(
+  program: EstreeProgram | undefined
+): boolean {
   const body = program?.body;
   if (!body || body.length !== 1) return false;
   const statement = body[0];
@@ -115,7 +110,7 @@ function isStaticLiteral(node: Node): boolean {
 
 // Minimal shapes of the mdast-util-mdx-jsx nodes we touch; the upstream types
 // are not exported in a form usable from a plain remark plugin here.
-type EstreeProgram = { body: { type: string; expression: Node }[] };
+export type EstreeProgram = { body: { type: string; expression: Node }[] };
 
 interface MdxAttribute {
   type: string;

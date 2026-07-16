@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { discardUploadedFile, savePage } from "@/app/actions";
+import type { PageWarning } from "@/lib/page-lint";
 import { Button } from "@/components/ui/button";
 import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
 import { CodeMirrorEditor } from "./codemirror-editor";
@@ -173,18 +174,47 @@ export function PageEditor({
     toast.info("Aucun changement n'a été enregistré.");
   }
 
+  // The page is saved either way — this only tells the author what the render
+  // will drop, so it stays visible long enough to be read and acted upon.
+  function warnOfIgnoredContent(warnings: PageWarning[]) {
+    toast.warning(
+      warnings.length === 1
+        ? "Un élément de la page sera ignoré"
+        : `${warnings.length} éléments de la page seront ignorés`,
+      {
+        duration: 12_000,
+        description: (
+          <ul className="mt-1 list-disc space-y-1 pl-4">
+            {warnings.map((warning, index) => (
+              <li key={index}>
+                {warning.line !== undefined && (
+                  <span className="font-medium">Ligne {warning.line} : </span>
+                )}
+                {warning.message}
+              </li>
+            ))}
+          </ul>
+        ),
+      }
+    );
+  }
+
   function save() {
     const content = viewRef.current?.state.doc.toString() ?? initialContent;
     startTransition(async () => {
       const result = await savePage({ slug, content, tags });
-      if (result && "error" in result) {
+      // Every toast here outlives the navigation (the Toaster lives in the
+      // root layout), so the author reads it on the page that just saved.
+      if ("error" in result) {
         toast.error(result.error);
-      } else if (result && "unchanged" in result) {
-        // Back to the show page anyway: the toast outlives the navigation
-        // (the Toaster lives in the root layout).
-        toast.info("Aucune modification n'a été effectuée.");
-        router.push(`/${slug}`);
+        return;
       }
+      if ("unchanged" in result) {
+        toast.info("Aucune modification n'a été effectuée.");
+      } else if (result.warnings.length > 0) {
+        warnOfIgnoredContent(result.warnings);
+      }
+      router.push(`/${slug}`);
     });
   }
 

@@ -31,6 +31,6 @@ Un littéral statique, lui, n'a **pas de sémantique d'évaluation** : il compil
 
 - Fidèle à la spec JSX **et** à la spec « format MDX » sans exposer une RCE : un composant reçoit un vrai nombre, un vrai booléen, un vrai tableau. Le bridage ne dépend plus de l'arrivée de l'auth — il est en place, et vaut pour tous les auteurs.
 - Le rendu ne peut pas être « moins bridé pour un admin » sans rouvrir cette décision : le sandbox est uniforme.
-- **Un rejet est silencieux** : `width={maVariable}` disparaît sans rien dire à l'auteur. Le plugin collecte les refus (`RejectedProp`), mais aucune surface ne les lit encore.
+- **Le rendu reste muet, l'enregistrement parle.** Le plugin laisse tomber sans rien dire — une page rendue n'a pas d'auteur à qui parler, et un encart d'avertissement s'adresserait au lecteur. C'est `lib/page-lint.ts` qui prévient l'auteur au moment où il enregistre, non bloquant. Les deux partagent `isStaticLiteralExpression`, donc ce qui est refusé et ce qui est annoncé ne peuvent pas diverger.
 - **ADR 0010 s'appuyait en partie sur cette neutralisation** pour écarter les props structurées (`items={...}`) : cet argument tombe, un tableau littéral passe désormais. La décision de `<Menu>` tient toujours sur son autre motif — la lisibilité pour un auteur wiki.
 - Tests : `lib/mdx-literal-props.test.ts` (littéraux acceptés, évaluables refusés sans casser la compilation), vérifiés par mutation.

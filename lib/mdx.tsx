@@ -69,6 +69,18 @@ function loadWikiComponents(): Promise<MDXComponents> {
   return (registryCache ??= buildRegistry());
 }
 
+/**
+ * The tag names the registry answers to. Reads the directory without importing
+ * the modules — the save-time report only needs to know what exists, and must
+ * not drag every wiki component into its graph.
+ */
+export async function listWikiComponentNames(): Promise<string[]> {
+  const files = await readdir(WIKI_COMPONENTS_DIR);
+  return files
+    .filter((file) => file.endsWith(".tsx"))
+    .map((file) => pascalCase(file.slice(0, -".tsx".length)));
+}
+
 async function buildRegistry(): Promise<MDXComponents> {
   const files = await readdir(WIKI_COMPONENTS_DIR);
   const registry: MDXComponents = {};

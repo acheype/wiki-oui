@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { deleteFile } from "@/lib/files";
+import { listWikiComponentNames } from "@/lib/mdx";
+import { type PageWarning, lintPageSource } from "@/lib/page-lint";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
@@ -11,7 +14,10 @@ import { specialSlugs, wikiConfig } from "@/wiki.config";
 const AUTHOR = "Anonyme";
 
 export type ActionError = { error: string };
-export type SaveResult = ActionError | { unchanged: true } | void;
+export type SaveResult =
+  | ActionError
+  | { unchanged: true }
+  | { saved: true; warnings: PageWarning[] };
 
 function normalizeTags(tags: string[]): string[] {
   return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
@@ -63,7 +69,16 @@ export async function savePage(input: {
 
   // Any page can feed the layout (menu, title…), so revalidate the whole tree.
   revalidatePath("/", "layout");
-  redirect(`/${slug}`);
+
+  // Warnings never block a save: the page is already stored, and a wiki must
+  // accept a work in progress. Returning rather than redirecting lets the
+  // editor show them — a redirect here would end the request, and the author
+  // would never learn what the sandbox is about to drop (ADR 0002).
+  const [registry, builders] = await Promise.all([
+    listWikiComponentNames(),
+    loadComponentBuilders(),
+  ]);
+  return { saved: true, warnings: lintPageSource(content, registry, builders) };
 }
 
 export async function deletePage(slug: string): Promise<ActionError | void> {
