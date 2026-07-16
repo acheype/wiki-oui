@@ -120,7 +120,6 @@ export function componentAtCursor(
     spec.defaults,
     found.tag
   );
-  if (!builderState) return null;
   return {
     from: windowFrom + found.from,
     to: windowFrom + found.to,

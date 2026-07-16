@@ -440,22 +440,30 @@ function decodeLiteral(expression: string): { value: PropValue } | null {
 
 // Inverse mapping (docs/component-builder.md): tag → builder state. Absent
 // known props show their default; unknown props are carried verbatim to the
-// regeneration. A known prop bound to a non-literal expression cannot be
-// represented by a field: the whole tag is not builder-editable.
+// regeneration.
+//
+// A known prop bound to a non-literal expression (`width={maVariable}`) has
+// no value a field could show, so the field falls back to its default — and
+// the expression is dropped on regeneration. That loses nothing: the sandbox
+// already refuses to pass it (ADR 0002), so it renders nothing today. The
+// builder used to decline the whole tag instead, which left the one value the
+// author needed to fix as the only one they could not reach.
 export function tagToBuilderState(
   descriptor: ComponentDescriptor,
   defaults: PropDefaults,
   tag: ParsedTag
-): { values: PropValues; unknownAttributes: string[] } | null {
+): { values: PropValues; unknownAttributes: string[] } {
   const values: PropValues = { ...defaults };
   const unknownAttributes: string[] = [];
   for (const attribute of tag.attributes) {
     const spec = descriptor.properties[attribute.name];
     if (!spec || spec.type === "divider") {
+      // An unknown prop is carried raw: its expression stays valid JSX, and
+      // the builder has no business rewriting what it does not describe.
       unknownAttributes.push(attribute.raw);
       continue;
     }
-    if (!attribute.literal) return null;
+    if (!attribute.literal) continue;
     values[attribute.name] = attribute.value;
   }
   return { values, unknownAttributes };

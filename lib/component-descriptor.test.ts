@@ -368,12 +368,47 @@ describe("parseTag + tagToBuilderState (mapping inverse)", () => {
     expect(parseTag("<button />")).toBeNull();
   });
 
-  it("refuses a known prop holding a non-literal expression", () => {
-    const tag = parseTag("<Button text={someVariable} />");
-    expect(tag).not.toBeNull();
-    expect(
-      tagToBuilderState(fullButtonDescriptor(), fullButtonDefaults, tag!)
-    ).toBeNull();
+  // A known prop holding an expression stays editable: it is precisely the
+  // value the author came to fix, and the sandbox drops it anyway (ADR 0002).
+  it("falls a known prop back to its default when it holds an expression", () => {
+    const tag = parseTag('<Button text={someVariable} color="success" />');
+    const state = tagToBuilderState(
+      fullButtonDescriptor(),
+      fullButtonDefaults,
+      tag!
+    );
+    expect(state.values.text).toBe(fullButtonDefaults.text);
+    // The rest of the tag is still read normally.
+    expect(state.values.color).toBe("success");
+  });
+
+  it("drops the expression on regeneration rather than duplicating the prop", () => {
+    const tag = parseTag('<Button link="/a" text={someVariable} />');
+    const state = tagToBuilderState(
+      fullButtonDescriptor(),
+      fullButtonDefaults,
+      tag!
+    );
+    const regenerated = generateTag(
+      "Button",
+      fullButtonDescriptor(),
+      fullButtonDefaults,
+      { ...state.values, text: "Corrigé" },
+      state.unknownAttributes
+    );
+    expect(regenerated).toContain('text="Corrigé"');
+    expect(regenerated).not.toContain("someVariable");
+  });
+
+  it("still carries an unknown prop's expression verbatim", () => {
+    // Not ours to rewrite: it is valid JSX the descriptor says nothing about.
+    const tag = parseTag("<Button text=\"Go\" data-x={someVariable} />");
+    const state = tagToBuilderState(
+      fullButtonDescriptor(),
+      fullButtonDefaults,
+      tag!
+    );
+    expect(state.unknownAttributes).toEqual(["data-x={someVariable}"]);
   });
 });
 
