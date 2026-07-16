@@ -22,12 +22,14 @@ properties:
       right: Droite
   width:
     label: Largeur (pixels)
-    hint: Vide = taille d'origine
+    hint: >-
+      L'image garde ses proportions : elle est réduite pour tenir dans ce
+      cadre, sans jamais être agrandie. Une seule des deux valeurs suffit ;
+      vide = taille d'origine.
     type: number
   height:
     label: Hauteur (pixels)
     type: number
-    advanced: true
   link:
     label: Lien web associé au clic
     type: page-list

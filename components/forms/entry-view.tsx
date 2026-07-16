@@ -1,6 +1,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Prose } from "@/components/page/prose";
+import { DEFAULT_IMAGE_WIDTH, imageUrl } from "@/lib/image-url";
 import { renderMdx } from "@/lib/mdx";
 import {
   type EntryData,
@@ -98,18 +99,18 @@ async function renderField(
       );
     case "image": {
       if (isEmpty(value)) return null;
-      // Honor the field's configured display size (docs/forms.md); default to
+      // Honor the field's configured display box (docs/forms.md); default to
       // a page-width bound when neither dimension is set.
-      const resize = new URLSearchParams();
-      if (field.resizeWidth) resize.set("w", String(field.resizeWidth));
-      if (field.resizeHeight) resize.set("h", String(field.resizeHeight));
-      if (![...resize].length) resize.set("w", "800");
+      const box =
+        field.resizeWidth || field.resizeHeight
+          ? { width: field.resizeWidth, height: field.resizeHeight }
+          : { width: DEFAULT_IMAGE_WIDTH };
       return (
         // eslint-disable-next-line @next/next/no-img-element -- pool file, resize API
         <img
-          src={`/api/files/${encodeURIComponent(String(value))}?${resize}`}
+          src={imageUrl(String(value), box)}
           alt=""
-          className="max-w-full rounded-md"
+          className="h-auto max-w-full rounded-md"
         />
       );
     }

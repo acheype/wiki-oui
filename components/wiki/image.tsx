@@ -1,4 +1,5 @@
 import { fileUrl } from "@/lib/files";
+import { imageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
 import { ImageLightbox } from "./internal/image-lightbox";
 import { WikiLink } from "./wiki-link";
@@ -9,7 +10,7 @@ export type ImageProps = {
   /** Alternative text for visually impaired readers. */
   alt?: string;
   align?: "none" | "left" | "center" | "right";
-  /** Pixels; empty means the original size. */
+  /** Pixels; a bounding box keeping the ratio, empty means the original size. */
   width?: number;
   height?: number;
   /** Web link or wiki page opened when clicking the image. */
@@ -47,7 +48,11 @@ export function Image({
 }: ImageProps) {
   if (!file) return null;
 
-  const src = fileUrl(file);
+  // width/height are a bounding box served by the resize API, not a stretch:
+  // asking for a size downloads that size, and the ratio is always kept. The
+  // lightbox keeps the untouched original — its whole point is full size.
+  const src = imageUrl(file, { width, height });
+  const fullSize = fileUrl(file);
   const wrapped = Boolean(link) || lightbox;
   const imgClassName = cn(
     "h-auto max-w-full",
@@ -59,14 +64,7 @@ export function Image({
 
   const img = (
     // eslint-disable-next-line @next/next/no-img-element -- served by our files API, dimensions unknown
-    <img
-      src={src}
-      alt={alt ?? ""}
-      title={caption}
-      width={width}
-      height={height}
-      className={imgClassName}
-    />
+    <img src={src} alt={alt ?? ""} title={caption} className={imgClassName} />
   );
 
   if (link) {
@@ -78,7 +76,7 @@ export function Image({
   }
   if (lightbox) {
     return (
-      <ImageLightbox src={src} alt={alt} className={alignClasses[align]}>
+      <ImageLightbox src={fullSize} alt={alt} className={alignClasses[align]}>
         {img}
       </ImageLightbox>
     );

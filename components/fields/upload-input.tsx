@@ -7,6 +7,7 @@
 import { FileText, ImagePlus, Paperclip, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { imageUrl } from "@/lib/image-url";
 import { toast } from "sonner";
 import { uploadFile } from "./upload";
 
@@ -47,7 +48,7 @@ export function UploadInput({
         {kind === "image" ? (
           // eslint-disable-next-line @next/next/no-img-element -- pool file, resize API
           <img
-            src={`/api/files/${encodeURIComponent(value)}?w=160&h=160`}
+            src={imageUrl(value, { width: 160, height: 160 })}
             alt=""
             className="size-20 rounded-md border object-cover"
           />

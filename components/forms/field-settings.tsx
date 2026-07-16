@@ -237,6 +237,11 @@ function TypeSpecificSettings({
             value={field.resizeHeight}
             onChange={(resizeHeight) => onChange({ resizeHeight })}
           />
+          <p className="text-xs text-muted-foreground">
+            L&apos;image garde ses proportions : elle est réduite pour tenir
+            dans ce cadre, sans jamais être agrandie. Renseigner une seule des
+            deux valeurs suffit ; vide = taille d&apos;origine.
+          </p>
         </div>
       );
     case "date":
