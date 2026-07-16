@@ -5,12 +5,19 @@ import { mdxAnnotations } from "mdx-annotations";
 import remarkGfm from "remark-gfm";
 import type { MDXComponents } from "mdx/types";
 import { pascalCase } from "@/lib/component-descriptor";
+import { allowLiteralPropsOnly } from "@/lib/mdx-literal-props";
 import { WikiLink } from "@/components/wiki/wiki-link";
 
-// Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote strips
-// import/export and JS expressions by default (blockJS) — and it appends its
-// stripping plugins AFTER ours, so mdx-annotations consumes its {{ … }}
-// expressions before neutralization kicks in.
+// Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote appends its
+// own plugins AFTER ours, so mdx-annotations consumes its {{ … }} expressions
+// before neutralization kicks in.
+//
+// blockJS is off on purpose: its filter drops every attribute expression
+// whatever it holds, so `<Image width={400} />` silently lost its width — JSX
+// props could only ever be strings. allowLiteralPropsOnly replaces it with an
+// allowlist of static literals, which is both faithful to JSX (a component
+// gets a real number) and stricter than a denylist of dangerous globals.
+// blockDangerousJS stays on as a second, free layer.
 export async function renderMdx(source: string): Promise<React.ReactNode> {
   try {
     const registry = await loadWikiComponents();
@@ -22,8 +29,14 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
         a: WikiLink,
       },
       options: {
+        blockJS: false,
+        blockDangerousJS: true,
         mdxOptions: {
-          remarkPlugins: [mdxAnnotations.remark, remarkGfm],
+          remarkPlugins: [
+            mdxAnnotations.remark,
+            remarkGfm,
+            allowLiteralPropsOnly(),
+          ],
           rehypePlugins: [mdxAnnotations.rehype],
           recmaPlugins: [mdxAnnotations.recma],
         },

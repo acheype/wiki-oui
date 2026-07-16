@@ -125,6 +125,9 @@ importers:
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
+      unist-util-visit:
+        specifier: ^5.1.0
+        version: 5.1.0
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
@@ -141,6 +144,9 @@ importers:
       '@tailwindcss/typography':
         specifier: ^0.5.20
         version: 0.5.20(tailwindcss@4.3.2)
+      '@types/estree':
+        specifier: ^1.0.9
+        version: 1.0.9
       '@types/leaflet':
         specifier: ^1.9.21
         version: 1.9.21
