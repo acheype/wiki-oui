@@ -3,9 +3,9 @@ import {
   type ComponentDescriptor,
   type DescriptorField,
   findComponentTag,
+  type ParsedTag,
   generateMarkdownLink,
   generateTag,
-  parseTag,
   tagToBuilderState,
   validateDescriptor,
   visibleFields,
@@ -333,9 +333,16 @@ describe("generateTag", () => {
   });
 });
 
-describe("parseTag + tagToBuilderState (mapping inverse)", () => {
+// The parser has one entry point, findComponentTag — the cursor-anchored
+// pencil is its only caller. These cases feed it a lone tag and take what it
+// found there, so they exercise the code the editor actually runs.
+function tagAt(source: string): ParsedTag | null {
+  return findComponentTag(source, 0)?.tag ?? null;
+}
+
+describe("tagAt + tagToBuilderState (mapping inverse)", () => {
   it("reads values back, absent props showing their defaults", () => {
-    const tag = parseTag('<Button text="Mon bouton" newWindow />');
+    const tag = tagAt('<Button text="Mon bouton" newWindow />');
     expect(tag?.name).toBe("Button");
     const state = tagToBuilderState(
       fullButtonDescriptor(),
@@ -354,7 +361,7 @@ describe("parseTag + tagToBuilderState (mapping inverse)", () => {
   });
 
   it("keeps a hand-written unknown prop verbatim", () => {
-    const tag = parseTag('<Button text="Go" className="text-right" />');
+    const tag = tagAt('<Button text="Go" className="text-right" />');
     const state = tagToBuilderState(
       fullButtonDescriptor(),
       fullButtonDefaults,
@@ -364,14 +371,14 @@ describe("parseTag + tagToBuilderState (mapping inverse)", () => {
   });
 
   it("returns null on a malformed tag", () => {
-    expect(parseTag('<Button text="Mon bouton>')).toBeNull();
-    expect(parseTag("<button />")).toBeNull();
+    expect(tagAt('<Button text="Mon bouton>')).toBeNull();
+    expect(tagAt("<button />")).toBeNull();
   });
 
   // A known prop holding an expression stays editable: it is precisely the
   // value the author came to fix, and the sandbox drops it anyway (ADR 0002).
   it("falls a known prop back to its default when it holds an expression", () => {
-    const tag = parseTag('<Button text={someVariable} color="success" />');
+    const tag = tagAt('<Button text={someVariable} color="success" />');
     const state = tagToBuilderState(
       fullButtonDescriptor(),
       fullButtonDefaults,
@@ -383,7 +390,7 @@ describe("parseTag + tagToBuilderState (mapping inverse)", () => {
   });
 
   it("drops the expression on regeneration rather than duplicating the prop", () => {
-    const tag = parseTag('<Button link="/a" text={someVariable} />');
+    const tag = tagAt('<Button link="/a" text={someVariable} />');
     const state = tagToBuilderState(
       fullButtonDescriptor(),
       fullButtonDefaults,
@@ -402,7 +409,7 @@ describe("parseTag + tagToBuilderState (mapping inverse)", () => {
 
   it("still carries an unknown prop's expression verbatim", () => {
     // Not ours to rewrite: it is valid JSX the descriptor says nothing about.
-    const tag = parseTag("<Button text=\"Go\" data-x={someVariable} />");
+    const tag = tagAt("<Button text=\"Go\" data-x={someVariable} />");
     const state = tagToBuilderState(
       fullButtonDescriptor(),
       fullButtonDefaults,
@@ -416,7 +423,7 @@ describe("idempotence", () => {
   it("re-validating a builder-generated tag without change regenerates it identically", () => {
     const source =
       '<Button text="Mon bouton" color="success" newWindow className="text-right" />';
-    const tag = parseTag(source)!;
+    const tag = tagAt(source)!;
     const state = tagToBuilderState(
       fullButtonDescriptor(),
       fullButtonDefaults,
@@ -438,7 +445,7 @@ describe("idempotence", () => {
       const state = tagToBuilderState(
         fullButtonDescriptor(),
         fullButtonDefaults,
-        parseTag(source)!
+        tagAt(source)!
       )!;
       return generateTag(
         "Button",

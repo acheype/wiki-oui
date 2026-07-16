@@ -313,16 +313,12 @@ export interface ParsedTag {
   attributes: TagAttribute[];
 }
 
-// Parses one self-closing component tag. Returns null on anything it does
-// not fully understand: the caller then treats the tag as malformed and
-// offers no pencil (docs/architecture.md).
-export function parseTag(source: string): ParsedTag | null {
-  const prefix = parseTagPrefix(source);
-  return prefix && prefix.length === source.length ? prefix.tag : null;
-}
-
-// Same parse, but on a text that continues after the tag; reports how far
-// the tag reaches so findComponentTag can locate it inside a document.
+// Parses one self-closing component tag, and reports how far it reaches so
+// findComponentTag can locate it inside a document. Returns null on anything
+// it does not fully understand — the invariant the pencil rests on: a span is
+// only ever returned when every character in it was understood, because that
+// span is what gets overwritten. The caller then offers no pencil
+// (docs/architecture.md).
 function parseTagPrefix(
   source: string
 ): { tag: ParsedTag; length: number } | null {
