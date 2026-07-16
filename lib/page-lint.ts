@@ -15,8 +15,7 @@ import { type EstreeProgram, isStaticLiteralExpression } from "./mdx-literal-pro
 // `<Menu>…</Menu>` and mistake JSX inside a code fence for a component.
 
 export interface PageWarning {
-  component: string;
-  /** French, author-facing: it goes straight to the editor's toast. */
+  /** French, author-facing: it goes straight to the editor's panel. */
   message: string;
   line?: number;
 }
@@ -34,7 +33,23 @@ export function lintPageSource(
   const known = new Set(registry);
   const specs = new Map(builders.map((spec) => [spec.name, spec]));
 
-  const tree = unified().use(remarkParse).use(remarkMdx).parse(source);
+  // MDX that does not parse cannot be walked — and saving must stay possible:
+  // the page is the author's, broken or not, and it will say so itself (the
+  // render shows a compile-error box). So the parse failure *is* the warning,
+  // pointing at its line, rather than an exception that would break the save.
+  let tree;
+  try {
+    tree = unified().use(remarkParse).use(remarkMdx).parse(source);
+  } catch (error) {
+    return [
+      {
+        line: (error as { line?: number }).line,
+        message: `le MDX de cette page ne compile pas, rien ne s'affichera : ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      },
+    ];
+  }
 
   visit(tree, (rawNode) => {
     const node = rawNode as MdxJsxNode;
@@ -51,7 +66,6 @@ export function lintPageSource(
 
     if (!known.has(name)) {
       warnings.push({
-        component: name,
         line,
         message: `le composant « ${name} » n'existe pas : rien ne sera affiché.`,
       });
@@ -69,7 +83,6 @@ export function lintPageSource(
     for (const attribute of node.attributes ?? []) {
       if (attribute.type === "mdxJsxExpressionAttribute") {
         warnings.push({
-          component: name,
           line,
           message: `sur « ${name} », les attributs étalés ({...}) sont ignorés.`,
         });
@@ -82,7 +95,6 @@ export function lintPageSource(
       const property = properties[attributeName];
       if (!property || property.type === "divider") {
         warnings.push({
-          component: name,
           line,
           message: `« ${name} » n'a pas d'attribut « ${attributeName} » : il sera ignoré.`,
         });
@@ -98,7 +110,6 @@ export function lintPageSource(
         !isStaticLiteralExpression(value.data?.estree)
       ) {
         warnings.push({
-          component: name,
           line,
           message: `« ${attributeName} » sur « ${name} » sera ignoré : seules les valeurs littérales sont acceptées, pas une expression à évaluer.`,
         });
@@ -108,7 +119,6 @@ export function lintPageSource(
       const declared = property.options;
       if (declared && typeof value === "string" && !(value in declared)) {
         warnings.push({
-          component: name,
           line,
           message: `« ${attributeName}="${value}" » sur « ${name} » n'est pas une valeur attendue (${Object.keys(declared).join(", ")}).`,
         });
@@ -118,7 +128,6 @@ export function lintPageSource(
     for (const [attributeName, property] of Object.entries(properties)) {
       if (property.required && !written.has(attributeName)) {
         warnings.push({
-          component: name,
           line,
           message: `« ${name} » attend l'attribut « ${attributeName} » : sans lui, rien ne sera affiché.`,
         });

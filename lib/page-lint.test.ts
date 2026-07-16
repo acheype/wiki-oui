@@ -97,6 +97,27 @@ describe("what would silently do nothing", () => {
   });
 });
 
+describe("MDX that does not even parse", () => {
+  // Saving must never become impossible: the author owns the page, broken or
+  // not. Throwing here would reject the action behind the save button.
+  const BROKEN = [
+    '<Image width= />',
+    '<Image file="a.png"',
+    '<Image width=400 />',
+    "texte { cassé",
+  ];
+
+  it.each(BROKEN)("reports %j instead of throwing", (source) => {
+    const found = lint(source);
+    expect(found).toHaveLength(1);
+    expect(found[0].message).toContain("ne compile pas");
+  });
+
+  it("points at the line it broke on", () => {
+    expect(lint("# Titre\n\ntexte\n\n<Image width= />")[0].line).toBe(5);
+  });
+});
+
 describe("what must never be flagged", () => {
   it("ignores JSX inside a code fence", () => {
     expect(lint('```mdx\n<Buton text="exemple" />\n```\n')).toEqual([]);
