@@ -118,7 +118,7 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 </Menu>
 \`\`\`
 
-## Attributs (avancé)
+## Annotations (avancé)
 
 Ajoutez un identifiant ou une classe à l'élément qui précède :
 

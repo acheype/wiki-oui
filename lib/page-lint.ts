@@ -70,7 +70,7 @@ export function lintPageSource(
     if (!known.has(name)) {
       warnings.push({
         line,
-        message: `Le composant « ${name} » n'existe pas. Rien ne sera affiché.`,
+        message: `Le composant « ${name} » n'existe pas. Il ne sera pas affiché.`,
       });
       return;
     }
@@ -87,7 +87,7 @@ export function lintPageSource(
       if (attribute.type === "mdxJsxExpressionAttribute") {
         warnings.push({
           line,
-          message: `Sur « ${name} », les attributs étalés ({...}) sont ignorés.`,
+          message: `Sur « ${name} », les propriétés étalées ({...}) sont ignorées.`,
         });
         continue;
       }
@@ -99,7 +99,7 @@ export function lintPageSource(
       if (!property || property.type === "divider") {
         warnings.push({
           line,
-          message: `« ${name} » n'a pas d'attribut « ${attributeName} ». Il sera ignoré.`,
+          message: `Le composant « ${name} » n'a pas de propriété « ${attributeName} ». Elle sera ignorée.`,
         });
         continue;
       }
@@ -108,7 +108,7 @@ export function lintPageSource(
       if (received === UNREADABLE) {
         warnings.push({
           line,
-          message: `L'attribut « ${attributeName} » de « ${name} » contient une expression à évaluer. Seules les valeurs littérales sont acceptées, il sera ignoré.`,
+          message: `La propriété « ${attributeName} » de « ${name} » contient une expression à évaluer. Seules les valeurs littérales sont acceptées, elle sera ignorée.`,
         });
         continue;
       }
@@ -117,7 +117,7 @@ export function lintPageSource(
       if (misfit) {
         warnings.push({
           line,
-          message: `L'attribut « ${attributeName} » de « ${name} » ${misfit}`,
+          message: `La propriété « ${attributeName} » de « ${name} » ${misfit}`,
         });
         continue;
       }
@@ -126,7 +126,7 @@ export function lintPageSource(
       if (declared && typeof received === "string" && !(received in declared)) {
         warnings.push({
           line,
-          message: `L'attribut « ${attributeName} » de « ${name} » n'accepte pas la valeur « ${received} ». Valeurs possibles : ${Object.keys(declared).join(", ")}.`,
+          message: `La propriété « ${attributeName} » de « ${name} » n'accepte pas la valeur « ${received} ». Valeurs possibles : ${Object.keys(declared).join(", ")}.`,
         });
       }
     }
@@ -135,7 +135,7 @@ export function lintPageSource(
       if (property.required && !written.has(attributeName)) {
         warnings.push({
           line,
-          message: `L'attribut « ${attributeName} » est obligatoire sur « ${name} ». Sans lui, rien ne sera affiché.`,
+          message: `La propriété « ${attributeName} » est obligatoire sur « ${name} ». Sans elle, le composant ne sera pas affiché.`,
         });
       }
     }
@@ -179,7 +179,7 @@ function propMisfit(kind: PropKind, value: unknown): string | null {
     case "boolean":
       return typeof value === "boolean"
         ? null
-        : "attend {true} ou {false}. Toute autre valeur est comprise comme vraie, y compris « false ».";
+        : "attend {true} ou {false}.";
     case "number":
       return typeof value === "number"
         ? null
@@ -188,7 +188,7 @@ function propMisfit(kind: PropKind, value: unknown): string | null {
       // A number reads back as its text; a boolean renders as nothing at all.
       return typeof value === "string" || typeof value === "number"
         ? null
-        : "attend du texte. Rien ne sera affiché.";
+        : "attend du texte.";
   }
 }
 

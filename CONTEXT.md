@@ -36,6 +36,10 @@ _Avoid_: Latest, dernière révision (trompeur : peut être une restauration)
 Un élément riche insérable dans le contenu d'une page (ex. Bouton, Image). Rendu via une syntaxe façon MDX, mais seuls les composants d'une liste blanche sont autorisés (voir Registre de composants). Les composants intégrés sont rendus dès le MVP ; l'*authoring* (menu « Composants », ComponentBuilder) arrive en v0.2.
 _Avoid_: Widget, plugin, action
 
+**Propriété**:
+Un paramètre d'un composant, écrit dans sa balise (`<Button text="Salut" />`) et décrit par une clé du bloc `properties` de son descripteur — qui en fixe le type, le défaut et les valeurs possibles. Le descripteur est le **contrat** : ce qu'il promet fait référence, pas ce qu'un composant tolère (`width="200"` rend, mais `type: number` promet un nombre — c'est signalé). En code, une propriété est une **prop** React ; « attribut » ne désigne que la syntaxe JSX écrite dans la balise, et ne sort jamais dans un texte d'UI. Ce qu'un auteur écrit et que le descripteur ne décrit pas est ignoré au rendu et signalé à l'enregistrement (`lib/page-lint.ts`).
+_Avoid_: Attribut, paramètre, option, champ (le champ est le widget du builder, pas la propriété qu'il alimente)
+
 **Registre de composants**:
 La liste blanche des composants autorisés au rendu, construite automatiquement à partir du répertoire `/components/wiki` plus ceux déclarés dans le fichier de configuration. Une balise hors registre n'est pas rendue. La présence d'un descripteur co-localisé (`button.yaml`) est un fait indépendant : il pilote le menu « Composants » de l'éditeur et la génération du ComponentBuilder, pas l'autorisation de rendu.
 

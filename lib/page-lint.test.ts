@@ -54,13 +54,13 @@ describe("what would silently do nothing", () => {
     );
   });
 
-  it("flags a missing required attribute", () => {
+  it("flags a missing required prop", () => {
     expect(messages("<Image />")[0]).toContain("« file » est obligatoire");
   });
 
-  it("flags an unknown attribute", () => {
+  it("flags an unknown prop", () => {
     expect(messages('<Image file="a.png" foo="bar" />')[0]).toContain(
-      "n'a pas d'attribut « foo »"
+      "n'a pas de propriété « foo »"
     );
   });
 
@@ -78,7 +78,7 @@ describe("what would silently do nothing", () => {
 
   it("flags a spread", () => {
     expect(messages('<Image file="a.png" {...props} />')[0]).toContain(
-      "étalés"
+      "étalées"
     );
   });
 
@@ -90,10 +90,10 @@ describe("what would silently do nothing", () => {
     expect(lint('# Titre\n\ntexte\n\n<Buton />')[0].line).toBe(5);
   });
 
-  it("treats a divider as no attribute at all", () => {
+  it("treats a divider as no prop at all", () => {
     // A divider is builder chrome, never a prop the component accepts.
     expect(messages('<Image file="a.png" effects="oui" />')[0]).toContain(
-      "n'a pas d'attribut « effects »"
+      "n'a pas de propriété « effects »"
     );
   });
 });
@@ -124,11 +124,11 @@ describe("a value the prop cannot use", () => {
     );
   });
 
-  it("flags a string on a checkbox, quoting the trap", () => {
+  it("flags a string on a checkbox", () => {
     // Verified: whiteBorder="false" turns the border ON — every non-empty
     // string is truthy, so this does the opposite of what is written.
     expect(messages('<Image file="a.png" whiteBorder="false" />')[0]).toContain(
-      "Toute autre valeur est comprise comme vraie"
+      "attend {true} ou {false}"
     );
   });
 

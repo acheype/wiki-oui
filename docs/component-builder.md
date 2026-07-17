@@ -44,7 +44,7 @@ properties:
 
 Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase anglais). Le ComponentBuilder génère du MDX : `<Button text="Mon bouton" link="ma-page" color="success" newWindow />`.
 
-### Attributs d'un champ
+### Clés d'un champ
 
 | Clé | Rôle |
 |---|---|
