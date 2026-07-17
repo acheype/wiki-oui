@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { specialSlugs } from "@/wiki.config";
 import { DeletePageButton } from "./delete-page-button";
+import { RenamePageButton } from "./rename-page-button";
 
 export function PageActions({ slug, tags }: { slug: string; tags: string[] }) {
   return (
@@ -28,7 +29,12 @@ export function PageActions({ slug, tags }: { slug: string; tags: string[] }) {
             Historique
           </Link>
         </Button>
-        {!specialSlugs.includes(slug) && <DeletePageButton slug={slug} />}
+        {!specialSlugs.includes(slug) && (
+          <>
+            <RenamePageButton slug={slug} />
+            <DeletePageButton slug={slug} />
+          </>
+        )}
       </div>
     </div>
   );
