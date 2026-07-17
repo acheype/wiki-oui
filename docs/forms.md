@@ -48,7 +48,7 @@ Trois identifiants suivent le même motif — **dérivé automatiquement, caché
 
 En cas de **collision** du slug de fiche (avec une page ou une autre fiche) : message explicite + révélation du champ slug pour que l'utilisateur en choisisse un autre — jamais de suffixe automatique silencieux.
 
-Nuance depuis « Changer l'adresse » (ADR 0016) : « figé » signifie *plus jamais dérivé ni éditable en saisie* — mais le slug d'une fiche peut être **renommé** par le geste d'administrateur, qui réécrit toutes les références. Le `name` d'un champ, lui, reste réellement immuable ; `Form.slug` le reste aussi jusqu'à l'extension du renommage aux formulaires.
+Nuance depuis ADR 0016 : « figé » signifie *plus jamais dérivé ni éditable en saisie* — mais le slug d'une fiche peut être **renommé** par « Changer l'adresse », et `Form.slug` par « Changer l'identifiant » (bouton dans l'en-tête du FormBuilder), gestes d'administrateur qui réécrivent toutes les références. Seul le `name` d'un champ reste réellement immuable.
 
 ## Écrans
 
@@ -71,7 +71,7 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 - **Palette** des types de champs → **drag & drop** (dnd-kit) vers le canvas, réordonnancement inclus ;
 - clic sur un champ du canvas → **panneau de paramétrage** (les paramètres du type, générés par le renderer de champs partagé — ADR 0015) ;
 - champ **`title` présent par défaut** dans tout nouveau formulaire, non supprimable (voir « Titre & slug ») ;
-- en-tête : `name` du formulaire → `slug` dérivé (révélable) ;
+- en-tête : `name` du formulaire → `slug` dérivé, affiché sous le nom avec un bouton « Personnaliser » (création) ou « Changer l'identifiant » (édition, dialogue de renommage ADR 0016) ;
 - onglet/section **Gabarit** : éditeur CodeMirror existant (coloration MDX, barre d'outils, aide-mémoire) + **aperçu** rendu sur des valeurs d'exemple, via la mécanique d'aperçu existante ;
 - **Enregistrer** valide le descripteur par le méta-schéma Zod + les règles croisées, avec messages ciblés.
 

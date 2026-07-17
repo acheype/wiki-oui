@@ -20,14 +20,21 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronRight, GripVertical, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, Pencil, Plus, Save, Signpost, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   type FormDetail,
   type SaveFormResult,
+  countFormReferences,
+  renameForm,
   saveForm,
 } from "@/app/form-actions";
+import {
+  RenameSlugDialog,
+  impactParts,
+  impactTotal,
+} from "@/components/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,8 +47,9 @@ import {
   type FormField,
   type FormFieldType,
 } from "@/lib/form-descriptor";
-import { slugify } from "@/lib/slug";
+import { normalizeSlugInput, slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import { FieldSettings } from "./field-settings";
 
 // A canvas field: the descriptor field plus builder-only bookkeeping. `_id`
@@ -103,17 +111,20 @@ export function FormBuilder({
   initial,
   forms,
   onSaved,
+  onRenamed,
 }: {
   /** Loaded form when editing; null for a new form. */
   initial: FormDetail | null;
   /** Other forms, for the form-list and options-source pickers. */
   forms: { slug: string; name: string }[];
   onSaved: (slug: string) => void;
+  /** Called after « Changer l'identifiant », so the parent fixes its URL. */
+  onRenamed?: (slug: string) => void;
 }) {
   const isNew = initial === null;
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
-  const [slugRevealed, setSlugRevealed] = useState(false);
+  const [slugCustomized, setSlugCustomized] = useState(false);
   const [fields, setFields] = useState<CanvasField[]>(
     initial ? toCanvas(initial.schema) : [titleField(false)]
   );
@@ -160,11 +171,17 @@ export function FormBuilder({
     });
   }
 
-  // Slug derives from the name until revealed and customized (ADR 0014);
-  // frozen once the form exists.
+  // Slug derives from the name until customized (ADR 0014); once the form
+  // exists it only moves through « Changer l'identifiant » (ADR 0016).
   function onNameChange(value: string) {
     setName(value);
-    if (isNew && !slugRevealed) setSlug(slugify(value));
+    if (isNew && !slugCustomized) setSlug(slugify(value));
+  }
+
+  function handleRenamed(newSlug: string) {
+    setSlug(newSlug);
+    toast.success("Identifiant modifié. Les références ont été mises à jour.");
+    onRenamed?.(newSlug);
   }
 
   function save() {
@@ -203,12 +220,13 @@ export function FormBuilder({
             placeholder="ex. Annuaire des membres"
             onChange={(event) => onNameChange(event.target.value)}
           />
-          <SlugReveal
+          <FormIdentity
             isNew={isNew}
-            revealed={slugRevealed}
+            customized={slugCustomized}
             slug={slug}
-            onReveal={() => setSlugRevealed(true)}
-            onChange={(value) => setSlug(slugify(value))}
+            onCustomize={() => setSlugCustomized(true)}
+            onChange={(value) => setSlug(normalizeSlugInput(value))}
+            onRenamed={handleRenamed}
           />
         </div>
         <Button onClick={save} disabled={isPending}>
@@ -369,47 +387,103 @@ function CanvasRow({
   );
 }
 
-function SlugReveal({
+// The form's identity, under its name (docs/forms.md, ADR 0014/0016). New
+// form: derived from the name, customizable until the first save behind an
+// explicit « Personnaliser » button. Existing form: shown plainly, and only
+// « Changer l'identifiant » can move it (the ADR 0016 retcon dialog).
+function FormIdentity({
   isNew,
-  revealed,
+  customized,
   slug,
-  onReveal,
+  onCustomize,
   onChange,
+  onRenamed,
 }: {
   isNew: boolean;
-  revealed: boolean;
+  customized: boolean;
   slug: string;
-  onReveal: () => void;
+  onCustomize: () => void;
   onChange: (slug: string) => void;
+  onRenamed: (slug: string) => void;
 }) {
-  // An existing form's slug is frozen (ADR 0014): shown, never edited.
   if (!isNew) {
     return (
-      <p className="text-xs text-muted-foreground">
-        Identifiant : <code className="font-mono">{slug}</code> (figé)
-      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm">
+          Identifiant :{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+            {slug}
+          </code>
+        </p>
+        <RenameSlugDialog
+          trigger={
+            <Button type="button" variant="outline" size="sm">
+              <Signpost />
+              Changer l&apos;identifiant
+            </Button>
+          }
+          title="Changer l'identifiant du formulaire"
+          currentLabel="Identifiant actuel"
+          current={slug}
+          inputLabel="Nouvel identifiant"
+          confirmLabel="Changer l'identifiant"
+          searchingText="Recherche des utilisations de cet identifiant…"
+          impactSentence={formImpactSentence}
+          warning={
+            <>
+              Les liens copiés vers{" "}
+              <span className="font-mono">/formulaires?id={slug}</span> ou{" "}
+              <span className="font-mono">/fiches?formulaire={slug}</span> ne
+              fonctionneront plus.
+            </>
+          }
+          fetchImpact={() => countFormReferences(slug)}
+          rename={(newSlug) => renameForm(slug, newSlug)}
+          onRenamed={onRenamed}
+        />
+      </div>
     );
   }
-  if (!revealed) {
+  if (!customized) {
     return (
-      <button
-        type="button"
-        onClick={onReveal}
-        className="flex items-center gap-1 justify-self-start text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ChevronRight className="size-3.5" aria-hidden />
-        Identifiant : <code className="font-mono">{slug || "…"}</code>
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm text-muted-foreground">
+          Identifiant :{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+            {slug || "…"}
+          </code>
+        </p>
+        <Button type="button" variant="ghost" size="sm" onClick={onCustomize}>
+          <Pencil />
+          Personnaliser
+        </Button>
+      </div>
     );
   }
   return (
-    <Input
-      value={slug}
-      className="h-8 font-mono text-xs"
-      placeholder="identifiant"
-      onChange={(event) => onChange(event.target.value)}
-    />
+    <div className="grid gap-1.5">
+      <Input
+        value={slug}
+        className="h-8 font-mono text-xs"
+        placeholder="identifiant"
+        aria-label="Identifiant du formulaire"
+        onChange={(event) => onChange(event.target.value)}
+      />
+      <p className="text-xs text-muted-foreground">
+        Minuscules, chiffres et tirets. Modifiable après enregistrement via
+        «&nbsp;Changer l&apos;identifiant&nbsp;».
+      </p>
+    </div>
   );
+}
+
+function formImpactSentence(impact: SlugReferenceImpact): string {
+  const parts = impactParts(impact);
+  if (parts === null) {
+    return "Rien n'utilise cet identifiant dans le wiki.";
+  }
+  const verb = impactTotal(impact) > 1 ? "utilisent" : "utilise";
+  return `${parts} ${verb} cet identifiant : les références seront mises à jour automatiquement, historique compris.`;
 }
 
 // The optional MDX template that lays out an entry at render (docs/forms.md):

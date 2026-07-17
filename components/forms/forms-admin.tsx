@@ -248,6 +248,10 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
         initial={initial}
         forms={forms}
         onSaved={() => router.push("/formulaires")}
+        // replace, not push: the old ?id= no longer answers, going "back" to
+        // it would only show « introuvable ». BuilderScreen refetches but the
+        // builder stays mounted, so unsaved canvas edits survive.
+        onRenamed={(slug) => router.replace(`/formulaires?id=${slug}`)}
       />
     </div>
   );

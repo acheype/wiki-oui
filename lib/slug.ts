@@ -19,6 +19,18 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
+// Live-typing normalization for slug inputs: lowercase, spaces to dashes,
+// accents transliterated. Unlike slugify it keeps interior and trailing
+// dashes — otherwise hyphens are impossible to type — and leaves full
+// validity to the save- or confirm-time isValidSlug check.
+export function normalizeSlugInput(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+}
+
 // Internal wiki href as written by authors (ADR 0006): a bare slug, optionally
 // followed by a handler segment and/or an anchor, e.g. "ma-page",
 // "ma-page/edit", "ma-page#section".
