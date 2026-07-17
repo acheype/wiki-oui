@@ -47,6 +47,30 @@ describe("a page that holds up raises nothing", () => {
   });
 });
 
+describe("a tag the sandbox refuses", () => {
+  it("flags a script, the plainest vector there was", () => {
+    expect(messages('<script src="https://evil.tld/x.js" />')[0]).toContain(
+      "« <script> » n'est pas autorisée"
+    );
+  });
+
+  it("flags an iframe, pointing the author at nothing less than the truth", () => {
+    expect(messages('<iframe src="https://example.com" />')[0]).toContain(
+      "« <iframe> » n'est pas autorisée"
+    );
+  });
+
+  it("stays silent on the tags that mark up prose", () => {
+    expect(lint("<div><p>Un <strong>mot</strong>.</p></div>")).toEqual([]);
+  });
+
+  it("stays silent on markdown, which never takes the JSX path", () => {
+    expect(lint("| a | b |\n|---|---|\n| 1 | 2 |\n\n- [ ] à faire\n")).toEqual(
+      []
+    );
+  });
+});
+
 describe("what would silently do nothing", () => {
   it("flags an unknown component", () => {
     expect(messages('<Buton text="Salut" />')[0]).toContain(

@@ -109,6 +109,7 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 
 - Menu de navigation : une liste imbriquée entre \`<Menu>\` et \`</Menu>\` devient un menu à plusieurs niveaux. Un item est un texte, un lien ou un \`<Button>\`.
 - Bouton : \`<Button icon="lucide:settings" text="Configuration" link="ma-page" />\` — les icônes viennent des jeux Iconify embarqués (noms en anglais), à choisir via le sélecteur de l'éditeur.
+- Page d'un autre site : \`<Embed url="https://example.com" title="Description pour les lecteurs d'écran" />\` — remplace la balise \`<iframe>\`, qui n'est pas autorisée.
 
 \`\`\`
 <Menu>
@@ -128,6 +129,12 @@ Ajoutez un identifiant ou une classe à l'élément qui précède :
 Classes utilisables (les autres sont sans effet) :
 
 - Alignement : \`text-left\`, \`text-center\`, \`text-right\`, \`text-justify\`
+
+## Balises HTML (avancé)
+
+Vous pouvez taper directement les balises qui mettent en forme du texte : \`<div>\`, \`<span>\`, \`<details>\`/\`<summary>\`, \`<figure>\`, \`<sup>\`, \`<sub>\`, \`<kbd>\`, \`<mark>\`, \`<abbr>\`, les titres, les listes et les tableaux.
+
+Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<iframe>\`, \`<form>\`, \`<object>\`, \`<embed>\`, \`<link>\`. L'éditeur vous prévient avant d'enregistrer. Pour afficher la page d'un autre site, utilisez le composant \`<Embed>\` ci-dessus.
 `,
 };
 

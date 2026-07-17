@@ -4,6 +4,7 @@ import { unified } from "unified";
 import { visit } from "unist-util-visit";
 import { type PropKind, propKind } from "./component-descriptor";
 import type { ComponentBuilderSpec } from "./component-descriptors";
+import { isAllowedHostElement, isHostElement } from "./mdx-host-elements";
 import { type EstreeProgram, staticLiteralValue } from "./mdx-literal-props";
 
 // What a page's MDX says versus what the registry and the descriptors can
@@ -62,10 +63,21 @@ export function lintPageSource(
     ) {
       return;
     }
-    // A null name is a fragment (<>…</>), a lowercase one a plain html tag.
+    // A null name is a fragment (<>…</>).
     const name = node.name;
-    if (!name || !/^[A-Z]/.test(name)) return;
+    if (!name) return;
     const line = node.position?.start.line;
+
+    if (isHostElement(name)) {
+      if (!isAllowedHostElement(name)) {
+        warnings.push({
+          line,
+          message: `La balise « <${name}> » n'est pas autorisée dans une page. Elle ne sera pas affichée.`,
+        });
+      }
+      return;
+    }
+    if (!/^[A-Z]/.test(name)) return;
 
     if (!known.has(name)) {
       warnings.push({

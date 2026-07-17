@@ -5,6 +5,7 @@ import { mdxAnnotations } from "mdx-annotations";
 import remarkGfm from "remark-gfm";
 import type { MDXComponents } from "mdx/types";
 import { pascalCase } from "@/lib/component-descriptor";
+import { allowListedHostElementsOnly } from "@/lib/mdx-host-elements";
 import { allowLiteralPropsOnly } from "@/lib/mdx-literal-props";
 import { WikiLink } from "@/components/wiki/wiki-link";
 
@@ -12,12 +13,17 @@ import { WikiLink } from "@/components/wiki/wiki-link";
 // own plugins AFTER ours, so mdx-annotations consumes its {{ … }} expressions
 // before neutralization kicks in.
 //
+// Three allowlists, one per thing an author writes: which tags may render
+// (the registry for components, allowListedHostElementsOnly for HTML), and
+// which prop values survive (allowLiteralPropsOnly).
+//
 // blockJS is off on purpose: its filter drops every attribute expression
 // whatever it holds, so `<Image width={400} />` silently lost its width — JSX
 // props could only ever be strings. allowLiteralPropsOnly replaces it with an
 // allowlist of static literals, which is both faithful to JSX (a component
 // gets a real number) and stricter than a denylist of dangerous globals.
-// blockDangerousJS stays on as a second, free layer.
+// blockDangerousJS stays on as a second, free layer — it only knows globals
+// (eval, process…), so it never saw the tags or prop names the other two gate.
 export async function renderMdx(source: string): Promise<React.ReactNode> {
   try {
     const registry = await loadWikiComponents();
@@ -35,6 +41,7 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
           remarkPlugins: [
             mdxAnnotations.remark,
             remarkGfm,
+            allowListedHostElementsOnly(),
             allowLiteralPropsOnly(),
           ],
           rehypePlugins: [mdxAnnotations.rehype],

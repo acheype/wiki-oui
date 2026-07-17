@@ -1,0 +1,23 @@
+# ComponentBuilder descriptor of <Embed> (docs/component-builder.md).
+label: Page d'un autre site
+description: Afficher la page d'un autre site web dans la page
+previewHeight: 320px
+properties:
+  url:
+    label: Adresse de la page à afficher
+    hint: N'oubliez pas le "https://". Tous les sites n'autorisent pas leur
+      affichage dans un autre site.
+    type: url
+    required: true
+  title:
+    label: Description pour les personnes malvoyantes
+    hint: Lu par les lecteurs d'écran à la place du contenu affiché.
+    type: text
+  ratio:
+    label: Ratio pour l'affichage
+    type: list
+    default: landscape
+    options:
+      landscape: Paysage
+      portrait: Portrait
+      square: Carré

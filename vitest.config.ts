@@ -7,4 +7,10 @@ export default defineConfig({
   resolve: {
     alias: { "@": path.resolve(import.meta.dirname, ".") },
   },
+  test: {
+    // The sandbox suites each pay a cold MDX compile plus the registry's
+    // dynamic imports on their first render — seconds, and they run in
+    // parallel. The 5s default made whichever got there first flake.
+    testTimeout: 30_000,
+  },
 });
