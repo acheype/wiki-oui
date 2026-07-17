@@ -12,6 +12,14 @@ import { SKIP, visit } from "unist-util-visit";
 // attribute expression whatever its content: that filter is what made
 // `<Image width={400} />` silently lose its width. Content expressions
 // ({variable}, {func()}) and spreads stay barred — a wiki page is data.
+//
+// One prop name is refused outright, whatever its value: React's
+// `dangerouslySetInnerHTML`. The literal allowlist cannot catch it, because
+// {__html: '<img src=x onerror=…>'} *is* a literal object — the payload is
+// data, and only React's reading of that prop turns it into markup. It is not
+// the head of a denylist to grow: React fixes the name, its whole purpose is
+// to bypass escaping, and no descriptor can ever declare it as a prop.
+// Verified in a browser: without this, any author scripts every reader's page.
 
 // A factory returning the remark plugin: unified calls the plugin, and the
 // plugin returns the transformer. Refusals are dropped in silence here — the
@@ -43,6 +51,7 @@ export function allowLiteralPropsOnly() {
         node.attributes = (node.attributes ?? []).filter((attribute) => {
           // {...spread}: an identifier by nature, never a literal.
           if (attribute.type !== "mdxJsxAttribute") return false;
+          if (attribute.name === "dangerouslySetInnerHTML") return false;
           const value = attribute.value;
           // `prop` alone (=== true) or prop="text": no expression at all.
           if (value === null || value === undefined) return true;

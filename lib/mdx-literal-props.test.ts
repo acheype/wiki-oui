@@ -91,3 +91,50 @@ describe("evaluable props are refused", () => {
     expect(await render("hello {someVar} world")).not.toContain("someVar");
   });
 });
+
+// The one prop refused by name. Its payload is a literal object, so the
+// allowlist above passes it happily — only React's reading of the *name* turns
+// that data into markup. Each case below was seen running in a real browser
+// before this rule existed: the script tags are not decoration.
+describe("dangerouslySetInnerHTML never reaches an element", () => {
+  it("refuses it on a plain html tag, the vector that needs no component", async () => {
+    const html = await render(
+      `<div dangerouslySetInnerHTML={{__html: '<img src=x onerror=alert(1)>'}} />`
+    );
+    expect(html).not.toContain("onerror");
+    // Dropped, not fatal: the tag itself still renders.
+    expect(html).toContain("<div>");
+  });
+
+  it("refuses it on a text element", async () => {
+    const html = await render(
+      `Bonjour <span dangerouslySetInnerHTML={{__html: '<script>alert(1)</script>'}} /> !`
+    );
+    expect(html).not.toContain("<script>");
+  });
+
+  it("refuses it whatever literal shape holds the payload", async () => {
+    // A template literal is a literal too — the rule is the name, not the value.
+    const html = await render(
+      "<div dangerouslySetInnerHTML={{__html: `<img src=x onerror=alert(1)>`}} />"
+    );
+    expect(html).not.toContain("onerror");
+  });
+
+  it("refuses it on a registry component, which a third-party one may forward", async () => {
+    // Ours destructure their props, but an imported component doing
+    // `<div {...rest}>` would hand it straight to the DOM.
+    const html = await render(
+      `<Image file="${IMAGE}" dangerouslySetInnerHTML={{__html: '<img src=x onerror=alert(1)>'}} />`
+    );
+    expect(html).not.toContain("onerror");
+    expect(html).toContain(`src="/api/files/${IMAGE}"`);
+  });
+
+  it("leaves an ordinary literal object prop alone", async () => {
+    // The rule is one name, not a ban on objects: those stay available for
+    // imported components whose props are structured.
+    const html = await render(`<Image file="${IMAGE}" alt={"ok"} />`);
+    expect(html).toContain('alt="ok"');
+  });
+});
