@@ -17,6 +17,8 @@ import {
   unknownFieldReferences,
 } from "@/lib/form-descriptor";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
+import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
+import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug, slugify } from "@/lib/slug";
@@ -83,6 +85,8 @@ export interface SaveFormInput {
   template: string | null;
   /** True from the ?nouveau screen: refuses to overwrite an existing slug. */
   isNew: boolean;
+  /** Staged field-identifier renames (ADR 0017): persisted name → new name. */
+  renames?: FieldRename[];
 }
 
 export type SaveFormResult =
@@ -101,6 +105,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     });
   }
 
+  const renames = fieldRenameMapping(input.renames ?? []);
   const parsed = parseFormDescriptor(input.schema);
   if (parsed.issues) {
     issues.push(...parsed.issues);
@@ -110,6 +115,16 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
       issues.push({
         message: `Le gabarit référence un champ inconnu : « ${name} ».`,
       });
+    }
+    // The schema arrives already rewritten from the canvas (ADR 0017): every
+    // rename must land on a field of the saved descriptor.
+    const names = new Set(parsed.descriptor.fields.map((field) => field.name));
+    for (const [from, to] of renames) {
+      if (!names.has(to)) {
+        issues.push({
+          message: `Le renommage « ${from} → ${to} » ne vise aucun champ du formulaire.`,
+        });
+      }
     }
   }
 
@@ -136,7 +151,17 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     template: input.template === "" ? null : input.template,
   };
   if (existing) {
-    await prisma.form.update({ where: { id: existing.id }, data });
+    // Schema overwrite and data-key retcon in the same transaction (ADR
+    // 0017): the staged renames apply to every revision of the form's
+    // entries, or not at all.
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.form.update({ where: { id: existing.id }, data });
+        await sweepFieldRenames(tx, existing.id, renames);
+      },
+      // Same cold-admin-action allowance as renameForm below.
+      { timeout: 60_000 }
+    );
   } else {
     await prisma.form.create({
       data: { ...data, slug: input.slug, ownerName: AUTHOR },
@@ -168,6 +193,20 @@ export async function countFormReferences(
 ): Promise<SlugReferenceImpact> {
   const referenceProps = formReferenceProps(await loadComponentBuilders());
   return countSlugReferenceImpact(prisma, slug, referenceProps, "form");
+}
+
+/**
+ * The rename dialog's headcount for a field identifier (ADR 0017): how many
+ * of the form's entries carry the key in their current snapshot. Counted on
+ * the persisted name — the staged canvas may already say otherwise.
+ */
+export async function countFieldReferences(
+  formSlug: string,
+  fieldName: string
+): Promise<number> {
+  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  if (!form) return 0;
+  return countFieldCarriers(prisma, form.id, fieldName);
 }
 
 export type RenameFormResult = { error: string } | { ok: true };
