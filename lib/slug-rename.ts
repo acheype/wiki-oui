@@ -89,31 +89,75 @@ export function rewriteSlugReferences(
 }
 
 /**
- * Entry data with every form-sourced option value equal to `oldSlug`
- * rewritten, or null when nothing matches. Exact matches only: stored values
- * are bare target-entry slugs (docs/forms.md), never handler or anchor forms.
+ * Entry data with every reference to `oldSlug` rewritten, or null when
+ * nothing matches. Two kinds of values hold one: form-sourced option values
+ * (bare target-entry slugs, exact matches — docs/forms.md) and the MDX of an
+ * `allowMdx` textarea, which goes through the full source rewrite.
  */
 export function rewriteEntryDataSlugs(
   descriptor: FormDescriptor,
   data: EntryData,
-  { oldSlug, newSlug }: SlugRename
+  rename: SlugRename,
+  referenceProps: ReadonlyMap<string, ReadonlySet<string>>
 ): EntryData | null {
+  const { oldSlug, newSlug } = rename;
   let changed = false;
   const rewritten: EntryData = { ...data };
   for (const field of descriptor.fields) {
-    if (!isOptionsField(field) || !field.sourceFormId) continue;
     const value = data[field.name];
-    if (value === oldSlug) {
-      rewritten[field.name] = newSlug;
-      changed = true;
-    } else if (Array.isArray(value) && value.includes(oldSlug)) {
-      rewritten[field.name] = value.map((item) =>
-        item === oldSlug ? newSlug : item
-      );
-      changed = true;
+    if (isOptionsField(field) && field.sourceFormId) {
+      if (value === oldSlug) {
+        rewritten[field.name] = newSlug;
+        changed = true;
+      } else if (Array.isArray(value) && value.includes(oldSlug)) {
+        rewritten[field.name] = value.map((item) =>
+          item === oldSlug ? newSlug : item
+        );
+        changed = true;
+      }
+    } else if (
+      field.type === "textarea" &&
+      field.allowMdx &&
+      typeof value === "string"
+    ) {
+      const mdx = rewriteSlugReferences(value, rename, referenceProps);
+      if (mdx !== null) {
+        rewritten[field.name] = mdx;
+        changed = true;
+      }
     }
   }
   return changed ? rewritten : null;
+}
+
+/**
+ * A form descriptor with the admin-written MDX of its `customContent` fields
+ * rewritten (`entryContent`, `displayContent`), or null when untouched — the
+ * one place a form's schema itself can reference a page (ADR 0016).
+ */
+export function rewriteFormDescriptorSlugs(
+  descriptor: FormDescriptor,
+  rename: SlugRename,
+  referenceProps: ReadonlyMap<string, ReadonlySet<string>>
+): FormDescriptor | null {
+  let changed = false;
+  const fields = descriptor.fields.map((field) => {
+    if (field.type !== "customContent") return field;
+    const entryContent = field.entryContent
+      ? rewriteSlugReferences(field.entryContent, rename, referenceProps)
+      : null;
+    const displayContent = field.displayContent
+      ? rewriteSlugReferences(field.displayContent, rename, referenceProps)
+      : null;
+    if (entryContent === null && displayContent === null) return field;
+    changed = true;
+    return {
+      ...field,
+      ...(entryContent !== null && { entryContent }),
+      ...(displayContent !== null && { displayContent }),
+    };
+  });
+  return changed ? { ...descriptor, fields } : null;
 }
 
 // A wiki href aimed at the renamed page, with its slug segment swapped —

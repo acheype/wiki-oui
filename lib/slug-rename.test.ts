@@ -4,6 +4,7 @@ import type { FormDescriptor } from "./form-descriptor";
 import {
   pageReferenceProps,
   rewriteEntryDataSlugs,
+  rewriteFormDescriptorSlugs,
   rewriteSlugReferences,
 } from "./slug-rename";
 
@@ -86,6 +87,8 @@ describe("rewriteEntryDataSlugs", () => {
       { type: "list", name: "parrain", label: "Parrain", sourceFormId: "assos" },
       { type: "multiChoice", name: "amis", label: "Amis", sourceFormId: "assos" },
       { type: "list", name: "statut", label: "Statut", options: { a: "A" } },
+      { type: "textarea", name: "bio", label: "Bio", allowMdx: true },
+      { type: "textarea", name: "note", label: "Note" },
     ],
   } as unknown as FormDescriptor;
 
@@ -94,15 +97,62 @@ describe("rewriteEntryDataSlugs", () => {
       rewriteEntryDataSlugs(
         descriptor,
         { parrain: "ancien", amis: ["autre", "ancien"], statut: "ancien" },
-        rename
+        rename,
+        props
       )
     ).toEqual({ parrain: "nouveau", amis: ["autre", "nouveau"], statut: "ancien" });
   });
 
+  it("rewrites wiki links in allowMdx textareas only", () => {
+    expect(
+      rewriteEntryDataSlugs(
+        descriptor,
+        { bio: "Voir [ici](ancien).", note: "Voir [ici](ancien)." },
+        rename,
+        props
+      )
+    ).toEqual({ bio: "Voir [ici](nouveau).", note: "Voir [ici](ancien)." });
+  });
+
   it("returns null when no form-sourced value matches", () => {
     expect(
-      rewriteEntryDataSlugs(descriptor, { parrain: "autre", statut: "ancien" }, rename)
+      rewriteEntryDataSlugs(
+        descriptor,
+        { parrain: "autre", statut: "ancien" },
+        rename,
+        props
+      )
     ).toBeNull();
+  });
+});
+
+describe("rewriteFormDescriptorSlugs", () => {
+  it("rewrites customContent MDX and nothing else", () => {
+    const descriptor = {
+      fields: [
+        { type: "text", name: "nom", label: "Nom" },
+        {
+          type: "customContent",
+          name: "intro",
+          label: "Intro",
+          entryContent: "[aide](ancien)",
+          displayContent: "rien ici",
+        },
+      ],
+    } as unknown as FormDescriptor;
+    const rewritten = rewriteFormDescriptorSlugs(descriptor, rename, props);
+    expect(rewritten?.fields[1]).toMatchObject({
+      entryContent: "[aide](nouveau)",
+      displayContent: "rien ici",
+    });
+    expect(rewritten?.fields[0]).toBe(descriptor.fields[0]);
+  });
+
+  it("returns null when no customContent references the slug", () => {
+    const descriptor = {
+      fields: [{ type: "customContent", name: "intro", label: "Intro" }],
+    } as unknown as FormDescriptor;
+    expect(rewriteFormDescriptorSlugs(descriptor, rename, props)).toBeNull();
   });
 });
 
