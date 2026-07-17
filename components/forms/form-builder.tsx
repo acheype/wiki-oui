@@ -20,7 +20,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Loader2, Pencil, Plus, Save, Signpost, Trash2 } from "lucide-react";
+import { GripVertical, Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
@@ -417,9 +417,14 @@ function FormIdentity({
         </p>
         <RenameSlugDialog
           trigger={
-            <Button type="button" variant="outline" size="sm">
-              <Signpost />
-              Changer l&apos;identifiant
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs"
+            >
+              <Pencil className="size-3.5" />
+              Modifier
             </Button>
           }
           title="Changer l'identifiant du formulaire"
@@ -429,14 +434,6 @@ function FormIdentity({
           confirmLabel="Changer l'identifiant"
           searchingText="Recherche des utilisations de cet identifiant…"
           impactSentence={formImpactSentence}
-          warning={
-            <>
-              Les liens copiés vers{" "}
-              <span className="font-mono">/formulaires?id={slug}</span> ou{" "}
-              <span className="font-mono">/fiches?formulaire={slug}</span> ne
-              fonctionneront plus.
-            </>
-          }
           fetchImpact={() => countFormReferences(slug)}
           rename={(newSlug) => renameForm(slug, newSlug)}
           onRenamed={onRenamed}

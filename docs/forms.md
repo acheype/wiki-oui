@@ -71,7 +71,7 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 - **Palette** des types de champs → **drag & drop** (dnd-kit) vers le canvas, réordonnancement inclus ;
 - clic sur un champ du canvas → **panneau de paramétrage** (les paramètres du type, générés par le renderer de champs partagé — ADR 0015) ;
 - champ **`title` présent par défaut** dans tout nouveau formulaire, non supprimable (voir « Titre & slug ») ;
-- en-tête : `name` du formulaire → `slug` dérivé, affiché sous le nom avec un bouton « Personnaliser » (création) ou « Changer l'identifiant » (édition, dialogue de renommage ADR 0016) ;
+- en-tête : `name` du formulaire → `slug` dérivé, affiché sous le nom avec un bouton « Personnaliser » (création) ou un petit bouton « Modifier » ouvrant le dialogue « Changer l'identifiant » (édition, renommage ADR 0016, sans avertissement : les URLs `?id=` sont des écrans d'admin, l'accès normal passe par les composants des pages wiki) ;
 - onglet/section **Gabarit** : éditeur CodeMirror existant (coloration MDX, barre d'outils, aide-mémoire) + **aperçu** rendu sur des valeurs d'exemple, via la mécanique d'aperçu existante ;
 - **Enregistrer** valide le descripteur par le méta-schéma Zod + les règles croisées, avec messages ciblés.
 

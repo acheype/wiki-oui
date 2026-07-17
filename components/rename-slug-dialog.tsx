@@ -47,7 +47,8 @@ export function RenameSlugDialog({
   /** Shown while fetchImpact is in flight. */
   searchingText: string;
   impactSentence: (impact: SlugReferenceImpact) => string;
-  warning: React.ReactNode;
+  /** Consequence to accept knowingly; omitted when the rename has none. */
+  warning?: React.ReactNode;
   fetchImpact: () => Promise<SlugReferenceImpact>;
   rename: (
     newSlug: string
@@ -119,10 +120,12 @@ export function RenameSlugDialog({
         <p className="text-sm">
           {impact ? impactSentence(impact) : searchingText}
         </p>
-        <p className="flex gap-2 text-sm text-muted-foreground">
-          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span>{warning}</span>
-        </p>
+        {warning !== undefined && (
+          <p className="flex gap-2 text-sm text-muted-foreground">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{warning}</span>
+          </p>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
             Annuler
