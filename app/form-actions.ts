@@ -16,9 +16,16 @@ import {
   readEntryData,
   unknownFieldReferences,
 } from "@/lib/form-descriptor";
+import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug, slugify } from "@/lib/slug";
+import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
+import {
+  type SlugReferenceImpact,
+  countSlugReferenceImpact,
+  sweepSlugReferences,
+} from "@/lib/slug-rename-db";
 
 // MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
 const AUTHOR = "Anonyme";
@@ -151,6 +158,70 @@ export async function deleteForm(slug: string): Promise<DeleteFormResult> {
     return { error: "Ce formulaire n'existe pas." };
   }
   await prisma.form.delete({ where: { id: form.id } });
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/** The rename dialog's headcount for a form identifier (ADR 0016). */
+export async function countFormReferences(
+  slug: string
+): Promise<SlugReferenceImpact> {
+  const referenceProps = formReferenceProps(await loadComponentBuilders());
+  return countSlugReferenceImpact(prisma, slug, referenceProps, "form");
+}
+
+export type RenameFormResult = { error: string } | { ok: true };
+
+/**
+ * « Changer l'identifiant » (ADR 0016, form namespace): renames Form.slug and
+ * retcons every reference in place — <EntryForm id> across all revisions
+ * (history included), sourceFormId and customContent MDX in form schemas,
+ * form templates. The form's entries are untouched: they hang off the
+ * technical UUID, not the identifier. No redirect: the caller owns the
+ * navigation to the new ?id= URL.
+ */
+export async function renameForm(
+  slug: string,
+  newSlug: string
+): Promise<RenameFormResult> {
+  if (!isValidSlug(newSlug)) {
+    return {
+      error: `Identifiant invalide : « ${newSlug} » (minuscules, chiffres et tirets).`,
+    };
+  }
+  if (newSlug === slug) {
+    return { error: "Le nouvel identifiant est identique à l'actuel." };
+  }
+  const form = await prisma.form.findUnique({ where: { slug } });
+  if (!form) {
+    return { error: "Ce formulaire n'existe pas." };
+  }
+  if (await prisma.form.findUnique({ where: { slug: newSlug } })) {
+    return {
+      error: `L'identifiant « ${newSlug} » est déjà pris par un autre formulaire.`,
+    };
+  }
+
+  const rename: SlugRename = { oldSlug: slug, newSlug };
+  const referenceProps = formReferenceProps(await loadComponentBuilders());
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.form.update({
+          where: { id: form.id },
+          data: { slug: newSlug },
+        });
+        await sweepSlugReferences(tx, rename, referenceProps, "form");
+      },
+      // Same cold-admin-action allowance as renamePage (app/actions.ts).
+      { timeout: 60_000 }
+    );
+  } catch {
+    return {
+      error: "Le changement d'identifiant a échoué. Réessayez dans un instant.",
+    };
+  }
+
   revalidatePath("/", "layout");
   return { ok: true };
 }

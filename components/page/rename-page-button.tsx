@@ -3,7 +3,8 @@
 import { Signpost, TriangleAlert } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { type SlugRenameImpact, countSlugReferences, renamePage } from "@/app/actions";
+import { countSlugReferences, renamePage } from "@/app/actions";
+import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,7 +25,7 @@ import { isValidSlug } from "@/lib/slug";
 export function RenamePageButton({ slug }: { slug: string }) {
   const [open, setOpen] = useState(false);
   const [newSlug, setNewSlug] = useState("");
-  const [impact, setImpact] = useState<SlugRenameImpact>();
+  const [impact, setImpact] = useState<SlugReferenceImpact>();
   const [isPending, startTransition] = useTransition();
 
   function handleOpenChange(nextOpen: boolean) {
@@ -111,7 +112,7 @@ export function RenamePageButton({ slug }: { slug: string }) {
   );
 }
 
-function impactSentence(impact: SlugRenameImpact | undefined): string {
+function impactSentence(impact: SlugReferenceImpact | undefined): string {
   if (!impact) return "Recherche des liens vers cette adresse…";
   const total = impact.pages + impact.entries + impact.forms;
   if (total === 0) {

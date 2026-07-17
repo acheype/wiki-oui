@@ -5,20 +5,15 @@ import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { deleteFile } from "@/lib/files";
 import { listWikiComponentNames } from "@/lib/mdx";
-import {
-  type EntryData,
-  parseFormDescriptor,
-} from "@/lib/form-descriptor";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
+import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import {
-  type SlugRename,
-  pageReferenceProps,
-  rewriteEntryDataSlugs,
-  rewriteFormDescriptorSlugs,
-  rewriteSlugReferences,
-} from "@/lib/slug-rename";
+  type SlugReferenceImpact,
+  countSlugReferenceImpact,
+  sweepSlugReferences,
+} from "@/lib/slug-rename-db";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 
 // MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
@@ -103,105 +98,15 @@ export async function savePage(input: {
   return { saved: true };
 }
 
-export interface SlugRenameImpact {
-  pages: number;
-  entries: number;
-  forms: number;
-}
-
-// One revision or form row that may reference a slug (LIKE prefilter only —
-// the rewrite engine gives the precise answer on each candidate).
-type CandidateRevision = {
-  id: string;
-  content: string | null;
-  data: unknown;
-  formId: string | null;
-};
-
-type CandidateForm = { id: string; template: string | null; schema: unknown };
-
-// A same-slug rename touches every reference and nothing else: the engine
-// returning non-null IS the "this source references the slug" answer.
-function referenceProbe(slug: string): SlugRename {
-  return { oldSlug: slug, newSlug: slug };
-}
-
-function parsedDescriptors(forms: { id: string; schema: unknown }[]) {
-  const descriptors = new Map<
-    string,
-    NonNullable<ReturnType<typeof parseFormDescriptor>["descriptor"]>
-  >();
-  for (const form of forms) {
-    const parsed = parseFormDescriptor(form.schema);
-    if (parsed.descriptor) descriptors.set(form.id, parsed.descriptor);
-  }
-  return descriptors;
-}
-
 /**
  * The rename dialog's headcount (ADR 0016): how many pages, entries and form
- * definitions reference this slug today. Counts current revisions only — the
- * rename itself sweeps all of history, but the numbers an admin reasons about
- * are the live ones. The page's own self-references are not counted.
+ * definitions reference this page slug today.
  */
 export async function countSlugReferences(
   slug: string
-): Promise<SlugRenameImpact> {
-  const probe = referenceProbe(slug);
+): Promise<SlugReferenceImpact> {
   const referenceProps = pageReferenceProps(await loadComponentBuilders());
-  const like = `%${slug}%`;
-
-  const [rows, formRows] = await Promise.all([
-    prisma.$queryRaw<CandidateRevision[]>`
-      SELECT r."id", r."content", r."data", p."formId"
-      FROM "Page" p JOIN "Revision" r ON r."id" = p."currentRevisionId"
-      WHERE p."slug" <> ${slug}
-        AND (r."content" LIKE ${like} OR r."data"::text LIKE ${like})`,
-    prisma.$queryRaw<CandidateForm[]>`
-      SELECT "id", "template", "schema" FROM "Form"
-      WHERE "template" LIKE ${like} OR "schema"::text LIKE ${like}`,
-  ]);
-
-  const descriptors = parsedDescriptors(
-    await prisma.form.findMany({
-      where: { id: { in: rows.flatMap((row) => row.formId ?? []) } },
-      select: { id: true, schema: true },
-    })
-  );
-
-  const impact: SlugRenameImpact = { pages: 0, entries: 0, forms: 0 };
-  for (const row of rows) {
-    if (row.content !== null) {
-      if (rewriteSlugReferences(row.content, probe, referenceProps) !== null) {
-        impact.pages += 1;
-      }
-      continue;
-    }
-    const descriptor = row.formId ? descriptors.get(row.formId) : undefined;
-    if (
-      descriptor &&
-      rewriteEntryDataSlugs(
-        descriptor,
-        row.data as EntryData,
-        probe,
-        referenceProps
-      ) !== null
-    ) {
-      impact.entries += 1;
-    }
-  }
-  for (const form of formRows) {
-    const parsed = parseFormDescriptor(form.schema);
-    const inTemplate =
-      form.template !== null &&
-      rewriteSlugReferences(form.template, probe, referenceProps) !== null;
-    const inSchema =
-      parsed.descriptor !== undefined &&
-      rewriteFormDescriptorSlugs(parsed.descriptor, probe, referenceProps) !==
-        null;
-    if (inTemplate || inSchema) impact.forms += 1;
-  }
-  return impact;
+  return countSlugReferenceImpact(prisma, slug, referenceProps, "page");
 }
 
 /**
@@ -233,7 +138,6 @@ export async function renamePage(
 
   const rename: SlugRename = { oldSlug: slug, newSlug };
   const referenceProps = pageReferenceProps(await loadComponentBuilders());
-  const like = `%${slug}%`;
 
   try {
     // One transaction for the whole retcon: the wiki never observes a state
@@ -244,79 +148,7 @@ export async function renamePage(
           where: { id: page.id },
           data: { slug: newSlug },
         });
-
-        const revisions = await tx.$queryRaw<CandidateRevision[]>`
-          SELECT r."id", r."content", r."data", p."formId"
-          FROM "Revision" r JOIN "Page" p ON p."id" = r."pageId"
-          WHERE r."content" LIKE ${like} OR r."data"::text LIKE ${like}`;
-        const descriptors = parsedDescriptors(
-          await tx.form.findMany({
-            where: {
-              id: { in: revisions.flatMap((row) => row.formId ?? []) },
-            },
-            select: { id: true, schema: true },
-          })
-        );
-
-        for (const revision of revisions) {
-          if (revision.content !== null) {
-            const content = rewriteSlugReferences(
-              revision.content,
-              rename,
-              referenceProps
-            );
-            if (content !== null) {
-              await tx.revision.update({
-                where: { id: revision.id },
-                data: { content },
-              });
-            }
-            continue;
-          }
-          const descriptor = revision.formId
-            ? descriptors.get(revision.formId)
-            : undefined;
-          if (!descriptor) continue;
-          const data = rewriteEntryDataSlugs(
-            descriptor,
-            revision.data as EntryData,
-            rename,
-            referenceProps
-          );
-          if (data !== null) {
-            await tx.revision.update({
-              where: { id: revision.id },
-              data: { data: data as object },
-            });
-          }
-        }
-
-        const forms = await tx.$queryRaw<CandidateForm[]>`
-          SELECT "id", "template", "schema" FROM "Form"
-          WHERE "template" LIKE ${like} OR "schema"::text LIKE ${like}`;
-        for (const form of forms) {
-          const template =
-            form.template !== null
-              ? rewriteSlugReferences(form.template, rename, referenceProps)
-              : null;
-          const parsed = parseFormDescriptor(form.schema);
-          const schema = parsed.descriptor
-            ? rewriteFormDescriptorSlugs(
-                parsed.descriptor,
-                rename,
-                referenceProps
-              )
-            : null;
-          if (template !== null || schema !== null) {
-            await tx.form.update({
-              where: { id: form.id },
-              data: {
-                ...(template !== null && { template }),
-                ...(schema !== null && { schema: schema as object }),
-              },
-            });
-          }
-        }
+        await sweepSlugReferences(tx, rename, referenceProps, "page");
       },
       // A large wiki means many rewrites in one sweep; the default 5s is for
       // hot-path transactions, this is a rare cold admin action.
