@@ -1,12 +1,15 @@
 "use client";
 
 // Per-field settings panel of the FormBuilder (docs/forms.md): the common
-// trunk (label, name, required, hint) plus the type-specific parameters. The
-// field `name` follows the fixed-identity pattern (ADR 0014): derived from
-// the label, revealed in one click to customize, frozen once the form is
-// saved.
+// trunk (label, identifier, required, hint) plus the type-specific
+// parameters. The field identifier (`name`) follows the unified rule (ADR
+// 0014/0017): a visible input derived from the label until the author types
+// in it, then — once the form is saved — a chip whose « Changer » stages a
+// rename applied at the next save.
 
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
+import { countFieldReferences } from "@/app/form-actions";
+import { RenameSlugDialog } from "@/components/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -20,22 +23,27 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { FormField } from "@/lib/form-descriptor";
-import { slugify } from "@/lib/slug";
+import { normalizeSlugInput, slugify } from "@/lib/slug";
+import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import type { CanvasField } from "./form-builder";
 
 export function FieldSettings({
   field,
   otherFields,
   forms,
+  formSlug,
   onChange,
-  onRevealName,
+  onRenameStaged,
 }: {
   field: CanvasField;
   /** Sibling fields, for geolocation address bindings and options sources. */
   otherFields: CanvasField[];
   forms: { slug: string; name: string }[];
+  /** The edited form's slug; null while the form has never been saved. */
+  formSlug: string | null;
   onChange: (patch: Partial<FormField>) => void;
-  onRevealName: () => void;
+  /** Confirms the rename dialog: stages the rename on the canvas (ADR 0017). */
+  onRenameStaged: (to: string) => void;
 }) {
   const patch = (values: Partial<FormField>) => onChange(values);
 
@@ -48,10 +56,13 @@ export function FieldSettings({
           value={field.label}
           onChange={(event) => {
             const label = event.target.value;
-            // Derive the name from the label until the user reveals and
-            // customizes it, and never for the fixed-name title field.
+            // Derive the identifier from the label until the author
+            // customizes it or the field is persisted, and never for the
+            // fixed-name title field (ADR 0017).
             patch(
-              field.nameRevealed || field.frozen || field.type === "title"
+              field.nameCustomized ||
+                field.persistedName !== undefined ||
+                field.type === "title"
                 ? { label }
                 : ({ label, name: slugify(label) } as Partial<FormField>)
             );
@@ -60,7 +71,12 @@ export function FieldSettings({
       </div>
 
       {field.type !== "title" && (
-        <NameSetting field={field} onChange={onChange} onReveal={onRevealName} />
+        <NameSetting
+          field={field}
+          formSlug={formSlug}
+          onChange={onChange}
+          onRenameStaged={onRenameStaged}
+        />
       )}
 
       {"placeholder" in fieldParams(field) && (
@@ -99,43 +115,95 @@ export function FieldSettings({
   );
 }
 
+// The field's identifier (docs/forms.md « Identités », ADR 0017). Persisted:
+// a chip and « Changer », staging the rename locally — the impact headcount
+// is a Server Action but the confirm never writes. Not yet persisted: a
+// visible input derived from the label until the author types in it
+// (emptied, it derives again).
 function NameSetting({
   field,
+  formSlug,
   onChange,
-  onReveal,
+  onRenameStaged,
 }: {
   field: CanvasField;
+  formSlug: string | null;
   onChange: (patch: Partial<FormField>) => void;
-  onReveal: () => void;
+  onRenameStaged: (to: string) => void;
 }) {
-  if (!field.nameRevealed) {
+  const persistedName = field.persistedName;
+  if (persistedName !== undefined) {
     return (
-      <button
-        type="button"
-        onClick={onReveal}
-        className="flex items-center gap-1 justify-self-start text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ChevronRight className="size-3.5" aria-hidden />
-        Nom technique : <code className="font-mono">{field.name}</code>
-      </button>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm">
+          Identifiant :{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
+            {field.name}
+          </code>
+        </p>
+        <RenameSlugDialog
+          trigger={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs"
+            >
+              <Pencil className="size-3.5" />
+              Changer
+            </Button>
+          }
+          title="Changer l'identifiant du champ"
+          currentLabel="Identifiant actuel"
+          current={field.name}
+          inputLabel="Nouvel identifiant"
+          confirmLabel="Changer l'identifiant"
+          searchingText="Recherche des fiches portant ce champ…"
+          impactSentence={fieldImpactSentence}
+          note="Les modifications ne seront prises en compte qu'à l'enregistrement du formulaire."
+          fetchImpact={async () => ({
+            pages: 0,
+            entries: formSlug
+              ? await countFieldReferences(formSlug, persistedName)
+              : 0,
+            forms: 0,
+          })}
+          rename={async (to) => onRenameStaged(to)}
+        />
+      </div>
     );
   }
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor="setting-name">Nom technique (clé et cible des {"{champ}"})</Label>
+      <Label htmlFor="setting-name">Identifiant (clé et cible des {"{champ}"})</Label>
       <Input
         id="setting-name"
         value={field.name}
-        disabled={field.frozen}
-        onChange={(event) => onChange({ name: slugify(event.target.value) })}
+        className="font-mono text-sm"
+        onChange={(event) => {
+          const name = normalizeSlugInput(event.target.value);
+          // Typing decouples the identifier from the label; emptying
+          // re-derives it (ADR 0017).
+          onChange(
+            name === ""
+              ? ({
+                  name: slugify(field.label),
+                  nameCustomized: false,
+                } as Partial<FormField>)
+              : ({ name, nameCustomized: true } as Partial<FormField>)
+          );
+        }}
       />
-      {field.frozen && (
-        <p className="text-xs text-muted-foreground">
-          Figé depuis la première sauvegarde du formulaire.
-        </p>
-      )}
     </div>
   );
+}
+
+function fieldImpactSentence(impact: SlugReferenceImpact): string {
+  if (impact.entries === 0) return "Aucune fiche ne porte encore ce champ.";
+  if (impact.entries === 1) {
+    return "1 fiche porte ce champ : elle sera mise à jour automatiquement, historique compris.";
+  }
+  return `${impact.entries} fiches portent ce champ : elles seront mises à jour automatiquement, historique compris.`;
 }
 
 function TypeSpecificSettings({

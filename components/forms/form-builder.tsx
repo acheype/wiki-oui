@@ -41,6 +41,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  renameFieldBindings,
+  renameFieldReferences,
+} from "@/lib/field-rename";
+import {
   FIELD_TYPE_LABELS,
   FORM_FIELD_TYPES,
   type FormDescriptor,
@@ -54,12 +58,15 @@ import { FieldSettings } from "./field-settings";
 
 // A canvas field: the descriptor field plus builder-only bookkeeping. `_id`
 // is a stable drag key (names can transiently collide while editing); the
-// identity flags drive the name reveal/freeze (ADR 0014).
+// identity fields drive the derive/freeze rule (ADR 0014/0017).
 export type CanvasField = FormField & {
   _id: string;
-  nameRevealed?: boolean;
-  /** True once the form has been saved: the name is immutable. */
-  frozen?: boolean;
+  /** True once the author typed in the identifier input: it stops deriving
+   * from the label — emptied, it derives again (ADR 0017). */
+  nameCustomized?: boolean;
+  /** The name still in database, set for loaded fields; a staged rename
+   * makes `name` differ from it until the form is saved (ADR 0017). */
+  persistedName?: string;
 };
 
 let nextId = 0;
@@ -68,13 +75,12 @@ const freshId = () => `field-${nextId++}`;
 // The default title field present in every new form (docs/forms.md). The
 // palette names the type explicitly ("Titre de la fiche"); the label stored
 // here is what an author fills in and a reader sees, where "Titre" suffices.
-function titleField(frozen: boolean): CanvasField {
+function titleField(): CanvasField {
   return {
     _id: freshId(),
     type: "title",
     name: "title",
     label: "Titre",
-    frozen,
   };
 }
 
@@ -91,17 +97,17 @@ function toCanvas(descriptor: FormDescriptor): CanvasField[] {
   return descriptor.fields.map((field) => ({
     ...field,
     _id: freshId(),
-    frozen: true,
+    persistedName: field.name,
   }));
 }
 
 // Strips the builder-only bookkeeping back to a plain descriptor for saving.
 function toDescriptor(fields: CanvasField[]): FormDescriptor {
   return {
-    fields: fields.map(({ _id, nameRevealed, frozen, ...field }) => {
+    fields: fields.map(({ _id, nameCustomized, persistedName, ...field }) => {
       void _id;
-      void nameRevealed;
-      void frozen;
+      void nameCustomized;
+      void persistedName;
       return field;
     }),
   };
@@ -126,7 +132,7 @@ export function FormBuilder({
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugCustomized, setSlugCustomized] = useState(false);
   const [fields, setFields] = useState<CanvasField[]>(
-    initial ? toCanvas(initial.schema) : [titleField(false)]
+    initial ? toCanvas(initial.schema) : [titleField()]
   );
   const [selectedId, setSelectedId] = useState<string | null>(
     fields[0]?._id ?? null
@@ -178,13 +184,49 @@ export function FormBuilder({
     if (isNew && !slugCustomized) setSlug(slugify(value));
   }
 
+  // Typing decouples the slug from the name; emptying re-derives it — the
+  // unified identifier rule (ADR 0017).
+  function onSlugChange(value: string) {
+    const slug = normalizeSlugInput(value);
+    setSlugCustomized(slug !== "");
+    setSlug(slug === "" ? slugify(name) : slug);
+  }
+
   function handleRenamed(newSlug: string) {
     setSlug(newSlug);
     toast.success("Identifiant modifié. Les références ont été mises à jour.");
     onRenamed?.(newSlug);
   }
 
+  // A confirmed field rename stages locally (ADR 0017): the field's name,
+  // the {champ} references of the template and automatic title, and the
+  // geolocation bindings move together; everything applies at save.
+  function stageFieldRename(id: string, to: string) {
+    const from = fields.find((field) => field._id === id)?.name;
+    if (from === undefined || from === to) return;
+    const mapping = new Map([[from, to]]);
+    setFields((current) =>
+      current.map((field) => {
+        const renamed = renameFieldBindings(field, mapping) ?? field;
+        // Only the dialog's field changes name: a transient duplicate
+        // elsewhere keeps its own (uniqueness is enforced at save).
+        return {
+          ...renamed,
+          name: field._id === id ? to : field.name,
+        } as CanvasField;
+      })
+    );
+    setTemplate((current) => renameFieldReferences(current, mapping) ?? current);
+  }
+
   function save() {
+    // The staged renames (ADR 0017): every persisted field whose identifier
+    // moved since load feeds the server's data-key retcon.
+    const renames = fields.flatMap((field) =>
+      field.persistedName !== undefined && field.persistedName !== field.name
+        ? [{ from: field.persistedName, to: field.name }]
+        : []
+    );
     startTransition(async () => {
       const result: SaveFormResult = await saveForm({
         slug,
@@ -192,6 +234,7 @@ export function FormBuilder({
         schema: toDescriptor(fields),
         template,
         isNew,
+        renames,
       });
       if (result.ok) {
         toast.success("Formulaire enregistré.");
@@ -211,28 +254,28 @@ export function FormBuilder({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="grid min-w-64 flex-1 gap-1.5">
-          <Label htmlFor="form-name">Nom du formulaire</Label>
-          <Input
-            id="form-name"
-            value={name}
-            placeholder="ex. Annuaire des membres"
-            onChange={(event) => onNameChange(event.target.value)}
-          />
-          <FormIdentity
-            isNew={isNew}
-            customized={slugCustomized}
-            slug={slug}
-            onCustomize={() => setSlugCustomized(true)}
-            onChange={(value) => setSlug(normalizeSlugInput(value))}
-            onRenamed={handleRenamed}
-          />
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="grid min-w-64 flex-1 gap-1.5">
+            <Label htmlFor="form-name">Nom du formulaire</Label>
+            <Input
+              id="form-name"
+              value={name}
+              placeholder="ex. Annuaire des membres"
+              onChange={(event) => onNameChange(event.target.value)}
+            />
+          </div>
+          <Button onClick={save} disabled={isPending}>
+            {isPending ? <Loader2 className="animate-spin" /> : <Save />}
+            Enregistrer
+          </Button>
         </div>
-        <Button onClick={save} disabled={isPending}>
-          {isPending ? <Loader2 className="animate-spin" /> : <Save />}
-          Enregistrer
-        </Button>
+        <FormIdentity
+          isNew={isNew}
+          slug={slug}
+          onChange={onSlugChange}
+          onRenamed={handleRenamed}
+        />
       </div>
 
       <Tabs defaultValue="fields">
@@ -282,10 +325,9 @@ export function FormBuilder({
                   field={selected}
                   otherFields={fields.filter((f) => f._id !== selected._id)}
                   forms={otherForms}
+                  formSlug={initial?.slug ?? null}
                   onChange={(patch) => updateField(selected._id, patch)}
-                  onRevealName={() =>
-                    updateField(selected._id, { nameRevealed: true } as Partial<FormField>)
-                  }
+                  onRenameStaged={(to) => stageFieldRename(selected._id, to)}
                 />
               ) : (
                 <p className="text-sm text-muted-foreground">
@@ -387,22 +429,18 @@ function CanvasRow({
   );
 }
 
-// The form's identity, under its name (docs/forms.md, ADR 0014/0016). New
-// form: derived from the name, customizable until the first save behind an
-// explicit « Personnaliser » button. Existing form: shown plainly, and only
-// « Changer l'identifiant » can move it (the ADR 0016 retcon dialog).
+// The form's identity, under its name (docs/forms.md, ADR 0014/0016/0017).
+// New form: a visible input, derived from the name until the author types in
+// it (emptied, it derives again). Existing form: a chip, and only « Changer »
+// can move it (the ADR 0016 retcon dialog).
 function FormIdentity({
   isNew,
-  customized,
   slug,
-  onCustomize,
   onChange,
   onRenamed,
 }: {
   isNew: boolean;
-  customized: boolean;
   slug: string;
-  onCustomize: () => void;
   onChange: (slug: string) => void;
   onRenamed: (slug: string) => void;
 }) {
@@ -424,7 +462,7 @@ function FormIdentity({
               className="h-7 gap-1 px-2 text-xs"
             >
               <Pencil className="size-3.5" />
-              Modifier
+              Changer
             </Button>
           }
           title="Changer l'identifiant du formulaire"
@@ -441,34 +479,19 @@ function FormIdentity({
       </div>
     );
   }
-  if (!customized) {
-    return (
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm text-muted-foreground">
-          Identifiant :{" "}
-          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
-            {slug || "…"}
-          </code>
-        </p>
-        <Button type="button" variant="ghost" size="sm" onClick={onCustomize}>
-          <Pencil />
-          Personnaliser
-        </Button>
-      </div>
-    );
-  }
   return (
     <div className="grid gap-1.5">
+      <Label htmlFor="form-slug">Identifiant</Label>
       <Input
+        id="form-slug"
         value={slug}
-        className="h-8 font-mono text-xs"
+        className="font-mono text-sm"
         placeholder="identifiant"
-        aria-label="Identifiant du formulaire"
         onChange={(event) => onChange(event.target.value)}
       />
       <p className="text-xs text-muted-foreground">
-        Minuscules, chiffres et tirets. Modifiable après enregistrement via
-        «&nbsp;Changer l&apos;identifiant&nbsp;».
+        Dérivé du nom ; minuscules, chiffres et tirets. Modifiable après
+        enregistrement via «&nbsp;Changer&nbsp;».
       </p>
     </div>
   );

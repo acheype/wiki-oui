@@ -18,10 +18,12 @@ import { Label } from "@/components/ui/label";
 import { isValidSlug, normalizeSlugInput } from "@/lib/slug";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
-// The confirmation dialog of an ADR 0016 rename, shared by « Changer
-// l'adresse » (pages) and « Changer l'identifiant » (forms): informed consent
-// — the live headcount of what references the slug, the warning that the old
-// one dies — and a confirm button that names the action.
+// The confirmation dialog of a rename, shared by « Changer l'adresse »
+// (pages) and « Changer l'identifiant » (forms — ADR 0016 — and fields —
+// ADR 0017, where `rename` merely stages the change locally): informed
+// consent — the live headcount of what references the identifier, the
+// optional warning to accept knowingly — and a confirm button that names
+// the action.
 export function RenameSlugDialog({
   trigger,
   title,
@@ -32,6 +34,7 @@ export function RenameSlugDialog({
   searchingText,
   impactSentence,
   warning,
+  note,
   fetchImpact,
   rename,
   onRenamed,
@@ -49,6 +52,8 @@ export function RenameSlugDialog({
   impactSentence: (impact: SlugReferenceImpact) => string;
   /** Consequence to accept knowingly; omitted when the rename has none. */
   warning?: React.ReactNode;
+  /** Plain remark (no alert styling), e.g. when the rename applies later. */
+  note?: React.ReactNode;
   fetchImpact: () => Promise<SlugReferenceImpact>;
   rename: (
     newSlug: string
@@ -125,6 +130,9 @@ export function RenameSlugDialog({
             <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>{warning}</span>
           </p>
+        )}
+        {note !== undefined && (
+          <p className="text-sm text-muted-foreground">{note}</p>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
