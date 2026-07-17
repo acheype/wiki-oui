@@ -48,6 +48,8 @@ Trois identifiants suivent le même motif — **dérivé automatiquement, caché
 
 En cas de **collision** du slug de fiche (avec une page ou une autre fiche) : message explicite + révélation du champ slug pour que l'utilisateur en choisisse un autre — jamais de suffixe automatique silencieux.
 
+Nuance depuis « Changer l'adresse » (ADR 0016) : « figé » signifie *plus jamais dérivé ni éditable en saisie* — mais le slug d'une fiche peut être **renommé** par le geste d'administrateur, qui réécrit toutes les références. Le `name` d'un champ, lui, reste réellement immuable ; `Form.slug` le reste aussi jusqu'à l'extension du renommage aux formulaires.
+
 ## Écrans
 
 Deux nouvelles **pages spéciales** seedées (non supprimables, éditables), dont le contenu par défaut appelle un composant intégré — même philosophie que `page-rapide-haut` :
@@ -83,7 +85,7 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 ## Titre & slug d'une fiche
 
 - Le champ **`title`** (« Titre de la fiche ») est un texte obligatoire ; sa valeur donne le titre affiché et dérive le slug (voir Identités).
-- **Mode titre automatique** (option du champ `title`) : le champ disparaît de la saisie ; le titre est **calculé** depuis un template mêlant texte libre et références `{champ}` (ex. `{prenom} {nom} (asso)`), **recalculé à chaque sauvegarde**. Le slug, dérivé du premier calcul, reste figé.
+- **Mode titre automatique** (option du champ `title`) : le champ disparaît de la saisie ; le titre est **calculé** depuis un template mêlant texte libre et références `{champ}` (ex. `{prenom} {nom} (asso)`), **recalculé à chaque sauvegarde**. Le slug, dérivé du premier calcul, n'est jamais recalculé — seul « Changer l'adresse » (ADR 0016) peut le modifier.
 
 ## Saisie d'une fiche
 
@@ -132,7 +134,7 @@ Tronc commun à tous les types : `label` · `name` (voir Identités) · `require
 `list`, `radio` et `multiChoice` tirent leurs options :
 
 - **inline** : paires clé → libellé éditées dans le panneau du champ (clé dérivée du libellé, motif des identités) — un seul niveau ; l'éditeur de **listes partagées multi-niveaux** est au backlog ;
-- **ou des fiches d'un formulaire** (`sourceFormId`) : chaque fiche du formulaire cible est une option — **valeur stockée = son slug** (stable), libellé affiché = son titre courant. Au rendu de la fiche, la valeur devient un **lien wiki** vers la fiche cible ; une cible supprimée s'affiche en slug brut (dégradation gracieuse).
+- **ou des fiches d'un formulaire** (`sourceFormId`) : chaque fiche du formulaire cible est une option — **valeur stockée = son slug** (tenue à jour par « Changer l'adresse », ADR 0016), libellé affiché = son titre courant. Au rendu de la fiche, la valeur devient un **lien wiki** vers la fiche cible ; une cible supprimée s'affiche en slug brut (dégradation gracieuse).
 
 ### Géolocalisation
 
