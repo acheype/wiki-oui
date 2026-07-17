@@ -108,6 +108,8 @@ Deux familles de checks, **complémentaires** — la signature ne remplace qu'*u
 
 **Surfaçage uniforme, par `throw`** (pas de bandeau) : structurel comme signature `throw`ent un message clair, préfixé du **fichier et de la ligne** exacts — `components/wiki/button.yaml:20` pointe la clé fautive (le `type:`, le `default:`…) ; un constat de signature ajoute en plus la ligne du composant (`… (components/wiki/button.tsx:78)`). Le structurel tourne partout ; le signature en **dev** (chargement de l'éditeur) et au **build** (`prebuild`). En **dev**, l'overlay d'erreur Next s'affiche sur la page — le développeur voit *pourquoi*, corrige, sauve. Au **build**, le `prebuild` échoue. En **prod**, le structurel reste fail-fast, le signature est absent (`ts-morph` est une *devDependency* hors bundle ; un build vert garantit la cohérence). Le seul avertissement (`default` non vérifiable) part en `console.warn`, non bloquant. Le rendu correct, lui, reste couvert par l'aperçu live de la modale (vrai pipeline).
 
+**Coût en dev, mémoïsé.** La vérification de signature (résolution de types ts-morph) coûte plusieurs secondes ; pour ne pas la payer à chaque chargement de l'éditeur, `lib/component-descriptors.ts` met le résultat en cache, invalidé par une empreinte mtime+taille des `.yaml`/`.tsx` de `components/wiki/`. Éditer un descripteur ou un composant re-déclenche donc la vérification sans redémarrage ; seul un changement dans une constante importée d'**en dehors** du dossier passe inaperçu (redémarrer le dev server dans ce cas rare).
+
 ### `showif` : visibilité conditionnelle
 
 Un map `champ: condition` ; plusieurs entrées = **ET** logique. La condition s'écrit :
