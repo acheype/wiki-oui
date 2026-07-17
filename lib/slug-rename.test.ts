@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ComponentBuilderSpec } from "./component-descriptors";
 import type { FormDescriptor } from "./form-descriptor";
 import {
+  formReferenceProps,
   pageReferenceProps,
   rewriteEntryDataSlugs,
   rewriteFormDescriptorSlugs,
@@ -156,19 +157,97 @@ describe("rewriteFormDescriptorSlugs", () => {
   });
 });
 
-describe("pageReferenceProps", () => {
-  it("collects only page-list props", () => {
-    const builders = [
-      {
-        name: "Button",
-        descriptor: {
-          properties: { text: { type: "text" }, link: { type: "page-list" } },
+// A form rename lives in another namespace: <EntryForm id> moves, markdown
+// links (always page targets) and entry-slug option values stay put.
+describe("form-kind rewrites", () => {
+  const formProps = new Map([["EntryForm", new Set(["id"])]]);
+  const formRename = { oldSlug: "ancien", newSlug: "nouveau" };
+
+  it("rewrites a form-list prop, exact matches only", () => {
+    expect(
+      rewriteSlugReferences('<EntryForm id="ancien" />', formRename, formProps, "form")
+    ).toBe('<EntryForm id="nouveau" />');
+    expect(
+      rewriteSlugReferences('<EntryForm id="ancien-bis" />', formRename, formProps, "form")
+    ).toBeNull();
+  });
+
+  it("never touches markdown links, which target pages", () => {
+    expect(
+      rewriteSlugReferences("[x](ancien)", formRename, formProps, "form")
+    ).toBeNull();
+  });
+
+  it("rewrites sourceFormId in a descriptor, customContent included", () => {
+    const descriptor = {
+      fields: [
+        { type: "list", name: "parrain", label: "Parrain", sourceFormId: "ancien" },
+        { type: "radio", name: "avis", label: "Avis", options: { oui: "Oui" } },
+        {
+          type: "customContent",
+          name: "saisie",
+          label: "Saisie",
+          entryContent: '<EntryForm id="ancien" /> et [page](ancien)',
         },
+      ],
+    } as unknown as FormDescriptor;
+    const rewritten = rewriteFormDescriptorSlugs(
+      descriptor,
+      formRename,
+      formProps,
+      "form"
+    );
+    expect(rewritten?.fields[0]).toMatchObject({ sourceFormId: "nouveau" });
+    expect(rewritten?.fields[1]).toBe(descriptor.fields[1]);
+    expect(rewritten?.fields[2]).toMatchObject({
+      entryContent: '<EntryForm id="nouveau" /> et [page](ancien)',
+    });
+  });
+
+  it("leaves entry-slug option values alone, rewrites allowMdx", () => {
+    const descriptor = {
+      fields: [
+        { type: "list", name: "parrain", label: "Parrain", sourceFormId: "autre" },
+        { type: "textarea", name: "bio", label: "Bio", allowMdx: true },
+      ],
+    } as unknown as FormDescriptor;
+    expect(
+      rewriteEntryDataSlugs(
+        descriptor,
+        { parrain: "ancien", bio: '<EntryForm id="ancien" />' },
+        formRename,
+        formProps,
+        "form"
+      )
+    ).toEqual({ parrain: "ancien", bio: '<EntryForm id="nouveau" />' });
+  });
+});
+
+describe("reference-prop collectors", () => {
+  const builders = [
+    {
+      name: "Button",
+      descriptor: {
+        properties: { text: { type: "text" }, link: { type: "page-list" } },
       },
-      { name: "Embed", descriptor: { properties: { url: { type: "text" } } } },
-    ] as unknown as ComponentBuilderSpec[];
+    },
+    {
+      name: "EntryForm",
+      descriptor: { properties: { id: { type: "form-list" } } },
+    },
+    { name: "Embed", descriptor: { properties: { url: { type: "text" } } } },
+  ] as unknown as ComponentBuilderSpec[];
+
+  it("collects only page-list props", () => {
     const map = pageReferenceProps(builders);
     expect(map.get("Button")).toEqual(new Set(["link"]));
+    expect(map.has("EntryForm")).toBe(false);
     expect(map.has("Embed")).toBe(false);
+  });
+
+  it("collects only form-list props", () => {
+    const map = formReferenceProps(builders);
+    expect(map.get("EntryForm")).toEqual(new Set(["id"]));
+    expect(map.has("Button")).toBe(false);
   });
 });

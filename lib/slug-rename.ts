@@ -21,6 +21,14 @@ export interface SlugRename {
 }
 
 /**
+ * What kind of slug is being renamed. Pages and forms are separate
+ * namespaces: a markdown link target is always a page, `<EntryForm id>` is
+ * always a form — a form rename must not touch wiki links, and page hrefs may
+ * carry handler/anchor suffixes where form ids are always bare.
+ */
+export type SlugKind = "page" | "form";
+
+/**
  * The props whose descriptor promises a page slug (`page-list`), per
  * component. wiki-link's spec lands here too but never matches a tag: its
  * builder emits a markdown link, not a `<WikiLink>` element.
@@ -28,10 +36,24 @@ export interface SlugRename {
 export function pageReferenceProps(
   builders: ComponentBuilderSpec[]
 ): Map<string, Set<string>> {
+  return referencePropsOfType(builders, "page-list");
+}
+
+/** The props whose descriptor promises a form slug (`form-list`). */
+export function formReferenceProps(
+  builders: ComponentBuilderSpec[]
+): Map<string, Set<string>> {
+  return referencePropsOfType(builders, "form-list");
+}
+
+function referencePropsOfType(
+  builders: ComponentBuilderSpec[],
+  type: string
+): Map<string, Set<string>> {
   const map = new Map<string, Set<string>>();
   for (const spec of builders) {
     const props = Object.entries(spec.descriptor.properties)
-      .filter(([, property]) => property.type === "page-list")
+      .filter(([, property]) => property.type === type)
       .map(([name]) => name);
     if (props.length > 0) map.set(spec.name, new Set(props));
   }
@@ -46,7 +68,8 @@ export function pageReferenceProps(
 export function rewriteSlugReferences(
   source: string,
   rename: SlugRename,
-  referenceProps: ReadonlyMap<string, ReadonlySet<string>>
+  referenceProps: ReadonlyMap<string, ReadonlySet<string>>,
+  kind: SlugKind = "page"
 ): string | null {
   let tree: unknown;
   try {
@@ -61,6 +84,7 @@ export function rewriteSlugReferences(
     const node = rawNode as unknown as SourceNode;
 
     if (node.type === "link" || node.type === "definition") {
+      if (kind !== "page") return;
       const rewritten = rewriteHref(node.url ?? "", rename);
       if (rewritten === null) return;
       const edit = urlEdit(source, node, rewritten);
@@ -77,7 +101,12 @@ export function rewriteSlugReferences(
       if (attribute.type !== "mdxJsxAttribute") continue;
       if (!attribute.name || !props.has(attribute.name)) continue;
       if (typeof attribute.value !== "string") continue;
-      const rewritten = rewriteHref(attribute.value, rename);
+      const rewritten =
+        kind === "page"
+          ? rewriteHref(attribute.value, rename)
+          : attribute.value === rename.oldSlug
+            ? rename.newSlug
+            : null;
       if (rewritten === null) continue;
       const edit = attributeEdit(source, attribute, rewritten);
       if (edit) edits.push(edit);
@@ -98,14 +127,17 @@ export function rewriteEntryDataSlugs(
   descriptor: FormDescriptor,
   data: EntryData,
   rename: SlugRename,
-  referenceProps: ReadonlyMap<string, ReadonlySet<string>>
+  referenceProps: ReadonlyMap<string, ReadonlySet<string>>,
+  kind: SlugKind = "page"
 ): EntryData | null {
   const { oldSlug, newSlug } = rename;
   let changed = false;
   const rewritten: EntryData = { ...data };
   for (const field of descriptor.fields) {
     const value = data[field.name];
-    if (isOptionsField(field) && field.sourceFormId) {
+    // Form-sourced option values are entry (page) slugs: a form rename
+    // leaves them alone.
+    if (kind === "page" && isOptionsField(field) && field.sourceFormId) {
       if (value === oldSlug) {
         rewritten[field.name] = newSlug;
         changed = true;
@@ -120,7 +152,7 @@ export function rewriteEntryDataSlugs(
       field.allowMdx &&
       typeof value === "string"
     ) {
-      const mdx = rewriteSlugReferences(value, rename, referenceProps);
+      const mdx = rewriteSlugReferences(value, rename, referenceProps, kind);
       if (mdx !== null) {
         rewritten[field.name] = mdx;
         changed = true;
@@ -131,23 +163,34 @@ export function rewriteEntryDataSlugs(
 }
 
 /**
- * A form descriptor with the admin-written MDX of its `customContent` fields
- * rewritten (`entryContent`, `displayContent`), or null when untouched — the
- * one place a form's schema itself can reference a page (ADR 0016).
+ * A form descriptor with its slug references rewritten, or null when
+ * untouched. For both kinds that is the admin-written MDX of `customContent`
+ * fields (`entryContent`, `displayContent`); a form rename additionally
+ * updates the `sourceFormId` of options fields — the schema-side reference to
+ * another form's entries (a form may even source its own).
  */
 export function rewriteFormDescriptorSlugs(
   descriptor: FormDescriptor,
   rename: SlugRename,
-  referenceProps: ReadonlyMap<string, ReadonlySet<string>>
+  referenceProps: ReadonlyMap<string, ReadonlySet<string>>,
+  kind: SlugKind = "page"
 ): FormDescriptor | null {
   let changed = false;
   const fields = descriptor.fields.map((field) => {
+    if (
+      kind === "form" &&
+      isOptionsField(field) &&
+      field.sourceFormId === rename.oldSlug
+    ) {
+      changed = true;
+      return { ...field, sourceFormId: rename.newSlug };
+    }
     if (field.type !== "customContent") return field;
     const entryContent = field.entryContent
-      ? rewriteSlugReferences(field.entryContent, rename, referenceProps)
+      ? rewriteSlugReferences(field.entryContent, rename, referenceProps, kind)
       : null;
     const displayContent = field.displayContent
-      ? rewriteSlugReferences(field.displayContent, rename, referenceProps)
+      ? rewriteSlugReferences(field.displayContent, rename, referenceProps, kind)
       : null;
     if (entryContent === null && displayContent === null) return field;
     changed = true;
