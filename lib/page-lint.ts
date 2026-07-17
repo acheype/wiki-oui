@@ -6,6 +6,7 @@ import { type PropKind, propKind } from "./component-descriptor";
 import type { ComponentBuilderSpec } from "./component-descriptors";
 import { isAllowedHostElement, isHostElement } from "./mdx-host-elements";
 import { type EstreeProgram, staticLiteralValue } from "./mdx-literal-props";
+import { wikiHrefSlug } from "./slug";
 
 // What a page's MDX says versus what the registry and the descriptors can
 // honour (ADR 0002). Every rule here answers the same question — "will this
@@ -31,7 +32,8 @@ export interface PageWarning {
 export function lintPageSource(
   source: string,
   registry: string[],
-  builders: ComponentBuilderSpec[]
+  builders: ComponentBuilderSpec[],
+  existingSlugs: ReadonlySet<string>
 ): PageWarning[] {
   const warnings: PageWarning[] = [];
   const known = new Set(registry);
@@ -57,6 +59,23 @@ export function lintPageSource(
 
   visit(tree, (rawNode) => {
     const node = rawNode as MdxJsxNode;
+
+    // A wiki link whose target has no page yet (ADR 0016): a legitimate
+    // gesture (write the link, create the page later), so the author is
+    // informed, never blocked — and a rename that raced an open editor
+    // becomes visible instead of silently reintroducing a dead slug.
+    if (node.type === "link" || node.type === "definition") {
+      const url = node.url ?? "";
+      const target = wikiHrefSlug(url);
+      if (target && !existingSlugs.has(target)) {
+        warnings.push({
+          line: node.position?.start.line,
+          message: `Le lien « ${url} » pointe vers une page qui n'existe pas (encore).`,
+        });
+      }
+      return;
+    }
+
     if (
       node.type !== "mdxJsxFlowElement" &&
       node.type !== "mdxJsxTextElement"
@@ -140,6 +159,19 @@ export function lintPageSource(
           line,
           message: `La propriété « ${attributeName} » de « ${name} » n'accepte pas la valeur « ${received} ». Valeurs possibles : ${Object.keys(declared).join(", ")}.`,
         });
+        continue;
+      }
+
+      // Same dead-target signal for props promising a page (`page-list`);
+      // an external URL in such a prop yields no slug and stays silent.
+      if (property.type === "page-list" && typeof received === "string") {
+        const target = wikiHrefSlug(received);
+        if (target && !existingSlugs.has(target)) {
+          warnings.push({
+            line,
+            message: `La propriété « ${attributeName} » de « ${name} » pointe vers une page qui n'existe pas (encore) : « ${received} ».`,
+          });
+        }
       }
     }
 
@@ -214,6 +246,8 @@ type MdxAttributeValue =
 interface MdxJsxNode {
   type: string;
   name?: string | null;
+  /** Only on link and definition nodes. */
+  url?: string;
   position?: { start: { line: number } };
   attributes?: {
     type: string;

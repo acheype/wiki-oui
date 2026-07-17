@@ -23,10 +23,15 @@ export function slugify(text: string): string {
 // followed by a handler segment and/or an anchor, e.g. "ma-page",
 // "ma-page/edit", "ma-page#section".
 const WIKI_HREF_PATTERN =
-  /^[a-z0-9]+(?:-[a-z0-9]+)*(?:\/(?:edit|revisions))?(?:#.*)?$/;
+  /^([a-z0-9]+(?:-[a-z0-9]+)*)(?:\/(?:edit|revisions))?(?:#.*)?$/;
 
 export function isWikiHref(href: string): boolean {
   return WIKI_HREF_PATTERN.test(href);
+}
+
+/** The slug segment of a wiki href, null when the href is not one. */
+export function wikiHrefSlug(href: string): string | null {
+  return WIKI_HREF_PATTERN.exec(href)?.[1] ?? null;
 }
 
 // External link (ADR 0006): an absolute http(s) URL, as opposed to an internal

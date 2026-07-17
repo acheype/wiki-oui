@@ -33,12 +33,19 @@ export type SaveResult = ActionError | { unchanged: true } | { saved: true };
  * can still fix it — and still gets the answer when nothing changed, the one
  * case a save-time report would stay mute about.
  */
-export async function lintPage(content: string): Promise<PageWarning[]> {
-  const [registry, builders] = await Promise.all([
+export async function lintPage(
+  content: string,
+  slug?: string
+): Promise<PageWarning[]> {
+  const [registry, builders, pages] = await Promise.all([
     listWikiComponentNames(),
     loadComponentBuilders(),
+    prisma.page.findMany({ select: { slug: true } }),
   ]);
-  return lintPageSource(content, registry, builders);
+  const existingSlugs = new Set(pages.map((page) => page.slug));
+  // A page may link to itself before its first save.
+  if (slug) existingSlugs.add(slug);
+  return lintPageSource(content, registry, builders, existingSlugs);
 }
 
 function normalizeTags(tags: string[]): string[] {

@@ -188,7 +188,7 @@ export function PageEditor({
   function save() {
     const content = currentContent();
     startTransition(async () => {
-      const found = await lintPage(content);
+      const found = await lintPage(content, slug);
       if (found.length > 0) {
         setWarnings(found);
         return;

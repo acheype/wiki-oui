@@ -8,6 +8,18 @@ const REGISTRY = ["Image", "Button", "Menu"];
 
 const BUILDERS = [
   {
+    base: "button",
+    name: "Button",
+    defaults: {},
+    descriptor: {
+      label: "Bouton",
+      properties: {
+        text: { label: "Texte", type: "text" },
+        link: { label: "Lien", type: "page-list" },
+      },
+    },
+  },
+  {
     base: "image",
     name: "Image",
     defaults: {},
@@ -30,7 +42,11 @@ const BUILDERS = [
   },
 ] as unknown as ComponentBuilderSpec[];
 
-const lint = (source: string) => lintPageSource(source, REGISTRY, BUILDERS);
+// The wiki as the lint sees it (ADR 0016): the one page that exists.
+const EXISTING = new Set(["page-existante"]);
+
+const lint = (source: string) =>
+  lintPageSource(source, REGISTRY, BUILDERS, EXISTING);
 const messages = (source: string) => lint(source).map((w) => w.message);
 
 describe("a page that holds up raises nothing", () => {
@@ -126,6 +142,46 @@ describe("what would silently do nothing", () => {
     expect(messages('<Image file="a.png" effects="oui" />')[0]).toContain(
       "n'a pas de propriété « effects »"
     );
+  });
+});
+
+// Writing a link before creating its page is a wiki gesture, not a mistake:
+// the signal informs, the phrasing says "(encore)", and saving stays possible.
+describe("a link whose target page does not exist", () => {
+  it("flags a wiki link to a missing page", () => {
+    expect(messages("[voir](page-absente)")[0]).toContain(
+      "n'existe pas (encore)"
+    );
+  });
+
+  it("flags handler and anchor forms by their slug segment", () => {
+    expect(messages("[voir](page-absente/edit#section)")[0]).toContain(
+      "« page-absente/edit#section » pointe"
+    );
+  });
+
+  it("flags a reference-style definition", () => {
+    expect(messages("[voir][r]\n\n[r]: page-absente")[0]).toContain(
+      "n'existe pas (encore)"
+    );
+  });
+
+  it("flags a page-list prop aimed at a missing page", () => {
+    expect(messages('<Button link="page-absente" />')[0]).toContain(
+      "pointe vers une page qui n'existe pas (encore)"
+    );
+  });
+
+  it("stays silent when the target exists", () => {
+    expect(
+      lint('[a](page-existante) [b](page-existante#x)\n\n<Button link="page-existante" />')
+    ).toEqual([]);
+  });
+
+  it("stays silent on anything that is not a wiki href", () => {
+    expect(
+      lint('[ext](https://site/xyz) [abs](/chemin)\n\n<Button link="https://site/xyz" />')
+    ).toEqual([]);
   });
 });
 
