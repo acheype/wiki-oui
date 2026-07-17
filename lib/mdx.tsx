@@ -5,7 +5,10 @@ import { mdxAnnotations } from "mdx-annotations";
 import remarkGfm from "remark-gfm";
 import type { MDXComponents } from "mdx/types";
 import { pascalCase } from "@/lib/component-descriptor";
-import { allowListedHostElementsOnly } from "@/lib/mdx-host-elements";
+import {
+  allowListedHostElementsOnly,
+  normalizePastedHtmlAttributes,
+} from "@/lib/mdx-host-elements";
 import { allowLiteralPropsOnly } from "@/lib/mdx-literal-props";
 import { WikiLink } from "@/components/wiki/wiki-link";
 
@@ -42,6 +45,7 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
             mdxAnnotations.remark,
             remarkGfm,
             allowListedHostElementsOnly(),
+            normalizePastedHtmlAttributes(),
             allowLiteralPropsOnly(),
           ],
           rehypePlugins: [mdxAnnotations.rehype],

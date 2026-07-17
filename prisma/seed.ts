@@ -109,7 +109,7 @@ Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**
 
 - Menu de navigation : une liste imbriquée entre \`<Menu>\` et \`</Menu>\` devient un menu à plusieurs niveaux. Un item est un texte, un lien ou un \`<Button>\`.
 - Bouton : \`<Button icon="lucide:settings" text="Configuration" link="ma-page" />\` — les icônes viennent des jeux Iconify embarqués (noms en anglais), à choisir via le sélecteur de l'éditeur.
-- Page d'un autre site : \`<Embed url="https://example.com" title="Description pour les lecteurs d'écran" />\` — remplace la balise \`<iframe>\`, qui n'est pas autorisée.
+- Page d'un autre site : \`<Embed url="https://example.com" title="Description pour les lecteurs d'écran" />\` — quand vous n'avez qu'une adresse. Si le site vous donne un extrait \`<iframe>\` tout fait (YouTube, OpenStreetMap…), collez-le directement, il fonctionne tel quel.
 
 \`\`\`
 <Menu>
@@ -132,9 +132,9 @@ Classes utilisables (les autres sont sans effet) :
 
 ## Balises HTML (avancé)
 
-Vous pouvez taper directement les balises qui mettent en forme du texte : \`<div>\`, \`<span>\`, \`<details>\`/\`<summary>\`, \`<figure>\`, \`<sup>\`, \`<sub>\`, \`<kbd>\`, \`<mark>\`, \`<abbr>\`, les titres, les listes et les tableaux.
+Vous pouvez écrire directement les balises qui mettent en forme du texte : \`<div>\`, \`<span>\`, \`<details>\`/\`<summary>\`, \`<figure>\`, \`<sup>\`, \`<sub>\`, \`<kbd>\`, \`<mark>\`, \`<abbr>\`, les titres, les listes et les tableaux. Ainsi que \`<iframe>\`, pour coller l'extrait d'intégration d'un autre site.
 
-Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<iframe>\`, \`<form>\`, \`<object>\`, \`<embed>\`, \`<link>\`. L'éditeur vous prévient avant d'enregistrer. Pour afficher la page d'un autre site, utilisez le composant \`<Embed>\` ci-dessus.
+Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<form>\`, \`<object>\`, \`<embed>\`, \`<link>\`. L'éditeur vous prévient avant d'enregistrer.
 `,
 };
 

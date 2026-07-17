@@ -48,8 +48,6 @@ describe("tags that must never reach the reader", () => {
   const REFUSED: [string, string][] = [
     ["script src, which executed third-party JS", `<script src="https://evil.tld/x.js"></script>`],
     ["script inline", `<script>alert(1)</script>`],
-    ["iframe srcdoc, which scripted our own origin", `<iframe srcDoc="<b>x</b>" />`],
-    ["iframe", `<iframe src="https://evil.tld/phish" />`],
     ["object", `<object data="https://evil.tld/x.swf"></object>`],
     ["embed", `<embed src="https://evil.tld/x" />`],
     ["form, a phishing prompt", `<form action="https://evil.tld/steal"></form>`],
@@ -74,7 +72,62 @@ describe("tags that must never reach the reader", () => {
   });
 });
 
-describe("Embed carries the use case iframe used to serve", () => {
+// Embedding another site is pasted, not typed: every provider hands out a
+// ready-made <iframe>. The tag is in the list so that gesture survives; what
+// carries its risk — srcdoc, which inherits our origin — is refused by name.
+describe("a pasted embed snippet", () => {
+  // Verbatim from YouTube's "Partager > Intégrer" button.
+  const YOUTUBE = `<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+
+  it("survives the paste whole", async () => {
+    const html = await render(YOUTUBE);
+    expect(html).toContain('src="https://www.youtube.com/embed/dQw4w9WgXcQ"');
+    expect(html).toContain('title="YouTube video player"');
+    // Unknown to React but string-valued, so it writes them through as-is.
+    expect(html).toContain('frameborder="0"');
+    expect(html).toContain('referrerpolicy="strict-origin-when-cross-origin"');
+  });
+
+  it("keeps fullscreen working, which the JSX naming would have eaten", async () => {
+    // A bare attribute is JSX's {true}, and React drops an unknown attribute
+    // holding a boolean — `allowfullscreen` would vanish without its alias.
+    // React emits the JSX spelling; HTML attributes are case-insensitive, so
+    // the browser parses it back to `allowfullscreen` (checked there: the
+    // attribute lands and iframe.allowFullscreen is true).
+    expect(await render(YOUTUBE)).toMatch(/allowfullscreen/i);
+  });
+
+  it("embeds an OpenStreetMap snippet, style object and all", async () => {
+    const html = await render(
+      `<iframe width="425" height="350" src="https://www.openstreetmap.org/export/embed.html?bbox=166.4,-22.3,166.5,-22.2" style={{border: "1px solid black"}}></iframe>`
+    );
+    expect(html).toContain("openstreetmap.org");
+    expect(html).toContain("border:1px solid black");
+  });
+
+  it("refuses srcdoc, the only half of the tag that could script us", async () => {
+    // srcdoc content inherits the *embedding* document's origin — ours.
+    for (const source of [
+      `<iframe srcDoc="<script>alert(1)</script>" />`,
+      `<iframe srcdoc="<script>alert(1)</script>" />`,
+    ]) {
+      const html = await render(source);
+      expect(html).toContain("<iframe");
+      expect(html).not.toContain("alert(1)");
+      expect(html).not.toContain("srcdoc");
+    }
+  });
+
+  it("leaves a component's own props alone when aliasing", async () => {
+    // The alias is for host elements: renaming a component's prop would be us
+    // breaking its contract.
+    expect(await render(`<Image file="probe.png" allowfullscreen />`)).toContain(
+      "/api/files/probe.png"
+    );
+  });
+});
+
+describe("Embed, for the author who has a URL rather than a snippet", () => {
   it("embeds an external page, sandboxed and titled", async () => {
     const html = await render(`<Embed url="https://example.com" title="Exemple" />`);
     expect(html).toContain('src="https://example.com"');

@@ -54,10 +54,17 @@ describe("a tag the sandbox refuses", () => {
     );
   });
 
-  it("flags an iframe, pointing the author at nothing less than the truth", () => {
-    expect(messages('<iframe src="https://example.com" />')[0]).toContain(
-      "« <iframe> » n'est pas autorisée"
+  it("flags a form, which would prompt a reader for their password", () => {
+    expect(messages('<form action="https://evil.tld/steal" />')[0]).toContain(
+      "« <form> » n'est pas autorisée"
     );
+  });
+
+  it("stays silent on a pasted embed snippet", () => {
+    // iframe is in the list on purpose: embedding is pasted, not typed.
+    expect(
+      lint('<iframe src="https://www.youtube.com/embed/x" allowfullscreen />')
+    ).toEqual([]);
   });
 
   it("stays silent on the tags that mark up prose", () => {

@@ -13,13 +13,30 @@ import { SKIP, visit } from "unist-util-visit";
 // `<Image width={400} />` silently lose its width. Content expressions
 // ({variable}, {func()}) and spreads stay barred — a wiki page is data.
 //
-// One prop name is refused outright, whatever its value: React's
-// `dangerouslySetInnerHTML`. The literal allowlist cannot catch it, because
-// {__html: '<img src=x onerror=…>'} *is* a literal object — the payload is
-// data, and only React's reading of that prop turns it into markup. It is not
-// the head of a denylist to grow: React fixes the name, its whole purpose is
-// to bypass escaping, and no descriptor can ever declare it as a prop.
-// Verified in a browser: without this, any author scripts every reader's page.
+// Two prop names are refused outright, whatever their value (REFUSED_PROP_NAMES
+// below). The literal allowlist cannot see them: their payload *is* a valid
+// literal, and what makes it dangerous is what React or the browser does with
+// the name. Both were verified scripting a real browser before the rule.
+
+// An allowlist of prop *names* is impossible here — the project means to host
+// any third-party component, so any name is legitimate. These two are named
+// refusals instead, each for its own reason:
+//
+//   - dangerouslySetInnerHTML: React's escape hatch. `{__html: '<img src=x
+//     onerror=…>'}` is an ordinary literal object; only React's reading of the
+//     name turns that data into markup. React fixes the name, its whole
+//     purpose is to bypass escaping, and no descriptor can declare it.
+//   - srcDoc: an `<iframe srcdoc>` inherits the *embedding* document's origin,
+//     so its scripts run inside the wiki. It is the whole risk of the tag —
+//     its sibling `src`, the case authors want, is walled off by the
+//     same-origin policy. Both spellings go: JSX says `srcDoc`, and a pasted
+//     lowercase `srcdoc` still reaches the DOM, since React writes through any
+//     unknown attribute holding a string.
+const REFUSED_PROP_NAMES = new Set([
+  "dangerouslySetInnerHTML",
+  "srcDoc",
+  "srcdoc",
+]);
 
 // A factory returning the remark plugin: unified calls the plugin, and the
 // plugin returns the transformer. Refusals are dropped in silence here — the
@@ -51,7 +68,9 @@ export function allowLiteralPropsOnly() {
         node.attributes = (node.attributes ?? []).filter((attribute) => {
           // {...spread}: an identifier by nature, never a literal.
           if (attribute.type !== "mdxJsxAttribute") return false;
-          if (attribute.name === "dangerouslySetInnerHTML") return false;
+          if (attribute.name && REFUSED_PROP_NAMES.has(attribute.name)) {
+            return false;
+          }
           const value = attribute.value;
           // `prop` alone (=== true) or prop="text": no expression at all.
           if (value === null || value === undefined) return true;
