@@ -1,4 +1,4 @@
-import { readdir } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import {
   type ComponentDescriptor,
@@ -27,11 +27,41 @@ export interface ComponentBuilderSpec {
 const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "components/wiki");
 
 let cache: Promise<ComponentBuilderSpec[]> | undefined;
+let devStamp: string | undefined;
 
 export function loadComponentBuilders(): Promise<ComponentBuilderSpec[]> {
-  // No cache in dev so editing a descriptor doesn't require a restart.
-  if (process.env.NODE_ENV === "development") return buildSpecs();
+  if (process.env.NODE_ENV === "development") return loadWithFileInvalidation();
   return (cache ??= buildSpecs());
+}
+
+// Dev memoization: rebuilding — and above all re-running the ts-morph
+// verification — on every editor load costs seconds per request, yet editing
+// a descriptor must still be picked up without a restart (ADR 0013). Keyed on
+// a stamp of components/wiki/, so a change to a constant imported from outside
+// that folder (resolveLiteral crossing files) goes undetected until the dev
+// server restarts. A rejected promise stays cached on purpose: same sources,
+// same error on the overlay, and fixing the file invalidates the stamp.
+async function loadWithFileInvalidation(): Promise<ComponentBuilderSpec[]> {
+  const stamp = await componentsDirStamp();
+  if (!cache || stamp !== devStamp) {
+    devStamp = stamp;
+    cache = buildSpecs();
+  }
+  return cache;
+}
+
+async function componentsDirStamp(): Promise<string> {
+  const files = await readdir(WIKI_COMPONENTS_DIR);
+  const stamps = await Promise.all(
+    files
+      .filter((file) => file.endsWith(".yaml") || file.endsWith(".tsx"))
+      .sort()
+      .map(async (file) => {
+        const { mtimeMs, size } = await stat(path.join(WIKI_COMPONENTS_DIR, file));
+        return `${file}:${mtimeMs}:${size}`;
+      })
+  );
+  return stamps.join("\n");
 }
 
 async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
