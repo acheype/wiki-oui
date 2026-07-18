@@ -47,9 +47,10 @@ export default async function ShowPage({ params }: Props) {
   }
 
   return (
-    <div>
+    <div className="flex flex-1 flex-col">
       <PageActions slug={slug} tags={page.tags} />
-      <DoubleClickToEdit slug={slug}>
+      {/* flex-1: a short entry's blank area stays double-clickable. */}
+      <DoubleClickToEdit slug={slug} className="flex-1">
         <article>
           {page.formId ? (
             await renderEntry(page.formId, page.current?.data)
