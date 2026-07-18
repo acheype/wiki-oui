@@ -93,7 +93,7 @@ Une définition de champs de saisie (une liste de champs typés et paramétrés)
 _Avoid_: Bazar, ID numérique de formulaire, page de formulaire
 
 **Fiche**:
-Une **Page** dont le contenu est structuré par un formulaire (`Page.formId`) : ses valeurs de champs vivent en snapshot JSON `data` sur chaque Révision (historisées comme du contenu). Saisie et éditée par le **formulaire généré** (jamais CodeMirror), rendue par la vue par défaut ou le gabarit du formulaire. Son slug est dérivé de son titre à la création (révélable, personnalisable) puis ne change plus que par « Changer l'adresse » — jamais recalculé depuis le titre ; en mode **titre automatique**, le titre est recalculé à chaque sauvegarde depuis un template `{champ}`.
+Une **Page** dont le contenu est structuré par un formulaire (`Page.formId`) : ses valeurs de champs vivent en snapshot JSON `data` sur chaque Révision (historisées comme du contenu). Saisie et éditée par le **formulaire généré** (jamais CodeMirror), rendue par la vue par défaut ou le gabarit du formulaire. Son slug est dérivé de son titre à la création (chip éditable en place, personnalisable) puis ne change plus que par « Changer l'adresse » — jamais recalculé depuis le titre ; en mode **titre automatique**, le titre est recalculé à chaque sauvegarde depuis un template `{champ}`.
 _Avoid_: Entrée (réservé aux noms de code : entry), fiche-page séparée de Page
 
 **FormBuilder**:

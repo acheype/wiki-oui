@@ -6,16 +6,16 @@
 // the same schema validates server-side (form-actions.saveEntry).
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronRight, Loader2, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { type EntryFormData, saveEntry } from "@/app/form-actions";
 import { listFormOptions } from "@/app/form-actions";
 import { Field } from "@/components/fields/field-widget";
+import { SlugInlineEdit } from "@/components/slug-input";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   type EntryData,
@@ -68,38 +68,59 @@ export function EntryForm({
     };
   }, [form.schema]);
 
-  const [slugRevealed, setSlugRevealed] = useState(false);
+  const [slugCustomized, setSlugCustomized] = useState(false);
   const [slug, setSlug] = useState("");
   const [isPending, startTransition] = useTransition();
 
-  // Live sibling values, for the geolocation field's address geocoding.
+  // Live sibling values, for the geolocation field's address geocoding and
+  // the live-derived entry identifier.
   const entryValues = useWatch({ control });
 
   const titleField = form.schema.fields.find((field) => field.type === "title");
   const automaticTitle =
     titleField?.type === "title" && titleField.automatic === true;
 
+  // The identifier derives live from the title until personalized (unified
+  // rule, ADR 0017); with an automatic title it stays empty client-side and
+  // the server derives it from the computed title at save.
+  const titleValue = entryValues?.title;
+  const displayedSlug = slugCustomized
+    ? slug
+    : slugify(typeof titleValue === "string" ? titleValue : "");
+
   function submit(data: EntryData) {
     startTransition(async () => {
       const result = await saveEntry({
         formSlug: form.formSlug,
         data,
-        slug: slugRevealed ? slug : undefined,
+        slug: slugCustomized && slug !== "" ? slug : undefined,
         entrySlug: form.slug ?? undefined,
       });
       if (result.ok) {
         if (onCreated && !isEdit) onCreated(result.slug);
         else router.push(`/${result.slug}`);
       } else if (result.slugCollision) {
-        setSlugRevealed(true);
         toast.error(
-          "Ce nom de fiche est déjà pris : choisissez-en un autre ci-dessous."
+          "Cet identifiant de fiche est déjà pris : personnalisez-le."
         );
       } else {
         toast.error(result.formError ?? "L'enregistrement a échoué.");
       }
     });
   }
+
+  const identity = !isEdit ? (
+    <EntryIdentity
+      slug={displayedSlug}
+      onChange={(value) => {
+        setSlugCustomized(true);
+        setSlug(value);
+      }}
+      onBlur={() => {
+        if (slug === "") setSlugCustomized(false);
+      }}
+    />
+  ) : null;
 
   return (
     <form className="grid gap-5" onSubmit={handleSubmit(submit)}>
@@ -118,9 +139,8 @@ export function EntryForm({
             />
           );
         }
-        return (
+        const controller = (
           <Controller
-            key={field.name}
             name={field.name}
             control={control}
             render={({ field: rhf }) => (
@@ -135,16 +155,20 @@ export function EntryForm({
             )}
           />
         );
+        // The identifier row sits right under the (manual) title field.
+        if (field.type === "title" && identity) {
+          return (
+            <Fragment key={field.name}>
+              {controller}
+              {identity}
+            </Fragment>
+          );
+        }
+        return <Fragment key={field.name}>{controller}</Fragment>;
       })}
 
-      {!isEdit && (
-        <SlugField
-          revealed={slugRevealed}
-          slug={slug}
-          onReveal={() => setSlugRevealed(true)}
-          onChange={setSlug}
-        />
-      )}
+      {/* No title widget when it is automatic: the row closes the form. */}
+      {automaticTitle && identity}
 
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={isPending}>
@@ -156,46 +180,41 @@ export function EntryForm({
   );
 }
 
-// The entry slug (docs/forms.md): derived from the title, hidden, revealable
-// in one click to personalize, then frozen on first save. Shown only when
-// creating; a collision reveals it automatically.
-function SlugField({
-  revealed,
+// The entry's identifier (docs/forms.md, ADR 0017 unified rule): an
+// inline-editable chip under the title field (closing the form when the
+// title is automatic), derived live from the title until personalized,
+// frozen on first save. Creation only.
+function EntryIdentity({
   slug,
-  onReveal,
   onChange,
+  onBlur,
 }: {
-  revealed: boolean;
   slug: string;
-  onReveal: () => void;
   onChange: (slug: string) => void;
+  /** Leaving the input empty re-derives the identifier from the title. */
+  onBlur: () => void;
 }) {
-  if (!revealed) {
-    return (
-      <button
-        type="button"
-        onClick={onReveal}
-        className="flex items-center gap-1 justify-self-start text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ChevronRight className="size-3.5" aria-hidden />
-        Personnaliser l&apos;adresse de la fiche
-      </button>
-    );
-  }
   return (
-    <div>
-      <Label htmlFor="entry-slug" className="mb-2">
-        Adresse de la fiche (slug)
-      </Label>
-      <Input
-        id="entry-slug"
-        value={slug}
-        placeholder="dérivée du titre si vide"
-        onChange={(event) => onChange(slugify(event.target.value))}
-      />
-      <p className="mt-1.5 text-xs text-muted-foreground">
-        Laissée vide, elle est dérivée du titre. Figée après la première
-        sauvegarde.
+    <div className="grid gap-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Label htmlFor="entry-slug" className="gap-1">
+          Identifiant
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
+        </Label>
+        <SlugInlineEdit
+          id="entry-slug"
+          value={slug}
+          className="h-8 w-64"
+          editLabel="Personnaliser l'identifiant"
+          onValueChange={onChange}
+          onBlur={onBlur}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Généré à partir du titre ou personnalisable. Minuscules, chiffres et
+        tirets uniquement.
       </p>
     </div>
   );

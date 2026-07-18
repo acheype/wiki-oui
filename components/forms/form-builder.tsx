@@ -40,7 +40,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { SlugInlineEdit } from "@/components/slug-input";
 import {
+  countFieldReferenceUses,
   renameFieldBindings,
   renameFieldReferences,
 } from "@/lib/field-rename";
@@ -51,7 +53,7 @@ import {
   type FormField,
   type FormFieldType,
 } from "@/lib/form-descriptor";
-import { normalizeSlugInput, slugify } from "@/lib/slug";
+import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import { FieldSettings } from "./field-settings";
@@ -184,12 +186,19 @@ export function FormBuilder({
     if (isNew && !slugCustomized) setSlug(slugify(value));
   }
 
-  // Typing decouples the slug from the name; emptying re-derives it — the
-  // unified identifier rule (ADR 0017).
-  function onSlugChange(value: string) {
-    const slug = normalizeSlugInput(value);
-    setSlugCustomized(slug !== "");
-    setSlug(slug === "" ? slugify(name) : slug);
+  // Typing decouples the slug from the name (ADR 0017); the SlugInput
+  // already normalized. The field may stay empty while editing — only
+  // leaving it empty re-derives, so a cleared value does not spring back.
+  function onSlugChange(slug: string) {
+    setSlugCustomized(true);
+    setSlug(slug);
+  }
+
+  function onSlugBlur() {
+    if (slug === "") {
+      setSlugCustomized(false);
+      setSlug(slugify(name));
+    }
   }
 
   function handleRenamed(newSlug: string) {
@@ -257,7 +266,12 @@ export function FormBuilder({
       <div className="grid gap-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="grid min-w-64 flex-1 gap-1.5">
-            <Label htmlFor="form-name">Nom du formulaire</Label>
+            <Label htmlFor="form-name" className="gap-1">
+              Nom du formulaire
+              <span aria-hidden className="text-destructive">
+                *
+              </span>
+            </Label>
             <Input
               id="form-name"
               value={name}
@@ -274,6 +288,7 @@ export function FormBuilder({
           isNew={isNew}
           slug={slug}
           onChange={onSlugChange}
+          onBlur={onSlugBlur}
           onRenamed={handleRenamed}
         />
       </div>
@@ -326,6 +341,11 @@ export function FormBuilder({
                   otherFields={fields.filter((f) => f._id !== selected._id)}
                   forms={otherForms}
                   formSlug={initial?.slug ?? null}
+                  referenceCounts={countFieldReferenceUses(
+                    fields,
+                    template,
+                    selected.name
+                  )}
                   onChange={(patch) => updateField(selected._id, patch)}
                   onRenameStaged={(to) => stageFieldRename(selected._id, to)}
                 />
@@ -409,7 +429,15 @@ function CanvasRow({
         onClick={onSelect}
         className="flex min-w-0 flex-1 flex-col items-start text-left"
       >
-        <span className="truncate text-sm font-medium">{field.label}</span>
+        <span className="truncate text-sm font-medium">
+          {field.label}
+          {field.required && (
+            <span aria-hidden className="text-destructive">
+              {" "}
+              *
+            </span>
+          )}
+        </span>
         <span className="text-xs text-muted-foreground">
           {FIELD_TYPE_LABELS[field.type]}
         </span>
@@ -430,29 +458,30 @@ function CanvasRow({
 }
 
 // The form's identity, under its name (docs/forms.md, ADR 0014/0016/0017).
-// New form: a visible input, derived from the name until the author types in
-// it (emptied, it derives again). Existing form: a chip, and only « Changer »
-// can move it (the ADR 0016 retcon dialog).
+// New form: an inline-editable chip, derived from the name until the author
+// types in it (left empty, it derives again). Existing form: a plain chip,
+// and only « Changer » can move it (the ADR 0016 retcon dialog).
 function FormIdentity({
   isNew,
   slug,
   onChange,
+  onBlur,
   onRenamed,
 }: {
   isNew: boolean;
   slug: string;
   onChange: (slug: string) => void;
+  /** Leaving the input empty re-derives the slug from the name. */
+  onBlur: () => void;
   onRenamed: (slug: string) => void;
 }) {
   if (!isNew) {
     return (
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm">
-          Identifiant :{" "}
-          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
-            {slug}
-          </code>
-        </p>
+        <p className="text-sm font-medium">Identifiant</p>
+        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
+          {slug}
+        </code>
         <RenameSlugDialog
           trigger={
             <Button
@@ -481,17 +510,25 @@ function FormIdentity({
   }
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor="form-slug">Identifiant</Label>
-      <Input
-        id="form-slug"
-        value={slug}
-        className="font-mono text-sm"
-        placeholder="identifiant"
-        onChange={(event) => onChange(event.target.value)}
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <Label htmlFor="form-slug" className="gap-1">
+          Identifiant
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
+        </Label>
+        <SlugInlineEdit
+          id="form-slug"
+          value={slug}
+          className="h-8 w-64"
+          editLabel="Personnaliser l'identifiant"
+          onValueChange={onChange}
+          onBlur={onBlur}
+        />
+      </div>
       <p className="text-xs text-muted-foreground">
-        Dérivé du nom ; minuscules, chiffres et tirets. Modifiable après
-        enregistrement via «&nbsp;Changer&nbsp;».
+        Généré à partir du nom ou personnalisable. Minuscules, chiffres et
+        tirets uniquement.
       </p>
     </div>
   );

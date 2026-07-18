@@ -22,8 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { SlugInlineEdit } from "@/components/slug-input";
+import type { FieldReferenceCounts } from "@/lib/field-rename";
 import type { FormField } from "@/lib/form-descriptor";
-import { normalizeSlugInput, slugify } from "@/lib/slug";
+import { slugify } from "@/lib/slug";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import type { CanvasField } from "./form-builder";
 
@@ -32,6 +34,7 @@ export function FieldSettings({
   otherFields,
   forms,
   formSlug,
+  referenceCounts,
   onChange,
   onRenameStaged,
 }: {
@@ -41,6 +44,8 @@ export function FieldSettings({
   forms: { slug: string; name: string }[];
   /** The edited form's slug; null while the form has never been saved. */
   formSlug: string | null;
+  /** Local references to the field's name, for the rename dialog's impact. */
+  referenceCounts: FieldReferenceCounts;
   onChange: (patch: Partial<FormField>) => void;
   /** Confirms the rename dialog: stages the rename on the canvas (ADR 0017). */
   onRenameStaged: (to: string) => void;
@@ -50,7 +55,12 @@ export function FieldSettings({
   return (
     <div className="grid gap-4">
       <div className="grid gap-1.5">
-        <Label htmlFor="setting-label">Libellé</Label>
+        <Label htmlFor="setting-label" className="gap-1">
+          Libellé
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
+        </Label>
         <Input
           id="setting-label"
           value={field.label}
@@ -74,9 +84,20 @@ export function FieldSettings({
         <NameSetting
           field={field}
           formSlug={formSlug}
+          referenceCounts={referenceCounts}
           onChange={onChange}
           onRenameStaged={onRenameStaged}
         />
+      )}
+
+      {field.type !== "title" && field.type !== "customContent" && (
+        <label className="flex items-center gap-2 text-sm font-normal">
+          <Checkbox
+            checked={field.required === true}
+            onCheckedChange={(checked) => patch({ required: checked === true })}
+          />
+          Champ obligatoire
+        </label>
       )}
 
       {"placeholder" in fieldParams(field) && (
@@ -94,16 +115,6 @@ export function FieldSettings({
         value={field.hint ?? ""}
         onChange={(hint) => patch({ hint })}
       />
-
-      {field.type !== "title" && field.type !== "customContent" && (
-        <label className="flex items-center gap-2 text-sm font-normal">
-          <Checkbox
-            checked={field.required === true}
-            onCheckedChange={(checked) => patch({ required: checked === true })}
-          />
-          Champ obligatoire
-        </label>
-      )}
 
       <TypeSpecificSettings
         field={field}
@@ -123,11 +134,13 @@ export function FieldSettings({
 function NameSetting({
   field,
   formSlug,
+  referenceCounts,
   onChange,
   onRenameStaged,
 }: {
   field: CanvasField;
   formSlug: string | null;
+  referenceCounts: FieldReferenceCounts;
   onChange: (patch: Partial<FormField>) => void;
   onRenameStaged: (to: string) => void;
 }) {
@@ -135,12 +148,15 @@ function NameSetting({
   if (persistedName !== undefined) {
     return (
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-sm">
-          Identifiant :{" "}
-          <code className="rounded bg-muted px-1.5 py-0.5 font-mono">
-            {field.name}
-          </code>
+        <p className="text-sm font-medium">
+          Identifiant{" "}
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
         </p>
+        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
+          {field.name}
+        </code>
         <RenameSlugDialog
           trigger={
             <Button
@@ -159,7 +175,9 @@ function NameSetting({
           inputLabel="Nouvel identifiant"
           confirmLabel="Changer l'identifiant"
           searchingText="Recherche des fiches portant ce champ…"
-          impactSentence={fieldImpactSentence}
+          impactSentence={(impact) =>
+            fieldImpactSentence(impact, referenceCounts)
+          }
           note="Les modifications ne seront prises en compte qu'à l'enregistrement du formulaire."
           fetchImpact={async () => ({
             pages: 0,
@@ -175,35 +193,78 @@ function NameSetting({
   }
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor="setting-name">Identifiant (clé et cible des {"{champ}"})</Label>
-      <Input
+      <Label htmlFor="setting-name" className="gap-1">
+        Identifiant
+        <span aria-hidden className="text-destructive">
+          *
+        </span>
+      </Label>
+      <SlugInlineEdit
         id="setting-name"
         value={field.name}
-        className="font-mono text-sm"
-        onChange={(event) => {
-          const name = normalizeSlugInput(event.target.value);
-          // Typing decouples the identifier from the label; emptying
-          // re-derives it (ADR 0017).
-          onChange(
-            name === ""
-              ? ({
-                  name: slugify(field.label),
-                  nameCustomized: false,
-                } as Partial<FormField>)
-              : ({ name, nameCustomized: true } as Partial<FormField>)
-          );
+        editLabel="Personnaliser l'identifiant"
+        // Typing decouples the identifier from the label (ADR 0017); the
+        // value may stay empty while editing — only leaving the field empty
+        // re-derives it from the label.
+        onValueChange={(name) =>
+          onChange({ name, nameCustomized: true } as Partial<FormField>)
+        }
+        onBlur={() => {
+          if (field.name === "") {
+            onChange({
+              name: slugify(field.label),
+              nameCustomized: false,
+            } as Partial<FormField>);
+          }
         }}
       />
+      <p className="text-xs text-muted-foreground">
+        Généré à partir du libellé ou personnalisable. Minuscules, chiffres et
+        tirets uniquement.
+      </p>
     </div>
   );
 }
 
-function fieldImpactSentence(impact: SlugReferenceImpact): string {
-  if (impact.entries === 0) return "Aucune fiche ne porte encore ce champ.";
-  if (impact.entries === 1) {
-    return "1 fiche porte ce champ : elle sera mise à jour automatiquement, historique compris.";
+// The full impact of a staged field rename: the entries carrying the key
+// (server headcount) plus what the canvas will rewrite locally — references
+// in the form definition and in the entry template.
+function fieldImpactSentence(
+  impact: SlugReferenceImpact,
+  counts: FieldReferenceCounts
+): string {
+  const sentences: string[] = [];
+  if (impact.entries === 0) {
+    sentences.push("Aucune fiche ne porte encore ce champ.");
+  } else if (impact.entries === 1) {
+    sentences.push(
+      "1 fiche porte ce champ : elle sera mise à jour automatiquement, historique compris."
+    );
+  } else {
+    sentences.push(
+      `${impact.entries} fiches portent ce champ : elles seront mises à jour automatiquement, historique compris.`
+    );
   }
-  return `${impact.entries} fiches portent ce champ : elles seront mises à jour automatiquement, historique compris.`;
+  const references = [
+    counts.schema > 0
+      ? `${referenceNoun(counts.schema)} dans le formulaire`
+      : null,
+    counts.template > 0
+      ? `${referenceNoun(counts.template)} dans le gabarit`
+      : null,
+  ].filter((part): part is string => part !== null);
+  if (references.length > 0) {
+    const verb =
+      counts.schema + counts.template > 1
+        ? "seront également réécrites"
+        : "sera également réécrite";
+    sentences.push(`${references.join(" et ")} ${verb}.`);
+  }
+  return sentences.join(" ");
+}
+
+function referenceNoun(total: number): string {
+  return `${total} référence${total > 1 ? "s" : ""}`;
 }
 
 function TypeSpecificSettings({

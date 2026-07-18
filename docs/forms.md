@@ -36,9 +36,9 @@ model Revision {
 - **Pas d'historisation du `Form`** : enregistrer écrase (comme les tags de page). Les *fiches*, elles, restent historisées par les `Revision` existantes.
 - **Migration de schéma = dégradation gracieuse** : `data` est un snapshot par révision ; clé orpheline ignorée à l'affichage mais préservée, champ nouveau vide jusqu'à la prochaine édition. Pas de versionnage du schéma.
 
-## Identités (règle commune : dérivé, révélable, figé)
+## Identités (règle commune : dérivé, éditable en place, figé)
 
-Trois identifiants suivent le même motif — **dérivé automatiquement, figé au premier enregistrement** — avec deux présentations : le slug d'une fiche reste caché derrière « Personnaliser l'adresse de la fiche » (révélable en un clic) ; l'identifiant d'un formulaire et celui d'un champ sont des **inputs visibles** du FormBuilder, dérivés jusqu'à modification par l'utilisateur, re-dérivés si vidés :
+Trois identifiants suivent le même motif — **dérivé automatiquement, figé au premier enregistrement** — et la même présentation avant l'enregistrement : une ligne « Identifiant\* » avec un **chip éditable en place** (clic sur le chip ou son crayon → input au même endroit, valeur sélectionnée ; Entrée ou perte de focus referme), dérivé jusqu'à modification par l'utilisateur, re-dérivé s'il est **laissé vide** à la perte de focus. Pour une fiche, la ligne se place sous le champ Titre (en fin de formulaire quand le titre est automatique) :
 
 | Objet | Dérivé de | Figé quand |
 |---|---|---|
@@ -46,9 +46,9 @@ Trois identifiants suivent le même motif — **dérivé automatiquement, figé 
 | `name` d'un champ (clé dans `data`, cible des `{champ}`) | `label` du champ, unique dans le formulaire | premier enregistrement du formulaire |
 | slug d'une fiche | valeur du champ titre (ou titre automatique) | première sauvegarde de la fiche |
 
-En cas de **collision** du slug de fiche (avec une page ou une autre fiche) : message explicite + révélation du champ slug pour que l'utilisateur en choisisse un autre — jamais de suffixe automatique silencieux.
+En cas de **collision** du slug de fiche (avec une page ou une autre fiche) : message explicite invitant à personnaliser l'identifiant — jamais de suffixe automatique silencieux.
 
-Nuance depuis ADR 0016/0017 : « figé » signifie *plus jamais dérivé* — mais tout identifiant en base reste renommable par un geste explicite qui réécrit toutes les références, historique compris : « Changer l'adresse » (fiche), « Changer » sur l'identifiant du formulaire (immédiat) et sur celui d'un champ (différé à l'enregistrement, ADR 0017). Règle d'UI commune : un identifiant **pas encore en base** est un input visible, dérivé (du nom / du libellé) jusqu'à modification par l'utilisateur, re-dérivé si vidé ; un identifiant **en base** est un chip + bouton « Changer » ouvrant la modale de renommage. Seul le `name` du champ `title` est réellement immuable (littéral, cible des gabarits).
+Nuance depuis ADR 0016/0017 : « figé » signifie *plus jamais dérivé* — mais tout identifiant en base reste renommable par un geste explicite qui réécrit toutes les références, historique compris : « Changer l'adresse » (fiche), « Changer » sur l'identifiant du formulaire (immédiat) et sur celui d'un champ (différé à l'enregistrement, ADR 0017). Règle d'UI commune : un identifiant **pas encore en base** est un chip éditable en place (ci-dessus) ; un identifiant **en base** est un chip + bouton « Changer » ouvrant la modale de renommage. Seul le `name` du champ `title` est réellement immuable (littéral, cible des gabarits).
 
 ## Écrans
 
@@ -71,7 +71,7 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 - **Palette** des types de champs → **drag & drop** (dnd-kit) vers le canvas, réordonnancement inclus ;
 - clic sur un champ du canvas → **panneau de paramétrage** (les paramètres du type, générés par le renderer de champs partagé — ADR 0015) ;
 - champ **`title` présent par défaut** dans tout nouveau formulaire, non supprimable (voir « Titre & slug ») ;
-- en-tête : bouton Enregistrer aligné sur la rangée du champ Nom ; dessous, la ligne Identifiant — input dérivé du nom à la création (règle commune des identités), chip + petit bouton « Changer » à l'édition (dialogue de renommage ADR 0016, sans avertissement : les URLs `?id=` sont des écrans d'admin, l'accès normal passe par les composants des pages wiki) ;
+- en-tête : bouton Enregistrer aligné sur la rangée du champ Nom ; dessous, la ligne Identifiant — chip éditable en place dérivé du nom à la création (règle commune des identités), chip + petit bouton « Changer » à l'édition (dialogue de renommage ADR 0016, sans avertissement : les URLs `?id=` sont des écrans d'admin, l'accès normal passe par les composants des pages wiki) ;
 - onglet/section **Gabarit** : éditeur CodeMirror existant (coloration MDX, barre d'outils, aide-mémoire) + **aperçu** rendu sur des valeurs d'exemple, via la mécanique d'aperçu existante ;
 - **Enregistrer** valide le descripteur par le méta-schéma Zod + les règles croisées, avec messages ciblés.
 

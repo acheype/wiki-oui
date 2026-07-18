@@ -1,6 +1,7 @@
 import {
   type EntryData,
   type FormField,
+  extractFieldReferences,
   fieldReferencePattern,
 } from "./form-descriptor";
 
@@ -94,4 +95,37 @@ export function renameFieldBindings<F extends FormField>(
     if (template !== null) patch.template = template;
   }
   return Object.keys(patch).length > 0 ? ({ ...field, ...patch } as F) : null;
+}
+
+/** What a rename would rewrite besides the entries, for the dialog's impact. */
+export interface FieldReferenceCounts {
+  /** In the form definition: geolocation bindings + automatic-title template. */
+  schema: number;
+  /** {champ} references in the entry template. */
+  template: number;
+}
+
+/** How many references aim at the name across the builder's local state. */
+export function countFieldReferenceUses(
+  fields: FormField[],
+  template: string,
+  name: string
+): FieldReferenceCounts {
+  let schema = 0;
+  for (const field of fields) {
+    if (field.type === "geolocation") {
+      for (const binding of GEOLOCATION_BINDINGS) {
+        if (field[binding] === name) schema += 1;
+      }
+    }
+    if (field.type === "title" && field.template !== undefined) {
+      schema += countReferences(field.template, name);
+    }
+  }
+  return { schema, template: countReferences(template, name) };
+}
+
+function countReferences(text: string, name: string): number {
+  return extractFieldReferences(text).filter((reference) => reference === name)
+    .length;
 }

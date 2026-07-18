@@ -13,9 +13,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { isValidSlug, normalizeSlugInput } from "@/lib/slug";
+import { SlugInput } from "@/components/slug-input";
+import { isValidSlug } from "@/lib/slug";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
 // The confirmation dialog of a rename, shared by « Changer l'adresse »
@@ -71,7 +71,9 @@ export function RenameSlugDialog({
   function handleOpenChange(nextOpen: boolean) {
     setOpen(nextOpen);
     if (nextOpen) {
-      setNewSlug("");
+      // Prefilled with the current identifier (selected on focus): confirm
+      // stays disabled until the value actually moves.
+      setNewSlug(current);
       setImpact(undefined);
       fetchImpact().then(setImpact);
     }
@@ -108,18 +110,22 @@ export function RenameSlugDialog({
             if (ready && !isPending) confirm();
           }}
         >
-          <Label htmlFor={inputId} className="mb-2">
+          <Label htmlFor={inputId} className="mb-2 gap-1">
             {inputLabel}
+            <span aria-hidden className="text-destructive">
+              *
+            </span>
           </Label>
-          <Input
+          <SlugInput
             id={inputId}
             value={newSlug}
             autoFocus
             placeholder={current}
-            onChange={(event) => setNewSlug(normalizeSlugInput(event.target.value))}
+            onFocus={(event) => event.target.select()}
+            onValueChange={setNewSlug}
           />
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Minuscules, chiffres et tirets.
+            Minuscules, chiffres et tirets uniquement.
           </p>
         </form>
         <p className="text-sm">

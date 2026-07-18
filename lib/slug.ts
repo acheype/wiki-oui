@@ -19,16 +19,21 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-// Live-typing normalization for slug inputs: lowercase, spaces to dashes,
-// accents transliterated. Unlike slugify it keeps interior and trailing
-// dashes — otherwise hyphens are impossible to type — and leaves full
-// validity to the save- or confirm-time isValidSlug check.
+// Live-typing normalization for slug inputs (the shared SlugInput):
+// lowercase, accents transliterated, separator-like characters (spaces,
+// apostrophes, underscores, dots) turned into dashes, anything else simply
+// not typed. Runs of dashes collapse and a leading dash is dropped; a
+// trailing dash stays — otherwise hyphens are impossible to type — leaving
+// full validity to the save- or confirm-time isValidSlug check.
 export function normalizeSlugInput(value: string): string {
   return value
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, "-");
+    .replace(/[\s'’_.]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-/, "");
 }
 
 // Internal wiki href as written by authors (ADR 0006): a bare slug, optionally
