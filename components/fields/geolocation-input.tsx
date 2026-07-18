@@ -157,7 +157,10 @@ export function GeolocationInput({
           center={value ?? DEFAULT_CENTER}
           zoom={value ? POINT_ZOOM : DEFAULT_ZOOM}
           style={{ height: "100%", width: "100%" }}
-          scrollWheelZoom={false}
+          // Wheel zoom stays on while entering a point (the map is the
+          // widget); the read-only EntryMap keeps it off to not hijack the
+          // page scroll.
+          scrollWheelZoom
         >
           <Recenter point={value} />
           <ClickCatcher onPick={(point) => onChange(point)} />
