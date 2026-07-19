@@ -1,0 +1,215 @@
+# ComponentBuilder descriptor of <EntriesView> (docs/entries-view.md, ADR
+# 0018): one tag, nine views over the entries of one or several forms. The
+# view options grow as the views land; every showif already carries its final
+# view set. entryDisplay is emitted by several aliased fields (`prop:`) whose
+# defaults differ per view — the component resolves the absent prop.
+label: Fiches
+description: "Affiche les fiches d'un formulaire : liste, grille, tableau, carte, calendrier…"
+previewHeight: 450px
+properties:
+  form:
+    label: Formulaire
+    type: form-list
+    multiple: true
+    required: true
+  view:
+    label: Vue
+    type: view-picker
+    default: list
+    options:
+      list: Liste
+    icons:
+      list: lucide:rows-3
+
+  displaySection:
+    label: Affichage
+    type: divider
+  expandable:
+    label: Déplier les fiches dans la liste
+    type: checkbox
+    default: true
+    showif:
+      view: list
+  openOnClick:
+    label: Ouvrir les fiches au clic
+    type: checkbox
+    default: false
+    showif:
+      view: list
+      expandable: false
+  titleField:
+    label: Zone de titre
+    hint: Vide = le champ titre de la fiche
+    type: form-field
+    showif: &zoned-views
+      view: /^(list|grid|agenda)$/
+  subtitleField:
+    label: Zone de sous-titre
+    type: form-field
+    showif: *zoned-views
+  displayList:
+    label: Lors du clic, afficher la fiche
+    type: list
+    prop: entryDisplay
+    default: popup
+    options: &display-options
+      popup: Dans une popup
+      current-tab: Dans l'onglet courant
+      new-tab: Dans un nouvel onglet
+    showif:
+      view: list
+      openOnClick: true
+  display:
+    label: Lors du clic, afficher la fiche
+    type: list
+    prop: entryDisplay
+    default: popup
+    options: *display-options
+    showif:
+      view: /^(grid|table|directory|agenda)$/
+  colorField:
+    label: Champ pour la couleur
+    type: form-field
+    fieldTypes: [list, radio, multiChoice]
+    pseudoFields: ["$form"]
+    showif: &colored-views
+      view: /^(list|grid|table|map|calendar|agenda)$/
+  colors:
+    label: Couleurs par valeur
+    type: color-mapping
+    fieldFrom: colorField
+    advanced: true
+    showif:
+      view: /^(list|grid|table|map|calendar|agenda)$/
+      colorField: notNull
+  iconField:
+    label: Champ pour l'icône
+    type: form-field
+    fieldTypes: [list, radio, multiChoice]
+    pseudoFields: ["$form"]
+    advanced: true
+    showif: *colored-views
+  icons:
+    label: Icônes par valeur
+    type: icon-mapping
+    fieldFrom: iconField
+    advanced: true
+    showif:
+      view: /^(list|grid|table|map|calendar|agenda)$/
+      iconField: notNull
+
+  searchSection:
+    label: Recherche et filtres
+    type: divider
+    showif: &searchable-views
+      view: /^(list|grid|table|map|calendar|agenda|directory|gallery)$/
+  search:
+    label: Barre de recherche
+    type: checkbox
+    default: false
+    showif: *searchable-views
+  searchFields:
+    label: Champs cherchés
+    hint: Vide = tous les champs de type texte
+    type: form-field
+    multiple: true
+    fieldTypes: [title, text, textarea, email, url]
+    advanced: true
+    showif:
+      view: /^(list|grid|table|map|calendar|agenda|directory|gallery)$/
+      search: true
+  filters:
+    label: Filtres disponibles
+    type: field-rows
+    withIcon: true
+    fieldTypes: [list, radio, multiChoice, tags]
+    pseudoFields: ["$form"]
+    showif: *searchable-views
+  filtersPosition:
+    label: Position des filtres
+    type: list
+    default: left
+    options:
+      left: À gauche
+      right: À droite
+    advanced: true
+    showif: *searchable-views
+  filtersExpanded:
+    label: Filtres dépliés à l'arrivée
+    type: list
+    default: first
+    options:
+      first: Le premier
+      all: Tous
+    advanced: true
+    showif: *searchable-views
+  filterCounts:
+    label: Nombre de fiches par option
+    type: checkbox
+    default: true
+    advanced: true
+    showif: *searchable-views
+
+  sortSection:
+    label: Tri
+    type: divider
+    showif: &sorted-views
+      view: /^(list|grid|table|carousel|gallery)$/
+  sortField:
+    label: Trier par
+    type: form-field
+    default: $createdAt
+    fieldTypes: [title, text, textarea, email, url, date, list, radio, multiChoice, tags]
+    pseudoFields: ["$owner", "$createdAt", "$editedAt"]
+    showif: *sorted-views
+  sortOrder:
+    label: Ordre
+    type: list
+    default: desc
+    options:
+      desc: Les plus récentes d'abord (décroissant)
+      asc: Croissant
+    showif: *sorted-views
+  sortOptions:
+    label: Tris proposés aux visiteurs
+    type: field-rows
+    fieldTypes: [title, text, textarea, email, url, date, list, radio, multiChoice, tags]
+    pseudoFields: ["$owner", "$createdAt", "$editedAt"]
+    showif:
+      view: /^(list|grid|gallery)$/
+
+  selectionSection:
+    label: Sélection des fiches
+    type: divider
+  period:
+    label: Période
+    type: list
+    default: none
+    options:
+      none: Toutes les fiches
+      future: À venir
+      past: Passées
+      today: Aujourd'hui
+      last-30-days: Les 30 derniers jours
+      next-30-days: Les 30 prochains jours
+      one-week-around: À une semaine près
+      last-2-years: Les 2 dernières années
+  periodField:
+    label: Sur le champ
+    type: form-field
+    fieldTypes: [date]
+    pseudoFields: ["$createdAt", "$editedAt"]
+    showif:
+      period: /^(future|past|today|last-30-days|next-30-days|one-week-around|last-2-years)$/
+  limit:
+    label: Nombre maximal de fiches
+    hint: Vide = toutes ; tronque la source (« les 5 dernières actus »)
+    type: number
+    advanced: true
+  pageSize:
+    label: Fiches par page
+    hint: Vide = tout afficher
+    type: number
+    advanced: true
+    showif:
+      view: /^(list|grid|table|agenda|directory|gallery)$/

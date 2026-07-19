@@ -132,6 +132,17 @@ export function checkSignature(
     lineOf,
   };
 
+  // Aliased props (several fields, disjoint showif — docs/entries-view.md)
+  // exist precisely because the default depends on a sibling value, so the
+  // component cannot destructure one default: it resolves it at runtime and
+  // the drift check does not apply.
+  const carrierCounts = new Map<string, number>();
+  for (const [field, spec] of Object.entries(descriptor.properties)) {
+    if (spec.type === "divider") continue;
+    const prop = fieldProp(field, spec);
+    carrierCounts.set(prop, (carrierCounts.get(prop) ?? 0) + 1);
+  }
+
   for (const [field, spec] of Object.entries(descriptor.properties)) {
     if (spec.type === "divider") continue;
     const propName = fieldProp(field, spec);
@@ -153,7 +164,9 @@ export function checkSignature(
     }
 
     checkType(ctx, field, spec, prop, errors);
-    checkDrift(ctx, field, spec.default, prop, errors, warnings);
+    if ((carrierCounts.get(propName) ?? 0) < 2) {
+      checkDrift(ctx, field, spec.default, prop, errors, warnings);
+    }
 
     // `value` is a pre-fill, always written; verified in type only, never for
     // drift — it may legitimately differ from the component default.

@@ -3,20 +3,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DoubleClickToEdit } from "@/components/page/double-click-to-edit";
-import { EntryView } from "@/components/forms/entry-view";
+import { EntryContent } from "@/components/forms/entry-content";
 import { PageActions } from "@/components/page/page-actions";
 import { Prose } from "@/components/page/prose";
 import { Button } from "@/components/ui/button";
-import { renderTemplateSource } from "@/lib/entry-render";
-import {
-  formSourcedValues,
-  parseFormDescriptor,
-  readEntryData,
-} from "@/lib/form-descriptor";
 import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
 import { getPageWithCurrent } from "@/lib/pages";
-import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 
 // Wiki content is edited live; never serve a build-time snapshot.
@@ -53,7 +46,7 @@ export default async function ShowPage({ params }: Props) {
       <DoubleClickToEdit slug={slug} className="flex-1">
         <article>
           {page.formId ? (
-            await renderEntry(page.formId, page.current?.data)
+            <EntryContent formId={page.formId} rawData={page.current?.data} />
           ) : (
             <Prose>{await renderMdx(page.current?.content ?? "")}</Prose>
           )}
@@ -66,53 +59,6 @@ export default async function ShowPage({ params }: Props) {
           ` · dernière modification le ${formatDateTime(page.current.createdAt)}`}
       </p>
     </div>
-  );
-}
-
-// Renders an entry (ADR 0014): the form's MDX template with {champ} values
-// substituted (escaped) then compiled through the sandboxed pipeline, or the
-// auto-generated default view when the form has no template.
-async function renderEntry(
-  formId: string,
-  rawData: unknown
-): Promise<React.ReactNode> {
-  const form = await prisma.form.findUnique({ where: { id: formId } });
-  if (!form) return null;
-  const parsed = parseFormDescriptor(form.schema);
-  if (!parsed.descriptor) return null;
-  const data = readEntryData(rawData);
-
-  if (form.template && form.template.trim() !== "") {
-    return (
-      <Prose>
-        {await renderMdx(
-          renderTemplateSource(form.template, parsed.descriptor, data)
-        )}
-      </Prose>
-    );
-  }
-
-  // Resolve form-sourced option values (entry slugs) to their current titles
-  // for the default view's wiki links; a deleted target keeps its raw slug.
-  const referenced = formSourcedValues(parsed.descriptor, data);
-  const targets = referenced.length
-    ? await prisma.page.findMany({
-        where: { slug: { in: referenced } },
-        include: { current: true },
-      })
-    : [];
-  const linkTitles: Record<string, string> = {};
-  for (const target of targets) {
-    const title = readEntryData(target.current?.data).title;
-    if (typeof title === "string") linkTitles[target.slug] = title;
-  }
-
-  return (
-    <EntryView
-      descriptor={parsed.descriptor}
-      data={data}
-      linkTitles={linkTitles}
-    />
   );
 }
 
