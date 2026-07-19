@@ -45,6 +45,7 @@ import { valueToText } from "@/lib/form-descriptor";
 import { PSEUDO_FIELD_LABELS, isPseudoField } from "@/lib/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { Icon } from "./internal/icon";
+import { GridView } from "./internal/entries/grid-view";
 import { ListView } from "./internal/entries/list-view";
 import {
   type EntriesViewProps,
@@ -61,6 +62,9 @@ export function EntriesView({
   view = "list",
   expandable = true,
   openOnClick = false,
+  layout = "vertical",
+  visualFit = "cover",
+  textLines = 3,
   search = false,
   filtersPosition = "left",
   filtersExpanded = "first",
@@ -75,6 +79,9 @@ export function EntriesView({
     view,
     expandable,
     openOnClick,
+    layout,
+    visualFit,
+    textLines,
     search,
     filtersPosition,
     filtersExpanded,
@@ -259,6 +266,8 @@ function renderView(view: ViewName, context: ViewContext): React.ReactNode {
   switch (view) {
     case "list":
       return <ListView context={context} />;
+    case "grid":
+      return <GridView context={context} />;
     default:
       // The remaining views land one by one (docs/entries-view.md).
       return (

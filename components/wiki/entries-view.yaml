@@ -18,8 +18,10 @@ properties:
     default: list
     options:
       list: Liste
+      grid: Grille
     icons:
       list: lucide:rows-3
+      grid: lucide:layout-grid
 
   displaySection:
     label: Affichage
@@ -37,6 +39,12 @@ properties:
     showif:
       view: list
       expandable: false
+  visualField:
+    label: Zone visuelle
+    type: form-field
+    fieldTypes: [image]
+    showif:
+      view: grid
   titleField:
     label: Zone de titre
     hint: Vide = le champ titre de la fiche
@@ -47,6 +55,68 @@ properties:
     label: Zone de sous-titre
     type: form-field
     showif: *zoned-views
+  textField:
+    label: Zone de texte
+    type: form-field
+    fieldTypes: [text, textarea]
+    showif:
+      view: grid
+  footerField:
+    label: Zone de pied
+    type: form-field
+    showif:
+      view: grid
+  badgeField:
+    label: Badge
+    hint: Affiché en surimpression du visuel
+    type: form-field
+    showif:
+      view: grid
+  gridColumns:
+    label: Nombre de colonnes
+    hint: Un maximum — la grille retombe à 2 puis 1 colonnes sur petit écran
+    type: number
+    prop: columnCount
+    default: 3
+    showif:
+      view: grid
+  agendaColumns:
+    label: Nombre de colonnes
+    type: number
+    prop: columnCount
+    default: 1
+    advanced: true
+    showif:
+      view: agenda
+  layout:
+    label: Disposition
+    type: list
+    default: vertical
+    options:
+      vertical: Verticale
+      horizontal: Horizontale
+      square: Carrée
+    showif:
+      view: grid
+  visualFit:
+    label: Cadrage du visuel
+    type: list
+    default: cover
+    options:
+      cover: Remplir la zone (rogne l'image)
+      contain: Image entière
+    advanced: true
+    showif:
+      view: grid
+      visualField: notNull
+  textLines:
+    label: Lignes de texte
+    type: number
+    default: 3
+    advanced: true
+    showif:
+      view: grid
+      textField: notNull
   displayList:
     label: Lors du clic, afficher la fiche
     type: list
