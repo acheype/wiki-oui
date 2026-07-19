@@ -290,6 +290,12 @@ Le contrat de migration : toute donnée YesWiki (actions `{{bazar…}}`) doit tr
 
 Vues Blog, Timeline, Liste de liens, Carte-et-tableau · export (boutons CSV/JSON, iCal, colonnes masquées) · largeurs de colonnes du Tableau · templates de popup carte personnalisés · « fiches de l'utilisateur courant » et « seulement pour les admins » (auth) · filtrage serveur (optimisation d'échelle).
 
-## Bibliothèques pressenties
+## Bibliothèques retenues (arrêtées à l'implémentation)
 
-Calendrier : FullCalendar ou alternative moderne (Schedule-X…) — **le critère est l'ergonomie et l'esthétique** ; carrousel : Embla ; visionneuse : lightbox légère type PhotoSwipe ; tableau : TanStack Table ; carte : Leaflet + react-leaflet (déjà présents). Choix arrêtés à l'implémentation.
+- **Calendrier : FullCalendar 6** (`@fullcalendar/react` + daygrid/timegrid/list, locale française) — retenu pour ses vues liste (le « Planning » avec ses trois portées) ; la v7, sortie en cours de chantier, a une API remaniée et sera évaluée plus tard.
+- **Carrousel : Embla** (`embla-carousel-react` + plugin autoplay).
+- **Carte : Leaflet + react-leaflet** (déjà présents) + **`leaflet.markercluster`** pour le regroupement — les marqueurs sont gérés impérativement (react-leaflet 5 n'a pas d'histoire de clustering, le pont aurait coûté plus que la couche impérative).
+- **Tableau : fait main** — la suggestion TanStack Table est écartée : le pipeline en mémoire (recherche, filtres, tri, pagination) possède déjà le tri et la pagination, une seconde machinerie de tri aurait fait deux sources de vérité.
+- **Visionneuse (Galerie) : faite main** (~90 lignes : navigation clavier, légende, « Voir la fiche ») — une dépendance type PhotoSwipe n'apportait rien de plus.
+
+Détail d'implémentation : la prop `period` porte la valeur interne `none` (« Toutes les fiches », jamais écrite dans le MDX — la règle d'omission l'efface) car un champ `list` du builder exige un défaut parmi ses options ; la forme écrite reste « prop absente = pas de filtre », conforme à la table ci-dessus.

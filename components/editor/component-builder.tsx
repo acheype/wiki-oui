@@ -151,17 +151,23 @@ function BuilderForm({
 
   // Choice-driven pre-fills (descriptor `prefill`): picking a value seeds
   // its declared siblings, but never overwrites an author's explicit choice
-  // (only siblings still at their default move).
+  // (only siblings still at their default move) — and switching away
+  // retracts an untouched seed, so the pre-fill follows the choice.
   const setValue = (field: string, value: PropValue) =>
     setValues((current) => {
       const next = { ...current, [field]: value };
-      const prefill =
-        typeof value === "string"
-          ? spec.descriptor.properties[field]?.prefill?.[value]
-          : undefined;
-      for (const [target, seeded] of Object.entries(prefill ?? {})) {
-        const held = target in current ? current[target] : spec.defaults[target];
-        if (held === spec.defaults[target]) next[target] = seeded;
+      const prefillsOf = (choice: PropValue) =>
+        typeof choice === "string"
+          ? (spec.descriptor.properties[field]?.prefill?.[choice] ?? {})
+          : {};
+      const held = (target: string) =>
+        target in current ? current[target] : spec.defaults[target];
+      const previous = field in current ? current[field] : spec.defaults[field];
+      for (const [target, seeded] of Object.entries(prefillsOf(previous))) {
+        if (held(target) === seeded) next[target] = spec.defaults[target];
+      }
+      for (const [target, seeded] of Object.entries(prefillsOf(value))) {
+        if (held(target) === spec.defaults[target]) next[target] = seeded;
       }
       return next;
     });
