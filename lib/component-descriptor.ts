@@ -513,6 +513,9 @@ export function generateTag(
 }
 
 function serializeAttribute(prop: string, value: PropValue): string {
+  // An empty value facing a non-empty default (the only way to get here
+  // empty): an explicit empty string, the "cleared" spelling (captionField).
+  if (value === undefined) return `${prop}=""`;
   if (value === true) return prop;
   if (typeof value === "string") {
     // Double quotes by default; fall back on single quotes, then on the

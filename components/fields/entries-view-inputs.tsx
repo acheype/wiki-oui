@@ -236,10 +236,13 @@ export function EntryFieldSelect({
         ? "Chargement…"
         : "Choisir un champ…";
 
+  // « Aucun » emits "" (not undefined): an empty string survives as an
+  // explicit prop when the field has a non-empty default (captionField=""
+  // = no caption), and still omits itself when the default is empty too.
   return (
     <Select
-      value={value ?? ""}
-      onValueChange={(picked) => onChange(picked === NONE ? undefined : picked)}
+      value={value === "" ? NONE : (value ?? "")}
+      onValueChange={(picked) => onChange(picked === NONE ? "" : picked)}
     >
       <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
         <SelectValue placeholder={placeholder} />

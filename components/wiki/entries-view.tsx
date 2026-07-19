@@ -45,6 +45,7 @@ import { valueToText } from "@/lib/form-descriptor";
 import { PSEUDO_FIELD_LABELS, isPseudoField } from "@/lib/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { Icon } from "./internal/icon";
+import { CarouselView } from "./internal/entries/carousel-view";
 import { DirectoryView } from "./internal/entries/directory-view";
 import { GalleryView } from "./internal/entries/gallery-view";
 import { GridView } from "./internal/entries/grid-view";
@@ -70,6 +71,9 @@ export function EntriesView({
   layout = "vertical",
   visualFit = "cover",
   textLines = 3,
+  autoplay = true,
+  interval = 5,
+  captionField = "title",
   search = false,
   filtersPosition = "left",
   filtersExpanded = "first",
@@ -89,6 +93,9 @@ export function EntriesView({
     layout,
     visualFit,
     textLines,
+    autoplay,
+    interval,
+    captionField,
     search,
     filtersPosition,
     filtersExpanded,
@@ -291,6 +298,8 @@ function renderView(view: ViewName, context: ViewContext): React.ReactNode {
       return <DirectoryView context={context} />;
     case "gallery":
       return <GalleryView context={context} />;
+    case "carousel":
+      return <CarouselView context={context} />;
     default:
       // The remaining views land one by one (docs/entries-view.md).
       return (

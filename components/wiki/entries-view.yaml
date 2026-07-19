@@ -21,12 +21,14 @@ properties:
       grid: Grille
       table: Tableau
       directory: Annuaire
+      carousel: Carrousel
       gallery: Galerie photo
     icons:
       list: lucide:rows-3
       grid: lucide:layout-grid
       table: lucide:table
       directory: lucide:book-user
+      carousel: lucide:gallery-horizontal-end
       gallery: lucide:images
 
   displaySection:
@@ -115,6 +117,27 @@ properties:
     default: false
     showif:
       view: table
+  captionField:
+    label: Légende
+    hint: "« Aucun » = pas de texte sur l'image"
+    type: form-field
+    default: title
+    showif:
+      view: carousel
+  autoplay:
+    label: Défilement automatique
+    type: checkbox
+    default: true
+    showif:
+      view: carousel
+  interval:
+    label: Durée par image (secondes)
+    type: number
+    default: 5
+    advanced: true
+    showif:
+      view: carousel
+      autoplay: true
   gridColumns:
     label: Nombre de colonnes
     hint: Un maximum — la grille retombe à 2 puis 1 colonnes sur petit écran
