@@ -287,6 +287,8 @@ export interface FieldReferences {
   all: boolean;
   /** Include the text-searchable fields (search on, searchFields empty). */
   allTextFields: boolean;
+  /** Include the geolocation + image fields (the Carte reads them implicitly). */
+  mapFields: boolean;
 }
 
 /** Collects the field names a configuration reads, pseudo-fields included
@@ -319,6 +321,7 @@ export function collectFieldReferences(config: {
     all: config.view === "table" && (config.columns ?? []).length === 0,
     allTextFields:
       config.search === true && (config.searchFields ?? []).length === 0,
+    mapFields: config.view === "map",
   };
 }
 

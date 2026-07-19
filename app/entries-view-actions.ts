@@ -26,6 +26,8 @@ export interface EntriesViewQuery {
   allFields?: boolean;
   /** The text-searchable fields travel too (search on, no searchFields). */
   allTextFields?: boolean;
+  /** The geolocation + image fields travel (the Carte reads them implicitly). */
+  mapFields?: boolean;
 }
 
 export interface EntriesViewData {
@@ -61,7 +63,9 @@ export async function getEntriesViewData(
       query.allFields ||
       wanted.has(choice.name) ||
       (query.allTextFields === true &&
-        (TEXT_SEARCH_TYPES as readonly string[]).includes(choice.type))
+        (TEXT_SEARCH_TYPES as readonly string[]).includes(choice.type)) ||
+      (query.mapFields === true &&
+        (choice.type === "geolocation" || choice.type === "image"))
   );
   const keptNames = new Set(kept.map((choice) => choice.name));
 

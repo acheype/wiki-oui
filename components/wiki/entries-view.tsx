@@ -7,6 +7,7 @@
 // views; each view renderer lives in internal/entries/.
 
 import { ChevronDown, ExternalLink, ListFilter, Search, X } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
   type EntriesViewData,
@@ -47,6 +48,17 @@ import { cn } from "@/lib/utils";
 import { Icon } from "./internal/icon";
 import { CarouselView } from "./internal/entries/carousel-view";
 import { DirectoryView } from "./internal/entries/directory-view";
+
+// Leaflet touches window at import time: the map view loads client-only.
+const MapEntriesView = dynamic(
+  () => import("./internal/entries/map-view").then((mod) => mod.MapEntriesView),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[500px] animate-pulse rounded-lg border bg-muted/40" />
+    ),
+  }
+);
 import { GalleryView } from "./internal/entries/gallery-view";
 import { GridView } from "./internal/entries/grid-view";
 import { ListView } from "./internal/entries/list-view";
@@ -74,6 +86,11 @@ export function EntriesView({
   autoplay = true,
   interval = 5,
   captionField = "title",
+  basemap = "osm",
+  cluster = true,
+  height = "500px",
+  width = "100%",
+  wheelZoom = false,
   search = false,
   filtersPosition = "left",
   filtersExpanded = "first",
@@ -96,6 +113,11 @@ export function EntriesView({
     autoplay,
     interval,
     captionField,
+    basemap,
+    cluster,
+    height,
+    width,
+    wheelZoom,
     search,
     filtersPosition,
     filtersExpanded,
@@ -195,7 +217,11 @@ export function EntriesView({
   const setPartial = (patch: Partial<typeof queryState>) =>
     setQueryState((current) => ({ ...current, page: 0, ...patch }));
 
-  // The Tableau owns its sort UI (clickable headers) through the context.
+  // The Tableau owns its sort UI (clickable headers) through the context;
+  // the Carte's map-popup opens the common modal directly.
+  context.openPopup = (slug) => {
+    if (!data.sample) setPopupSlug(slug);
+  };
   context.sort = activeSort;
   context.onSort = (field) =>
     setPartial({
@@ -300,6 +326,8 @@ function renderView(view: ViewName, context: ViewContext): React.ReactNode {
       return <GalleryView context={context} />;
     case "carousel":
       return <CarouselView context={context} />;
+    case "map":
+      return <MapEntriesView context={context} />;
     default:
       // The remaining views land one by one (docs/entries-view.md).
       return (
@@ -348,6 +376,7 @@ function useEntriesData(
     fields: references.names.sort(),
     all: references.all,
     text: references.allTextFields,
+    map: references.mapFields,
   });
   const [loaded, setLoaded] = useState<{
     key: string;
@@ -360,6 +389,7 @@ function useEntriesData(
       fields: string[];
       all: boolean;
       text: boolean;
+      map: boolean;
     };
     let live = true;
     getEntriesViewData({
@@ -367,6 +397,7 @@ function useEntriesData(
       fields: query.fields,
       allFields: query.all,
       allTextFields: query.text,
+      mapFields: query.map,
     }).then((data) => live && setLoaded({ key, data }));
     return () => {
       live = false;

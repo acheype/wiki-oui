@@ -158,4 +158,6 @@ export interface ViewContext {
   sort?: { field: string; order: "asc" | "desc" };
   /** Header click: same field flips the order, a new field starts ascending. */
   onSort?: (field: string) => void;
+  /** Opens the common entry modal directly (the map-popup's Voir la fiche). */
+  openPopup?: (slug: string) => void;
 }

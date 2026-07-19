@@ -20,6 +20,7 @@ properties:
       list: Liste
       grid: Grille
       table: Tableau
+      map: Carte
       directory: Annuaire
       carousel: Carrousel
       gallery: Galerie photo
@@ -27,6 +28,7 @@ properties:
       list: lucide:rows-3
       grid: lucide:layout-grid
       table: lucide:table
+      map: lucide:map
       directory: lucide:book-user
       carousel: lucide:gallery-horizontal-end
       gallery: lucide:images
@@ -117,6 +119,75 @@ properties:
     default: false
     showif:
       view: table
+  basemap:
+    label: Fond de carte
+    type: list
+    default: osm
+    options:
+      osm: OpenStreetMap
+      osm-france: OSM France
+      positron: Positron (clair)
+      dark-matter: Dark Matter (sombre)
+      stadia-smooth: Stadia Smooth
+      stadia-smooth-dark: Stadia Smooth (sombre)
+      esri-satellite: Esri Satellite
+      opentopo: OpenTopoMap
+    showif:
+      view: map
+  mapDisplay:
+    label: Lors du clic, afficher la fiche
+    type: list
+    prop: entryDisplay
+    default: sidebar
+    options:
+      sidebar: Dans un panneau latéral
+      map-popup: Dans une mini-fiche sur la carte
+      popup: Dans une popup
+      current-tab: Dans l'onglet courant
+      new-tab: Dans un nouvel onglet
+    showif:
+      view: map
+  cluster:
+    label: Regrouper les marqueurs proches
+    type: checkbox
+    default: true
+    showif:
+      view: map
+  hoverField:
+    label: Champ au survol du marqueur
+    hint: Vide = le titre de la fiche
+    type: form-field
+    showif:
+      view: map
+  mapHeight:
+    label: Hauteur
+    type: text
+    prop: height
+    default: 500px
+    showif:
+      view: map
+  mapWidth:
+    label: Largeur
+    type: text
+    prop: width
+    default: 100%
+    advanced: true
+    showif:
+      view: map
+  initialArea:
+    label: Vue initiale fixe
+    hint: Vide = cadrage automatique sur les fiches
+    type: map-view
+    advanced: true
+    showif:
+      view: map
+  wheelZoom:
+    label: Zoom à la molette
+    type: checkbox
+    default: false
+    advanced: true
+    showif:
+      view: map
   captionField:
     label: Légende
     hint: "« Aucun » = pas de texte sur l'image"
