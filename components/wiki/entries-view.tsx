@@ -46,6 +46,8 @@ import { valueToText } from "@/lib/form-descriptor";
 import { PSEUDO_FIELD_LABELS, isPseudoField } from "@/lib/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { Icon } from "./internal/icon";
+import { AgendaView } from "./internal/entries/agenda-view";
+import { CalendarView } from "./internal/entries/calendar-view";
 import { CarouselView } from "./internal/entries/carousel-view";
 import { DirectoryView } from "./internal/entries/directory-view";
 
@@ -88,6 +90,9 @@ export function EntriesView({
   captionField = "title",
   basemap = "osm",
   cluster = true,
+  initialView = "month",
+  planningRange = "year",
+  compact = false,
   height = "500px",
   width = "100%",
   wheelZoom = false,
@@ -115,6 +120,9 @@ export function EntriesView({
     captionField,
     basemap,
     cluster,
+    initialView,
+    planningRange,
+    compact,
     height,
     width,
     wheelZoom,
@@ -328,13 +336,10 @@ function renderView(view: ViewName, context: ViewContext): React.ReactNode {
       return <CarouselView context={context} />;
     case "map":
       return <MapEntriesView context={context} />;
-    default:
-      // The remaining views land one by one (docs/entries-view.md).
-      return (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          Cette vue n&apos;est pas encore disponible.
-        </p>
-      );
+    case "calendar":
+      return <CalendarView context={context} />;
+    case "agenda":
+      return <AgendaView context={context} />;
   }
 }
 

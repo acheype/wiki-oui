@@ -21,6 +21,8 @@ properties:
       grid: Grille
       table: Tableau
       map: Carte
+      calendar: Calendrier
+      agenda: Agenda
       directory: Annuaire
       carousel: Carrousel
       gallery: Galerie photo
@@ -29,6 +31,8 @@ properties:
       grid: lucide:layout-grid
       table: lucide:table
       map: lucide:map
+      calendar: lucide:calendar-days
+      agenda: lucide:calendar-clock
       directory: lucide:book-user
       carousel: lucide:gallery-horizontal-end
       gallery: lucide:images
@@ -119,6 +123,50 @@ properties:
     default: false
     showif:
       view: table
+  startDateField:
+    label: Champ date de début
+    type: form-field
+    fieldTypes: [date]
+    pseudoFields: ["$createdAt", "$editedAt"]
+    required: true
+    showif: &dated-views
+      view: /^(calendar|agenda)$/
+  endDateField:
+    label: Champ date de fin
+    hint: Optionnel — événements sur plusieurs jours
+    type: form-field
+    fieldTypes: [date]
+    showif: *dated-views
+  initialView:
+    label: Vue initiale
+    type: list
+    default: month
+    options:
+      month: Mois
+      week: Semaine
+      day: Jour
+      planning: Planning
+    showif:
+      view: calendar
+  planningRange:
+    label: Portée du planning
+    type: list
+    default: year
+    options:
+      year: Année
+      month: Mois
+      week: Semaine
+    advanced: true
+    showif:
+      view: calendar
+      initialView: planning
+  compact:
+    label: Mini calendrier
+    hint: Rendu compact pour une colonne étroite
+    type: checkbox
+    default: false
+    showif:
+      view: calendar
   basemap:
     label: Fond de carte
     type: list
