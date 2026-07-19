@@ -154,4 +154,8 @@ export interface ViewContext {
   labelOf: (field: string) => string;
   /** Display text of one entry value (option labels resolved, dates local). */
   textOf: (entry: ViewEntry, field: string) => string;
+  /** Active sort, for views owning their sort UI (the Tableau's headers). */
+  sort?: { field: string; order: "asc" | "desc" };
+  /** Header click: same field flips the order, a new field starts ascending. */
+  onSort?: (field: string) => void;
 }

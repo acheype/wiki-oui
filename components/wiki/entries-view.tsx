@@ -47,6 +47,7 @@ import { cn } from "@/lib/utils";
 import { Icon } from "./internal/icon";
 import { GridView } from "./internal/entries/grid-view";
 import { ListView } from "./internal/entries/list-view";
+import { TableView } from "./internal/entries/table-view";
 import {
   type EntriesViewProps,
   type FilterSpec,
@@ -62,6 +63,8 @@ export function EntriesView({
   view = "list",
   expandable = true,
   openOnClick = false,
+  splitMultiChoice = false,
+  actionsColumn = false,
   layout = "vertical",
   visualFit = "cover",
   textLines = 3,
@@ -79,6 +82,8 @@ export function EntriesView({
     view,
     expandable,
     openOnClick,
+    splitMultiChoice,
+    actionsColumn,
     layout,
     visualFit,
     textLines,
@@ -181,6 +186,16 @@ export function EntriesView({
   const setPartial = (patch: Partial<typeof queryState>) =>
     setQueryState((current) => ({ ...current, page: 0, ...patch }));
 
+  // The Tableau owns its sort UI (clickable headers) through the context.
+  context.sort = activeSort;
+  context.onSort = (field) =>
+    setPartial({
+      sort:
+        activeSort.field === field
+          ? { field, order: activeSort.order === "asc" ? "desc" : "asc" }
+          : { field, order: "asc" },
+    });
+
   return (
     // not-prose: the wiki page's typography (list markers, link styling)
     // must not leak into the view chrome.
@@ -268,6 +283,8 @@ function renderView(view: ViewName, context: ViewContext): React.ReactNode {
       return <ListView context={context} />;
     case "grid":
       return <GridView context={context} />;
+    case "table":
+      return <TableView context={context} />;
     default:
       // The remaining views land one by one (docs/entries-view.md).
       return (

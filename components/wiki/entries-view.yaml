@@ -19,9 +19,11 @@ properties:
     options:
       list: Liste
       grid: Grille
+      table: Tableau
     icons:
       list: lucide:rows-3
       grid: lucide:layout-grid
+      table: lucide:table
 
   displaySection:
     label: Affichage
@@ -72,6 +74,35 @@ properties:
     type: form-field
     showif:
       view: grid
+  columns:
+    label: Colonnes
+    hint: Vide = tous les champs
+    type: field-rows
+    pseudoFields: ["$form", "$owner", "$createdAt", "$editedAt"]
+    showif:
+      view: table
+  splitMultiChoice:
+    label: Une colonne par option des cases à cocher
+    type: checkbox
+    default: false
+    advanced: true
+    showif:
+      view: table
+  sumFields:
+    label: Colonnes à totaliser
+    hint: Une ligne de total apparaît en pied de tableau (champs nombre)
+    type: form-field
+    multiple: true
+    fieldTypes: [text]
+    advanced: true
+    showif:
+      view: table
+  actionsColumn:
+    label: Colonne Modifier / Supprimer
+    type: checkbox
+    default: false
+    showif:
+      view: table
   gridColumns:
     label: Nombre de colonnes
     hint: Un maximum — la grille retombe à 2 puis 1 colonnes sur petit écran
