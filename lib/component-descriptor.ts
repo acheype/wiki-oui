@@ -153,6 +153,13 @@ const descriptorFieldSchema = z.object({
   options: z.record(z.string(), z.string()).optional(),
   /** For `view-picker`: value → Iconify icon shown on the tile. */
   icons: z.record(z.string(), z.string()).optional(),
+  // Choice-driven sibling pre-fills (docs/entries-view.md): picking value V
+  // sets each listed sibling to the given value — only when the sibling
+  // still holds its default (an author's explicit choice is never clobbered).
+  // E.g. choosing the Agenda view pre-fills period: future.
+  prefill: z
+    .record(z.string(), z.record(z.string(), propValueSchema))
+    .optional(),
   // Omission-rule reference (ADR 0013): the prop is dropped from the MDX
   // when equal to this, and an absent prop re-edits with it. Must equal the
   // component's destructuring default (verified by lib/verify-descriptors).
@@ -323,6 +330,21 @@ export function validateDescriptor(
           throw new Error(
             `${at(["properties", field, "icons", icon], ["properties", field])}: ${spec.type} field "${field}" declares an icon for unknown option "${icon}"`
           );
+        }
+      }
+      for (const [option, targets] of Object.entries(spec.prefill ?? {})) {
+        const where = at(["properties", field, "prefill", option], ["properties", field]);
+        if (!options.includes(option)) {
+          throw new Error(
+            `${where}: ${spec.type} field "${field}" declares a prefill for unknown option "${option}"`
+          );
+        }
+        for (const target of Object.keys(targets)) {
+          if (!(target in descriptor.properties)) {
+            throw new Error(
+              `${where}: prefill of "${field}" targets unknown field "${target}"`
+            );
+          }
         }
       }
     }

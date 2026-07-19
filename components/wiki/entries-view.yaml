@@ -36,6 +36,10 @@ properties:
       directory: lucide:book-user
       carousel: lucide:gallery-horizontal-end
       gallery: lucide:images
+    # A fresh agenda never shows the past (docs/entries-view.md).
+    prefill:
+      agenda:
+        period: future
 
   displaySection:
     label: Affichage

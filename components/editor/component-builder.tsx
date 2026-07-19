@@ -149,8 +149,22 @@ function BuilderForm({
       descriptorField.required && isEmpty(values[field])
   );
 
+  // Choice-driven pre-fills (descriptor `prefill`): picking a value seeds
+  // its declared siblings, but never overwrites an author's explicit choice
+  // (only siblings still at their default move).
   const setValue = (field: string, value: PropValue) =>
-    setValues((current) => ({ ...current, [field]: value }));
+    setValues((current) => {
+      const next = { ...current, [field]: value };
+      const prefill =
+        typeof value === "string"
+          ? spec.descriptor.properties[field]?.prefill?.[value]
+          : undefined;
+      for (const [target, seeded] of Object.entries(prefill ?? {})) {
+        const held = target in current ? current[target] : spec.defaults[target];
+        if (held === spec.defaults[target]) next[target] = seeded;
+      }
+      return next;
+    });
 
   const renderField = ([field, descriptorField]: [string, DescriptorField]) => (
     <Field

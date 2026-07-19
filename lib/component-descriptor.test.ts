@@ -856,3 +856,27 @@ describe("propKindFits / isEmpty / sameValue on structured values", () => {
     expect(sameValue({ a: 1 }, { a: 1, b: 2 })).toBe(false);
   });
 });
+
+describe("prefill — choice-driven sibling seeding (docs/entries-view.md)", () => {
+  it("accepts a prefill aimed at known options and fields", () => {
+    const descriptor = entriesDescriptor();
+    descriptor.properties.view.prefill = { grid: { colorField: "type" } };
+    expect(() => validateDescriptor("entries-view", descriptor)).not.toThrow();
+  });
+
+  it("rejects a prefill for an unknown option", () => {
+    const descriptor = entriesDescriptor();
+    descriptor.properties.view.prefill = { carousel: { colorField: "type" } };
+    expect(() => validateDescriptor("entries-view", descriptor)).toThrow(
+      /declares a prefill for unknown option "carousel"/
+    );
+  });
+
+  it("rejects a prefill targeting an unknown field", () => {
+    const descriptor = entriesDescriptor();
+    descriptor.properties.view.prefill = { grid: { nowhere: "x" } };
+    expect(() => validateDescriptor("entries-view", descriptor)).toThrow(
+      /prefill of "view" targets unknown field "nowhere"/
+    );
+  });
+});
