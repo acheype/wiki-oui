@@ -3,6 +3,8 @@
 // YAML files are read and parsed by the server-side loader.
 
 import { z } from "zod";
+import { FORM_FIELD_TYPES } from "./form-descriptor";
+import { PSEUDO_FIELDS } from "./pseudo-fields";
 
 const FIELD_TYPES = [
   "text",
@@ -14,34 +16,118 @@ const FIELD_TYPES = [
   "page-list",
   "file-list",
   "form-list",
+  "view-picker",
+  "form-field",
+  "field-rows",
+  "color-mapping",
+  "icon-mapping",
+  "map-view",
   "divider",
 ] as const;
 
 export type FieldType = (typeof FIELD_TYPES)[number];
 
-/** What a field's prop actually holds once it reaches the component. */
-export type PropKind = "string" | "number" | "boolean" | "none";
+/**
+ * What a field's prop actually holds once it reaches the component.
+ * Beyond the scalar kinds, the structured ones (ADR 0019):
+ * - `strings`: one or several names — a string, or an array of strings;
+ * - `rows`: ordered `{ field, title?, icon? }` objects (field-rows);
+ * - `mapping`: a value → string record (color/icon mappings);
+ * - `area`: a `{ lat, lng, zoom }` object (map-view).
+ */
+export type PropKind =
+  | "string"
+  | "number"
+  | "boolean"
+  | "none"
+  | "strings"
+  | "rows"
+  | "mapping"
+  | "area";
 
 // Exhaustive on purpose (no `default`): a new field type must state what its
 // prop holds, or the compiler objects. The save-time report leans on this to
 // tell an author that `width="abc"` or `whiteBorder="false"` will not do what
 // they wrote (lib/page-lint.ts).
-export function propKind(type: FieldType): PropKind {
-  switch (type) {
+export function propKind(
+  field: Pick<DescriptorField, "type" | "multiple">
+): PropKind {
+  switch (field.type) {
     case "divider":
       return "none";
     case "checkbox":
       return "boolean";
     case "number":
       return "number";
+    case "field-rows":
+      return "rows";
+    case "color-mapping":
+    case "icon-mapping":
+      return "mapping";
+    case "map-view":
+      return "area";
+    case "form-list":
+    case "form-field":
+      return field.multiple ? "strings" : "string";
     case "text":
     case "url":
     case "icon":
     case "list":
+    case "view-picker":
     case "page-list":
     case "file-list":
-    case "form-list":
       return "string";
+  }
+}
+
+/** Does a decoded literal fit what a kind's prop can hold? The save-time
+ * report words the complaint (lib/page-lint.ts); the inverse mapping uses the
+ * same yardstick to decide whether a structured literal is re-editable. */
+export function propKindFits(kind: PropKind, value: unknown): boolean {
+  switch (kind) {
+    case "none":
+      return true;
+    case "boolean":
+      return typeof value === "boolean";
+    case "number":
+      return typeof value === "number";
+    case "string":
+      // A number reads back as its text; a boolean renders as nothing at all.
+      return typeof value === "string" || typeof value === "number";
+    case "strings":
+      return (
+        typeof value === "string" ||
+        (Array.isArray(value) && value.every((item) => typeof item === "string"))
+      );
+    case "rows":
+      return (
+        Array.isArray(value) &&
+        value.every(
+          (row) =>
+            row !== null &&
+            typeof row === "object" &&
+            !Array.isArray(row) &&
+            typeof (row as Record<string, unknown>).field === "string"
+        )
+      );
+    case "mapping":
+      return (
+        value !== null &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        Object.values(value).every((item) => typeof item === "string")
+      );
+    case "area": {
+      if (value === null || typeof value !== "object" || Array.isArray(value)) {
+        return false;
+      }
+      const area = value as Record<string, unknown>;
+      return (
+        typeof area.lat === "number" &&
+        typeof area.lng === "number" &&
+        typeof area.zoom === "number"
+      );
+    }
   }
 }
 
@@ -59,8 +145,14 @@ const descriptorFieldSchema = z.object({
   label: z.string(),
   hint: z.string().optional(),
   type: z.enum(FIELD_TYPES),
-  /** For `list`: value → display label. The value is what the prop stores. */
+  // Prop-name override (docs/entries-view.md): several fields with disjoint
+  // showif may emit the same prop — e.g. entryDisplay whose options and
+  // default depend on the chosen view. Absent = the field key is the prop.
+  prop: z.string().optional(),
+  /** For `list`/`view-picker`: value → display label. The value is what the prop stores. */
   options: z.record(z.string(), z.string()).optional(),
+  /** For `view-picker`: value → Iconify icon shown on the tile. */
+  icons: z.record(z.string(), z.string()).optional(),
   // Omission-rule reference (ADR 0013): the prop is dropped from the MDX
   // when equal to this, and an absent prop re-edits with it. Must equal the
   // component's destructuring default (verified by lib/verify-descriptors).
@@ -69,6 +161,20 @@ const descriptorFieldSchema = z.object({
   value: propValueSchema.optional(),
   /** For `file-list`: restricts the combobox to one file family. */
   family: z.enum(FILE_FAMILIES).optional(),
+  /** For `form-list`/`form-field`: the prop holds one name or an array of names. */
+  multiple: z.boolean().optional(),
+  // form-field / field-rows (ADR 0018): the sibling field holding the chosen
+  // form slug(s) the selectable fields come from. Defaults to "form".
+  formFrom: z.string().optional(),
+  /** form-field / field-rows: restricts the selectable fields to these types. */
+  fieldTypes: z.array(z.enum(FORM_FIELD_TYPES)).optional(),
+  /** form-field / field-rows: pseudo-fields offered next to the real fields. */
+  pseudoFields: z.array(z.enum(PSEUDO_FIELDS)).optional(),
+  /** For `field-rows`: each row also carries an optional icon. */
+  withIcon: z.boolean().optional(),
+  // color-mapping / icon-mapping: the sibling form-field whose selected
+  // field's options are the mapping keys.
+  fieldFrom: z.string().optional(),
   required: z.boolean().optional(),
   advanced: z.boolean().optional(),
   showif: z.record(z.string(), z.unknown()).optional(),
@@ -91,10 +197,27 @@ export function emitsMarkdownLink(descriptor: ComponentDescriptor): boolean {
   return descriptor.emits === "markdown-link";
 }
 
+/** What a literal JSX expression can evaluate to (ADR 0019). */
+export type LiteralValue =
+  | string
+  | number
+  | boolean
+  | null
+  | LiteralValue[]
+  | { [key: string]: LiteralValue };
+
+/** An array or object literal, the payload of the structured field types. */
+export type StructuredValue = LiteralValue[] | { [key: string]: LiteralValue };
+
 /** A prop value carried by a field's `default`/`value` and the generated tag. */
-export type PropValue = string | number | boolean | undefined;
-/** Omission-rule defaults keyed by prop name, derived from the descriptor. */
+export type PropValue = string | number | boolean | StructuredValue | undefined;
+/** Omission-rule defaults keyed by field key, derived from the descriptor. */
 export type PropDefaults = Record<string, PropValue>;
+
+/** The prop a field emits: its `prop` override, or the field key itself. */
+export function fieldProp(field: string, spec: DescriptorField): string {
+  return spec.prop ?? field;
+}
 
 // Resolves a descriptor path (e.g. ["properties","color","type"]) to its
 // 1-based line in the YAML source, or undefined when unknown. Built from the
@@ -186,13 +309,60 @@ export function validateDescriptor(
         }
       }
     }
-    if (spec.type === "list") {
+    if (spec.type === "list" || spec.type === "view-picker") {
       const options = Object.keys(spec.options ?? {});
       const fallback = spec.default;
       if (typeof fallback !== "string" || !options.includes(fallback)) {
         const got = fallback === undefined ? "undefined" : `"${fallback}"`;
         throw new Error(
-          `${at(["properties", field, "default"], ["properties", field])}: list field "${field}" needs a default among its options (${options.join(", ")}), got ${got}`
+          `${at(["properties", field, "default"], ["properties", field])}: ${spec.type} field "${field}" needs a default among its options (${options.join(", ")}), got ${got}`
+        );
+      }
+      for (const icon of Object.keys(spec.icons ?? {})) {
+        if (!options.includes(icon)) {
+          throw new Error(
+            `${at(["properties", field, "icons", icon], ["properties", field])}: ${spec.type} field "${field}" declares an icon for unknown option "${icon}"`
+          );
+        }
+      }
+    }
+    if (spec.type === "form-field" || spec.type === "field-rows") {
+      const source = spec.formFrom ?? "form";
+      if (!(source in descriptor.properties)) {
+        throw new Error(
+          `${at(["properties", field, "formFrom"], ["properties", field])}: ${spec.type} field "${field}" reads its forms from unknown sibling "${source}"`
+        );
+      }
+    }
+    if (spec.type === "color-mapping" || spec.type === "icon-mapping") {
+      const source = spec.fieldFrom;
+      if (source === undefined || !(source in descriptor.properties)) {
+        throw new Error(
+          `${at(["properties", field, "fieldFrom"], ["properties", field])}: ${spec.type} field "${field}" needs "fieldFrom" pointing at a sibling form-field, got ${source === undefined ? "nothing" : `unknown "${source}"`}`
+        );
+      }
+      if (descriptor.properties[source].type !== "form-field") {
+        throw new Error(
+          `${at(["properties", field, "fieldFrom"], ["properties", field])}: ${spec.type} field "${field}" points "fieldFrom" at "${source}", which is not a form-field`
+        );
+      }
+    }
+  }
+
+  // Aliased fields (same emitted prop) rely on disjoint showif to never be
+  // visible together; requiring showif on every alias is the checkable part.
+  const carriers = new Map<string, string[]>();
+  for (const [field, spec] of Object.entries(descriptor.properties)) {
+    if (spec.type === "divider") continue;
+    const prop = fieldProp(field, spec);
+    carriers.set(prop, [...(carriers.get(prop) ?? []), field]);
+  }
+  for (const [prop, fields] of carriers) {
+    if (fields.length < 2) continue;
+    for (const field of fields) {
+      if (!descriptor.properties[field].showif) {
+        throw new Error(
+          `${at(["properties", field], [])}: fields ${fields.map((name) => `"${name}"`).join(", ")} all emit prop "${prop}", so each needs a showif keeping them apart`
         );
       }
     }
@@ -269,10 +439,39 @@ function isVisible(
 }
 
 // "Empty" backs the notNull/null keywords, the hidden-field cascade and the
-// builder's required-field guard: unset, blank text and unchecked checkbox
-// all count as nothing to show.
+// builder's required-field guard: unset, blank text, unchecked checkbox and
+// bare structured values all count as nothing to show.
 export function isEmpty(value: PropValue): boolean {
+  if (Array.isArray(value)) return value.length === 0;
+  if (value !== null && typeof value === "object") {
+    return Object.keys(value).length === 0;
+  }
   return value === undefined || value === "" || value === false;
+}
+
+// Deep equality, the omission rule's yardstick now that values may be
+// structured (ADR 0019): two literals with the same shape and content are the
+// same value, whatever object identity says.
+export function sameValue(
+  a: LiteralValue | undefined,
+  b: LiteralValue | undefined
+): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((item, i) => sameValue(item, b[i]));
+  }
+  if (
+    a !== null && typeof a === "object" && !Array.isArray(a) &&
+    b !== null && typeof b === "object" && !Array.isArray(b)
+  ) {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    return (
+      aKeys.length === bKeys.length &&
+      aKeys.every((key) => key in b && sameValue(a[key], b[key]))
+    );
+  }
+  return false;
 }
 
 function holds(condition: unknown, value: PropValue): boolean {
@@ -304,25 +503,45 @@ export function generateTag(
     // A key absent from values reads as its default (the builder shows
     // defaults for omitted props — same convention as the inverse mapping).
     const value = field in values ? values[field] : defaults[field];
-    if (value === defaults[field] && spec.value === undefined) continue;
+    if (sameValue(value, defaults[field]) && spec.value === undefined) continue;
     if (isEmpty(value) && isEmpty(defaults[field])) continue;
-    attributes.push(serializeAttribute(field, value));
+    attributes.push(serializeAttribute(fieldProp(field, spec), value));
   }
   attributes.push(...unknownAttributes);
   const body = attributes.length > 0 ? ` ${attributes.join(" ")}` : "";
   return `<${name}${body} />`;
 }
 
-function serializeAttribute(field: string, value: PropValue): string {
-  if (value === true) return field;
+function serializeAttribute(prop: string, value: PropValue): string {
+  if (value === true) return prop;
   if (typeof value === "string") {
     // Double quotes by default; fall back on single quotes, then on the
     // &quot; entity, so any text stays a plain JSX string attribute.
-    if (!value.includes('"')) return `${field}="${value}"`;
-    if (!value.includes("'")) return `${field}='${value}'`;
-    return `${field}="${value.replaceAll('"', "&quot;")}"`;
+    if (!value.includes('"')) return `${prop}="${value}"`;
+    if (!value.includes("'")) return `${prop}='${value}'`;
+    return `${prop}="${value.replaceAll('"', "&quot;")}"`;
   }
-  return `${field}={${JSON.stringify(value)}}`;
+  if (value !== null && typeof value === "object") {
+    return `${prop}={${serializeLiteral(value)}}`;
+  }
+  return `${prop}={${JSON.stringify(value)}}`;
+}
+
+// The canonical written form of a structured prop (ADR 0019): the literal a
+// JS author would write — unquoted identifier keys, spaces inside braces.
+// parseLiteral reads this exact form back, the round-trip's other half.
+export function serializeLiteral(value: LiteralValue): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(serializeLiteral).join(", ")}]`;
+  }
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value).map(
+      ([key, item]) =>
+        `${/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key) ? key : JSON.stringify(key)}: ${serializeLiteral(item)}`
+    );
+    return `{ ${entries.join(", ")} }`;
+  }
+  return JSON.stringify(value);
 }
 
 export interface TagAttribute {
@@ -453,11 +672,153 @@ function matchBraces(source: string): string | null {
   return null;
 }
 
+// Decodes a brace expression when it is a static literal (ADR 0019): the
+// values the sandbox itself lets through (lib/mdx-literal-props.ts), parsed
+// here from source text since the builder works outside any MDX compilation.
+// A top-level `null` reads as "no value" — the prop falls back to its default.
 function decodeLiteral(expression: string): { value: PropValue } | null {
-  if (expression === "true") return { value: true };
-  if (expression === "false") return { value: false };
-  if (/^-?\d+(\.\d+)?$/.test(expression)) return { value: Number(expression) };
-  return null;
+  const literal = parseLiteral(expression);
+  if (!literal) return null;
+  return { value: literal.value === null ? undefined : literal.value };
+}
+
+/** Parses a JS literal expression (scalars, arrays, objects). Null when the
+ * source is not a pure literal — an identifier, a call, a spread… */
+export function parseLiteral(source: string): { value: LiteralValue } | null {
+  const parser = new LiteralParser(source);
+  const value = parser.parseValue();
+  if (value === null) return null;
+  parser.skipSpace();
+  return parser.atEnd() ? { value: value.value } : null;
+}
+
+class LiteralParser {
+  private pos = 0;
+  constructor(private source: string) {}
+
+  atEnd(): boolean {
+    return this.pos >= this.source.length;
+  }
+
+  skipSpace(): void {
+    while (/\s/.test(this.source[this.pos] ?? "")) this.pos++;
+  }
+
+  parseValue(): { value: LiteralValue } | null {
+    this.skipSpace();
+    const char = this.source[this.pos];
+    if (char === undefined) return null;
+    if (char === "[") return this.parseArray();
+    if (char === "{") return this.parseObject();
+    if (char === '"' || char === "'" || char === "`") {
+      const text = this.parseString(char);
+      return text === null ? null : { value: text };
+    }
+    if (this.consume("true")) return { value: true };
+    if (this.consume("false")) return { value: false };
+    if (this.consume("null")) return { value: null };
+    const number = this.source
+      .slice(this.pos)
+      .match(/^[+-]?\d+(\.\d+)?([eE][+-]?\d+)?/);
+    if (number) {
+      this.pos += number[0].length;
+      return { value: Number(number[0]) };
+    }
+    return null;
+  }
+
+  // Keywords must not swallow an identifier prefix (`trueish` is no literal).
+  private consume(keyword: string): boolean {
+    if (!this.source.startsWith(keyword, this.pos)) return false;
+    const next = this.source[this.pos + keyword.length];
+    if (next !== undefined && /[A-Za-z0-9_$]/.test(next)) return false;
+    this.pos += keyword.length;
+    return true;
+  }
+
+  private parseString(quote: string): string | null {
+    this.pos++; // opening quote
+    let text = "";
+    while (this.pos < this.source.length) {
+      const char = this.source[this.pos];
+      if (char === quote) {
+        this.pos++;
+        return text;
+      }
+      if (char === "\\") {
+        const escaped = this.source[this.pos + 1];
+        if (escaped === undefined) return null;
+        const named: Record<string, string> = { n: "\n", t: "\t", r: "\r" };
+        if (escaped === "u") {
+          const hex = this.source.slice(this.pos + 2, this.pos + 6);
+          if (!/^[0-9a-fA-F]{4}$/.test(hex)) return null;
+          text += String.fromCharCode(parseInt(hex, 16));
+          this.pos += 6;
+          continue;
+        }
+        text += named[escaped] ?? escaped;
+        this.pos += 2;
+        continue;
+      }
+      // A template hole would be an expression, not a literal.
+      if (quote === "`" && char === "$" && this.source[this.pos + 1] === "{") {
+        return null;
+      }
+      text += char;
+      this.pos++;
+    }
+    return null; // unterminated
+  }
+
+  private parseArray(): { value: LiteralValue } | null {
+    this.pos++; // [
+    const items: LiteralValue[] = [];
+    for (;;) {
+      this.skipSpace();
+      if (this.source[this.pos] === "]") {
+        this.pos++;
+        return { value: items };
+      }
+      const item = this.parseValue();
+      if (!item) return null;
+      items.push(item.value);
+      this.skipSpace();
+      if (this.source[this.pos] === ",") this.pos++;
+      else if (this.source[this.pos] !== "]") return null;
+    }
+  }
+
+  private parseObject(): { value: LiteralValue } | null {
+    this.pos++; // {
+    const object: Record<string, LiteralValue> = {};
+    for (;;) {
+      this.skipSpace();
+      if (this.source[this.pos] === "}") {
+        this.pos++;
+        return { value: object };
+      }
+      const key = this.parseKey();
+      if (key === null) return null;
+      this.skipSpace();
+      if (this.source[this.pos] !== ":") return null;
+      this.pos++;
+      const item = this.parseValue();
+      if (!item) return null;
+      object[key] = item.value;
+      this.skipSpace();
+      if (this.source[this.pos] === ",") this.pos++;
+      else if (this.source[this.pos] !== "}") return null;
+    }
+  }
+
+  private parseKey(): string | null {
+    const char = this.source[this.pos];
+    if (char === '"' || char === "'") return this.parseString(char);
+    const name = this.source.slice(this.pos).match(/^[A-Za-z_$][A-Za-z0-9_$]*/);
+    if (!name) return null;
+    this.pos += name[0].length;
+    return name[0];
+  }
 }
 
 // Inverse mapping (docs/component-builder.md): tag → builder state. Absent
@@ -469,7 +830,9 @@ function decodeLiteral(expression: string): { value: PropValue } | null {
 // the expression is dropped on regeneration. That loses nothing: the sandbox
 // already refuses to pass it (ADR 0002), so it renders nothing today. The
 // builder used to decline the whole tag instead, which left the one value the
-// author needed to fix as the only one they could not reach.
+// author needed to fix as the only one they could not reach. The rule is
+// refined for structured fields (ADR 0019): they parse their literal and
+// re-edit it; only a literal their kind cannot hold is dropped the same way.
 export function tagToBuilderState(
   descriptor: ComponentDescriptor,
   defaults: PropDefaults,
@@ -477,17 +840,51 @@ export function tagToBuilderState(
 ): { values: PropValues; unknownAttributes: string[] } {
   const values: PropValues = { ...defaults };
   const unknownAttributes: string[] = [];
+
+  const carriers = new Map<string, string[]>();
+  for (const [field, spec] of Object.entries(descriptor.properties)) {
+    if (spec.type === "divider") continue;
+    const prop = fieldProp(field, spec);
+    carriers.set(prop, [...(carriers.get(prop) ?? []), field]);
+  }
+
+  const assign = (field: string, value: PropValue) => {
+    const spec = descriptor.properties[field];
+    const kind = propKind(spec);
+    const structuredValue = value !== null && typeof value === "object";
+    const structuredKind =
+      kind === "strings" || kind === "rows" || kind === "mapping" || kind === "area";
+    // Structured kinds are strict about shape; scalar kinds stay permissive
+    // between themselves (the widget shows what it can, the lint reports).
+    if ((structuredValue || structuredKind) && !propKindFits(kind, value)) {
+      return;
+    }
+    values[field] = value;
+  };
+
+  const aliased: { fields: string[]; value: PropValue }[] = [];
   for (const attribute of tag.attributes) {
-    const spec = descriptor.properties[attribute.name];
-    if (!spec || spec.type === "divider") {
+    const fields = carriers.get(attribute.name);
+    if (!fields) {
       // An unknown prop is carried raw: its expression stays valid JSX, and
       // the builder has no business rewriting what it does not describe.
       unknownAttributes.push(attribute.raw);
       continue;
     }
     if (!attribute.literal) continue;
-    values[attribute.name] = attribute.value;
+    if (fields.length === 1) assign(fields[0], attribute.value);
+    else aliased.push({ fields, value: attribute.value });
   }
+
+  // An aliased prop belongs to whichever carrier is visible once the plain
+  // values are in — the discriminating siblings (e.g. `view`) are plain props,
+  // so visibility is already decided by the first pass.
+  for (const { fields, value } of aliased) {
+    const visible = visibleFields(descriptor, defaults, values);
+    const field = fields.find((name) => visible.includes(name)) ?? fields[0];
+    assign(field, value);
+  }
+
   return { values, unknownAttributes };
 }
 

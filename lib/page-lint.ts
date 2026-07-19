@@ -2,7 +2,15 @@ import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
-import { type PropKind, propKind } from "./component-descriptor";
+import {
+  type PropKind,
+  type PropValue,
+  type PropValues,
+  fieldProp,
+  propKind,
+  propKindFits,
+  visibleFields,
+} from "./component-descriptor";
 import type { ComponentBuilderSpec } from "./component-descriptors";
 import { isAllowedHostElement, isHostElement } from "./mdx-host-elements";
 import { type EstreeProgram, staticLiteralValue } from "./mdx-literal-props";
@@ -114,6 +122,32 @@ export function lintPageSource(
     const properties = spec.descriptor.properties;
     const written = new Set<string>();
 
+    // A prop may be carried by several fields with disjoint showif (the
+    // `prop:` alias, docs/entries-view.md): attributes resolve against the
+    // field visible for the tag's own values, so per-view options and
+    // requirements are judged by the right declaration.
+    const carriers = new Map<string, string[]>();
+    for (const [field, property] of Object.entries(properties)) {
+      if (property.type === "divider") continue;
+      const prop = fieldProp(field, property);
+      carriers.set(prop, [...(carriers.get(prop) ?? []), field]);
+    }
+    const values: PropValues = { ...spec.defaults };
+    for (const attribute of node.attributes ?? []) {
+      if (attribute.type !== "mdxJsxAttribute" || !attribute.name) continue;
+      const fields = carriers.get(attribute.name);
+      const received = attributeValue(attribute.value);
+      if (fields?.length === 1 && received !== UNREADABLE) {
+        values[fields[0]] = received as PropValue;
+      }
+    }
+    const visible = visibleFields(spec.descriptor, spec.defaults, values);
+    const carrierOf = (prop: string): string | undefined => {
+      const fields = carriers.get(prop);
+      if (!fields) return undefined;
+      return fields.find((field) => visible.includes(field)) ?? fields[0];
+    };
+
     for (const attribute of node.attributes ?? []) {
       if (attribute.type === "mdxJsxExpressionAttribute") {
         warnings.push({
@@ -126,8 +160,9 @@ export function lintPageSource(
       if (!attributeName) continue;
       written.add(attributeName);
 
-      const property = properties[attributeName];
-      if (!property || property.type === "divider") {
+      const field = carrierOf(attributeName);
+      const property = field ? properties[field] : undefined;
+      if (!property) {
         warnings.push({
           line,
           message: `Le composant « ${name} » n'a pas de propriété « ${attributeName} ». Elle sera ignorée.`,
@@ -144,7 +179,7 @@ export function lintPageSource(
         continue;
       }
 
-      const misfit = propMisfit(propKind(property.type), received);
+      const misfit = propMisfit(propKind(property), received);
       if (misfit) {
         warnings.push({
           line,
@@ -175,11 +210,14 @@ export function lintPageSource(
       }
     }
 
-    for (const [attributeName, property] of Object.entries(properties)) {
-      if (property.required && !written.has(attributeName)) {
+    // Only a visible field can demand its prop: a field folded away by showif
+    // (another view's requirement) is empty by construction, never missing.
+    for (const [field, property] of Object.entries(properties)) {
+      if (!property.required || !visible.includes(field)) continue;
+      if (!written.has(fieldProp(field, property))) {
         warnings.push({
           line,
-          message: `La propriété « ${attributeName} » est obligatoire sur « ${name} ». Sans elle, le composant ne sera pas affiché.`,
+          message: `La propriété « ${fieldProp(field, property)} » est obligatoire sur « ${name} ». Sans elle, le composant ne sera pas affiché.`,
         });
       }
     }
@@ -217,22 +255,24 @@ function attributeValue(value: MdxAttributeValue): unknown {
 // `whiteBorder="false"` turns the border *on* — worse than doing nothing, it
 // does the opposite of what is written.
 function propMisfit(kind: PropKind, value: unknown): string | null {
+  if (propKindFits(kind, value)) return null;
   switch (kind) {
     case "none":
       return null; // a divider is builder chrome, it carries no prop
     case "boolean":
-      return typeof value === "boolean"
-        ? null
-        : "attend {true} ou {false}.";
+      return "attend {true} ou {false}.";
     case "number":
-      return typeof value === "number"
-        ? null
-        : "attend un nombre entre accolades, par exemple {200}.";
+      return "attend un nombre entre accolades, par exemple {200}.";
     case "string":
-      // A number reads back as its text; a boolean renders as nothing at all.
-      return typeof value === "string" || typeof value === "number"
-        ? null
-        : "attend du texte.";
+      return "attend du texte.";
+    case "strings":
+      return 'attend un texte ou une liste de textes, par exemple {["a", "b"]}.';
+    case "rows":
+      return 'attend une liste d\'objets portant une clé « field », par exemple {[{ field: "type" }]}.';
+    case "mapping":
+      return 'attend un objet { valeur: "…" }, par exemple {{ oui: "#16a34a" }}.';
+    case "area":
+      return "attend un objet { lat, lng, zoom } fait de nombres.";
   }
 }
 

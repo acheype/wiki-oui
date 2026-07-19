@@ -2,10 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   type ComponentDescriptor,
   type DescriptorField,
+  type LiteralValue,
+  descriptorDefaults,
   findComponentTag,
   type ParsedTag,
   generateMarkdownLink,
   generateTag,
+  isEmpty,
+  parseLiteral,
+  propKindFits,
+  sameValue,
+  serializeLiteral,
   tagToBuilderState,
   validateDescriptor,
   visibleFields,
@@ -508,5 +515,344 @@ describe("generateMarkdownLink", () => {
     expect(generateMarkdownLink(defaults, { link: "equipe" })).toBe(
       "[equipe](equipe)"
     );
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * v0.4 — structured props and the extended field types (ADR 0018/0019)
+ * ------------------------------------------------------------------ */
+
+// An EntriesView-shaped descriptor exercising the six new types and the
+// `prop:` alias (two entryDisplay declarations kept apart by showif).
+function entriesDescriptor(): ComponentDescriptor {
+  return {
+    label: "Fiches",
+    properties: {
+      form: {
+        label: "Formulaire",
+        type: "form-list",
+        multiple: true,
+        required: true,
+      },
+      view: {
+        label: "Vue",
+        type: "view-picker",
+        default: "list",
+        options: { list: "Liste", grid: "Grille", map: "Carte" },
+        icons: { list: "lucide:list", map: "lucide:map" },
+      },
+      display: {
+        label: "Lors du clic, afficher la fiche",
+        type: "list",
+        prop: "entryDisplay",
+        default: "popup",
+        options: { popup: "En popup", "new-tab": "Nouvel onglet" },
+        showif: { view: "/^(list|grid)$/" },
+      },
+      mapDisplay: {
+        label: "Lors du clic, afficher la fiche",
+        type: "list",
+        prop: "entryDisplay",
+        default: "sidebar",
+        options: { popup: "En popup", sidebar: "En panneau latéral" },
+        showif: { view: "map" },
+      },
+      filters: {
+        label: "Filtres disponibles",
+        type: "field-rows",
+        withIcon: true,
+        fieldTypes: ["list", "radio", "multiChoice"],
+        pseudoFields: ["$form"],
+      },
+      colorField: {
+        label: "Champ pour la couleur",
+        type: "form-field",
+        fieldTypes: ["list", "radio", "multiChoice"],
+      },
+      colors: {
+        label: "Couleurs",
+        type: "color-mapping",
+        fieldFrom: "colorField",
+        showif: { colorField: "notNull" },
+      },
+      initialArea: {
+        label: "Vue initiale fixe",
+        type: "map-view",
+        showif: { view: "map" },
+      },
+    },
+  };
+}
+
+const entriesDefaults = descriptorDefaults(entriesDescriptor());
+
+describe("parseLiteral", () => {
+  it("parses the canonical structured forms", () => {
+    expect(parseLiteral('["a", "b"]')).toEqual({ value: ["a", "b"] });
+    expect(
+      parseLiteral('[{ field: "type", title: "Type d\'acteur" }, { field: "commune" }]')
+    ).toEqual({
+      value: [
+        { field: "type", title: "Type d'acteur" },
+        { field: "commune" },
+      ],
+    });
+    expect(parseLiteral('{ lat: -21.3, lng: 165.5, zoom: 8 }')).toEqual({
+      value: { lat: -21.3, lng: 165.5, zoom: 8 },
+    });
+  });
+
+  it("parses scalars, quoted keys, escapes and trailing commas", () => {
+    expect(parseLiteral("true")).toEqual({ value: true });
+    expect(parseLiteral("-3.5")).toEqual({ value: -3.5 });
+    expect(parseLiteral('{ "clé accentuée": "a\\"b", n: null, }')).toEqual({
+      value: { "clé accentuée": 'a"b', n: null },
+    });
+    expect(parseLiteral("`texte`")).toEqual({ value: "texte" });
+  });
+
+  it("refuses anything that is not a pure literal", () => {
+    expect(parseLiteral("maVariable")).toBeNull();
+    expect(parseLiteral("[maVariable]")).toBeNull();
+    expect(parseLiteral('{ field: compute() }')).toBeNull();
+    expect(parseLiteral("`a${b}`")).toBeNull();
+    expect(parseLiteral('["a"] // reste')).toBeNull();
+    expect(parseLiteral('[..."abc"]')).toBeNull();
+    expect(parseLiteral('trueish')).toBeNull();
+  });
+});
+
+describe("serializeLiteral", () => {
+  it("writes the form a JS author would write, and reads it back", () => {
+    const value: LiteralValue = [
+      { field: "type", title: "Type d'acteur", icon: "lucide:users" },
+      { field: "commune" },
+    ];
+    const written = serializeLiteral(value);
+    expect(written).toBe(
+      '[{ field: "type", title: "Type d\'acteur", icon: "lucide:users" }, { field: "commune" }]'
+    );
+    expect(parseLiteral(written)).toEqual({ value });
+  });
+
+  it("quotes keys that are not identifiers", () => {
+    expect(serializeLiteral({ "a-b": "x" })).toBe('{ "a-b": "x" }');
+  });
+});
+
+describe("generateTag — structured props (ADR 0019)", () => {
+  it("emits structured values as literal expressions, omitting empties", () => {
+    expect(
+      generateTag("EntriesView", entriesDescriptor(), entriesDefaults, {
+        form: ["associations", "evenements"],
+        view: "grid",
+        filters: [{ field: "type", title: "Type" }],
+        colorField: undefined,
+      })
+    ).toBe(
+      '<EntriesView form={["associations", "evenements"]} view="grid" filters={[{ field: "type", title: "Type" }]} />'
+    );
+  });
+
+  it("keeps a single form as a plain string prop", () => {
+    expect(
+      generateTag("EntriesView", entriesDescriptor(), entriesDefaults, {
+        form: "associations",
+      })
+    ).toBe('<EntriesView form="associations" />');
+  });
+
+  it("omits a structured value equal to its default by deep equality", () => {
+    const descriptor = entriesDescriptor();
+    const defaults = { ...entriesDefaults, filters: [{ field: "type" }] };
+    expect(
+      generateTag("EntriesView", descriptor, defaults, {
+        form: "a",
+        filters: [{ field: "type" }],
+      })
+    ).toBe('<EntriesView form="a" />');
+  });
+});
+
+describe("prop alias — one prop, several fields (docs/entries-view.md)", () => {
+  it("emits the visible carrier only, honouring its own default", () => {
+    // On the map view, sidebar is the default: nothing written.
+    expect(
+      generateTag("EntriesView", entriesDescriptor(), entriesDefaults, {
+        form: "a",
+        view: "map",
+        mapDisplay: "sidebar",
+        display: "popup",
+      })
+    ).toBe('<EntriesView form="a" view="map" />');
+    // Away from the default, the alias writes under its prop name.
+    expect(
+      generateTag("EntriesView", entriesDescriptor(), entriesDefaults, {
+        form: "a",
+        view: "map",
+        mapDisplay: "popup",
+      })
+    ).toBe('<EntriesView form="a" view="map" entryDisplay="popup" />');
+  });
+
+  it("routes the attribute to the visible carrier on re-edit", () => {
+    const tag = findComponentTag(
+      '<EntriesView form="a" view="map" entryDisplay="popup" />',
+      0
+    )!.tag;
+    const state = tagToBuilderState(entriesDescriptor(), entriesDefaults, tag);
+    expect(state.values.mapDisplay).toBe("popup");
+    expect(state.values.display).toBe("popup"); // untouched default
+  });
+
+  it("round-trips a tag carrying an aliased prop unchanged", () => {
+    const source = '<EntriesView form="a" view="map" entryDisplay="popup" />';
+    const tag = findComponentTag(source, 0)!.tag;
+    const state = tagToBuilderState(entriesDescriptor(), entriesDefaults, tag);
+    expect(
+      generateTag(
+        "EntriesView",
+        entriesDescriptor(),
+        entriesDefaults,
+        state.values,
+        state.unknownAttributes
+      )
+    ).toBe(source);
+  });
+});
+
+describe("tagToBuilderState — refined expression rule (ADR 0019)", () => {
+  const readState = (source: string) =>
+    tagToBuilderState(
+      entriesDescriptor(),
+      entriesDefaults,
+      findComponentTag(source, 0)!.tag
+    );
+
+  it("re-edits a structured literal on a structured field", () => {
+    const state = readState(
+      '<EntriesView form={["a", "b"]} filters={[{ field: "type" }]} />'
+    );
+    expect(state.values.form).toEqual(["a", "b"]);
+    expect(state.values.filters).toEqual([{ field: "type" }]);
+  });
+
+  it("still drops a non-literal expression on a structured field", () => {
+    const state = readState("<EntriesView form={maVariable} />");
+    expect(state.values.form).toBeUndefined();
+  });
+
+  it("drops a structured literal on a scalar field", () => {
+    const state = readState('<EntriesView view={["list"]} form="a" />');
+    expect(state.values.view).toBe("list"); // back to the default
+  });
+
+  it("drops a literal whose shape the structured kind cannot hold", () => {
+    const state = readState(
+      '<EntriesView form="a" filters={[{ title: "Sans field" }]} />'
+    );
+    expect(state.values.filters).toBeUndefined();
+  });
+
+  it("round-trips structured props to a stable fixpoint", () => {
+    const source =
+      '<EntriesView form={["a", "b"]} view="grid" filters={[{ field: "type", title: "Type", icon: "lucide:users" }]} />';
+    const state = readState(source);
+    expect(
+      generateTag(
+        "EntriesView",
+        entriesDescriptor(),
+        entriesDefaults,
+        state.values,
+        state.unknownAttributes
+      )
+    ).toBe(source);
+  });
+});
+
+describe("validateDescriptor — the six new types (ADR 0018)", () => {
+  it("accepts the EntriesView-shaped descriptor", () => {
+    expect(() =>
+      validateDescriptor("entries-view", entriesDescriptor())
+    ).not.toThrow();
+  });
+
+  it("rejects a view-picker without a default among its options", () => {
+    const descriptor = entriesDescriptor();
+    descriptor.properties.view.default = "carousel";
+    expect(() => validateDescriptor("entries-view", descriptor)).toThrow(
+      /view-picker field "view" needs a default among its options/
+    );
+  });
+
+  it("rejects a view-picker icon aimed at an unknown option", () => {
+    const descriptor = entriesDescriptor();
+    descriptor.properties.view.icons = { carousel: "lucide:images" };
+    expect(() => validateDescriptor("entries-view", descriptor)).toThrow(
+      /declares an icon for unknown option "carousel"/
+    );
+  });
+
+  it("rejects a form-field reading its forms from an unknown sibling", () => {
+    const descriptor = entriesDescriptor();
+    descriptor.properties.colorField.formFrom = "nowhere";
+    expect(() => validateDescriptor("entries-view", descriptor)).toThrow(
+      /reads its forms from unknown sibling "nowhere"/
+    );
+  });
+
+  it("requires the default `form` sibling when formFrom is omitted", () => {
+    const descriptor = entriesDescriptor();
+    delete descriptor.properties.form;
+    expect(() => validateDescriptor("entries-view", descriptor)).toThrow(
+      /reads its forms from unknown sibling "form"/
+    );
+  });
+
+  it("rejects a mapping without fieldFrom, or aimed at a non form-field", () => {
+    const missing = entriesDescriptor();
+    delete missing.properties.colors.fieldFrom;
+    expect(() => validateDescriptor("entries-view", missing)).toThrow(
+      /needs "fieldFrom" pointing at a sibling form-field, got nothing/
+    );
+    const wrong = entriesDescriptor();
+    wrong.properties.colors.fieldFrom = "view";
+    expect(() => validateDescriptor("entries-view", wrong)).toThrow(
+      /points "fieldFrom" at "view", which is not a form-field/
+    );
+  });
+
+  it("rejects aliased fields not kept apart by showif", () => {
+    const descriptor = entriesDescriptor();
+    delete descriptor.properties.display.showif;
+    expect(() => validateDescriptor("entries-view", descriptor)).toThrow(
+      /all emit prop "entryDisplay", so each needs a showif/
+    );
+  });
+});
+
+describe("propKindFits / isEmpty / sameValue on structured values", () => {
+  it("judges each kind by its shape", () => {
+    expect(propKindFits("strings", "a")).toBe(true);
+    expect(propKindFits("strings", ["a", "b"])).toBe(true);
+    expect(propKindFits("strings", [1])).toBe(false);
+    expect(propKindFits("rows", [{ field: "type", title: "T" }])).toBe(true);
+    expect(propKindFits("rows", [{ title: "T" }])).toBe(false);
+    expect(propKindFits("mapping", { oui: "#16a34a" })).toBe(true);
+    expect(propKindFits("mapping", ["#16a34a"])).toBe(false);
+    expect(propKindFits("area", { lat: 1, lng: 2, zoom: 8 })).toBe(true);
+    expect(propKindFits("area", { lat: 1, lng: 2 })).toBe(false);
+  });
+
+  it("counts bare structured values as empty", () => {
+    expect(isEmpty([])).toBe(true);
+    expect(isEmpty({})).toBe(true);
+    expect(isEmpty([{ field: "type" }])).toBe(false);
+  });
+
+  it("compares structured values by content", () => {
+    expect(sameValue([{ field: "a" }], [{ field: "a" }])).toBe(true);
+    expect(sameValue([{ field: "a" }], [{ field: "b" }])).toBe(false);
+    expect(sameValue({ a: 1 }, { a: 1, b: 2 })).toBe(false);
   });
 });

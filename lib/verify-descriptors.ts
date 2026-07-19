@@ -8,10 +8,12 @@ import {
 } from "ts-morph";
 import {
   type ComponentDescriptor,
+  type DescriptorField,
   type FieldType,
   type LineLookup,
   type PropValue,
   emitsMarkdownLink,
+  fieldProp,
 } from "./component-descriptor";
 import type { ComponentBuilderSpec } from "./component-descriptors";
 import { readDescriptorSource } from "./descriptor-source";
@@ -30,6 +32,16 @@ export type PropType =
   | { kind: "boolean" }
   /** A union of string literals, e.g. `"none" | "right"`. */
   | { kind: "union"; values: string[] }
+  /** `string[]` — a multiple form-field. */
+  | { kind: "string-array" }
+  /** `string | string[]` — a multiple form selector (docs/entries-view.md). */
+  | { kind: "string-or-strings" }
+  /** An array of objects, e.g. `{ field: string; title?: string }[]`. */
+  | { kind: "object-array"; keys: string[] }
+  /** `Record<string, string>` — a color/icon mapping. */
+  | { kind: "record" }
+  /** A plain object type, e.g. `{ lat: number; lng: number; zoom: number }`. */
+  | { kind: "object"; keys: string[] }
   | { kind: "other"; text: string };
 
 /** A component prop's destructuring default, traced to a literal when it can. */
@@ -61,18 +73,17 @@ export interface SignatureCheck {
   warnings: string[];
 }
 
-// A field's type maps to one base prop type; `list` is handled apart (it
-// must face a string-literal union), `divider` emits no prop.
-const FIELD_BASE_TYPE: Record<
-  Exclude<FieldType, "divider" | "list">,
-  "string" | "number" | "boolean"
+// A field's type maps to one base prop type; `list`/`view-picker` are handled
+// apart (they must face a string-literal union), the structured types against
+// their own shapes, `divider` emits no prop.
+const FIELD_BASE_TYPE: Partial<
+  Record<FieldType, "string" | "number" | "boolean">
 > = {
   text: "string",
   url: "string",
   icon: "string",
   "page-list": "string",
   "file-list": "string",
-  "form-list": "string", // holds a form slug (ADR 0015)
   number: "number",
   checkbox: "boolean",
 };
@@ -123,7 +134,8 @@ export function checkSignature(
 
   for (const [field, spec] of Object.entries(descriptor.properties)) {
     if (spec.type === "divider") continue;
-    const prop = signature.props[field];
+    const propName = fieldProp(field, spec);
+    const prop = signature.props[propName];
     if (!prop) {
       errors.push(
         `${yamlRef(ctx, ["properties", field])}: field "${field}" is not a prop of <${name}> (${tsxRef(ctx)})`
@@ -136,18 +148,18 @@ export function checkSignature(
     const runtimeRequired = !prop.tsOptional && prop.destructuringDefault === undefined;
     if (runtimeRequired && !spec.required) {
       errors.push(
-        `${yamlRef(ctx, ["properties", field])}: field "${field}" must set "required: true" — prop "${field}" is required at runtime in <${name}> (${tsxRef(ctx, prop.line)})`
+        `${yamlRef(ctx, ["properties", field])}: field "${field}" must set "required: true" — prop "${propName}" is required at runtime in <${name}> (${tsxRef(ctx, prop.line)})`
       );
     }
 
-    checkType(ctx, field, spec.type, spec.options, spec.default, prop, errors);
+    checkType(ctx, field, spec, prop, errors);
     checkDrift(ctx, field, spec.default, prop, errors, warnings);
 
     // `value` is a pre-fill, always written; verified in type only, never for
     // drift — it may legitimately differ from the component default.
     if (spec.value !== undefined && !valueFitsType(spec.value, prop.type)) {
       errors.push(
-        `${yamlRef(ctx, ["properties", field, "value"], ["properties", field])}: field "${field}" value ${show(spec.value)} does not fit prop "${field}": ${describeType(prop.type)} in <${name}> (${tsxRef(ctx, prop.line)})`
+        `${yamlRef(ctx, ["properties", field, "value"], ["properties", field])}: field "${field}" value ${show(spec.value)} does not fit prop "${propName}": ${describeType(prop.type)} in <${name}> (${tsxRef(ctx, prop.line)})`
       );
     }
   }
@@ -158,17 +170,63 @@ export function checkSignature(
 function checkType(
   ctx: CheckContext,
   field: string,
-  fieldType: FieldType,
-  options: Record<string, string> | undefined,
-  fieldDefault: PropValue,
+  spec: DescriptorField,
   prop: PropSignature,
   errors: string[]
 ): void {
+  const fieldType = spec.type;
   const at = yamlRef(ctx, ["properties", field, "type"], ["properties", field]);
-  if (fieldType === "divider" || fieldType === "list") {
-    if (fieldType === "list") checkList(ctx, field, options, fieldDefault, prop, errors);
-    return;
+  const propName = fieldProp(field, spec);
+  const mismatch = (expectation: string) =>
+    errors.push(
+      `${at}: field "${field}" (type ${fieldType}) expects ${expectation} but prop "${propName}" is ${describeType(prop.type)} in <${ctx.name}> (${tsxRef(ctx, prop.line)})`
+    );
+
+  switch (fieldType) {
+    case "divider":
+      return;
+    case "list":
+    case "view-picker":
+      checkList(ctx, field, spec.options, spec.default, prop, errors);
+      return;
+    // A multiple form selector writes one name or an array of names; its
+    // single form still faces a plain string prop.
+    case "form-list":
+    case "form-field":
+      if (spec.multiple) {
+        if (
+          prop.type.kind !== "string-or-strings" &&
+          prop.type.kind !== "string-array"
+        ) {
+          mismatch("string | string[] (multiple: true)");
+        }
+      } else if (prop.type.kind !== "string") {
+        mismatch("a string prop");
+      }
+      return;
+    case "field-rows":
+      if (prop.type.kind !== "object-array" || !prop.type.keys.includes("field")) {
+        mismatch('an array of objects carrying a "field" key');
+      }
+      return;
+    case "color-mapping":
+    case "icon-mapping":
+      if (prop.type.kind !== "record") {
+        mismatch("a Record<string, string> prop");
+      }
+      return;
+    case "map-view":
+      if (
+        prop.type.kind !== "object" ||
+        !["lat", "lng", "zoom"].every((key) =>
+          (prop.type as { keys: string[] }).keys.includes(key)
+        )
+      ) {
+        mismatch("an object prop with lat, lng and zoom");
+      }
+      return;
   }
+
   const expected = FIELD_BASE_TYPE[fieldType];
   // A union prop is an enum: a scalar field would let an author write a value
   // outside the prop's union undetected, so it must be a `list` instead.
@@ -180,7 +238,7 @@ function checkType(
   }
   if (baseKind(prop.type) !== expected) {
     errors.push(
-      `${at}: field "${field}" (type ${fieldType}) does not match prop "${field}": ${describeType(prop.type)} in <${ctx.name}> (${tsxRef(ctx, prop.line)})`
+      `${at}: field "${field}" (type ${fieldType}) does not match prop "${propName}": ${describeType(prop.type)} in <${ctx.name}> (${tsxRef(ctx, prop.line)})`
     );
   }
 }
@@ -242,7 +300,11 @@ function checkDrift(
 }
 
 function baseKind(type: PropType): "string" | "number" | "boolean" | "other" {
-  return type.kind === "union" ? "string" : type.kind;
+  if (type.kind === "union") return "string";
+  if (type.kind === "string" || type.kind === "number" || type.kind === "boolean") {
+    return type.kind;
+  }
+  return "other";
 }
 
 function valueFitsType(value: PropValue, type: PropType): boolean {
@@ -260,9 +322,24 @@ function valueFitsType(value: PropValue, type: PropType): boolean {
 }
 
 function describeType(type: PropType): string {
-  if (type.kind === "union") return type.values.map((v) => `"${v}"`).join(" | ");
-  if (type.kind === "other") return type.text;
-  return type.kind;
+  switch (type.kind) {
+    case "union":
+      return type.values.map((v) => `"${v}"`).join(" | ");
+    case "other":
+      return type.text;
+    case "string-array":
+      return "string[]";
+    case "string-or-strings":
+      return "string | string[]";
+    case "object-array":
+      return `{ ${type.keys.join(", ")} }[]`;
+    case "record":
+      return "Record<string, string>";
+    case "object":
+      return `{ ${type.keys.join(", ")} }`;
+    default:
+      return type.kind;
+  }
 }
 
 function show(value: PropValue): string {
@@ -337,6 +414,31 @@ function describeCompilerType(type: Type): PropType {
     if (parts.length > 0 && parts.every((p) => p.isBooleanLiteral())) {
       return { kind: "boolean" };
     }
+    // `string | string[]`: the shape of a multiple form selector.
+    if (
+      parts.length === 2 &&
+      parts.some((p) => p.isString()) &&
+      parts.some((p) => p.isArray() && p.getArrayElementType()?.isString())
+    ) {
+      return { kind: "string-or-strings" };
+    }
+  }
+  if (t.isArray()) {
+    const element = t.getArrayElementType();
+    if (element?.isString()) return { kind: "string-array" };
+    if (element?.isObject()) {
+      return {
+        kind: "object-array",
+        keys: element.getProperties().map((p) => p.getName()),
+      };
+    }
+  }
+  if (t.isObject() && !t.getCallSignatures().length) {
+    // An index signature makes it a record; named properties make it a plain
+    // object shape (the map-view area).
+    if (t.getStringIndexType()?.isString()) return { kind: "record" };
+    const keys = t.getProperties().map((p) => p.getName());
+    if (keys.length > 0) return { kind: "object", keys };
   }
   return { kind: "other", text: t.getText() };
 }

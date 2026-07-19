@@ -257,3 +257,153 @@ describe("verifyDescriptorSignatures (shipped components)", () => {
     }
   });
 });
+
+/* ------------------------------------------------------------------ *
+ * v0.4 — structured field types against TS shapes (ADR 0018/0019)
+ * ------------------------------------------------------------------ */
+
+describe("checkSignature — structured types", () => {
+  function entriesSignature(): ComponentSignature {
+    return {
+      file: "components/wiki/entries-view.tsx",
+      props: {
+        form: { tsOptional: false, type: { kind: "string-or-strings" } },
+        view: {
+          tsOptional: true,
+          type: { kind: "union", values: ["list", "grid", "map"] },
+          destructuringDefault: { literal: "list" },
+        },
+        filters: {
+          tsOptional: true,
+          type: { kind: "object-array", keys: ["field", "title", "icon"] },
+        },
+        colorField: { tsOptional: true, type: { kind: "string" } },
+        colors: { tsOptional: true, type: { kind: "record" } },
+        initialArea: {
+          tsOptional: true,
+          type: { kind: "object", keys: ["lat", "lng", "zoom"] },
+        },
+        searchFields: { tsOptional: true, type: { kind: "string-array" } },
+      },
+    };
+  }
+
+  function entriesViewDescriptor(): ComponentDescriptor {
+    return {
+      label: "Fiches",
+      properties: {
+        form: { label: "Formulaire", type: "form-list", multiple: true, required: true },
+        view: {
+          label: "Vue",
+          type: "view-picker",
+          default: "list",
+          options: { list: "Liste", grid: "Grille", map: "Carte" },
+        },
+        filters: { label: "Filtres", type: "field-rows", withIcon: true },
+        colorField: { label: "Champ couleur", type: "form-field" },
+        colors: { label: "Couleurs", type: "color-mapping", fieldFrom: "colorField" },
+        initialArea: { label: "Vue initiale", type: "map-view" },
+        searchFields: { label: "Champs cherchés", type: "form-field", multiple: true },
+      },
+    };
+  }
+
+  it("passes when every structured field faces its TS shape", () => {
+    const result = checkSignature(
+      "EntriesView",
+      entriesViewDescriptor(),
+      entriesSignature()
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("flags a multiple selector facing a plain string prop", () => {
+    const signature = entriesSignature();
+    signature.props.form = { tsOptional: false, type: { kind: "string" } };
+    const { errors } = checkSignature(
+      "EntriesView",
+      entriesViewDescriptor(),
+      signature
+    );
+    expect(errors.some((error) => error.includes('field "form"') && error.includes("string | string[]"))).toBe(true);
+  });
+
+  it("flags field-rows facing an object array without a field key", () => {
+    const signature = entriesSignature();
+    signature.props.filters = {
+      tsOptional: true,
+      type: { kind: "object-array", keys: ["title"] },
+    };
+    const { errors } = checkSignature(
+      "EntriesView",
+      entriesViewDescriptor(),
+      signature
+    );
+    expect(errors.some((error) => error.includes('"field" key'))).toBe(true);
+  });
+
+  it("flags a mapping facing anything but a record, and a view-picker outside the union", () => {
+    const signature = entriesSignature();
+    signature.props.colors = { tsOptional: true, type: { kind: "string" } };
+    const descriptor = entriesViewDescriptor();
+    descriptor.properties.view.options = { ...descriptor.properties.view.options, carousel: "Carrousel" };
+    const { errors } = checkSignature("EntriesView", descriptor, signature);
+    expect(errors.some((error) => error.includes("Record<string, string>"))).toBe(true);
+    expect(errors.some((error) => error.includes('option "carousel" is outside'))).toBe(true);
+  });
+
+  it("checks the alias' prop name, not the field key", () => {
+    const signature = entriesSignature();
+    signature.props.entryDisplay = {
+      tsOptional: true,
+      type: { kind: "union", values: ["popup", "sidebar"] },
+      destructuringDefault: { unverifiable: true },
+    };
+    const descriptor = entriesViewDescriptor();
+    descriptor.properties.mapDisplay = {
+      label: "Lors du clic",
+      type: "list",
+      prop: "entryDisplay",
+      default: "sidebar",
+      options: { popup: "En popup", sidebar: "Panneau" },
+      showif: { view: "map" },
+    };
+    const { errors } = checkSignature("EntriesView", descriptor, signature);
+    expect(errors).toEqual([]);
+  });
+});
+
+describe("extractSignature — structured shapes", () => {
+  function signatureOf(source: string, name: string) {
+    const project = new Project({ useInMemoryFileSystem: true });
+    const file = project.createSourceFile("component.tsx", source);
+    return extractSignature(file, name, "component.tsx");
+  }
+
+  it("reads arrays, records, unions of string|string[] and object shapes", () => {
+    const signature = signatureOf(
+      `interface EntryFilter { field: string; title?: string; icon?: string }
+       type Props = {
+         form: string | string[];
+         filters?: EntryFilter[];
+         searchFields?: string[];
+         colors?: Record<string, string>;
+         initialArea?: { lat: number; lng: number; zoom: number };
+       };
+       export function EntriesView({ form }: Props) { return null; }`,
+      "EntriesView"
+    );
+    expect(signature.props.form.type).toEqual({ kind: "string-or-strings" });
+    expect(signature.props.filters.type).toEqual({
+      kind: "object-array",
+      keys: ["field", "title", "icon"],
+    });
+    expect(signature.props.searchFields.type).toEqual({ kind: "string-array" });
+    expect(signature.props.colors.type).toEqual({ kind: "record" });
+    expect(signature.props.initialArea.type).toEqual({
+      kind: "object",
+      keys: ["lat", "lng", "zoom"],
+    });
+  });
+});

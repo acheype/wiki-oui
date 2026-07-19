@@ -239,7 +239,7 @@ export function FieldWidget({
         </RadioGroup>
       );
     case "multiChoice": {
-      const selected = Array.isArray(value) ? value : [];
+      const selected = toStringArray(value);
       const toggle = (optionValue: string, active: boolean) =>
         onChange(
           active
@@ -334,13 +334,7 @@ export function FieldWidget({
     case "geolocation":
       return (
         <GeolocationInput
-          value={
-            value !== null &&
-            typeof value === "object" &&
-            !Array.isArray(value)
-              ? value
-              : undefined
-          }
+          value={isGeoPoint(value) ? value : undefined}
           bindings={spec}
           geolocateButton={spec.geolocateButton}
           entryValues={environment.entryValues}
@@ -350,7 +344,7 @@ export function FieldWidget({
     case "tags":
       return (
         <TagsInput
-          tags={Array.isArray(value) ? value : []}
+          tags={toStringArray(value)}
           onChange={onChange}
         />
       );
@@ -402,6 +396,25 @@ export function FieldWidget({
         />
       );
   }
+}
+
+// Narrowers over FieldValue, which now spans the structured literals of
+// ADR 0019: widgets only take what they can display.
+function toStringArray(value: FieldValue): string[] {
+  if (!Array.isArray(value)) return [];
+  return (value as unknown[]).filter(
+    (item): item is string => typeof item === "string"
+  );
+}
+
+function isGeoPoint(value: FieldValue): value is { lat: number; lng: number } {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as { lat?: unknown }).lat === "number" &&
+    typeof (value as { lng?: unknown }).lng === "number"
+  );
 }
 
 function inputType(spec: FieldWidgetSpec): string {
