@@ -45,6 +45,8 @@ import { valueToText } from "@/lib/form-descriptor";
 import { PSEUDO_FIELD_LABELS, isPseudoField } from "@/lib/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { Icon } from "./internal/icon";
+import { DirectoryView } from "./internal/entries/directory-view";
+import { GalleryView } from "./internal/entries/gallery-view";
 import { GridView } from "./internal/entries/grid-view";
 import { ListView } from "./internal/entries/list-view";
 import { TableView } from "./internal/entries/table-view";
@@ -285,6 +287,10 @@ function renderView(view: ViewName, context: ViewContext): React.ReactNode {
       return <GridView context={context} />;
     case "table":
       return <TableView context={context} />;
+    case "directory":
+      return <DirectoryView context={context} />;
+    case "gallery":
+      return <GalleryView context={context} />;
     default:
       // The remaining views land one by one (docs/entries-view.md).
       return (
