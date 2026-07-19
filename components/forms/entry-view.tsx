@@ -1,4 +1,3 @@
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Prose } from "@/components/page/prose";
 import { DEFAULT_IMAGE_WIDTH, imageUrl } from "@/lib/image-url";
@@ -10,13 +9,11 @@ import {
   computeAutomaticTitle,
   isOptionsField,
 } from "@/lib/form-descriptor";
+import { EntryMap } from "./entry-map-lazy";
 
 // Default entry render (docs/forms.md): a title in h1, then each field by its
 // type. Used when the form has no template. Server component; the map piece
-// is client-only.
-const EntryMap = dynamic(() =>
-  import("./entry-map").then((mod) => mod.EntryMap)
-);
+// is client-only (entry-map-lazy holds the `ssr: false` boundary).
 
 export async function EntryView({
   descriptor,

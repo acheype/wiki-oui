@@ -84,13 +84,17 @@ export function EntriesView({
     period,
     ...rest,
   };
+  // `form` is required, but a hand-written tag may omit it (the save-time
+  // lint warns): degrade to the sample preview rather than crash the page.
   const formSlugs = useMemo(
     () =>
       typeof form === "string"
         ? form !== ""
           ? [form]
           : []
-        : form.filter((slug) => slug !== ""),
+        : Array.isArray(form)
+          ? form.filter((slug): slug is string => typeof slug === "string" && slug !== "")
+          : [],
     [form]
   );
 
@@ -171,7 +175,9 @@ export function EntriesView({
     setQueryState((current) => ({ ...current, page: 0, ...patch }));
 
   return (
-    <div className="my-4 grid gap-3">
+    // not-prose: the wiki page's typography (list markers, link styling)
+    // must not leak into the view chrome.
+    <div className="not-prose my-4 grid gap-3">
       {data.sample && (
         <p className="rounded-md border border-dashed px-3 py-1.5 text-xs text-muted-foreground">
           Aperçu sur des données d&apos;exemple
