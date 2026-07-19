@@ -12,10 +12,12 @@ import {
   type FormDescriptorIssue,
   computeAutomaticTitle,
   deriveEntrySchema,
+  isOptionsField,
   parseFormDescriptor,
   readEntryData,
   unknownFieldReferences,
 } from "@/lib/form-descriptor";
+import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
 import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
@@ -282,6 +284,70 @@ export async function listFormChoices(): Promise<
     select: { slug: true, name: true },
   });
   return forms;
+}
+
+/**
+ * The field choices a form-field / field-rows selector lists (docs/
+ * entries-view.md): the union by name of the chosen forms' fields, in the
+ * order the author picked the forms. Form-sourced options are resolved here
+ * (their values are entry slugs), so the color/icon mapping widgets can show
+ * one row per option without another round trip.
+ */
+export async function listEntryFieldChoices(
+  formSlugs: string[]
+): Promise<EntryFieldChoice[]> {
+  const forms = await prisma.form.findMany({
+    where: { slug: { in: formSlugs } },
+  });
+  const bySlug = new Map(forms.map((form) => [form.slug, form]));
+  const ordered = formSlugs.flatMap((slug) => {
+    const form = bySlug.get(slug);
+    if (!form) return []; // a slug typed by hand may not exist (yet)
+    const parsed = parseFormDescriptor(form.schema);
+    return parsed.descriptor
+      ? [{ name: form.name, descriptor: parsed.descriptor }]
+      : [];
+  });
+  const choices = unionEntryFields(ordered);
+  return Promise.all(
+    choices.map(async (choice) => {
+      if (choice.options !== undefined || !isSourcedOptionsChoice(choice)) {
+        return choice;
+      }
+      const sourceFormId = sourcedFormSlug(ordered, choice.name);
+      if (!sourceFormId) return choice;
+      const options = Object.fromEntries(
+        (await listFormOptions(sourceFormId)).map(({ value, label }) => [
+          value,
+          label,
+        ])
+      );
+      return { ...choice, options };
+    })
+  );
+}
+
+function isSourcedOptionsChoice(choice: EntryFieldChoice): boolean {
+  return (
+    choice.type === "list" ||
+    choice.type === "radio" ||
+    choice.type === "multiChoice"
+  );
+}
+
+// The source form feeding a form-sourced options field: read from the first
+// chosen form carrying the field (the union's label rule, applied to options).
+function sourcedFormSlug(
+  forms: { descriptor: FormDescriptor }[],
+  fieldName: string
+): string | undefined {
+  for (const form of forms) {
+    for (const field of form.descriptor.fields) {
+      if (field.name !== fieldName || !isOptionsField(field)) continue;
+      if (field.sourceFormId) return field.sourceFormId;
+    }
+  }
+  return undefined;
 }
 
 // The field whose value drives Page.tags (docs/forms.md): tags are not
