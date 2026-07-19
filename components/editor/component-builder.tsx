@@ -158,9 +158,9 @@ function BuilderForm({
       id={`builder-${field}`}
       spec={descriptorField}
       value={values[field] ?? spec.defaults[field]}
-      environment={{ allSlugs }}
-      // Component props stay scalar: none of the descriptor field types
-      // produces the richer entry values (arrays, points).
+      // Sibling values feed the dependent widgets (form-field, mappings):
+      // defaults under the live values, the same reading generateTag does.
+      environment={{ allSlugs, siblingValues: { ...spec.defaults, ...values } }}
       onChange={(value) => setValue(field, value as PropValue)}
     />
   );

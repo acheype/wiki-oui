@@ -34,20 +34,41 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import type { FieldType, FileFamily, PropValue } from "@/lib/component-descriptor";
 import type { FormFieldType } from "@/lib/form-descriptor";
+import type { PseudoField } from "@/lib/pseudo-fields";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import {
+  ColorMappingInput,
+  EntryFieldChips,
+  EntryFieldSelect,
+  FieldRowsInput,
+  IconMappingInput,
+  MultiFormListInput,
+  ViewPickerTiles,
+} from "./entries-view-inputs";
 import { IconPicker } from "./icon-picker";
+import type { MapViewValue } from "./map-view-input";
 import { TagsInput } from "./tags-input";
 import { UploadInput } from "./upload-input";
 import { useDebouncedJson } from "./use-debounced-json";
 
-// Leaflet touches window at import time: the map widget loads client-only.
+// Leaflet touches window at import time: the map widgets load client-only.
 const GeolocationInput = dynamic(
   () => import("./geolocation-input").then((mod) => mod.GeolocationInput),
   {
     ssr: false,
     loading: () => (
       <div className="h-64 animate-pulse rounded-md border bg-muted/40" />
+    ),
+  }
+);
+
+const MapViewInput = dynamic(
+  () => import("./map-view-input").then((mod) => mod.MapViewInput),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-52 animate-pulse rounded-md border bg-muted/40" />
     ),
   }
 );
@@ -64,10 +85,24 @@ export interface FieldWidgetSpec {
   hint?: string;
   required?: boolean;
   placeholder?: string;
-  /** list/radio/multiChoice: value → display label. */
+  /** list/radio/multiChoice/view-picker: value → display label. */
   options?: Record<string, string>;
+  /** view-picker: value → Iconify icon shown on the tile. */
+  icons?: Record<string, string>;
   /** file-list: restricts the combobox to one family (ADR 0012). */
   family?: FileFamily;
+  /** form-list/form-field: one name, or an array of names (ADR 0019). */
+  multiple?: boolean;
+  /** form-field/field-rows: sibling field holding the chosen form slug(s). */
+  formFrom?: string;
+  /** form-field/field-rows: restrict the selectable fields to these types. */
+  fieldTypes?: FormFieldType[];
+  /** form-field/field-rows: pseudo-fields offered next to the real fields. */
+  pseudoFields?: PseudoField[];
+  /** field-rows: each row also carries an optional icon. */
+  withIcon?: boolean;
+  /** color-mapping/icon-mapping: sibling form-field the options come from. */
+  fieldFrom?: string;
   subtype?: "text" | "number";
   maxLength?: number;
   rows?: number;
@@ -97,6 +132,10 @@ export interface FieldEnvironment {
   forms?: { slug: string; name: string }[];
   /** Live sibling entry values, for geocoding bound address fields. */
   entryValues?: Record<string, unknown>;
+  // Live sibling builder values (defaults included), for the widgets whose
+  // options depend on another field of the same modal — form-field reading
+  // `formFrom`, mappings reading `fieldFrom` (ADR 0018).
+  siblingValues?: Record<string, unknown>;
 }
 
 const EMPTY_ENVIRONMENT: FieldEnvironment = {};
@@ -359,12 +398,80 @@ export function FieldWidget({
         />
       ) : null;
     case "form-list":
-      return (
+      return spec.multiple ? (
+        <MultiFormListInput
+          id={id}
+          value={value}
+          invalid={invalid}
+          onChange={onChange}
+        />
+      ) : (
         <FormListInput
           id={id}
           value={typeof value === "string" ? value : ""}
           forms={environment.forms}
           invalid={invalid}
+          onChange={onChange}
+        />
+      );
+    case "view-picker":
+      return (
+        <ViewPickerTiles
+          value={typeof value === "string" ? value : undefined}
+          options={spec.options ?? {}}
+          icons={spec.icons}
+          onChange={onChange}
+        />
+      );
+    case "form-field":
+      return spec.multiple ? (
+        <EntryFieldChips
+          spec={spec}
+          value={value}
+          siblingValues={environment.siblingValues}
+          onChange={onChange}
+        />
+      ) : (
+        <EntryFieldSelect
+          id={id}
+          spec={spec}
+          value={typeof value === "string" ? value : undefined}
+          siblingValues={environment.siblingValues}
+          invalid={invalid}
+          onChange={onChange}
+        />
+      );
+    case "field-rows":
+      return (
+        <FieldRowsInput
+          spec={spec}
+          value={value}
+          siblingValues={environment.siblingValues}
+          onChange={onChange}
+        />
+      );
+    case "color-mapping":
+      return (
+        <ColorMappingInput
+          spec={spec}
+          value={value}
+          siblingValues={environment.siblingValues}
+          onChange={onChange}
+        />
+      );
+    case "icon-mapping":
+      return (
+        <IconMappingInput
+          spec={spec}
+          value={value}
+          siblingValues={environment.siblingValues}
+          onChange={onChange}
+        />
+      );
+    case "map-view":
+      return (
+        <MapViewInput
+          value={isMapView(value) ? value : undefined}
           onChange={onChange}
         />
       );
@@ -415,6 +522,10 @@ function isGeoPoint(value: FieldValue): value is { lat: number; lng: number } {
     typeof (value as { lat?: unknown }).lat === "number" &&
     typeof (value as { lng?: unknown }).lng === "number"
   );
+}
+
+function isMapView(value: FieldValue): value is MapViewValue {
+  return isGeoPoint(value) && typeof (value as { zoom?: unknown }).zoom === "number";
 }
 
 function inputType(spec: FieldWidgetSpec): string {
