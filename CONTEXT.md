@@ -104,12 +104,34 @@ _Avoid_: ComponentBuilder (son cousin pour les composants), éditeur de page
 Le template MDX optionnel d'un formulaire (`Form.template`) qui met en page ses fiches au rendu : les `{champ}` sont substitués par les valeurs de la fiche (échappées — texte brut), puis le résultat passe par le pipeline MDX sandboxé. Vide, c'est le **rendu par défaut** auto-généré qui s'applique. Un `{champ}` inconnu est refusé à l'enregistrement du formulaire ; une valeur absente rend vide.
 _Avoid_: template (réserver au nom de colonne), thème
 
+**EntriesView (`<EntriesView>`)**:
+Composant intégré (v0.4) qui affiche les fiches d'un ou plusieurs formulaires selon une **vue de fiches** au choix, avec recherche, filtres, tri et sélection configurés dans sa balise. Toujours interactif (la distinction YesWiki statique/dynamique n'existe pas). Spécification : [`docs/entries-view.md`](docs/entries-view.md).
+_Avoid_: bazarliste, une action par forme d'affichage
+
+**Vue de fiches**:
+L'une des neuf formes d'affichage d'EntriesView — Liste, Grille, Tableau, Carte, Calendrier, Agenda, Annuaire, Carrousel, Galerie photo — choisie par la prop `view` (sélecteur en tuiles du builder, aperçu en direct). Chaque vue a ses paramètres propres ; zones, filtres, tri et « Lors du clic, afficher la fiche » sont communs.
+_Avoid_: template d'affichage, Blocs (ancien nom YesWiki de la Grille), Photobox (ancien nom de la Galerie photo)
+
+**Zone**:
+Un emplacement nommé d'une vue de fiches (Titre, Sous-titre, Texte, Pied, Visuel, Légende, Badge) auquel l'auteur associe un champ. Le **Badge** est la petite info mise en avant, posée en surimpression du visuel d'une carte de Grille.
+_Avoid_: zone flottante (ancien nom du Badge), displayfields
+
+**Filtre**:
+Un champ à options qu'EntriesView expose au **visiteur** pour restreindre les fiches affichées (compteurs par option en direct, bouton « Effacer les filtres » automatique). Choisi, ordonné et titré par l'auteur (« Filtres disponibles »). À distinguer de la **Sélection des fiches**, les restrictions fixées par l'auteur (période, maximum).
+_Avoid_: Facette (jargon YesWiki)
+
+**Pseudo-champ**:
+Un champ synthétique proposé par EntriesView aux côtés des champs du formulaire : `$form` (le formulaire de la fiche, en multi-formulaires), `$owner`, `$createdAt`, `$editedAt`. Le préfixe `$` interdit toute collision avec un `name` de champ.
+_Avoid_: extraFields (jargon YesWiki), champ système
+
 ## Portée
 
 **v0.1 (MVP, état actuel)** : CRUD de pages par slug, routing page/handler, handlers `show` et `edit`, rendu MDX, révisions (historique + restauration), pages spéciales de layout, les composants intégrés `<Menu>` et `<Button>`, et un éditeur riche (barre d'outils de formatage markdown, modale de lien, outils contextuels ancrés au curseur ; double-clic sur le contenu d'une page pour passer en édition).
 
 **v0.2** : upload de fichiers (bouton, drag & drop, collage → `Image`, `Pdf` ou `FileLink` selon la famille ; répertoire `files/` faisant foi ; limites et extensions par famille dans la config) et authoring de composants (menu « Composants », ComponentBuilder généré depuis les YAML de `/components/wiki`, sélecteur d'icônes Iconify) pour `Button`, `Image`, `Pdf` et `FileLink` ; la modale de lien wiki devient un ComponentBuilder à sérialisation markdown (`wiki-link.yaml`).
 
-**v0.3 (en cours)** : formulaires & fiches (ADR 0014/0015, spec [`docs/forms.md`](docs/forms.md)) — FormBuilder (pages spéciales `formulaires` et `fiches`), 14 types de champs, saisie via `<EntryForm>`, rendu par défaut + gabarit MDX optionnel, renderer de champs partagé avec le ComponentBuilder, Zod comme contrat runtime, API de redimensionnement d'images. `<EntriesView>` (vues riches des fiches) : plus tard. En cours de route (2026-07-17), colmatage du bac à sable (ADR 0002) : liste blanche de balises HTML, refus de `dangerouslySetInnerHTML` et de `srcDoc`, et composant `<Embed>` à côté du collage d'`<iframe>`. S'y ajoute (grillé le 2026-07-17) « Changer l'adresse » : renommage des slugs de pages et de fiches par réécriture intégrale des références, sans redirection (ADR 0016), avec lint des liens vers pages inexistantes ; les identifiants de formulaires suivent le même geste (« Changer », dans l'en-tête du FormBuilder), et ceux des champs aussi — différé à l'enregistrement du formulaire (ADR 0017) ; l'extension aux fichiers attend leurs tables (backlog).
+**v0.3** : formulaires & fiches (ADR 0014/0015, spec [`docs/forms.md`](docs/forms.md)) — FormBuilder (pages spéciales `formulaires` et `fiches`), 14 types de champs, saisie via `<EntryForm>`, rendu par défaut + gabarit MDX optionnel, renderer de champs partagé avec le ComponentBuilder, Zod comme contrat runtime, API de redimensionnement d'images. `<EntriesView>` (vues riches des fiches) : v0.4. En cours de route (2026-07-17), colmatage du bac à sable (ADR 0002) : liste blanche de balises HTML, refus de `dangerouslySetInnerHTML` et de `srcDoc`, et composant `<Embed>` à côté du collage d'`<iframe>`. S'y ajoute (grillé le 2026-07-17) « Changer l'adresse » : renommage des slugs de pages et de fiches par réécriture intégrale des références, sans redirection (ADR 0016), avec lint des liens vers pages inexistantes ; les identifiants de formulaires suivent le même geste (« Changer », dans l'en-tête du FormBuilder), et ceux des champs aussi — différé à l'enregistrement du formulaire (ADR 0017) ; l'extension aux fichiers attend leurs tables (backlog).
+
+**v0.4 (en cours)** : `<EntriesView>` (spec grillée le 2026-07-19 : [`docs/entries-view.md`](docs/entries-view.md), ADR 0018/0019) — neuf vues de fiches, filtres/recherche/tri instantanés (chargement complet par Server Action, exécution client), couleur & icône par champ avec palette automatique, popup fiche commune (« Lors du clic »), six nouveaux types de descripteur (`view-picker`, `form-field` à options dépendantes, `field-rows`, mappings, `map-view`), props structurées en expressions littérales JSX.
 
 Backlog sans version prévue (mais le domaine doit pouvoir l'accueillir) : droits d'accès et authentification, pages d'administration, recherche/filtre par tags et vues. Détail dans [`docs/architecture.md`](docs/architecture.md).

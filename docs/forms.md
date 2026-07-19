@@ -155,11 +155,11 @@ Le champ `tags` est le **widget de saisie des tags de la Page-fiche** : pré-rem
 | `<FormsAdmin>` | L'écran d'administration des formulaires (page spéciale `formulaires`) |
 | `<EntriesAdmin>` | Liste des fiches + saisie (page spéciale `fiches`) |
 | `<EntryForm id>` | Formulaire de saisie inséré dans une page (descripteur YAML, type `form-list`) |
-| `<EntriesView>` | *(plus tard)* — vues riches liste/carte/carto des fiches |
+| `<EntriesView>` | Vues des fiches (v0.4) — spec [`entries-view.md`](entries-view.md) |
 
 ## Hors périmètre v0.3 (backlog)
 
-Affichage conditionnel des champs (« montrer si… ») · listes partagées multi-niveaux · WYSIWYG pour `textarea` · embed vidéo du champ `url` · extras email (bouton contact, envoi de la fiche — exigent un mailer) · formes géométriques carto · `<EntriesView>` · ACLs par champ (exigent l'auth) · `searchable`/`semantic`/`queries`.
+Affichage conditionnel des champs (« montrer si… ») · listes partagées multi-niveaux · WYSIWYG pour `textarea` · embed vidéo du champ `url` · extras email (bouton contact, envoi de la fiche — exigent un mailer) · formes géométriques carto · `<EntriesView>` (v0.4, spec [`entries-view.md`](entries-view.md)) · ACLs par champ (exigent l'auth) · `searchable`/`semantic`/`queries`.
 
 ## Bibliothèques introduites
 
