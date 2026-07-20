@@ -1,15 +1,19 @@
 "use client";
 
-// Calendrier (docs/entries-view.md): the temporal grid — FullCalendar
-// (month / week / day, plus the Planning list views), French locale,
-// events colored by colorField, click applying entryDisplay. Without a
-// start-date field the view states its requirement explicitly.
+// Calendrier (docs/entries-view.md): the temporal grid — FullCalendar 7
+// (month / week / day, plus the Planning list views), French locale, events
+// colored by colorField, click applying entryDisplay. The forma theme is
+// restyled onto WikiOui's design tokens in globals.css (.entries-calendar).
+// Without a start-date field the view states its requirement explicitly.
 
-import frLocale from "@fullcalendar/core/locales/fr";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import listPlugin from "@fullcalendar/list";
-import FullCalendar from "@fullcalendar/react";
-import timeGridPlugin from "@fullcalendar/timegrid";
+import { Calendar } from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/react/daygrid";
+import listPlugin from "@fullcalendar/react/list";
+import frLocale from "@fullcalendar/react/locales/fr";
+import formaTheme from "@fullcalendar/react/themes/forma";
+import timeGridPlugin from "@fullcalendar/react/timegrid";
+import "@fullcalendar/react/skeleton.css";
+import "@fullcalendar/react/themes/forma/theme.css";
 import { entryDay, entryValue } from "@/lib/entries-view";
 import { cn } from "@/lib/utils";
 import type { ViewContext } from "./types";
@@ -54,7 +58,7 @@ export function CalendarView({ context }: { context: ViewContext }) {
         // event's last day, so it shifts by one.
         ...(end && end > start ? { end: nextDay(end) } : {}),
         allDay: true,
-        ...(color ? { backgroundColor: color, borderColor: color } : {}),
+        ...(color ? { color } : {}),
       },
     ];
   });
@@ -73,27 +77,26 @@ export function CalendarView({ context }: { context: ViewContext }) {
         compact && "entries-calendar-compact text-xs"
       )}
     >
-      <FullCalendar
-        plugins={[dayGridPlugin, timeGridPlugin, listPlugin]}
+      <Calendar
+        plugins={[dayGridPlugin, timeGridPlugin, listPlugin, formaTheme]}
         locale={frLocale}
         initialView={initialView}
         events={events}
         height="auto"
         headerToolbar={
           compact
-            ? { left: "prev,next", center: "title", right: "" }
+            ? { start: "prev,next", center: "title", end: "" }
             : {
-                left: "prev,next today",
+                start: "prev,next today",
                 center: "title",
-                right: "dayGridMonth,timeGridWeek,timeGridDay,listYear",
+                end: "dayGridMonth,timeGridWeek,timeGridDay,listYear",
               }
         }
-        buttonText={{ listYear: "Planning" }}
         eventClick={(info) => {
           info.jsEvent.preventDefault();
           context.openEntry(info.event.id);
         }}
-        eventClassNames="cursor-pointer"
+        eventClass="cursor-pointer"
         dayMaxEventRows={compact ? 2 : undefined}
       />
     </div>

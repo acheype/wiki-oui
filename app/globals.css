@@ -250,3 +250,39 @@
 .cm-wiki-strip-corner {
   transform: translateX(calc(-100% - 4px));
 }
+/* EntriesView calendar (docs/entries-view.md): FullCalendar 7's forma theme
+   remapped onto WikiOui's design tokens. One mapping serves both schemes —
+   the shadcn tokens themselves flip under .dark, so every derived value
+   follows. Fonts inherit (the theme declares font: inherit). */
+.entries-calendar {
+  /* primary (toolbar active buttons, focus) */
+  --fc-forma-primary: var(--primary);
+  --fc-forma-primary-over: color-mix(in oklab, var(--primary) 92%, var(--foreground));
+  --fc-forma-primary-down: color-mix(in oklab, var(--primary) 84%, var(--foreground));
+  --fc-forma-primary-foreground: var(--primary-foreground);
+  --fc-forma-ring-color: var(--ring);
+
+  /* calendar content */
+  --fc-forma-event: var(--primary);
+  --fc-forma-event-contrast: var(--primary-foreground);
+  --fc-forma-background-event: var(--primary);
+  --fc-forma-highlight: color-mix(in srgb, var(--primary) 14%, transparent);
+
+  /* neutral backgrounds, graded off the foreground so dark mode holds */
+  --fc-forma-background: var(--background);
+  --fc-forma-faint: color-mix(in srgb, var(--foreground) 3%, transparent);
+  --fc-forma-muted: color-mix(in srgb, var(--foreground) 7%, transparent);
+  --fc-forma-strong: color-mix(in srgb, var(--foreground) 12%, transparent);
+  --fc-forma-stronger: color-mix(in srgb, var(--foreground) 16%, transparent);
+  --fc-forma-strongest: color-mix(in srgb, var(--foreground) 20%, transparent);
+
+  /* neutral foregrounds */
+  --fc-forma-foreground: var(--foreground);
+  --fc-forma-faint-foreground: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+  --fc-forma-muted-foreground: var(--muted-foreground);
+
+  /* neutral borders */
+  --fc-forma-border: var(--border);
+  --fc-forma-muted-border: var(--border);
+  --fc-forma-strong-border: color-mix(in srgb, var(--foreground) 30%, transparent);
+}

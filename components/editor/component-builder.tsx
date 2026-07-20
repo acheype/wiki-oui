@@ -73,7 +73,10 @@ export function ComponentBuilderDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      {/* 65rem ≈ the site's real content width (max-w-5xl minus paddings):
+          the preview iframe shows the component at the width it will
+          actually render — EntriesView's grids and tables included. */}
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[min(65rem,calc(100vw-2rem))]">
         {state && (
           <>
             <DialogHeader>
@@ -172,17 +175,34 @@ function BuilderForm({
       return next;
     });
 
+  // In the two-column layout, the wide widgets (sections, tiles, row lists,
+  // mappings, maps) keep the full width; scalar inputs share a row.
+  const FULL_WIDTH_TYPES = new Set([
+    "divider",
+    "view-picker",
+    "field-rows",
+    "color-mapping",
+    "icon-mapping",
+    "map-view",
+  ]);
+
   const renderField = ([field, descriptorField]: [string, DescriptorField]) => (
-    <Field
+    <div
       key={field}
-      id={`builder-${field}`}
-      spec={descriptorField}
-      value={values[field] ?? spec.defaults[field]}
-      // Sibling values feed the dependent widgets (form-field, mappings):
-      // defaults under the live values, the same reading generateTag does.
-      environment={{ allSlugs, siblingValues: { ...spec.defaults, ...values } }}
-      onChange={(value) => setValue(field, value as PropValue)}
-    />
+      className={
+        FULL_WIDTH_TYPES.has(descriptorField.type) ? "md:col-span-2" : undefined
+      }
+    >
+      <Field
+        id={`builder-${field}`}
+        spec={descriptorField}
+        value={values[field] ?? spec.defaults[field]}
+        // Sibling values feed the dependent widgets (form-field, mappings):
+        // defaults under the live values, the same reading generateTag does.
+        environment={{ allSlugs, siblingValues: { ...spec.defaults, ...values } }}
+        onChange={(value) => setValue(field, value as PropValue)}
+      />
+    </div>
   );
 
   return (
@@ -195,7 +215,9 @@ function BuilderForm({
     >
       <TagPreview source={tag} height={spec.descriptor.previewHeight} />
 
-      {plainFields.map(renderField)}
+      <div className="grid items-start gap-4 md:grid-cols-2">
+        {plainFields.map(renderField)}
+      </div>
 
       {advancedFields.length > 0 && (
         <div className="grid gap-4">
@@ -211,7 +233,11 @@ function BuilderForm({
             />
             Paramètres avancés
           </button>
-          {advancedOpen && advancedFields.map(renderField)}
+          {advancedOpen && (
+            <div className="grid items-start gap-4 md:grid-cols-2">
+              {advancedFields.map(renderField)}
+            </div>
+          )}
         </div>
       )}
 

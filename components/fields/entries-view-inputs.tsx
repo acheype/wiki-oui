@@ -162,7 +162,8 @@ export function ViewPickerTiles({
   onChange: (value: string) => void;
 }) {
   return (
-    <div role="radiogroup" className="grid grid-cols-3 gap-2">
+    // 3×3 in a narrow modal; denser rows once the wide builder gives room.
+    <div role="radiogroup" className="grid grid-cols-3 gap-2 md:grid-cols-5">
       {Object.entries(options).map(([optionValue, label]) => {
         const active = optionValue === value;
         return (
