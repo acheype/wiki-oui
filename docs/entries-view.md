@@ -292,7 +292,7 @@ Vues Blog, Timeline, Liste de liens, Carte-et-tableau · export (boutons CSV/JSO
 
 ## Bibliothèques retenues (arrêtées à l'implémentation)
 
-- **Calendrier : FullCalendar 6** (`@fullcalendar/react` + daygrid/timegrid/list, locale française) — retenu pour ses vues liste (le « Planning » avec ses trois portées) ; la v7, sortie en cours de chantier, a une API remaniée et sera évaluée plus tard.
+- **Calendrier : FullCalendar 7** (`@fullcalendar/react`, tout en sous-chemins : plugins daygrid/timegrid/list, locale française, thème) — retenu pour ses vues liste (le « Planning » avec ses trois portées). Le thème **forma** est re-mappé sur les tokens de design de WikiOui dans `app/globals.css` (`.entries-calendar`) : une seule table de correspondance sert clair et sombre, les tokens shadcn basculant d'eux-mêmes.
 - **Carrousel : Embla** (`embla-carousel-react` + plugin autoplay).
 - **Carte : Leaflet + react-leaflet** (déjà présents) + **`leaflet.markercluster`** pour le regroupement — les marqueurs sont gérés impérativement (react-leaflet 5 n'a pas d'histoire de clustering, le pont aurait coûté plus que la couche impérative).
 - **Tableau : fait main** — la suggestion TanStack Table est écartée : le pipeline en mémoire (recherche, filtres, tri, pagination) possède déjà le tri et la pagination, une seconde machinerie de tri aurait fait deux sources de vérité.
