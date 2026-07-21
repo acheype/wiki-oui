@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { titleRecomputeNeeded } from "./entry-title";
+import { restoredEntryValues, titleRecomputeNeeded } from "./entry-title";
 import type { FormDescriptor } from "./form-descriptor";
 
 function descriptor(
@@ -91,5 +91,46 @@ describe("titleRecomputeNeeded", () => {
     // a no-op per entry (same computed title, no revision written). Recorded
     // here so the behaviour is deliberate rather than surprising.
     expect(titleRecomputeNeeded(before, after)).toBe(true);
+  });
+});
+
+// ADR 0020: a restored revision becomes the current state, so it follows the
+// form's current definition instead of carrying its archived title back.
+describe("restoredEntryValues", () => {
+  const automatic = descriptor({ automatic: true, template: "{prenom} {nom}" });
+
+  it("recomputes the title from the current gabarit", () => {
+    expect(
+      restoredEntryValues(automatic, {
+        title: "Titre d'époque",
+        prenom: "Zoé",
+        nom: "Martin",
+      })
+    ).toEqual({
+      values: { title: "Zoé Martin", prenom: "Zoé", nom: "Martin" },
+      titleKept: false,
+    });
+  });
+
+  it("keeps the archived title, and says so, when the gabarit computes to nothing", () => {
+    expect(
+      restoredEntryValues(automatic, {
+        title: "Titre d'époque",
+        prenom: "",
+        nom: "",
+      })
+    ).toEqual({
+      values: { title: "Titre d'époque", prenom: "", nom: "" },
+      titleKept: true,
+    });
+  });
+
+  it("leaves a manual title untouched", () => {
+    expect(
+      restoredEntryValues(descriptor(), { title: "Saisi à la main" })
+    ).toEqual({
+      values: { title: "Saisi à la main" },
+      titleKept: false,
+    });
   });
 });

@@ -4,11 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { deleteFile } from "@/lib/files";
-import {
-  computeAutomaticTitle,
-  parseFormDescriptor,
-  readEntryData,
-} from "@/lib/form-descriptor";
+import { restoredEntryValues } from "@/lib/entry-title";
+import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
@@ -205,23 +202,36 @@ export async function discardUploadedFile(name: string): Promise<void> {
  * form-save sweep applies, and the one that keeps a restore from ever being
  * blocked by a stale entry.
  */
+// Prisma-side wrapper around restoredEntryValues (lib/entry-title): the JSON
+// casting and the MDX-page case, where there are no entry values at all.
 function restoredEntryData(
   schema: unknown,
   data: Prisma.JsonValue | null
-): Prisma.InputJsonValue | undefined {
-  if (data === null) return undefined; // MDX page: no entry values at all
+): { data: Prisma.InputJsonValue | undefined; titleKept: boolean } {
+  if (data === null) return { data: undefined, titleKept: false }; // MDX page
   const descriptor = schema ? parseFormDescriptor(schema).descriptor : null;
-  if (!descriptor) return data as Prisma.InputJsonValue;
-  const values = readEntryData(data);
-  const title = computeAutomaticTitle(descriptor, values);
-  return (
-    title.trim() === "" ? values : { ...values, title }
-  ) as Prisma.InputJsonValue;
+  if (!descriptor) {
+    return { data: data as Prisma.InputJsonValue, titleKept: false };
+  }
+  const restored = restoredEntryValues(descriptor, readEntryData(data));
+  return {
+    data: restored.values as Prisma.InputJsonValue,
+    titleKept: restored.titleKept,
+  };
 }
+
+/**
+ * Success carries information now (ADR 0020), so this action returns instead
+ * of redirecting: `redirect()` throws, leaving the success path no channel to
+ * report on. The caller owns the navigation — same landing page as before.
+ */
+export type RestoreResult =
+  | ActionError
+  | { slug: string; titleKept: boolean };
 
 export async function restoreRevision(
   revisionId: string
-): Promise<ActionError | void> {
+): Promise<RestoreResult> {
   const source = await prisma.revision.findUnique({
     where: { id: revisionId },
     include: { page: { include: { form: true } } },
@@ -234,13 +244,13 @@ export async function restoreRevision(
   // history stays append-only, nothing is rewound. Copying both snapshot
   // columns preserves the content-xor-data invariant (ADR 0014) for MDX
   // pages and entries alike.
-  const data = restoredEntryData(source.page.form?.schema, source.data);
+  const restored = restoredEntryData(source.page.form?.schema, source.data);
   await prisma.$transaction(async (tx) => {
     const revision = await tx.revision.create({
       data: {
         pageId: source.pageId,
         content: source.content,
-        data: data ?? undefined,
+        data: restored.data ?? undefined,
         authorName: AUTHOR,
         restoredFromId: source.id,
       },
@@ -252,5 +262,5 @@ export async function restoreRevision(
   });
 
   revalidatePath("/", "layout");
-  redirect(`/${source.page.slug}`);
+  return { slug: source.page.slug, titleKept: restored.titleKept };
 }
