@@ -20,7 +20,7 @@ Cette réécriture n'est **pas** celle de l'ADR 0017 : un renommage de champ ret
 
 **Titre vide.** Une fiche a toujours un titre non vide. La règle est tenue par deux moyens selon l'interlocuteur disponible : à la saisie on **refuse** (avec un message nommant les champs du gabarit, le champ Titre étant invisible en mode automatique) ; au balayage, qui n'a personne à qui répondre, on **saute la fiche** et on le signale (« le gabarit produit une chaîne vide pour elles »).
 
-**Restauration.** Restaurer une révision recalcule le titre au lieu de le recopier : l'état courant suit toujours la définition courante du formulaire.
+**Restauration.** Restaurer une révision recalcule le titre au lieu de le recopier : l'état courant suit toujours la définition courante du formulaire. Quand le gabarit produit une chaîne vide, le titre archivé est conservé — sans quoi une fiche périmée bloquerait sa propre restauration — et **l'utilisateur en est averti**, la fiche redevenant courante avec un titre que son formulaire ne produirait pas. C'est le pendant du signalement des fiches sautées par le recalcul de masse : même règle, même devoir d'information. `restoreRevision` retourne donc au lieu de rediriger (`redirect()` lève, ce qui ne laissait aucun canal au chemin du succès) ; la navigation revient à l'appelant, sur la même page qu'avant.
 
 **Contrainte SQL.** `Revision_entry_has_title` (`CHECK ("data" IS NULL OR coalesce(length("data"->>'title'), 0) > 0)`), à côté de `Revision_content_xor_data` : le futur import qui écrirait une fiche sans titre échoue à l'écriture plutôt que de se découvrir des semaines plus tard dans une vue.
 

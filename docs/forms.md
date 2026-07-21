@@ -101,7 +101,7 @@ Deux gestes admin invalident les titres stockés : **modifier le gabarit** et **
 
 À ne pas confondre avec le balayage de l'ADR 0017 : un renommage de champ retouche la représentation et parcourt donc **tout l'historique en place** ; un recalcul de titre change ce que la fiche dit et ne touche donc que **l'état courant**, par une nouvelle révision.
 
-**Restauration** : restaurer une révision recalcule le titre automatique au lieu de le recopier — l'état courant suit toujours la définition courante du formulaire.
+**Restauration** : restaurer une révision recalcule le titre automatique au lieu de le recopier — l'état courant suit toujours la définition courante du formulaire. Si le gabarit produit une chaîne vide pour cette fiche, le titre archivé est conservé (une fiche périmée ne bloque jamais sa propre restauration) et **l'utilisateur est averti**, comme le recalcul de masse signale les fiches qu'il saute.
 
 ## Saisie d'une fiche
 
