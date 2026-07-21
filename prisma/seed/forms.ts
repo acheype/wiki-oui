@@ -146,4 +146,74 @@ export const formSeeds: FormSeed[] = [
       ],
     },
   },
+  // Modeled after a real association's directory entry (docs/reference
+  // structure: name, mission, primary + secondary categories, address,
+  // contact, area(s) served, target publics) — distinct from Annuaire
+  // (your own collective's members): this directory lists *other*, partner
+  // associations.
+  {
+    slug: "associations",
+    name: "Associations",
+    schema: {
+      fields: [
+        { type: "title", name: "title", label: "Nom de l'association" },
+        { type: "image", name: "logo", label: "Logo ou photo (facultatif)" },
+        {
+          type: "textarea",
+          name: "objet",
+          label: "Objet de l'association",
+          rows: 4,
+          allowMdx: true,
+        },
+        {
+          type: "list",
+          name: "categorie",
+          label: "Catégorie principale",
+          options: {
+            solidarites: "Solidarités",
+            sport: "Sport",
+            culture: "Culture",
+            environnement: "Environnement",
+            "education-jeunesse": "Éducation / jeunesse",
+            sante: "Santé",
+            loisirs: "Loisirs",
+            citoyennete: "Citoyenneté",
+          },
+        },
+        {
+          type: "multiChoice",
+          name: "publics",
+          label: "Publics visés",
+          options: {
+            enfants: "Enfants",
+            jeunes: "Jeunes",
+            adultes: "Adultes",
+            seniors: "Seniors",
+            familles: "Familles",
+            "situation-de-handicap": "Personnes en situation de handicap",
+          },
+        },
+        {
+          type: "multiChoice",
+          name: "secteurs",
+          label: "Secteurs d'intervention",
+          options: {
+            noumea: "Nouméa",
+            dumbea: "Dumbéa",
+            paita: "Païta",
+            "mont-dore": "Mont-Dore",
+            kone: "Koné",
+            bourail: "Bourail",
+          },
+        },
+        { type: "email", name: "email", label: "Email" },
+        { type: "url", name: "site-web", label: "Site web" },
+        { type: "text", name: "telephone", label: "Téléphone" },
+        { type: "text", name: "adresse", label: "Adresse" },
+        { type: "text", name: "code-postal", label: "Code postal" },
+        { type: "text", name: "ville", label: "Ville" },
+        geolocationOf("Localisation"),
+      ],
+    },
+  },
 ];

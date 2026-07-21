@@ -29,6 +29,11 @@ const blogNav = `<Menu>
 - [Déposer une actu](saisir-blog)
 </Menu>`;
 
+const associationsNav = `<Menu>
+- [Annuaire des associations](annuaire-associations)
+- [Référencer une association](saisir-association)
+</Menu>`;
+
 export const pageSeeds: Record<string, string> = {
   "exemple-formulaire": `# Exemples de formulaires à adapter (ou à jeter)
 
@@ -40,6 +45,7 @@ Vous trouverez un formulaire permettant :
 - un [agenda](vue-activite) pour présenter les activités **à venir**, ou une vue globale en [calendrier](vue-agenda)
 - une [ressourcerie](facette-ressource) pour collecter, filtrer et partager des ressources
 - un [blog](voir-blog) permettant d'afficher l'actualité du collectif
+- un [annuaire des associations](annuaire-associations) partenaires, filtrable par catégorie et par public visé
 
 Chacun est accompagné de fiches d'exemple et de plusieurs pages illustrant différentes vues possibles (grille, carte, calendrier, annuaire…) grâce au composant \`<EntriesView>\`.
 `,
@@ -147,6 +153,16 @@ Une aide complète sur la syntaxe est à un clic : l'icône __?__ de la barre d'
 
 <EntryForm id="blog" />
 `,
+
+  "annuaire-associations": `${associationsNav}
+
+<EntriesView form="associations" view="grid" visualField="logo" subtitleField="categorie" columnCount={3} colorField="categorie" search filters={[{ field: "categorie", title: "Catégorie" }, { field: "publics", title: "Publics visés" }, { field: "secteurs", title: "Secteur" }]} />
+`,
+
+  "saisir-association": `${associationsNav}
+
+<EntryForm id="associations" />
+`,
 };
 
 // Overrides the placeholder topMenu content shipped in seed.ts's own
@@ -160,6 +176,7 @@ export const topMenuContent = `<Menu>
   - [Exemple agenda](vue-activite)
   - [Exemple ressourcerie](facette-ressource)
   - [Exemple blog](voir-blog)
+  - [Exemple associations](annuaire-associations)
 </Menu>
 
 {/* Vous êtes dans la page qui sert à modifier le menu du haut. Pour faire évoluer le menu, inspirez-vous du menu exemple. */}

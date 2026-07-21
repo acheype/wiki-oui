@@ -23,6 +23,12 @@ export const IMAGE_ASSETS: Record<string, string> = {
   "jardin-partage.jpg": "jardin-partage.jpg",
   "ressourcerie-locale.jpg": "ressourcerie-locale.jpg",
   "petite-bibliotheque.jpg": "petite-bibliotheque.jpg",
+  "repas-partages.jpg": "repas-partages.jpg",
+  "terrain-basket.jpg": "terrain-basket.jpg",
+  "atelier-arts.jpg": "atelier-arts.jpg",
+  "nettoyage-sentiers.jpg": "nettoyage-sentiers.jpg",
+  "soutien-scolaire.jpg": "soutien-scolaire.jpg",
+  "handisport.jpg": "handisport.jpg",
 };
 
 interface Town {
@@ -374,6 +380,112 @@ export const entrySeeds: EntrySeed[] = [
       chapeau: "Qui sont les personnes qui font tourner le collectif au quotidien ?",
       contenu:
         "Coup de projecteur sur l'équipe de coordination : retrouvez leurs portraits et leurs rôles dans l'[annuaire](trombi-annuaire) du collectif.",
+    },
+  },
+
+  // --- Associations (fictional partner directory, modeled after a real
+  // association's directory entry structure: name, mission, primary +
+  // secondary categories, address, contact, areas served, target publics) ---
+  {
+    formSlug: "associations",
+    slug: "solidarite-repas-partages",
+    daysOffset: -160,
+    data: {
+      title: "Solidarité Repas Partagés",
+      logo: "repas-partages.jpg",
+      objet:
+        "Organise des repas partagés hebdomadaires pour rompre l'isolement des personnes seules ou en difficulté, avec récupération d'invendus auprès des commerces locaux.",
+      categorie: "solidarites",
+      publics: ["adultes", "seniors", "familles"],
+      secteurs: ["noumea", "dumbea"],
+      email: "contact@solidarite-repas-partages.nc",
+      telephone: "05 12 34",
+      ...addressFields(NOUMEA, "5 rue de la Solidarité"),
+    },
+  },
+  {
+    formSlug: "associations",
+    slug: "court-libre",
+    daysOffset: -140,
+    data: {
+      title: "Court Libre",
+      logo: "terrain-basket.jpg",
+      objet:
+        "Anime des créneaux de basket et de futsal en accès libre sur les terrains de quartier, sans inscription ni cotisation.",
+      categorie: "sport",
+      publics: ["jeunes", "adultes"],
+      secteurs: ["paita"],
+      email: "courtlibre@exemple.org",
+      "site-web": "https://court-libre.exemple.org",
+      ...addressFields(PAITA, "Terrain municipal, avenue des Sports"),
+    },
+  },
+  {
+    formSlug: "associations",
+    slug: "les-arts-meles",
+    daysOffset: -120,
+    data: {
+      title: "Les Arts Mêlés",
+      logo: "atelier-arts.jpg",
+      objet:
+        "Ateliers d'arts plastiques et de musique intergénérationnels, ouverts à toutes et tous les mercredis et samedis.",
+      categorie: "culture",
+      publics: ["enfants", "jeunes", "adultes"],
+      secteurs: ["noumea"],
+      email: "lesartsmeles@exemple.org",
+      "site-web": "https://lesartsmeles.exemple.org",
+      telephone: "05 23 45",
+      ...addressFields(NOUMEA, "18 rue des Artistes"),
+    },
+  },
+  {
+    formSlug: "associations",
+    slug: "eco-sentiers-nouvelle-caledonie",
+    daysOffset: -100,
+    data: {
+      title: "Éco-Sentiers Nouvelle-Calédonie",
+      logo: "nettoyage-sentiers.jpg",
+      objet:
+        "Entretient et balise les sentiers de randonnée locaux, organise des chantiers de nettoyage et sensibilise à la biodiversité.",
+      categorie: "environnement",
+      publics: ["adultes", "familles"],
+      secteurs: ["mont-dore", "bourail"],
+      email: "eco-sentiers@exemple.org",
+      ...addressFields(MONT_DORE, "Maison des associations"),
+    },
+  },
+  {
+    formSlug: "associations",
+    slug: "grandir-ensemble",
+    daysOffset: -80,
+    data: {
+      title: "Grandir Ensemble",
+      logo: "soutien-scolaire.jpg",
+      objet:
+        "Propose du soutien scolaire bénévole et un accompagnement à la parentalité pour les familles du secteur.",
+      categorie: "education-jeunesse",
+      publics: ["enfants", "jeunes", "familles"],
+      secteurs: ["kone"],
+      email: "grandirensemble@exemple.org",
+      telephone: "05 34 56",
+      ...addressFields(KONE, "Ancienne école, rue des Écoliers"),
+    },
+  },
+  {
+    formSlug: "associations",
+    slug: "handisport-caledonie",
+    daysOffset: -65,
+    data: {
+      title: "Handi'Sport Calédonie",
+      logo: "handisport.jpg",
+      objet:
+        "Propose des activités sportives adaptées (basket-fauteuil, natation, tir à l'arc) pour les personnes en situation de handicap.",
+      categorie: "sport",
+      publics: ["situation-de-handicap", "jeunes", "adultes"],
+      secteurs: ["noumea", "dumbea", "paita"],
+      email: "handisport-nc@exemple.org",
+      "site-web": "https://handisport-caledonie.exemple.org",
+      ...addressFields(NOUMEA, "Complexe sportif Michel-Kauma"),
     },
   },
 ];
