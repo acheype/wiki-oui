@@ -10,6 +10,10 @@ import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import type { Prisma } from "../lib/generated/prisma/client";
 import { PrismaClient } from "../lib/generated/prisma/client";
+import {
+  computeAutomaticTitle,
+  parseFormDescriptor,
+} from "../lib/form-descriptor";
 import { specialSlugs, wikiConfig } from "../wiki.config";
 import { formSeeds } from "./seed/forms";
 import { pageSeeds, topMenuContent } from "./seed/pages";
@@ -26,7 +30,7 @@ const defaultContent: Record<string, string> = {
 
 ## WikiOui : un outil convivial et collaboratif
 
-WikiOui a été conçu pour rester **simple d'usage**. Toutes les pages sont écrites en MDX et **éditables en ligne**, sans rien installer.
+WikiOui a été conçu pour rester **simple d'usage**. Toutes les pages sont écrites en MDX (Markdown + composants interactifs) et **éditables en ligne**, sans rien installer.
 
 Vous pourrez notamment :
 
@@ -265,7 +269,7 @@ async function main() {
   const forms = await prisma.form.findMany({
     where: { slug: { in: entrySeeds.map((entry) => entry.formSlug) } },
   });
-  const formIdBySlug = new Map(forms.map((form) => [form.slug, form.id]));
+  const formBySlug = new Map(forms.map((form) => [form.slug, form]));
 
   for (const entry of entrySeeds) {
     const existing = await prisma.page.findUnique({ where: { slug: entry.slug } });
@@ -273,18 +277,28 @@ async function main() {
       console.log(`= fiche ${entry.slug} (déjà présente, inchangée)`);
       continue;
     }
-    const formId = formIdBySlug.get(entry.formSlug);
-    if (!formId) {
+    const form = formBySlug.get(entry.formSlug);
+    if (!form) {
       console.warn(`! formulaire « ${entry.formSlug} » introuvable pour ${entry.slug}, ignoré`);
       continue;
+    }
+    // Like every other writer (ADR 0020): the title is computed here and
+    // stored in `data`. The seeded Annuaire has an automatic title, so its
+    // entries carry no `title` key of their own.
+    const descriptor = parseFormDescriptor(form.schema).descriptor;
+    const title = descriptor
+      ? computeAutomaticTitle(descriptor, entry.data)
+      : "";
+    if (title.trim() === "") {
+      throw new Error(`Titre vide pour la fiche « ${entry.slug} »`);
     }
     const createdAt = new Date();
     createdAt.setUTCDate(createdAt.getUTCDate() + entry.daysOffset);
     await createEntryPage(
       prisma,
-      formId,
+      form.id,
       entry.slug,
-      entry.data as Prisma.InputJsonValue,
+      { ...entry.data, title } as Prisma.InputJsonValue,
       createdAt
     );
     console.log(`+ fiche ${entry.slug}`);
