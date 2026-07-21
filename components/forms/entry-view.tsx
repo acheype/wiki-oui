@@ -6,7 +6,6 @@ import {
   type EntryData,
   type FormDescriptor,
   type FormField,
-  computeAutomaticTitle,
   isOptionsField,
 } from "@/lib/form-descriptor";
 import { EntryMap } from "./entry-map-lazy";
@@ -25,7 +24,9 @@ export async function EntryView({
   /** slug → current title, for form-sourced option values (wiki links). */
   linkTitles: Record<string, string>;
 }) {
-  const title = computeAutomaticTitle(descriptor, data);
+  // Read, never recomputed (ADR 0020): the title is stored in `data` like
+  // any other field value, automatic mode included.
+  const title = typeof data.title === "string" ? data.title : "";
   const rows = await Promise.all(
     descriptor.fields.map(async (field) => {
       if (field.type === "title") return null;

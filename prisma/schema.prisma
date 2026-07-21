@@ -45,6 +45,8 @@ model Revision {
   data       Json? // field-values snapshot — entries (ADR 0014)
   // Invariant (enforced by a CHECK in the migration): exactly one of
   // (content, data) is set, per the page's nature.
+  // Second CHECK: `data` always carries a non-empty `title` — computed at
+  // write, automatic mode included, never at read (ADR 0020).
   authorName String? // "Anonyme" until auth lands
   createdAt  DateTime @default(now())
 

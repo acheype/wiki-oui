@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { deleteFile } from "@/lib/files";
+import {
+  computeAutomaticTitle,
+  parseFormDescriptor,
+  readEntryData,
+} from "@/lib/form-descriptor";
+import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
 import { prisma } from "@/lib/prisma";
@@ -191,12 +197,34 @@ export async function discardUploadedFile(name: string): Promise<void> {
   await deleteFile(name).catch(() => null); // already gone = fine
 }
 
+/**
+ * The values a restore writes. The restored revision becomes the *current*
+ * state, so it follows the form's *current* definition (ADR 0020): an
+ * automatic title is recomputed rather than copied back. A computation that
+ * comes out empty keeps the archived title — the same conservative skip the
+ * form-save sweep applies, and the one that keeps a restore from ever being
+ * blocked by a stale entry.
+ */
+function restoredEntryData(
+  schema: unknown,
+  data: Prisma.JsonValue | null
+): Prisma.InputJsonValue | undefined {
+  if (data === null) return undefined; // MDX page: no entry values at all
+  const descriptor = schema ? parseFormDescriptor(schema).descriptor : null;
+  if (!descriptor) return data as Prisma.InputJsonValue;
+  const values = readEntryData(data);
+  const title = computeAutomaticTitle(descriptor, values);
+  return (
+    title.trim() === "" ? values : { ...values, title }
+  ) as Prisma.InputJsonValue;
+}
+
 export async function restoreRevision(
   revisionId: string
 ): Promise<ActionError | void> {
   const source = await prisma.revision.findUnique({
     where: { id: revisionId },
-    include: { page: true },
+    include: { page: { include: { form: true } } },
   });
   if (!source) {
     return { error: "Révision introuvable." };
@@ -206,12 +234,13 @@ export async function restoreRevision(
   // history stays append-only, nothing is rewound. Copying both snapshot
   // columns preserves the content-xor-data invariant (ADR 0014) for MDX
   // pages and entries alike.
+  const data = restoredEntryData(source.page.form?.schema, source.data);
   await prisma.$transaction(async (tx) => {
     const revision = await tx.revision.create({
       data: {
         pageId: source.pageId,
         content: source.content,
-        data: source.data ?? undefined,
+        data: data ?? undefined,
         authorName: AUTHOR,
         restoredFromId: source.id,
       },

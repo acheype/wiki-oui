@@ -12,6 +12,7 @@ import {
   type FormDescriptorIssue,
   computeAutomaticTitle,
   deriveEntrySchema,
+  emptyTitleMessage,
   isOptionsField,
   parseFormDescriptor,
   readEntryData,
@@ -436,8 +437,13 @@ export async function saveEntry(
 
   const title = computeAutomaticTitle(descriptor, data);
   if (title.trim() === "") {
-    return { ok: false, formError: "Le titre de la fiche est vide." };
+    return { ok: false, formError: emptyTitleMessage(descriptor) };
   }
+  // The title is stored like any other field value (ADR 0020): every reader
+  // reads `data.title`, none recomputes it. In automatic mode the client
+  // never submits it — deriveEntrySchema strips it — so it is injected here,
+  // after validation.
+  const stored: EntryData = { ...data, title };
 
   const tagsField = tagsFieldName(descriptor);
   const tags = tagsField && Array.isArray(data[tagsField])
@@ -453,7 +459,7 @@ export async function saveEntry(
     if (!page || page.formId !== form.id) {
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
-    await writeEntryRevision(page.id, data, tags);
+    await writeEntryRevision(page.id, stored, tags);
     revalidatePath("/", "layout");
     return { ok: true, slug: page.slug };
   }
@@ -473,7 +479,7 @@ export async function saveEntry(
       data: { slug, ownerName: AUTHOR, formId: form.id, tags },
     });
     const revision = await tx.revision.create({
-      data: { pageId: page.id, data: data as Prisma.InputJsonValue, authorName: AUTHOR },
+      data: { pageId: page.id, data: stored as Prisma.InputJsonValue, authorName: AUTHOR },
     });
     await tx.page.update({
       where: { id: page.id },

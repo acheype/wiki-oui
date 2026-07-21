@@ -343,8 +343,37 @@ export function initialEntryValues(
   return values;
 }
 
+// The labels an automatic title draws from. The entry form hides the title
+// field in automatic mode, so "the title is empty" alone would be a dead
+// end: the refusal has to name the fields the author can actually fill.
+export function titleSourceLabels(descriptor: FormDescriptor): string[] {
+  const title = descriptor.fields.find((field) => field.type === "title");
+  if (title?.type !== "title" || !title.automatic || !title.template) return [];
+  const labels = new Map(descriptor.fields.map((f) => [f.name, f.label]));
+  return [
+    ...new Set(
+      extractFieldReferences(title.template)
+        .map((name) => labels.get(name))
+        .filter((label): label is string => label !== undefined)
+    ),
+  ];
+}
+
+/** Why a save is refused when the title comes out empty (ADR 0020). */
+export function emptyTitleMessage(descriptor: FormDescriptor): string {
+  const labels = titleSourceLabels(descriptor).map((label) => `« ${label} »`);
+  if (labels.length === 0) return "Le titre de la fiche est vide.";
+  if (labels.length === 1) {
+    return `Le titre de la fiche est calculé à partir de ${labels[0]} : renseignez ce champ.`;
+  }
+  const list = `${labels.slice(0, -1).join(", ")} et ${labels[labels.length - 1]}`;
+  return `Le titre de la fiche est calculé à partir de ${list} : renseignez au moins l'un de ces champs.`;
+}
+
 // The title stored on save (docs/forms.md): the manual title value, or —
-// in automatic mode — the template recomputed from the current values.
+// in automatic mode — the template recomputed from the current values. The
+// result is written into `data` by the callers, never recomputed at read
+// (ADR 0020).
 export function computeAutomaticTitle(
   descriptor: FormDescriptor,
   data: EntryData

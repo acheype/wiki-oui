@@ -3,6 +3,7 @@ import {
   type FormDescriptor,
   computeAutomaticTitle,
   deriveEntrySchema,
+  emptyTitleMessage,
   extractFieldReferences,
   initialEntryValues,
   parseFormDescriptor,
@@ -493,6 +494,42 @@ describe("computeAutomaticTitle", () => {
     expect(
       computeAutomaticTitle(descriptor, { prenom: "Alice", nom: "Dupont" })
     ).toBe("Alice Dupont (asso)");
+  });
+});
+
+// ADR 0020: the title is stored, so the refusal has to name the fields the
+// author can fill — in automatic mode the title field is not on screen.
+describe("emptyTitleMessage", () => {
+  const automatic = (template: string): FormDescriptor => ({
+    fields: [
+      {
+        type: "title",
+        name: "title",
+        label: "Titre de la fiche",
+        automatic: true,
+        template,
+      },
+      { type: "text", name: "prenom", label: "Prénom" },
+      { type: "text", name: "nom", label: "Nom" },
+    ],
+  });
+
+  it("names the single field an automatic title draws from", () => {
+    expect(emptyTitleMessage(automatic("{nom}"))).toBe(
+      "Le titre de la fiche est calculé à partir de « Nom » : renseignez ce champ."
+    );
+  });
+
+  it("lists every field the template draws from, deduplicated", () => {
+    expect(emptyTitleMessage(automatic("{prenom} {nom} ({prenom})"))).toBe(
+      "Le titre de la fiche est calculé à partir de « Prénom » et « Nom » : renseignez au moins l'un de ces champs."
+    );
+  });
+
+  it("falls back to the plain message when the title is manual", () => {
+    expect(emptyTitleMessage(contactDescriptor())).toBe(
+      "Le titre de la fiche est vide."
+    );
   });
 });
 
