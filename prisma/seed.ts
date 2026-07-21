@@ -20,13 +20,26 @@ const ASSETS_DIR = path.join(__dirname, "seed/assets");
 const FILES_DIR = path.join(process.cwd(), "files");
 
 const defaultContent: Record<string, string> = {
-  [wikiConfig.homeSlug]: `# Bienvenue sur WikiOui
+  [wikiConfig.homeSlug]: `# Félicitations, votre wiki est installé !
 
-Ce wiki est le vôtre : chaque page est écrite en MDX et **éditable en ligne**.
+**Pour modifier cette page, ouvrez [page-principale/edit](page-principale/edit).**
 
-- Pour modifier cette page, ouvrez [page-principale/edit](page-principale/edit).
-- Pour créer une page, tapez son adresse dans le navigateur : \`/ma-nouvelle-page\`.
-- La syntaxe est résumée dans l'[aide-mémoire](aide-memoire).
+## WikiOui : un outil convivial et collaboratif
+
+WikiOui a été conçu pour rester **simple d'usage**. Toutes les pages sont écrites en MDX et **éditables en ligne**, sans rien installer.
+
+Vous pourrez notamment :
+
+- modifier une page, tapez simplement son adresse dans le navigateur pour la créer : \`/ma-nouvelle-page\`
+- (ré)organiser le [menu du haut](page-menu-haut)
+- concevoir des **formulaires pour récolter des données** diverses, depuis la page [formulaires](formulaires)
+- présenter ces données [sous des rendus variés](exemple-formulaire) (agenda, carte, listes, annuaire, galerie…) grâce au composant \`<EntriesView>\`
+- **renommer** une page, une fiche ou un formulaire sans jamais casser les liens qui pointent vers eux
+- retrouver l'historique complet de chaque page et **restaurer une version précédente** à tout moment
+
+La syntaxe complète est résumée dans l'[aide-mémoire](aide-memoire).
+
+Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sable](bac-a-sable), où quelques défis vous seront proposés.
 `,
 
   [wikiConfig.layoutPages.title]: `WikiOui

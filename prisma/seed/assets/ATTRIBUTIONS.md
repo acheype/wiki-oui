@@ -1,10 +1,10 @@
 # Attributions des images d'exemple
 
-Images utilisées par `prisma/seed/entries.ts` pour peupler les fiches de démonstration. Recompressées (largeur max 1280px, JPEG qualité 78) pour rester légères dans le dépôt ; le cadrage et le contenu ne sont pas modifiés.
+Images utilisées par `prisma/seed/entries.ts` pour peupler les fiches de démonstration. Photos thématiques recompressées (largeur max 1600px, JPEG qualité 84), portraits recadrés en carré (900×900, qualité 86) — assez définis pour bien rendre en vue Grille (« blocs »). Le cadrage et le contenu ne sont pas autrement modifiés.
 
 ## Portraits (Annuaire)
 
-`portrait-camille.jpg`, `portrait-dominique.jpg`, `portrait-sacha.jpg`, `portrait-andree.jpg`, `portrait-maxime.jpg`, `portrait-claude.jpg` : [randomuser.me](https://randomuser.me/photos) — visages générés, fournis explicitement pour ce type d'usage (jeux de données de démonstration), aucune personne réelle, pas d'attribution requise.
+`portrait-camille.jpg`, `portrait-dominique.jpg`, `portrait-sacha.jpg`, `portrait-andree.jpg`, `portrait-maxime.jpg`, `portrait-claude.jpg` : [pravatar.cc](https://pravatar.cc), service de portraits placeholder pour prototypes (pas de personnes réelles nommées) — choisis un par un après vérification visuelle de chaque image (le pool de ce service mélange quelques photos éditoriales connues en clin d'œil ; les six retenues ont été vérifiées comme non reconnaissables).
 
 ## Photos thématiques (Wikimedia Commons)
 
@@ -19,5 +19,11 @@ Images utilisées par `prisma/seed/entries.ts` pour peupler les fiches de démon
 | `jardin-partage.jpg` | [Moore Jackson Community Garden, Woodside, New York, 2025.jpg](https://commons.wikimedia.org/wiki/File:Moore_Jackson_Community_Garden,_Woodside,_New_York,_2025.jpg) | CastIronSeasoner | CC BY 4.0 |
 | `ressourcerie-locale.jpg` | [Gratis ophaal service of a second-hand store, Groningen (2019) 01.jpg](https://commons.wikimedia.org/wiki/File:Gratis_ophaal_service_of_a_second-hand_store,_Groningen_(2019)_01.jpg) | Donald Trung | CC BY-SA 4.0 |
 | `petite-bibliotheque.jpg` | [Little Free Library, Minneapolis MN.jpg](https://commons.wikimedia.org/wiki/File:Little_Free_Library,_Minneapolis_MN.jpg) | Mmaldrich4 | CC BY-SA 4.0 |
+| `repas-partages.jpg` | [Volunteers (36529225172).jpg](https://commons.wikimedia.org/wiki/File:Volunteers_(36529225172).jpg) | USFWS Mountain-Prairie | CC BY 2.0 |
+| `terrain-basket.jpg` | [Gabriel Park Basketball Court.jpg](https://commons.wikimedia.org/wiki/File:Gabriel_Park_Basketball_Court.jpg) | Adumbvoget | Public domain |
+| `atelier-arts.jpg` | [Gouache.jpg](https://commons.wikimedia.org/wiki/File:Gouache.jpg) | (non signalé) | CC BY-SA 3.0 |
+| `nettoyage-sentiers.jpg` | [Cleanup day brings together Italian and American volunteers (6384214).jpg](https://commons.wikimedia.org/wiki/File:Cleanup_day_brings_together_Italian_and_American_volunteers_(6384214).jpg) | U.S. Army USAG-V / Anna Ciccotti | Public domain |
+| `soutien-scolaire.jpg` | [Child attentively listens as an adult shares a story from a book…jpg](https://commons.wikimedia.org/wiki/File:Child_attentively_listens_as_an_adult_shares_a_story_from_a_book_in_a_cozy_indoor_setting.jpg) | Shixart1985 | CC BY 2.0 |
+| `handisport.jpg` | [Wheelchair Basketball Game 141008-F-EI321-292.jpg](https://commons.wikimedia.org/wiki/File:Wheelchair_Basketball_Game_141008-F-EI321-292.jpg) | Alex Lloyd | Public domain |
 
 CC BY(-SA) : réutilisation libre avec attribution, ce tableau en tient lieu. Ces photos illustrent des lieux/activités génériques, pas les entités fictives du jeu de données (aucune association entre une photo et une personne/structure réelle n'est impliquée).
