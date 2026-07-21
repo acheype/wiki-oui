@@ -27,9 +27,21 @@ import {
   type FormDetail,
   type SaveFormResult,
   countFormReferences,
+  countTitleImpact,
   renameForm,
   saveForm,
 } from "@/app/form-actions";
+import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   RenameSlugDialog,
   impactParts,
@@ -140,6 +152,10 @@ export function FormBuilder({
     fields[0]?._id ?? null
   );
   const [template, setTemplate] = useState(initial?.template ?? "");
+  /** Pending title recompute awaiting confirmation (ADR 0020). */
+  const [titleImpact, setTitleImpact] = useState<TitleRecomputeImpact | null>(
+    null
+  );
   const [isPending, startTransition] = useTransition();
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -228,7 +244,7 @@ export function FormBuilder({
     setTemplate((current) => renameFieldReferences(current, mapping) ?? current);
   }
 
-  function save() {
+  async function persist() {
     // The staged renames (ADR 0017): every persisted field whose identifier
     // moved since load feeds the server's data-key retcon.
     const renames = fields.flatMap((field) =>
@@ -236,28 +252,43 @@ export function FormBuilder({
         ? [{ from: field.persistedName, to: field.name }]
         : []
     );
+    const result: SaveFormResult = await saveForm({
+      slug,
+      name,
+      schema: toDescriptor(fields),
+      template,
+      isNew,
+      renames,
+    });
+    if (result.ok) {
+      toast.success("Formulaire enregistré.");
+      onSaved(slug);
+    } else {
+      for (const issue of result.issues) toast.error(issue.message);
+      // Point the canvas at the first field-anchored problem.
+      const anchored = result.issues.find(
+        (issue) => issue.fieldIndex !== undefined
+      );
+      if (anchored?.fieldIndex !== undefined) {
+        setSelectedId(fields[anchored.fieldIndex]?._id ?? null);
+      }
+    }
+  }
+
+  function save() {
     startTransition(async () => {
-      const result: SaveFormResult = await saveForm({
-        slug,
-        name,
-        schema: toDescriptor(fields),
-        template,
-        isNew,
-        renames,
-      });
-      if (result.ok) {
-        toast.success("Formulaire enregistré.");
-        onSaved(slug);
-      } else {
-        for (const issue of result.issues) toast.error(issue.message);
-        // Point the canvas at the first field-anchored problem.
-        const anchored = result.issues.find(
-          (issue) => issue.fieldIndex !== undefined
-        );
-        if (anchored?.fieldIndex !== undefined) {
-          setSelectedId(fields[anchored.fieldIndex]?._id ?? null);
+      // Changing the automatic title's template — or switching it on —
+      // rewrites the stored title of every entry (ADR 0020). The server
+      // owns the detection and returns null when this save leaves the
+      // titles alone; otherwise the admin sees the count first.
+      if (!isNew) {
+        const impact = await countTitleImpact(slug, toDescriptor(fields));
+        if (impact && impact.updated + impact.skipped > 0) {
+          setTitleImpact(impact);
+          return;
         }
       }
+      await persist();
     });
   }
 
@@ -366,7 +397,63 @@ export function FormBuilder({
           />
         </TabsContent>
       </Tabs>
+
+      <AlertDialog
+        open={titleImpact !== null}
+        onOpenChange={(open) => !open && setTitleImpact(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Recalculer le titre des fiches ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {titleImpact && (
+                <TitleImpactSentence impact={titleImpact} />
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setTitleImpact(null);
+                startTransition(persist);
+              }}
+            >
+              Enregistrer et recalculer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+  );
+}
+
+// What the recompute is about to do (ADR 0020). The skipped count is the
+// actionable half: those entries keep their title because the template has
+// nothing to work with, and the admin is the only one who can fix them.
+function TitleImpactSentence({ impact }: { impact: TitleRecomputeImpact }) {
+  const { updated, skipped } = impact;
+  return (
+    <>
+      {updated > 0 ? (
+        <>
+          <strong>{updated}</strong> fiche{updated > 1 ? "s" : ""} verr
+          {updated > 1 ? "ont" : "a"} son titre recalculé depuis le nouveau
+          gabarit, et gagner{updated > 1 ? "ont" : "a"} une révision.
+        </>
+      ) : (
+        <>Aucune fiche ne change de titre.</>
+      )}
+      {skipped > 0 && (
+        <>
+          {" "}
+          <strong>{skipped}</strong> conserver{skipped > 1 ? "ont" : "a"} le
+          sien : le gabarit produit une chaîne vide pour {skipped > 1 ? "elles" : "elle"}.
+        </>
+      )}
+    </>
   );
 }
 

@@ -22,6 +22,12 @@ import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
 import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
+import { titleRecomputeNeeded } from "@/lib/entry-title";
+import {
+  type TitleRecomputeImpact,
+  countTitleRecompute,
+  sweepEntryTitles,
+} from "@/lib/entry-title-db";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug, slugify } from "@/lib/slug";
@@ -154,13 +160,18 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     template: input.template === "" ? null : input.template,
   };
   if (existing) {
-    // Schema overwrite and data-key retcon in the same transaction (ADR
-    // 0017): the staged renames apply to every revision of the form's
-    // entries, or not at all.
+    // Schema overwrite, data-key retcon and title recompute in the same
+    // transaction (ADR 0017/0020): the staged renames apply to every
+    // revision of the form's entries, and the recomputed titles to their
+    // current one, or nothing does.
+    const before = parseFormDescriptor(existing.schema).descriptor;
     await prisma.$transaction(
       async (tx) => {
         await tx.form.update({ where: { id: existing.id }, data });
         await sweepFieldRenames(tx, existing.id, renames);
+        if (before && titleRecomputeNeeded(before, parsed.descriptor)) {
+          await sweepEntryTitles(tx, existing.id, parsed.descriptor, AUTHOR);
+        }
       },
       // Same cold-admin-action allowance as renameForm below.
       { timeout: 60_000 }
@@ -210,6 +221,24 @@ export async function countFieldReferences(
   const form = await prisma.form.findUnique({ where: { slug: formSlug } });
   if (!form) return 0;
   return countFieldCarriers(prisma, form.id, fieldName);
+}
+
+/**
+ * The confirmation's headcount before a form save recomputes stored titles
+ * (ADR 0020). Counted against the *candidate* descriptor — the canvas isn't
+ * saved yet — and null when this save changes nothing about the titles, so
+ * the FormBuilder knows to save straight through.
+ */
+export async function countTitleImpact(
+  formSlug: string,
+  schema: unknown
+): Promise<TitleRecomputeImpact | null> {
+  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  if (!form) return null;
+  const before = parseFormDescriptor(form.schema).descriptor;
+  const after = parseFormDescriptor(schema).descriptor;
+  if (!before || !after || !titleRecomputeNeeded(before, after)) return null;
+  return countTitleRecompute(prisma, form.id, after);
 }
 
 export type RenameFormResult = { error: string } | { ok: true };
