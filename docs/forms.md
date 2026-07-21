@@ -86,6 +86,22 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 
 - Le champ **`title`** (« Titre de la fiche ») est un texte obligatoire ; sa valeur donne le titre affiché et dérive le slug (voir Identités).
 - **Mode titre automatique** (option du champ `title`) : le champ disparaît de la saisie ; le titre est **calculé** depuis un template mêlant texte libre et références `{champ}` (ex. `{prenom} {nom} (asso)`), **recalculé à chaque sauvegarde**. Le slug, dérivé du premier calcul, n'est jamais recalculé — seul « Changer l'adresse » (ADR 0016) peut le modifier.
+- **Le titre calculé est stocké dans `data` comme toute valeur de champ** (ADR 0020) : il est écrit à la sauvegarde, jamais recalculé à la lecture. Le champ reste absent du schéma d'*entrée* (`deriveEntrySchema`) — le client ne soumet jamais un titre automatique, il est injecté côté serveur après validation.
+
+### Toute fiche a un titre non vide
+
+Invariant garanti par le schéma Zod en mode manuel (`min(1)`), par l'injection à l'écriture en mode automatique, et par la contrainte `Revision_entry_has_title` en base. Quand le gabarit produit une chaîne vide, la règle est tenue de deux façons selon l'interlocuteur disponible :
+
+- **à la saisie ou à l'édition d'une fiche** → la sauvegarde est **refusée**, avec un message nommant les champs du gabarit (le champ Titre étant invisible en mode automatique, « le titre est vide » seul serait un cul-de-sac) ;
+- **au recalcul de masse**, qui n'a personne à qui répondre → la fiche est **sautée** (elle garde son titre) et la confirmation le signale.
+
+### Recalcul de masse à l'enregistrement du formulaire
+
+Deux gestes admin invalident les titres stockés : **modifier le gabarit** et **activer** le mode automatique. À l'enregistrement du formulaire, derrière une confirmation qui annonce les nombres (motif du renommage de champ, ADR 0017), chaque fiche dont le titre change effectivement gagne une **nouvelle révision** — l'historique reste en ajout seul, aucun titre saisi à la main n'est détruit, et une fiche dont le titre est inchangé n'écrit rien. **Désactiver** le mode automatique ne déclenche rien : le dernier titre calculé devient simplement une valeur éditable, pré-remplie par `initialEntryValues`.
+
+À ne pas confondre avec le balayage de l'ADR 0017 : un renommage de champ retouche la représentation et parcourt donc **tout l'historique en place** ; un recalcul de titre change ce que la fiche dit et ne touche donc que **l'état courant**, par une nouvelle révision.
+
+**Restauration** : restaurer une révision recalcule le titre automatique au lieu de le recopier — l'état courant suit toujours la définition courante du formulaire.
 
 ## Saisie d'une fiche
 
