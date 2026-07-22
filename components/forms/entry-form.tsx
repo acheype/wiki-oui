@@ -148,7 +148,14 @@ export function EntryForm({
                 id={`entry-${field.name}`}
                 spec={toWidgetSpec(field, sourced[field.name])}
                 value={(rhf.value ?? "") as never}
-                onChange={rhf.onChange}
+                // An entry value has a single empty spelling, "" — the one
+                // initialEntryValues writes. The shared widgets clear to
+                // `undefined` instead, the ComponentBuilder's "prop absent"
+                // (its omission rule, lib/component-descriptor generateTag);
+                // react-hook-form reads that `undefined` as "no value here"
+                // and serves the field's default back, so an emptied field
+                // would show the stored value again.
+                onChange={(value) => rhf.onChange(value ?? "")}
                 error={errors[field.name]?.message as string | undefined}
                 environment={{ entryValues }}
               />
