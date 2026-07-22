@@ -13,6 +13,7 @@ import {
   computeAutomaticTitle,
   deriveEntrySchema,
   emptyTitleMessage,
+  formAuthoringIssues,
   isOptionsField,
   parseFormDescriptor,
   readEntryData,
@@ -119,6 +120,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
   if (parsed.issues) {
     issues.push(...parsed.issues);
   } else {
+    issues.push(...formAuthoringIssues(parsed.descriptor));
     const template = input.template ?? "";
     for (const name of unknownFieldReferences(template, parsed.descriptor)) {
       issues.push({

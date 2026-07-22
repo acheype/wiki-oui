@@ -5,6 +5,7 @@ import {
   deriveEntrySchema,
   emptyTitleMessage,
   extractFieldReferences,
+  formAuthoringIssues,
   initialEntryValues,
   parseFormDescriptor,
   substituteFieldReferences,
@@ -41,15 +42,17 @@ describe("parseFormDescriptor", () => {
     expect(result.issues?.[0].fieldIndex).toBe(1);
   });
 
-  it("rejects a field name outside the slug format", () => {
+  // The slug format is an authoring rule now (formAuthoringIssues): parsing
+  // stays permissive so a stored descriptor keeps loading, and so the empty
+  // label that derives an empty identifier can be reported as such.
+  it("parses a field name outside the slug format", () => {
     const raw = {
       fields: [
         { type: "title", name: "title", label: "Titre de la fiche" },
         { type: "text", name: "Prénom", label: "Prénom" },
       ],
     };
-    const result = parseFormDescriptor(raw);
-    expect(result.issues?.[0].fieldIndex).toBe(1);
+    expect(parseFormDescriptor(raw).descriptor).toBeDefined();
   });
 
   it("rejects duplicate field names, pointing at the second", () => {
@@ -124,6 +127,21 @@ describe("parseFormDescriptor", () => {
         },
       ],
     });
+  });
+
+  // A blank gabarit stays readable, so it is a saveForm rule, not a parsing
+  // one (formAuthoringIssues) — a form already stored with one must keep
+  // loading, or its author could no longer open it to fix it.
+  it("still parses an automatic title left without a template", () => {
+    const descriptor = contactDescriptor();
+    descriptor.fields[0] = {
+      type: "title",
+      name: "title",
+      label: "Titre de la fiche",
+      automatic: true,
+      template: "",
+    };
+    expect(parseFormDescriptor(descriptor)).toEqual({ descriptor });
   });
 
   it("accepts a list drawing its options from entered pairs", () => {
@@ -514,6 +532,113 @@ describe("computeAutomaticTitle", () => {
 
 // ADR 0020: the title is stored, so the refusal has to name the fields the
 // author can fill — in automatic mode the title field is not on screen.
+// Checked at save (saveForm) rather than at parse, so a form already stored
+// with a blank gabarit still opens in the FormBuilder to be repaired.
+describe("formAuthoringIssues", () => {
+  const withField = (patch: Record<string, unknown>): FormDescriptor => {
+    const descriptor = contactDescriptor();
+    descriptor.fields[1] = {
+      ...descriptor.fields[1],
+      ...patch,
+    } as FormDescriptor["fields"][number];
+    return descriptor;
+  };
+  const withTitle = (patch: Record<string, unknown>): FormDescriptor => {
+    const descriptor = contactDescriptor();
+    descriptor.fields[0] = {
+      ...descriptor.fields[0],
+      ...patch,
+    } as FormDescriptor["fields"][number];
+    return descriptor;
+  };
+
+  it("accepts a descriptor whose required settings are all filled", () => {
+    expect(formAuthoringIssues(contactDescriptor())).toEqual([]);
+  });
+
+  // «\u00A0Libellé\u00A0» carries an asterisk on every field type, so every field type
+  // owes it a value — the generic rule, not a title special case.
+  it.each([
+    ["empty", ""],
+    ["blank", "   "],
+  ])("refuses a field whose label is %s", (_case, label) => {
+    expect(formAuthoringIssues(withField({ label }))).toContainEqual({
+      fieldIndex: 1,
+      message:
+        "«\u00A0Libellé\u00A0» est obligatoire pour le champ «\u00A0Texte court\u00A0».",
+    });
+  });
+
+  // Naming the field by its label would name it "" — the missing setting
+  // itself — so the refusal falls back on the type it was dropped from.
+  it("names a label-less field by its type", () => {
+    const [issue] = formAuthoringIssues(withField({ type: "date", label: "" }));
+    expect(issue.message).toContain("«\u00A0Champ date\u00A0»");
+  });
+
+  it("refuses a field whose identifier is empty", () => {
+    expect(formAuthoringIssues(withField({ name: "" }))).toEqual([
+      {
+        fieldIndex: 1,
+        message:
+          "«\u00A0Identifiant\u00A0» est obligatoire pour le champ «\u00A0Prénom\u00A0».",
+      },
+    ]);
+  });
+
+  // The slug format moved off the parsing path, so it has to be caught here
+  // — with words instead of the Zod pattern the author cannot read.
+  it("refuses an identifier that is not slug-shaped", () => {
+    expect(formAuthoringIssues(withField({ name: "Prénom Usuel" }))).toEqual([
+      {
+        fieldIndex: 1,
+        message:
+          "L'identifiant «\u00A0Prénom Usuel\u00A0» du champ «\u00A0Prénom\u00A0» est invalide (minuscules, chiffres et tirets).",
+      },
+    ]);
+  });
+
+  // The title's identifier is the fixed `title`: the panel never shows it,
+  // so it is not the author's to fill.
+  it("never asks the title field for an identifier", () => {
+    expect(formAuthoringIssues(withTitle({ name: "" }))).toEqual([]);
+  });
+
+  it.each([
+    ["absent", {}],
+    ["empty", { template: "" }],
+    ["blank", { template: "   " }],
+  ])("refuses an automatic title whose gabarit is %s", (_case, template) => {
+    expect(
+      formAuthoringIssues(withTitle({ automatic: true, ...template }))
+    ).toEqual([
+      {
+        fieldIndex: 0,
+        message:
+          "«\u00A0Gabarit du titre\u00A0» est obligatoire pour le champ «\u00A0Titre de la fiche\u00A0».",
+      },
+    ]);
+  });
+
+  it("accepts an automatic title carrying a gabarit", () => {
+    expect(
+      formAuthoringIssues(withTitle({ automatic: true, template: "{prenom}" }))
+    ).toEqual([]);
+  });
+
+  // Without automatic mode the entry form shows the title field, so the
+  // absent gabarit is simply the setting not being used.
+  it("ignores a missing gabarit on a manual title", () => {
+    expect(formAuthoringIssues(withTitle({ template: "" }))).toEqual([]);
+  });
+
+  it("reports every missing setting of the same field at once", () => {
+    expect(formAuthoringIssues(withField({ label: "", name: "" }))).toHaveLength(
+      2
+    );
+  });
+});
+
 describe("emptyTitleMessage", () => {
   const automatic = (template: string): FormDescriptor => ({
     fields: [

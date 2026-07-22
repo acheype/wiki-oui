@@ -49,7 +49,12 @@ export const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
 // required · hint; placeholder on text-like types only.
 const fieldBase = z.object({
   label: z.string(),
-  name: z.string().regex(SLUG_PATTERN),
+  // Shape only: the slug format is an authoring rule (formAuthoringIssues),
+  // not a parsing one. Refusing it here would make the message a raw Zod
+  // path — and it fires before every other check, so an empty label, which
+  // derives an empty identifier, could only ever be reported as a malformed
+  // descriptor. The read path stays permissive, saveForm stays strict.
+  name: z.string(),
   required: z.boolean().optional(),
   hint: z.string().optional(),
 });
@@ -486,4 +491,79 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
   });
 
   return issues.length > 0 ? { issues } : { descriptor };
+}
+
+// Rules checked when a form is *saved*, not when it is read. A descriptor
+// already in base has to keep parsing: getForm throws on one it cannot read,
+// which would shut the author out of the very screen where the mistake gets
+// fixed. So a rule that only tightens what may be created belongs here, next
+// to saveForm's other authoring checks — never in parseFormDescriptor, whose
+// verdict is retroactive over everything already stored.
+export function formAuthoringIssues(
+  descriptor: FormDescriptor
+): FormDescriptorIssue[] {
+  const issues: FormDescriptorIssue[] = [];
+  descriptor.fields.forEach((field, fieldIndex) => {
+    for (const setting of requiredSettings(field)) {
+      const value = settingValue(field, setting.key);
+      if (value.trim() === "") {
+        issues.push({
+          fieldIndex,
+          message: `«\u00A0${setting.label}\u00A0» est obligatoire pour le champ «\u00A0${fieldName(field)}\u00A0».`,
+        });
+      } else if (setting.key === "name" && !SLUG_PATTERN.test(value)) {
+        issues.push({
+          fieldIndex,
+          message: `L'identifiant «\u00A0${value}\u00A0» du champ «\u00A0${fieldName(field)}\u00A0» est invalide (minuscules, chiffres et tirets).`,
+        });
+      }
+    }
+  });
+  return issues;
+}
+
+/**
+ * A setting the author has to fill in. Listed exactly when the FieldSettings
+ * panel shows it: the same list draws the asterisk on screen and refuses the
+ * save, so the mark and the check cannot drift apart — which is how a blank
+ * gabarit, starred but unchecked, once got through.
+ */
+export interface RequiredSetting {
+  /** The descriptor key carrying the value. */
+  key: "label" | "name" | "template";
+  /** How the setting is named to the author. */
+  label: string;
+}
+
+export function requiredSettings(field: FormField): RequiredSetting[] {
+  const settings: RequiredSetting[] = [{ key: "label", label: "Libellé" }];
+  // The title field's identifier is the fixed `title` (ADR 0014): the panel
+  // does not show it, so it is not the author's to fill.
+  if (field.type !== "title") {
+    settings.push({
+      key: "name",
+      label: "Identifiant",
+    });
+  }
+  // Automatic mode hides the title field from the entry form, so a blank
+  // gabarit leaves nothing on screen able to fill the title: every entry
+  // save would be refused, by a message naming no field at all (ADR 0020).
+  if (field.type === "title" && field.automatic) {
+    settings.push({
+      key: "template",
+      label: "Gabarit du titre",
+    });
+  }
+  return settings;
+}
+
+function settingValue(field: FormField, key: RequiredSetting["key"]): string {
+  const value = (field as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
+}
+
+// How a field is named in a refusal. Its label, unless that is the very
+// setting left empty — then the type it was dropped from ("Texte court").
+function fieldName(field: FormField): string {
+  return field.label.trim() || FIELD_TYPE_LABELS[field.type];
 }

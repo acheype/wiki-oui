@@ -62,8 +62,10 @@ import {
   FIELD_TYPE_LABELS,
   FORM_FIELD_TYPES,
   type FormDescriptor,
+  type FormDescriptorIssue,
   type FormField,
   type FormFieldType,
+  formAuthoringIssues,
 } from "@/lib/form-descriptor";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
@@ -264,25 +266,39 @@ export function FormBuilder({
       toast.success("Formulaire enregistré.");
       onSaved(slug);
     } else {
-      for (const issue of result.issues) toast.error(issue.message);
-      // Point the canvas at the first field-anchored problem.
-      const anchored = result.issues.find(
-        (issue) => issue.fieldIndex !== undefined
-      );
-      if (anchored?.fieldIndex !== undefined) {
-        setSelectedId(fields[anchored.fieldIndex]?._id ?? null);
-      }
+      reportIssues(result.issues);
+    }
+  }
+
+  function reportIssues(issues: FormDescriptorIssue[]) {
+    for (const issue of issues) toast.error(issue.message);
+    // Point the canvas at the first field-anchored problem.
+    const anchored = issues.find((issue) => issue.fieldIndex !== undefined);
+    if (anchored?.fieldIndex !== undefined) {
+      setSelectedId(fields[anchored.fieldIndex]?._id ?? null);
     }
   }
 
   function save() {
     startTransition(async () => {
+      const descriptor = toDescriptor(fields);
+      // Refuse an unfinished form before anything else. The title-recompute
+      // confirmation below would otherwise announce entries being rewritten
+      // by a save the server is about to turn down — and it is a modal, so
+      // the refusal would arrive only after the admin had accepted it. Same
+      // engine as saveForm's own verdict (ADR 0015); the server still owns
+      // the decision, this only spares a confirmation that leads nowhere.
+      const issues = formAuthoringIssues(descriptor);
+      if (issues.length > 0) {
+        reportIssues(issues);
+        return;
+      }
       // Changing the automatic title's template — or switching it on —
       // rewrites the stored title of every entry (ADR 0020). The server
       // owns the detection and returns null when this save leaves the
       // titles alone; otherwise the admin sees the count first.
       if (!isNew) {
-        const impact = await countTitleImpact(slug, toDescriptor(fields));
+        const impact = await countTitleImpact(slug, descriptor);
         if (impact && impact.updated + impact.skipped > 0) {
           setTitleImpact(impact);
           return;

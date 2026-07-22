@@ -24,7 +24,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SlugInlineEdit } from "@/components/slug/slug-input";
 import type { FieldReferenceCounts } from "@/lib/field-rename";
-import type { FormField } from "@/lib/form-descriptor";
+import {
+  type FormField,
+  type RequiredSetting,
+  requiredSettings,
+} from "@/lib/form-descriptor";
 import { slugify } from "@/lib/slug";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import type { CanvasField } from "./form-builder";
@@ -51,15 +55,16 @@ export function FieldSettings({
   onRenameStaged: (to: string) => void;
 }) {
   const patch = (values: Partial<FormField>) => onChange(values);
+  // The asterisks below read the same list saveForm refuses on: a setting
+  // cannot be marked mandatory without being checked, nor the reverse.
+  const required = new Set(requiredSettings(field).map((setting) => setting.key));
 
   return (
     <div className="grid gap-4">
       <div className="grid gap-1.5">
         <Label htmlFor="setting-label" className="gap-1">
           Libellé
-          <span aria-hidden className="text-destructive">
-            *
-          </span>
+          {required.has("label") && <RequiredMark />}
         </Label>
         <Input
           id="setting-label"
@@ -80,7 +85,7 @@ export function FieldSettings({
         />
       </div>
 
-      {field.type !== "title" && (
+      {required.has("name") && (
         <NameSetting
           field={field}
           formSlug={formSlug}
@@ -150,9 +155,7 @@ function NameSetting({
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-sm font-medium">
           Identifiant{" "}
-          <span aria-hidden className="text-destructive">
-            *
-          </span>
+          <RequiredMark />
         </p>
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
           {field.name}
@@ -195,9 +198,7 @@ function NameSetting({
     <div className="grid gap-1.5">
       <Label htmlFor="setting-name" className="gap-1">
         Identifiant
-        <span aria-hidden className="text-destructive">
-          *
-        </span>
+        <RequiredMark />
       </Label>
       <SlugInlineEdit
         id="setting-name"
@@ -638,10 +639,11 @@ function TitleSettings({
         />
         Titre automatique (calculé depuis un gabarit)
       </label>
-      {field.automatic && (
+      {settingRequired(field, "template") && (
         <TextSetting
           id="setting-title-template"
           label="Gabarit du titre (ex. {prenom} {nom})"
+          required
           value={field.template ?? ""}
           onChange={(template) => onChange({ template })}
         />
@@ -650,20 +652,41 @@ function TitleSettings({
   );
 }
 
+function RequiredMark() {
+  return (
+    <span aria-hidden className="text-destructive">
+      *
+    </span>
+  );
+}
+
+/** Shows a setting exactly when it is one the author must fill in. */
+function settingRequired(field: FormField, key: RequiredSetting["key"]) {
+  return requiredSettings(field).some((setting) => setting.key === key);
+}
+
 function TextSetting({
   id,
   label,
   value,
+  required,
   onChange,
 }: {
   id: string;
   label: string;
   value: string;
+  /** Marks a setting the form cannot be saved without. */
+  required?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
     <div className="grid gap-1.5">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="gap-1">
+        {label}
+        {required && (
+          <RequiredMark />
+        )}
+      </Label>
       <Input id={id} value={value} onChange={(event) => onChange(event.target.value)} />
     </div>
   );
