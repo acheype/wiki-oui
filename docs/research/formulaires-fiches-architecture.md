@@ -16,7 +16,7 @@ Deux décisions de fond, détaillées plus bas :
 ## Les trois briques (natives à la stack)
 
 | # | Rôle | Outil |
-|---|---|---|
+| --- | --- | --- |
 | 1 | **Définir** un formulaire (schéma de champs) | Descripteur JSON en base + **Zod** comme contrat runtime |
 | 2 | **Rendre & valider** une fiche (saisie) | `react-hook-form` + `@hookform/resolvers` (zod) + `<Form>` shadcn, **branchés sur le renderer de champs partagé** (voir plus bas) |
 | 3 | **Construire** le formulaire (WYSIWYG) | UI maison + **dnd-kit** (ou Pragmatic drag-and-drop d'Atlassian) pour l'ordre/ajout des champs |
@@ -75,7 +75,7 @@ Conséquences :
 Zod ne sert pas qu'aux formulaires : il comble aussi un trou côté ComponentBuilder. Mais son apport est ciblé — le moteur (`lib/component-descriptor.ts` + `lib/component-descriptors.ts`) a **trois couches de validation**, Zod n'en concerne qu'une :
 
 | Couche | Aujourd'hui | Zod aide ? |
-|---|---|---|
+| --- | --- | --- |
 | **Forme brute du YAML** (bord du loader) | `yaml.parse` → **cast** en `ComponentDescriptor`, avec un simple spot-check (`component-descriptors.ts` : `label` string + `properties` présent) | **Oui — vrai trou comblé** |
 | **Règles sémantiques croisées** (`validateDescriptor`) | `throw` impératifs, avec **ligne YAML exacte** | Marginal / latéral |
 | **Signature ↔ `.tsx`** (`verify-descriptors`, ts-morph) | analyse statique de la source (ADR 0013) | **Non — orthogonal** |
@@ -149,7 +149,7 @@ Le choix **colonne `Json` (jsonb)** pour les valeurs est acté : les champs sont
 ## Bibliothèques à installer
 
 | Besoin | Choix | Note |
-|---|---|---|
+| --- | --- | --- |
 | État & validation de la saisie de fiche | `react-hook-form` + `@hookform/resolvers` + `zod` | Ce que shadcn `<Form>` présuppose déjà |
 | Drag-and-drop du builder | **dnd-kit** (défaut) ou **Pragmatic drag-and-drop** (Atlassian) | Compatibles React 19 ; réordonner/ajouter des champs |
 | Rendu du formulaire | *(aucune)* | Renderer de champs partagé avec le ComponentBuilder |

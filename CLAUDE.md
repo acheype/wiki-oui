@@ -20,3 +20,7 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 ## Conventions de rédaction
 
 - Mettre toujours un espace insécable après « ou avant » dans les textes affichés à l'utilisateur.
+
+## Conventions Markdown
+
+- Dans les tableaux, la ligne de séparation doit utiliser le même espacement que les lignes de contenu : `| --- | --- |` (avec espaces), jamais `|---|---|` (règle markdownlint MD060, style « compact »).

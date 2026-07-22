@@ -9,7 +9,7 @@ Images utilisées par `prisma/seed/entries.ts` pour peupler les fiches de démon
 ## Photos thématiques (Wikimedia Commons)
 
 | Fichier | Source | Auteur·rice | Licence |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `bike-workshop.jpg` | [Bike workshop - bicycle repair shop.jpg](https://commons.wikimedia.org/wiki/File:Bike_workshop_-_bicycle_repair_shop.jpg) | Alextredz | CC BY-SA 4.0 |
 | `fete-quartier.jpg` | [Freret Street Festival 2019 New Orleans 78.jpg](https://commons.wikimedia.org/wiki/File:Freret_Street_Festival_2019_New_Orleans_78.jpg) | Infrogmation of New Orleans | CC BY-SA 4.0 |
 | `marche-ressourcerie.jpg` | [Market stall Sclater Street Brick Lane Market Shoreditch London England 01.jpg](https://commons.wikimedia.org/wiki/File:Market_stall_Sclater_Street_Brick_Lane_Market_Shoreditch_London_England_01.jpg) | Acabashi | CC BY-SA 4.0 |

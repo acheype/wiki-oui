@@ -23,7 +23,7 @@ WikiOui remplace tout cela par le descripteur **JSON** de `Form.schema` (attribu
 ## `texte` → `text`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `texte` *(à vérifier)* | `type: "text"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -42,7 +42,7 @@ WikiOui remplace tout cela par le descripteur **JSON** de `Form.schema` (attribu
 ## `textelong` → `textarea`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `textelong` *(à vérifier)* | `type: "textarea"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -56,7 +56,7 @@ WikiOui remplace tout cela par le descripteur **JSON** de `Form.schema` (attribu
 ## `champs_mail` → `email`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `champs_mail` | `type: "email"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -69,7 +69,7 @@ WikiOui remplace tout cela par le descripteur **JSON** de `Form.schema` (attribu
 ## `lien_internet` → `url`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `lien_internet` *(à vérifier ; fichier : `url.js`)* | `type: "url"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -82,7 +82,7 @@ WikiOui remplace tout cela par le descripteur **JSON** de `Form.schema` (attribu
 ## `jour` → `date`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `jour` *(à vérifier ; fichier : `date.js`)* | `type: "date"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -95,7 +95,7 @@ WikiOui remplace tout cela par le descripteur **JSON** de `Form.schema` (attribu
 Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois types WikiOui × deux sources :
 
 | Type YesWiki (index 0) | WikiOui |
-|---|---|
+| --- | --- |
 | `liste` | `list` + options inline |
 | `listefiche` | `list` + `sourceFormId` |
 | `radio` | `radio` + options inline |
@@ -104,7 +104,7 @@ Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois ty
 | `checkboxfiche` | `multiChoice` + `sourceFormId` |
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | `listeOrFormId` | `options` **ou** `sourceFormId` | id d'une **Liste** → le script convertit la Liste en options inline (un niveau) ; id **numérique de formulaire** → slug du formulaire migré |
 | 2 | `label` | `label` | |
 | 5 | `defaultValue` | `defaultValue` | |
@@ -117,7 +117,7 @@ Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois ty
 ## `image` → `image`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `image` | `type: "image"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -134,7 +134,7 @@ Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois ty
 ## `fichier` → `file`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `fichier` *(à vérifier ; fichier : `file.js`)* | `type: "file"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -147,7 +147,7 @@ Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois ty
 ## `map` → `geolocation`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `map` *(à vérifier)* | `type: "geolocation"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -164,7 +164,7 @@ Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois ty
 ## `tags` → `tags`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `tags` | `type: "tags"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
@@ -175,7 +175,7 @@ Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois ty
 ## `labelhtml` → `customContent`
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `labelhtml` | `type: "customContent"` | |
 | 1 | `content_saisie` | `entryContent` | contenu HTML/wiki → **MDX** : conversion de syntaxe à prévoir dans le script |
 | 2 | *(vide)* | — | |
@@ -185,7 +185,7 @@ Six jetons YesWiki (confirmés par `fields/commons/attributes.js`) pour trois ty
 ## `titre` → `title` (mode automatique)
 
 | Index | YesWiki | WikiOui | Note |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 0 | type = `titre` | `type: "title"` avec `automatic: true` | |
 | 1 | `value` (template) | `template` | syntaxe source `{{bf_xxx}}` *(à vérifier)* → `{xxx}` (accolades simples, noms normalisés) |
 | 2 | `label` | `label` | |

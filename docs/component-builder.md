@@ -47,7 +47,7 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 ### Clés d'un champ
 
 | Clé | Rôle |
-|---|---|
+| --- | --- |
 | `label` | Libellé du champ (français en clair — l'i18n est au backlog) |
 | `hint` | Indication affichée sous le champ |
 | `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `page-list` · `file-list` · `divider` |
@@ -95,7 +95,7 @@ Deux familles de checks, **complémentaires** — la signature ne remplace qu'*u
 **Signature** — le YAML colle-t-il au composant ? On parse la *source* du `.tsx` (jamais on ne l'importe, pour rester indifférent à `"use client"` ; le projet TS est chargé pour résoudre types importés, unions et défauts — un défaut est tracé jusqu'à un littéral : direct, constante, propriété d'objet, importés compris). **Uniquement pour les émetteurs de balise** (les émetteurs `markdown-link` n'ont que les structurels), et on **saute les champs `divider`** :
 
 | Détecte | Constat |
-|---|---|
+| --- | --- |
 | champ YAML ∉ props du composant | erreur — nom de prop erroné |
 | prop obligatoire au runtime (requise en TS + sans défaut de déstructuration) sans `required` | erreur — obligatoire oublié |
 | type du champ ≠ type de la prop | erreur — incompatibilité |
@@ -143,7 +143,7 @@ Le menu « Composants » ne liste que les descripteurs qui émettent des balises
 ## Table de traduction YesWiki → WikiOui
 
 | YesWiki (Actions Builder) | WikiOui |
-|---|---|
+| --- | --- |
 | Un YAML = un *groupe* de plusieurs `actions` | Un YAML = **un composant** (nom dérivé du fichier) |
 | Bloc `commons` partagé entre actions | Champs inlinés dans `properties` ; regex factorisées par ancres YAML |
 | Sections titrées (`title`, `width` par action) | Type `divider` (avec `showif` au besoin) |

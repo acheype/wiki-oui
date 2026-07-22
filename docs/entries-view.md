@@ -28,7 +28,7 @@ Les réglages pointus restent dans leur section, marqués `advanced`. Hauteur d'
 - **Pseudo-champs** : des champs synthétiques proposés aux côtés des vrais, préfixés `$` (aucune collision possible avec un `name`) :
 
 | Pseudo-champ | Valeur | Proposé dans |
-|---|---|---|
+| --- | --- | --- |
 | `$form` | le formulaire de la fiche (multi-formulaires seulement) | filtres, couleur/icône, colonnes |
 | `$owner` | `Page.ownerName` | zones secondaires, colonnes, tri |
 | `$createdAt` | `Page.createdAt` | zones secondaires, colonnes, tri, champs date |
@@ -41,7 +41,7 @@ Les réglages pointus restent dans leur section, marqués `advanced`. Hauteur d'
 ### Liste (`list`) — les fiches en lignes dépliables
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `expandable` | Déplier les fiches dans la liste | checkbox, **coché par défaut** — clic sur la ligne = déplie la fiche en place (rendu réel : gabarit ou rendu par défaut, non paramétrable) |
 | `openOnClick` | Ouvrir les fiches au clic | checkbox, visible seulement si `expandable` décoché (**exclusifs**) ; alors le clic applique `entryDisplay` |
 | `titleField` / `subtitleField` | Zone de titre / de sous-titre | défauts : champ titre / vide |
@@ -51,7 +51,7 @@ Décoché des deux côtés = liste inerte (simple listing). Pas de zones Visuel/
 ### Grille (`grid`) — les fiches en cartes (ex-« Blocs »)
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `visualField` | Zone visuelle | champ image, affiché dans la carte |
 | `titleField` / `subtitleField` | Zone de titre / de sous-titre | défauts : champ titre / vide |
 | `textField` | Zone de texte | tronquée pour préserver la forme de la carte |
@@ -67,7 +67,7 @@ Toute la carte est cliquable (`entryDisplay`, défaut popup).
 ### Tableau (`table`)
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `columns` | Colonnes | `field-rows` : picker + drag (ordre des colonnes) + **titre éditable en place** (dérivé du libellé du champ, vidé = re-dérivé — le motif des identités). **Vide = tous les champs.** Pseudo-champs proposés. |
 | `splitMultiChoice` | Une colonne par option des cases à cocher | avancé, décoché par défaut (YesWiki cochait) |
 | `sumFields` | Colonnes à totaliser | avancé, multi, restreint aux champs nombre — ligne de total en pied |
@@ -78,7 +78,7 @@ Comportements natifs, sans paramètre : **en-têtes triables au clic**, libellé
 ### Carte (`map`)
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `basemap` | Fond de carte | liste **curée** (~8 fonds fonctionnels sans clé, validés à l'implémentation) : `osm` (défaut) · `osm-france` · `positron` · `dark-matter` · `stadia-smooth` · `stadia-smooth-dark` · `esri-satellite` · `opentopo` |
 | `initialArea` | Vue initiale fixe | avancé, `map-view` (le widget du champ géolocalisation) — **vide = cadrage automatique** sur les marqueurs (fit bounds) |
 | `cluster` | Regrouper les marqueurs proches | **coché par défaut** (YesWiki : décoché) |
@@ -91,7 +91,7 @@ Le clic marqueur applique **directement** `entryDisplay`, qui gagne ici deux opt
 ### Calendrier (`calendar`) — la grille temporelle
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `startDateField` | Champ date de début | **requis** (sans lui : état vide explicite dans l'aperçu) ; pré-rempli si le formulaire n'a qu'un champ date ; pseudo-champs dates acceptés |
 | `endDateField` | Champ date de fin | optionnel — événements multi-jours |
 | `initialView` | Vue initiale | `month` (défaut) · `week` · `day` · `planning` |
@@ -105,7 +105,7 @@ Le clic marqueur applique **directement** `entryDisplay`, qui gagne ici deux opt
 Le Calendrier montre le temps (avec des événements dedans), l'Agenda montre les événements (rangés par le temps) : bloc date typographié à gauche, groupement par mois, seulement les jours ayant des événements.
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `startDateField` / `endDateField` | Champs dates | mêmes règles que le Calendrier |
 | `titleField` / `subtitleField` | Zones | comme la Liste |
 | `columnCount` | Nombre de colonnes | avancé, défaut 1 |
@@ -119,7 +119,7 @@ Liste alphabétique groupée par initiale du titre, **index de lettres** cliquab
 ### Carrousel (`carousel`)
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `visualField` | Zone visuelle | champ image, **requis** (pré-rempli si un seul champ image) |
 | `captionField` | Légende | défaut : titre ; effaçable (pas de texte sur l'image) — fusionne deux paramètres YesWiki |
 | `autoplay` | Défilement automatique | coché par défaut |
@@ -130,7 +130,7 @@ Le clic sur une diapositive applique `entryDisplay` (défaut popup). Pas de rech
 ### Galerie photo (`gallery`)
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `visualField` | Zone visuelle | champ image, **requis** |
 
 Grille justifiée moderne, **zoom au survol** avec voile révélant le titre — sans paramètre. Le clic ouvre une **visionneuse plein écran** (navigation ← →, légende = titre, bouton « Voir la fiche » → modale commune) : la seule vue dont le clic n'est pas `entryDisplay` (dans une galerie, on attend la photo en grand). `pageSize` disponible (chargement par lots).
@@ -144,7 +144,7 @@ Grille justifiée moderne, **zoom au survol** avec voile révélant le titre —
 ### Recherche
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `search` | Barre de recherche | checkbox — recherche instantanée ; toutes vues sauf Carrousel |
 | `searchFields` | Champs cherchés | avancé, multi, visible si `search` — **vide (défaut) = tous les champs de types texte** (titre, texte court, texte long, email, url) |
 
@@ -153,7 +153,7 @@ Grille justifiée moderne, **zoom au survol** avec voile révélant le titre —
 Sur **Liste, Grille, Tableau, Carte, Calendrier, Agenda** — marqueur (Carte), événement (Calendrier/Agenda), pastille/liseré discret (Liste, Grille, Tableau) :
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `colorField` | Champ pour la couleur | restreint aux champs à options (`list`, `radio`, `multiChoice`) + `$form` |
 | `colors` | (mapping valeur → couleur) | avancé, visible si `colorField` — **palette automatique** dès le choix du champ (attribution stable dans l'ordre des options), surcharges par color picker pré-remplies |
 | `iconField` | Champ pour l'icône | avancé, mêmes champs sources |
@@ -162,7 +162,7 @@ Sur **Liste, Grille, Tableau, Carte, Calendrier, Agenda** — marqueur (Carte), 
 ### Filtres disponibles (ex-« Facettes »)
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `filters` | Filtres disponibles | `field-rows` avec icône : picker + drag + titre éditable en place + **icône optionnelle** (historique YesWiki). Champs sources : à options (`list`, `radio`, `multiChoice`), **Mots-clés** (`tags` — options = les tags existants, un plus sur YesWiki) et `$form`. |
 | `filtersPosition` | Position des filtres | avancé : `left` (défaut — YesWiki disait droite) · `right` ; sur mobile, repli en bouton « Filtres » + panneau (natif) |
 | `filtersExpanded` | Filtres dépliés à l'arrivée | avancé : `first` (défaut) · `all` |
@@ -173,7 +173,7 @@ Le bouton « **Effacer les filtres** » apparaît automatiquement dès qu'un fil
 ### Tri
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `sortField` | Trier par | pseudo-champs inclus — **défaut : `$createdAt`** |
 | `sortOrder` | Ordre | `desc` (défaut — les récentes d'abord ; YesWiki triait croissant) · `asc` |
 | `sortOptions` | Tris proposés aux visiteurs | `field-rows` (champ + titre) — menu « Trier par » à côté de la recherche |
@@ -183,7 +183,7 @@ Tri visible pour Liste, Grille, Tableau, Carrousel, Galerie ; masqué pour Carte
 ### Sélection des fiches
 
 | Prop | Libellé | Notes |
-|---|---|---|
+| --- | --- | --- |
 | `period` | Période | vide = pas de filtre ; `future` (À venir) · `past` (Passées) · `today` (Aujourd'hui) · `last-30-days` · `next-30-days` · `one-week-around` (± 1 semaine) · `last-2-years` |
 | `periodField` | Sur le champ | visible si `period` ; champs date + pseudo-champs dates ; pré-rempli : `startDateField` sur Calendrier/Agenda, sinon l'unique champ date |
 | `limit` | Nombre maximal de fiches | avancé, vide = toutes — **tronque** la source (« les 5 dernières actus »), à distinguer de `pageSize` qui **pagine** l'affichage |
@@ -206,7 +206,7 @@ Le contrat de migration : toute donnée YesWiki (actions `{{bazar…}}`) doit tr
 ### Actions → valeurs de `view`
 
 | Action YesWiki | WikiOui |
-|---|---|
+| --- | --- |
 | `bazarliste` (template `liste_accordeon`) | `view="list"` |
 | `bazarcard` (`card`) | `view="grid"` (« Blocs » → « Grille ») |
 | `bazartableau` (`tableau.tpl.html`) | `view="table"` |
@@ -222,7 +222,7 @@ Le contrat de migration : toute donnée YesWiki (actions `{{bazar…}}`) doit tr
 ### Paramètres communs
 
 | YesWiki | WikiOui |
-|---|---|
+| --- | --- |
 | `id` (formulaire·s de l'action bazar) | `form` (slug, ou tableau de slugs) |
 | `template` | `view` |
 | `dynamic` | **Supprimé** — tout est toujours dynamique |
@@ -251,7 +251,7 @@ Le contrat de migration : toute donnée YesWiki (actions `{{bazar…}}`) doit tr
 ### Par vue
 
 | YesWiki | WikiOui |
-|---|---|
+| --- | --- |
 | `displayfields` / `correspondance` (sous-props) | Props de premier rang `…Field` (règle ADR 0013 : pas de subproperties) |
 | `displayfields.title` / `.subtitle` / `.text` / `.footer` / `.visual` / `.floating` | `titleField` / `subtitleField` / `textField` / `footerField` / `visualField` / `badgeField` (« zone flottante » → « Badge ») |
 | liste : zones `visual`/`floating` déclarées | **Non reprises** (Liste = Titre + Sous-titre, comme le rendu YesWiki effectif) |

@@ -67,13 +67,13 @@ Sortie (`test-annotations.mjs`) :
 ### Cas d'erreur et pièges (testés)
 
 | Cas | Résultat |
-|---|---|
+| --- | --- |
 | `# Titre {{ id: }}` (objet JS invalide) | **Erreur de compilation de toute la page** : `1:16: Could not parse expression with acorn`. C'est MDX lui-même qui rejette l'expression au parsing, avec ligne:colonne — même mode d'échec que n'importe quelle expression MDX invalide, pas un risque *ajouté* par le plugin. |
 | `# Titre {{ data-x: 'a' }}` (clé avec tiret non citée) | Erreur acorn idem — il faut écrire `{{ 'data-x': 'a' }}`. |
 | `# Titre {{ id: 'a', }}` (virgule finale) | OK (JS laxiste accepté). |
 | `[lien](/p){{ class: 'btn' }}` (`class` au lieu de `className`) | **Rendu correct** (`class="btn"`) mais avertissement React en dev (`Invalid DOM property`). Convention à documenter pour les auteurs : `className`. |
 | `[lien](/p) {{ className: 'btn' }}` (espace avant `{{`) | L'annotation s'attache au **paragraphe**, pas au lien (règle README : pas d'espace pour annoter un élément inline). Piège auteur à documenter. |
-| Annotation de tableau sur sa propre ligne après le tableau | **Cassé avec les versions actuelles** : la ligne `{{…}}` devient un `mdxFlowExpression` frère du tableau (vérifié dans le mdast) au lieu d'une ligne de tableau, d'où une **erreur à l'exécution** (`Objects are not valid as a React child`) — pas à la compilation. Contournement validé : dernière ligne `| {{ className: 'tableau-large' }} |` → `<table class="tableau-large">`. |
+| Annotation de tableau sur sa propre ligne après le tableau | **Cassé avec les versions actuelles** : la ligne `{{…}}` devient un `mdxFlowExpression` frère du tableau (vérifié dans le mdast) au lieu d'une ligne de tableau, d'où une **erreur à l'exécution** (`Objects are not valid as a React child`) — pas à la compilation. Contournement validé : dernière ligne `\| {{ className: 'tableau-large' }} \|` → `<table class="tableau-large">`. |
 
 ### Coexistence avec `remark-directive` (testé, `test-coexist2.mjs`)
 
@@ -102,7 +102,7 @@ Un [lien](/page){{ className: 'btn' }} dedans.
 **Résultat empirique inattendu (`test-attrlist.mjs`, `test-attrlist2.mjs`) : fonctionne sous MDX 3 sans aucun échappement** pour les IAL — contrairement à `remark-attributes`. Son extension micromark consomme `{:` avant que le tokenizer d'expressions MDX ne voie l'accolade :
 
 | Cas | Syntaxe | Résultat |
-|---|---|---|
+| --- | --- | --- |
 | id + classe sur titre (IAL bloc, ligne suivante) | `# Titre` ⏎ `{:#mon-ancre .grande}` | OK → `<h1 id="mon-ancre" class="grande">` |
 | classe sur lien (IAL inline collée) | `[GitHub](https://github.com/){:.btn target="_blank"}` | OK → `<a … class="btn" target="_blank">` |
 | classe sur image | `![logo](/img.png){:.img-fluide}` | OK |

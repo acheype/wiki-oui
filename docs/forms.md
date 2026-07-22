@@ -41,7 +41,7 @@ model Revision {
 Trois identifiants suivent le même motif — **dérivé automatiquement, figé au premier enregistrement** — et la même présentation avant l'enregistrement : une ligne « Identifiant\* » avec un **chip éditable en place** (clic sur le chip ou son crayon → input au même endroit, valeur sélectionnée ; Entrée ou perte de focus referme), dérivé jusqu'à modification par l'utilisateur, re-dérivé s'il est **laissé vide** à la perte de focus. Pour une fiche, la ligne se place sous le champ Titre (en fin de formulaire quand le titre est automatique) :
 
 | Objet | Dérivé de | Figé quand |
-|---|---|---|
+| --- | --- | --- |
 | `Form.slug` (« l'id » du formulaire) | `name` du formulaire | premier enregistrement du formulaire |
 | `name` d'un champ (clé dans `data`, cible des `{champ}`) | `label` du champ, unique dans le formulaire | premier enregistrement du formulaire |
 | slug d'une fiche | valeur du champ titre (ou titre automatique) | première sauvegarde de la fiche |
@@ -55,7 +55,7 @@ Nuance depuis ADR 0016/0017 : « figé » signifie *plus jamais dérivé* — ma
 Deux nouvelles **pages spéciales** seedées (non supprimables, éditables), dont le contenu par défaut appelle un composant intégré — même philosophie que `page-rapide-haut` :
 
 | Page | Composant | États d'URL |
-|---|---|---|
+| --- | --- | --- |
 | `formulaires` | `<FormsAdmin>` | `/formulaires` (liste) · `?nouveau` (builder vide) · `?id={slug}` (édition) |
 | `fiches` | `<EntriesAdmin>` | `/fiches` (toutes les fiches) · `?formulaire={slug}` (celles d'un formulaire) · `?nouvelle&formulaire={slug}` (saisie) |
 
@@ -129,7 +129,7 @@ Deux voies, selon `Form.template` :
 Tronc commun à tous les types : `label` · `name` (voir Identités) · `required` · `hint` · `placeholder` (types texte-like). Écartés de la v0.3 (machineries absentes — voir table de migration) : ACLs `read`/`write`, `searchable`, `semantic`, `queries`, `size`.
 
 | Type | Palette (FR) | Paramètres spécifiques |
-|---|---|---|
+| --- | --- | --- |
 | `text` | Texte court | `subtype` (`text` · `number`) · `maxLength` · `pattern` (avancé) · `defaultValue` |
 | `textarea` | Texte long | `rows` · `defaultValue` · `allowMdx` (la valeur est rendue comme MDX — opt-in admin) |
 | `email` | Email | — (validation email, rendu `mailto:`) |
@@ -167,7 +167,7 @@ Le champ `tags` est le **widget de saisie des tags de la Page-fiche** : pré-rem
 ## Composants intégrés ajoutés
 
 | Composant | Rôle |
-|---|---|
+| --- | --- |
 | `<FormsAdmin>` | L'écran d'administration des formulaires (page spéciale `formulaires`) |
 | `<EntriesAdmin>` | Liste des fiches + saisie (page spéciale `fiches`) |
 | `<EntryForm id>` | Formulaire de saisie inséré dans une page (descripteur YAML, type `form-list`) |

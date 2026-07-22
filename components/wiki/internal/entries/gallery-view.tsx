@@ -80,7 +80,7 @@ function GalleryTile({
     >
       {value === SAMPLE_IMAGE ? (
         <span
-          className="flex aspect-[4/3] items-center justify-center text-muted-foreground/50"
+          className="flex aspect-4/3 items-center justify-center text-muted-foreground/50"
           aria-hidden
         >
           <ImageIcon className="size-8" />

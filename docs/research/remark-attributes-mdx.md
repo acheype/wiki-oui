@@ -20,7 +20,7 @@
 Source : registre npm (`https://registry.npmjs.org/<paquet>`), consulté le 2026-07-08.
 
 | Paquet | Dernière version | Publiée le | Stack ciblée | Verdict |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | [`remark-attributes`](https://www.npmjs.com/package/remark-attributes) | 0.4.4 | 2026-05-29 | unified 11, mdast-util-from-markdown 2, micromark-util-symbol 2 — **stack actuelle** | Candidat principal |
 | [`remark-attr`](https://www.npmjs.com/package/remark-attr) | 0.11.1 | **2020-05-08** | ancien parseur (dépend de `remark-footnotes@^1`, ère remark ≤ 12) | **Mort pour remark ≥ 13** |
 | [`remark-attribute-list`](https://www.npmjs.com/package/remark-attribute-list) | 0.4.0 | 2025-09-15 | micromark 2 / unified 11, peerDep `mdast-util-mdx@^3` | Candidat secondaire (syntaxe kramdown `{:…}`) |
@@ -52,7 +52,7 @@ Environnement : Node 24.12.0, pnpm 11.10.0. Versions **exactes** installées : `
 ### 4a. `remark-attributes` via `compile()` de `@mdx-js/mdx`
 
 | Cas | Résultat |
-|---|---|
+| --- | --- |
 | `# Titre{#mon-id .grande}` — sans option | **ERREUR** `Could not parse expression with acorn` |
 | idem avec `{mdx: true}` | **ERREUR** identique (l'échappement reste requis) |
 | `# Titre\{#mon-id .grande\}` avec `{mdx: true}` | **OK** — compile en `_jsx(_components.h1, {id: "mon-id", className: "grande", …})` |
@@ -100,7 +100,7 @@ Sortie :
 ## 5. Impact syntaxe pour l'auteur de pages wiki
 
 | Besoin | `remark-attributes` (mdx:true) | `remark-directive` | JSX pur (MDX natif) |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Classe/id sur un titre existant | `# Titre\{#id .grande\}` | impossible directement (il faudrait `:::` autour, ou un plugin maison) | `<h1 id="id" className="grande">Titre</h1>` |
 | Lien stylé | `[lien](/p)\{.btn target=_blank\}` | `:a[lien]{href=/p .btn target=_blank}` (lourd) | `<a href="/p" className="btn">lien</a>` |
 | Span/mot stylé | `mot\{.rouge\}` (porte sur le nœud précédent) | `:span[mot]{.rouge}` | `<span className="rouge">mot</span>` |
