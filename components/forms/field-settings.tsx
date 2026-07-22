@@ -9,7 +9,7 @@
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { countFieldReferences } from "@/app/form-actions";
-import { RenameSlugDialog } from "@/components/rename-slug-dialog";
+import { RenameSlugDialog } from "@/components/slug/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SlugInlineEdit } from "@/components/slug-input";
+import { SlugInlineEdit } from "@/components/slug/slug-input";
 import type { FieldReferenceCounts } from "@/lib/field-rename";
 import type { FormField } from "@/lib/form-descriptor";
 import { slugify } from "@/lib/slug";

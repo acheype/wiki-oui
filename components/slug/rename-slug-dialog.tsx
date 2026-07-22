@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { SlugInput } from "@/components/slug-input";
+import { SlugInput } from "@/components/slug/slug-input";
 import { isValidSlug } from "@/lib/slug";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 

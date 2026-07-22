@@ -6,7 +6,7 @@ import {
   RenameSlugDialog,
   impactParts,
   impactTotal,
-} from "@/components/rename-slug-dialog";
+} from "@/components/slug/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 

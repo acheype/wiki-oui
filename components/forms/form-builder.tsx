@@ -46,13 +46,13 @@ import {
   RenameSlugDialog,
   impactParts,
   impactTotal,
-} from "@/components/rename-slug-dialog";
+} from "@/components/slug/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { SlugInlineEdit } from "@/components/slug-input";
+import { SlugInlineEdit } from "@/components/slug/slug-input";
 import {
   countFieldReferenceUses,
   renameFieldBindings,
