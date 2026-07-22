@@ -10,9 +10,13 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 
 ## Règles de commit Git
 
-- Toujours écrire le commit en anglais
+- Toujours écrire le commit en anglais.
 - Utiliser le format de Conventional Commits (feat, fix, refactor, docs, chore).
 - Limiter l'objet (la première ligne) à 72 caractères maximum.
 - Ajouter systématiquement un corps de message expliquant le raisonnement ou la motivation des changements.
 - Référencer les numéros d'issue lorsque c'est pertinent.
 - N'utiliser jamais de messages génériques tels que "fix bug" ou "update code".
+
+## Conventions de rédaction
+
+- Mettre toujours un espace insécable après « ou avant » dans les textes affichés à l'utilisateur.

@@ -365,7 +365,7 @@ export function titleSourceLabels(descriptor: FormDescriptor): string[] {
 
 /** Why a save is refused when the title comes out empty (ADR 0020). */
 export function emptyTitleMessage(descriptor: FormDescriptor): string {
-  const labels = titleSourceLabels(descriptor).map((label) => `« ${label} »`);
+  const labels = titleSourceLabels(descriptor).map((label) => `«\u00A0${label}\u00A0»`);
   if (labels.length === 0) return "Le titre de la fiche est vide.";
   if (labels.length === 1) {
     return `Le titre de la fiche est calculé à partir de ${labels[0]} : renseignez ce champ.`;
@@ -430,7 +430,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
     if (seen.has(field.name)) {
       issues.push({
         fieldIndex,
-        message: `Deux champs portent le nom « ${field.name} ».`,
+        message: `Deux champs portent le nom «\u00A0${field.name}\u00A0».`,
       });
     }
     seen.add(field.name);
@@ -438,7 +438,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
 
   if (!descriptor.fields.some((field) => field.type === "title")) {
     issues.push({
-      message: "Le formulaire doit comporter le champ « Titre de la fiche ».",
+      message: "Le formulaire doit comporter le champ «\u00A0Titre de la fiche\u00A0».",
     });
   }
 
@@ -448,7 +448,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
   for (const fieldIndex of tagsIndexes.slice(1)) {
     issues.push({
       fieldIndex,
-      message: "Un seul champ « Mots-clés » par formulaire.",
+      message: "Un seul champ «\u00A0Mots-clés\u00A0» par formulaire.",
     });
   }
 
@@ -457,7 +457,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
       for (const name of unknownFieldReferences(field.template, descriptor)) {
         issues.push({
           fieldIndex,
-          message: `Le titre automatique référence un champ inconnu : « ${name} ».`,
+          message: `Le titre automatique référence un champ inconnu : «\u00A0${name}\u00A0».`,
         });
       }
     }
@@ -467,7 +467,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
       if (hasPairs === hasSource) {
         issues.push({
           fieldIndex,
-          message: `Le champ « ${field.label} » doit tirer ses options des paires saisies ou d'un formulaire source.`,
+          message: `Le champ «\u00A0${field.label}\u00A0» doit tirer ses options des paires saisies ou d'un formulaire source.`,
         });
       } else if (hasPairs && field.defaultValue !== undefined) {
         const values = Array.isArray(field.defaultValue)
@@ -477,7 +477,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
           if (!(value in field.options!)) {
             issues.push({
               fieldIndex,
-              message: `La valeur par défaut « ${value} » ne fait pas partie des options.`,
+              message: `La valeur par défaut «\u00A0${value}\u00A0» ne fait pas partie des options.`,
             });
           }
         }

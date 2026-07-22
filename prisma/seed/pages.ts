@@ -55,15 +55,15 @@ Chacun est accompagné de fiches d'exemple et de plusieurs pages illustrant diff
 ## Premiers défis à réaliser
 
 1) premier défi => **écrire dans cette page**
-  - double-cliquez n'importe où dans le texte (ou cliquez sur « Modifier » en bas de page)
+  - double-cliquez n'importe où dans le texte (ou cliquez sur «\u00A0Modifier\u00A0» en bas de page)
   - l'aspect de la page change : vous êtes en __mode édition__
   - écrivez ce que vous voulez ici =>
-  - puis cliquez sur « Enregistrer » et observez votre travail
+  - puis cliquez sur «\u00A0Enregistrer\u00A0» et observez votre travail
 
 2) deuxième défi => **insérer un bouton**
   - repassez en mode édition
   - positionnez votre curseur ici
-  - dans la barre d'outils, cliquez sur __Composants__ (l'icône puzzle), puis choisissez « Bouton »
+  - dans la barre d'outils, cliquez sur __Composants__ (l'icône puzzle), puis choisissez «\u00A0Bouton\u00A0»
   - remplissez les paramètres proposés et validez
   - enregistrez
 
@@ -75,9 +75,9 @@ Chacun est accompagné de fiches d'exemple et de plusieurs pages illustrant diff
    - cette démarche fonctionne pour tous les composants insérés (menus, fiches, cartes…)
 
 4) quatrième défi => **restaurer une version précédente de cette page** (en cas de préférence ou d'erreur)
-  - cliquez sur « Historique » en bas de page
+  - cliquez sur «\u00A0Historique\u00A0» en bas de page
   - choisissez une révision précédente dans la frise
-  - cliquez sur « Restaurer cette révision »
+  - cliquez sur «\u00A0Restaurer cette révision\u00A0»
 
 5) cinquième défi => **insérer une image**
   - en édition, placez-vous tout en bas de cette page

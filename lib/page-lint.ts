@@ -78,7 +78,7 @@ export function lintPageSource(
       if (target && !existingSlugs.has(target)) {
         warnings.push({
           line: node.position?.start.line,
-          message: `Le lien « ${url} » pointe vers une page qui n'existe pas (encore).`,
+          message: `Le lien «\u00A0${url}\u00A0» pointe vers une page qui n'existe pas (encore).`,
         });
       }
       return;
@@ -99,7 +99,7 @@ export function lintPageSource(
       if (!isAllowedHostElement(name)) {
         warnings.push({
           line,
-          message: `La balise « <${name}> » n'est pas autorisée dans une page. Elle ne sera pas affichée.`,
+          message: `La balise «\u00A0<${name}>\u00A0» n'est pas autorisée dans une page. Elle ne sera pas affichée.`,
         });
       }
       return;
@@ -109,7 +109,7 @@ export function lintPageSource(
     if (!known.has(name)) {
       warnings.push({
         line,
-        message: `Le composant « ${name} » n'existe pas. Il ne sera pas affiché.`,
+        message: `Le composant «\u00A0${name}\u00A0» n'existe pas. Il ne sera pas affiché.`,
       });
       return;
     }
@@ -152,7 +152,7 @@ export function lintPageSource(
       if (attribute.type === "mdxJsxExpressionAttribute") {
         warnings.push({
           line,
-          message: `Sur « ${name} », les propriétés étalées ({...}) sont ignorées.`,
+          message: `Sur «\u00A0${name}\u00A0», les propriétés étalées ({...}) sont ignorées.`,
         });
         continue;
       }
@@ -165,7 +165,7 @@ export function lintPageSource(
       if (!property) {
         warnings.push({
           line,
-          message: `Le composant « ${name} » n'a pas de propriété « ${attributeName} ». Elle sera ignorée.`,
+          message: `Le composant «\u00A0${name}\u00A0» n'a pas de propriété «\u00A0${attributeName}\u00A0». Elle sera ignorée.`,
         });
         continue;
       }
@@ -174,7 +174,7 @@ export function lintPageSource(
       if (received === UNREADABLE) {
         warnings.push({
           line,
-          message: `La propriété « ${attributeName} » de « ${name} » contient une expression à évaluer. Seules les valeurs littérales sont acceptées, elle sera ignorée.`,
+          message: `La propriété «\u00A0${attributeName}\u00A0» de «\u00A0${name}\u00A0» contient une expression à évaluer. Seules les valeurs littérales sont acceptées, elle sera ignorée.`,
         });
         continue;
       }
@@ -183,7 +183,7 @@ export function lintPageSource(
       if (misfit) {
         warnings.push({
           line,
-          message: `La propriété « ${attributeName} » de « ${name} » ${misfit}`,
+          message: `La propriété «\u00A0${attributeName}\u00A0» de «\u00A0${name}\u00A0» ${misfit}`,
         });
         continue;
       }
@@ -192,7 +192,7 @@ export function lintPageSource(
       if (declared && typeof received === "string" && !(received in declared)) {
         warnings.push({
           line,
-          message: `La propriété « ${attributeName} » de « ${name} » n'accepte pas la valeur « ${received} ». Valeurs possibles : ${Object.keys(declared).join(", ")}.`,
+          message: `La propriété «\u00A0${attributeName}\u00A0» de «\u00A0${name}\u00A0» n'accepte pas la valeur «\u00A0${received}\u00A0». Valeurs possibles : ${Object.keys(declared).join(", ")}.`,
         });
         continue;
       }
@@ -204,7 +204,7 @@ export function lintPageSource(
         if (target && !existingSlugs.has(target)) {
           warnings.push({
             line,
-            message: `La propriété « ${attributeName} » de « ${name} » pointe vers une page qui n'existe pas (encore) : « ${received} ».`,
+            message: `La propriété «\u00A0${attributeName}\u00A0» de «\u00A0${name}\u00A0» pointe vers une page qui n'existe pas (encore) : «\u00A0${received}\u00A0».`,
           });
         }
       }
@@ -217,7 +217,7 @@ export function lintPageSource(
       if (!written.has(fieldProp(field, property))) {
         warnings.push({
           line,
-          message: `La propriété « ${fieldProp(field, property)} » est obligatoire sur « ${name} ». Sans elle, le composant ne sera pas affiché.`,
+          message: `La propriété «\u00A0${fieldProp(field, property)}\u00A0» est obligatoire sur «\u00A0${name}\u00A0». Sans elle, le composant ne sera pas affiché.`,
         });
       }
     }
@@ -268,7 +268,7 @@ function propMisfit(kind: PropKind, value: unknown): string | null {
     case "strings":
       return 'attend un texte ou une liste de textes, par exemple {["a", "b"]}.';
     case "rows":
-      return 'attend une liste d\'objets portant une clé « field », par exemple {[{ field: "type" }]}.';
+      return 'attend une liste d\'objets portant une clé «\u00A0field\u00A0», par exemple {[{ field: "type" }]}.';
     case "mapping":
       return 'attend un objet { valeur: "…" }, par exemple {{ oui: "#16a34a" }}.';
     case "area":

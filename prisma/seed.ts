@@ -279,7 +279,7 @@ async function main() {
     }
     const form = formBySlug.get(entry.formSlug);
     if (!form) {
-      console.warn(`! formulaire « ${entry.formSlug} » introuvable pour ${entry.slug}, ignoré`);
+      console.warn(`! formulaire «\u00A0${entry.formSlug}\u00A0» introuvable pour ${entry.slug}, ignoré`);
       continue;
     }
     // Like every other writer (ADR 0020): the title is computed here and
@@ -290,7 +290,7 @@ async function main() {
       ? computeAutomaticTitle(descriptor, entry.data)
       : "";
     if (title.trim() === "") {
-      throw new Error(`Titre vide pour la fiche « ${entry.slug} »`);
+      throw new Error(`Titre vide pour la fiche «\u00A0${entry.slug}\u00A0»`);
     }
     const createdAt = new Date();
     createdAt.setUTCDate(createdAt.getUTCDate() + entry.daysOffset);

@@ -242,7 +242,7 @@ properties:
       view: map
   captionField:
     label: Légende
-    hint: "« Aucun » = pas de texte sur l'image"
+    hint: "«\u00A0Aucun\u00A0» = pas de texte sur l'image"
     type: form-field
     default: title
     showif:
@@ -462,7 +462,7 @@ properties:
       period: /^(future|past|today|last-30-days|next-30-days|one-week-around|last-2-years)$/
   limit:
     label: Nombre maximal de fiches
-    hint: Vide = toutes ; tronque la source (« les 5 dernières actus »)
+    hint: Vide = toutes ; tronque la source («\u00A0les 5 dernières actus\u00A0»)
     type: number
     advanced: true
   pageSize:

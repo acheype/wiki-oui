@@ -82,8 +82,8 @@ export function ComponentBuilderDialog({
             <DialogHeader>
               <DialogTitle>
                 {state.mode === "edit"
-                  ? `Modifier « ${state.spec.descriptor.label} »`
-                  : `Insérer « ${state.spec.descriptor.label} »`}
+                  ? `Modifier «\u00A0${state.spec.descriptor.label}\u00A0»`
+                  : `Insérer «\u00A0${state.spec.descriptor.label}\u00A0»`}
               </DialogTitle>
               {state.spec.descriptor.description && (
                 <DialogDescription>

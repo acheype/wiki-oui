@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const family = fileFamily(file.name);
   if (family === null) {
     return Response.json(
-      { error: `Extension non autorisée : « ${file.name} ».` },
+      { error: `Extension non autorisée : «\u00A0${file.name}\u00A0».` },
       { status: 400 }
     );
   }

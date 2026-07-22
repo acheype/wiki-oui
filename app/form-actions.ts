@@ -76,7 +76,7 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
     // A stored descriptor only gets in through saveForm: reaching this means
     // the vocabulary shrank since. Fail loud rather than render a lie.
     throw new Error(
-      `Descripteur invalide en base pour le formulaire « ${slug} »`
+      `Descripteur invalide en base pour le formulaire «\u00A0${slug}\u00A0»`
     );
   }
   return {
@@ -110,7 +110,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
   }
   if (!isValidSlug(input.slug)) {
     issues.push({
-      message: `Identifiant invalide : « ${input.slug} » (minuscules, chiffres et tirets).`,
+      message: `Identifiant invalide : «\u00A0${input.slug}\u00A0» (minuscules, chiffres et tirets).`,
     });
   }
 
@@ -122,7 +122,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     const template = input.template ?? "";
     for (const name of unknownFieldReferences(template, parsed.descriptor)) {
       issues.push({
-        message: `Le gabarit référence un champ inconnu : « ${name} ».`,
+        message: `Le gabarit référence un champ inconnu : «\u00A0${name}\u00A0».`,
       });
     }
     // The schema arrives already rewritten from the canvas (ADR 0017): every
@@ -131,7 +131,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     for (const [from, to] of renames) {
       if (!names.has(to)) {
         issues.push({
-          message: `Le renommage « ${from} → ${to} » ne vise aucun champ du formulaire.`,
+          message: `Le renommage «\u00A0${from} → ${to}\u00A0» ne vise aucun champ du formulaire.`,
         });
       }
     }
@@ -142,7 +142,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     : null;
   if (input.isNew && existing) {
     issues.push({
-      message: `L'identifiant « ${input.slug} » est déjà pris par un autre formulaire.`,
+      message: `L'identifiant «\u00A0${input.slug}\u00A0» est déjà pris par un autre formulaire.`,
     });
   }
   if (!input.isNew && !existing && issues.length === 0) {
@@ -257,7 +257,7 @@ export async function renameForm(
 ): Promise<RenameFormResult> {
   if (!isValidSlug(newSlug)) {
     return {
-      error: `Identifiant invalide : « ${newSlug} » (minuscules, chiffres et tirets).`,
+      error: `Identifiant invalide : «\u00A0${newSlug}\u00A0» (minuscules, chiffres et tirets).`,
     };
   }
   if (newSlug === slug) {
@@ -269,7 +269,7 @@ export async function renameForm(
   }
   if (await prisma.form.findUnique({ where: { slug: newSlug } })) {
     return {
-      error: `L'identifiant « ${newSlug} » est déjà pris par un autre formulaire.`,
+      error: `L'identifiant «\u00A0${newSlug}\u00A0» est déjà pris par un autre formulaire.`,
     };
   }
 
@@ -407,7 +407,7 @@ export async function getEntryForm(
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {
-    throw new Error(`Descripteur invalide en base : « ${formSlug} »`);
+    throw new Error(`Descripteur invalide en base : «\u00A0${formSlug}\u00A0»`);
   }
 
   let values: EntryData | null = null;

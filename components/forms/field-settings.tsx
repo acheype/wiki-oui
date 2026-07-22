@@ -382,7 +382,7 @@ function TypeSpecificSettings({
               onChange({ initTodayButton: checked === true })
             }
           />
-          Proposer un bouton « Aujourd&apos;hui »
+          Proposer un bouton «&nbsp;Aujourd&apos;hui&nbsp;»
         </label>
       );
     case "list":
@@ -614,7 +614,7 @@ function GeolocationSettings({
             onChange({ geolocateButton: checked === true })
           }
         />
-        Bouton « Depuis ma position »
+        Bouton «&nbsp;Depuis ma position&nbsp;»
       </label>
     </div>
   );

@@ -441,15 +441,15 @@ function TitleImpactSentence({ impact }: { impact: TitleRecomputeImpact }) {
         <>
           <strong>{updated}</strong> fiche{updated > 1 ? "s" : ""} verr
           {updated > 1 ? "ont" : "a"} son titre recalculé depuis le nouveau
-          gabarit, et gagner{updated > 1 ? "ont" : "a"} une révision.
+          gabarit.
         </>
       ) : (
         <>Aucune fiche ne change de titre.</>
       )}
       {skipped > 0 && (
         <>
-          {" "}
-          <strong>{skipped}</strong> conserver{skipped > 1 ? "ont" : "a"} le
+          <br />
+          <strong>{skipped}</strong> fiche conserver{skipped > 1 ? "ont" : "a"} le
           sien : le gabarit produit une chaîne vide pour {skipped > 1 ? "elles" : "elle"}.
         </>
       )}

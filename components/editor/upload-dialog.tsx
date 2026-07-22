@@ -61,7 +61,7 @@ export function UploadDialog({
             <DialogHeader>
               <DialogTitle>Fichier PDF envoyé</DialogTitle>
               <DialogDescription>
-                Comment insérer « {state.name} » dans la page ?
+                Comment insérer «\u00A0{state.name}\u00A0» dans la page ?
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-2">

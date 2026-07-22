@@ -61,7 +61,7 @@ export async function savePage(input: {
 }): Promise<SaveResult> {
   const { slug, content } = input;
   if (!isValidSlug(slug)) {
-    return { error: `Slug invalide : « ${slug} »` };
+    return { error: `Slug invalide : «\u00A0${slug}\u00A0»` };
   }
   const tags = normalizeTags(input.tags);
 
@@ -126,7 +126,7 @@ export async function renamePage(
     return { error: "L'adresse d'une page spéciale ne peut pas être changée." };
   }
   if (!isValidSlug(newSlug)) {
-    return { error: `Adresse invalide : « ${newSlug} »` };
+    return { error: `Adresse invalide : «\u00A0${newSlug}\u00A0»` };
   }
   if (newSlug === slug) {
     return { error: "La nouvelle adresse est identique à l'actuelle." };
@@ -136,7 +136,7 @@ export async function renamePage(
     return { error: "Cette page n'existe pas." };
   }
   if (await prisma.page.findUnique({ where: { slug: newSlug } })) {
-    return { error: `L'adresse « ${newSlug} » est déjà utilisée.` };
+    return { error: `L'adresse «\u00A0${newSlug}\u00A0» est déjà utilisée.` };
   }
 
   const rename: SlugRename = { oldSlug: slug, newSlug };

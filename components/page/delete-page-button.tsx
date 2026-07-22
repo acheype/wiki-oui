@@ -34,7 +34,7 @@ export function DeletePageButton({ slug }: { slug: string }) {
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Supprimer « {slug} » ?</AlertDialogTitle>
+          <AlertDialogTitle>Supprimer «&nbsp;{slug}&nbsp;» ?</AlertDialogTitle>
           <AlertDialogDescription>
             La page et tout son historique de révisions seront définitivement
             supprimés. Cette action est irréversible.

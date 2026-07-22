@@ -485,7 +485,7 @@ function SortableFieldRow({
       <button
         type="button"
         className="cursor-grab text-muted-foreground/60 hover:text-foreground"
-        aria-label={`Réordonner « ${label} »`}
+        aria-label={`Réordonner «\u00A0${label}\u00A0»`}
         {...attributes}
         {...listeners}
       >
@@ -494,7 +494,7 @@ function SortableFieldRow({
       <div className="grid min-w-0 flex-1 gap-0.5">
         <Input
           value={row.title ?? label}
-          aria-label={`Titre affiché pour « ${label} »`}
+          aria-label={`Titre affiché pour «\u00A0${label}\u00A0»`}
           className="h-7 border-transparent px-1.5 text-sm shadow-none hover:border-input focus-visible:border-input"
           onChange={(event) => onTitle(event.target.value)}
         />
@@ -516,7 +516,7 @@ function SortableFieldRow({
         variant="ghost"
         size="icon"
         className="size-7 text-muted-foreground"
-        aria-label={`Retirer « ${label} »`}
+        aria-label={`Retirer «\u00A0${label}\u00A0»`}
         onClick={onRemove}
       >
         <X className="size-3.5" aria-hidden />

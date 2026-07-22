@@ -66,13 +66,13 @@ describe("a page that holds up raises nothing", () => {
 describe("a tag the sandbox refuses", () => {
   it("flags a script, the plainest vector there was", () => {
     expect(messages('<script src="https://evil.tld/x.js" />')[0]).toContain(
-      "« <script> » n'est pas autorisée"
+      "«\u00A0<script>\u00A0» n'est pas autorisée"
     );
   });
 
   it("flags a form, which would prompt a reader for their password", () => {
     expect(messages('<form action="https://evil.tld/steal" />')[0]).toContain(
-      "« <form> » n'est pas autorisée"
+      "«\u00A0<form>\u00A0» n'est pas autorisée"
     );
   });
 
@@ -97,23 +97,23 @@ describe("a tag the sandbox refuses", () => {
 describe("what would silently do nothing", () => {
   it("flags an unknown component", () => {
     expect(messages('<Buton text="Salut" />')[0]).toContain(
-      "« Buton » n'existe pas"
+      "«\u00A0Buton\u00A0» n'existe pas"
     );
   });
 
   it("flags a missing required prop", () => {
-    expect(messages("<Image />")[0]).toContain("« file » est obligatoire");
+    expect(messages("<Image />")[0]).toContain("«\u00A0file\u00A0» est obligatoire");
   });
 
   it("flags an unknown prop", () => {
     expect(messages('<Image file="a.png" foo="bar" />')[0]).toContain(
-      "n'a pas de propriété « foo »"
+      "n'a pas de propriété «\u00A0foo\u00A0»"
     );
   });
 
   it("flags a value outside the declared options", () => {
     expect(messages('<Image file="a.png" align="middle" />')[0]).toContain(
-      "n'accepte pas la valeur « middle »"
+      "n'accepte pas la valeur «\u00A0middle\u00A0»"
     );
   });
 
@@ -140,7 +140,7 @@ describe("what would silently do nothing", () => {
   it("treats a divider as no prop at all", () => {
     // A divider is builder chrome, never a prop the component accepts.
     expect(messages('<Image file="a.png" effects="oui" />')[0]).toContain(
-      "n'a pas de propriété « effects »"
+      "n'a pas de propriété «\u00A0effects\u00A0»"
     );
   });
 });
@@ -156,7 +156,7 @@ describe("a link whose target page does not exist", () => {
 
   it("flags handler and anchor forms by their slug segment", () => {
     expect(messages("[voir](page-absente/edit#section)")[0]).toContain(
-      "« page-absente/edit#section » pointe"
+      "«\u00A0page-absente/edit#section\u00A0» pointe"
     );
   });
 

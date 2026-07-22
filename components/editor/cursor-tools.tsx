@@ -211,7 +211,7 @@ function computeTooltips(
         reactTooltip(
           "",
           <StripButton
-            label={`Modifier « ${component.spec.descriptor.label} »`}
+            label={`Modifier «\u00A0${component.spec.descriptor.label}\u00A0»`}
             onClick={() => options.onEditComponent(component)}
           >
             <Pencil />

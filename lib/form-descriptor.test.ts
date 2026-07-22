@@ -58,7 +58,7 @@ describe("parseFormDescriptor", () => {
     const result = parseFormDescriptor(descriptor);
     expect(result).toEqual({
       issues: [
-        { fieldIndex: 2, message: "Deux champs portent le nom « prenom »." },
+        { fieldIndex: 2, message: "Deux champs portent le nom «\u00A0prenom\u00A0»." },
       ],
     });
   });
@@ -71,7 +71,7 @@ describe("parseFormDescriptor", () => {
       issues: [
         {
           message:
-            "Le formulaire doit comporter le champ « Titre de la fiche ».",
+            "Le formulaire doit comporter le champ «\u00A0Titre de la fiche\u00A0».",
         },
       ],
     });
@@ -88,7 +88,7 @@ describe("parseFormDescriptor", () => {
       issues: [
         {
           fieldIndex: 3,
-          message: "Un seul champ « Mots-clés » par formulaire.",
+          message: "Un seul champ «\u00A0Mots-clés\u00A0» par formulaire.",
         },
       ],
     });
@@ -120,7 +120,7 @@ describe("parseFormDescriptor", () => {
         {
           fieldIndex: 0,
           message:
-            "Le titre automatique référence un champ inconnu : « prenon ».",
+            "Le titre automatique référence un champ inconnu : «\u00A0prenon\u00A0».",
         },
       ],
     });
@@ -146,7 +146,7 @@ describe("parseFormDescriptor", () => {
         {
           fieldIndex: 2,
           message:
-            "Le champ « Statut » doit tirer ses options des paires saisies ou d'un formulaire source.",
+            "Le champ «\u00A0Statut\u00A0» doit tirer ses options des paires saisies ou d'un formulaire source.",
         },
       ],
     });
@@ -166,7 +166,7 @@ describe("parseFormDescriptor", () => {
         {
           fieldIndex: 2,
           message:
-            "Le champ « Statut » doit tirer ses options des paires saisies ou d'un formulaire source.",
+            "Le champ «\u00A0Statut\u00A0» doit tirer ses options des paires saisies ou d'un formulaire source.",
         },
       ],
     });
@@ -186,7 +186,7 @@ describe("parseFormDescriptor", () => {
         {
           fieldIndex: 2,
           message:
-            "La valeur par défaut « president » ne fait pas partie des options.",
+            "La valeur par défaut «\u00A0president\u00A0» ne fait pas partie des options.",
         },
       ],
     });
@@ -531,13 +531,13 @@ describe("emptyTitleMessage", () => {
 
   it("names the single field an automatic title draws from", () => {
     expect(emptyTitleMessage(automatic("{nom}"))).toBe(
-      "Le titre de la fiche est calculé à partir de « Nom » : renseignez ce champ."
+      "Le titre de la fiche est calculé à partir de «\u00A0Nom\u00A0» : renseignez ce champ."
     );
   });
 
   it("lists every field the template draws from, deduplicated", () => {
     expect(emptyTitleMessage(automatic("{prenom} {nom} ({prenom})"))).toBe(
-      "Le titre de la fiche est calculé à partir de « Prénom » et « Nom » : renseignez au moins l'un de ces champs."
+      "Le titre de la fiche est calculé à partir de «\u00A0Prénom\u00A0» et «\u00A0Nom\u00A0» : renseignez au moins l'un de ces champs."
     );
   });
 

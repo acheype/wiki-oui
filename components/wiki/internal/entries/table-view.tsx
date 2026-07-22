@@ -241,7 +241,7 @@ function ActionsCell({ entry, sample }: { entry: ViewEntry; sample: boolean }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer cette fiche ?</AlertDialogTitle>
             <AlertDialogDescription>
-              « {entry.title} » et son historique seront supprimés
+              «&nbsp;{entry.title}&nbsp;» et son historique seront supprimés
               définitivement.
             </AlertDialogDescription>
           </AlertDialogHeader>
