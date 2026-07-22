@@ -247,7 +247,11 @@ function fieldValueSchema(field: FormField): z.ZodType | null {
   switch (field.type) {
     case "text": {
       if (field.subtype === "number") {
-        return field.required ? z.number(REQUIRED) : z.number().optional();
+        // Optional mirrors stringValue: a cleared field carries the empty
+        // every entry value shares, the "" of initialEntryValues.
+        return field.required
+          ? z.number(REQUIRED)
+          : z.union([z.number(), z.literal("")]).optional();
       }
       let format = z.string();
       if (field.maxLength !== undefined) {

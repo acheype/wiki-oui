@@ -313,6 +313,21 @@ describe("deriveEntrySchema", () => {
     ).toBe(true);
   });
 
+  // "" is the empty every entry field shares (initialEntryValues), so an
+  // optional numeric field has to accept it like the string ones do.
+  it("accepts the shared empty on an optional numeric field", () => {
+    expect(schema.safeParse({ ...validData, age: "" }).success).toBe(true);
+    expect(
+      schema.safeParse(initialEntryValues(descriptor, validData)).success
+    ).toBe(true);
+  });
+
+  it("still rejects a non-numeric value on a numeric field", () => {
+    expect(schema.safeParse({ ...validData, age: "trente" }).success).toBe(
+      false
+    );
+  });
+
   it("validates the email format", () => {
     expect(
       schema.safeParse({ ...validData, email: "pas-un-email" }).success
