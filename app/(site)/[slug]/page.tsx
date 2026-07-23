@@ -68,7 +68,7 @@ function PageNotYetCreated({ slug }: { slug: string }) {
       <FilePlus2 className="size-8 text-muted-foreground" aria-hidden />
       <div>
         <h1 className="text-lg font-semibold">
-          La page «\u00A0{slug}\u00A0» n&apos;existe pas encore
+          La page «&nbsp;{slug}&nbsp;» n&apos;existe pas encore
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Vous pouvez la créer dès maintenant : elle sera enregistrée à sa
