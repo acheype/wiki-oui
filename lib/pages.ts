@@ -1,12 +1,15 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { wikiConfig } from "@/wiki.config";
 
-export async function getPageWithCurrent(slug: string) {
+// Memoized per request (React cache): a page shown and its generateMetadata
+// both read it — one query, not two (see app/(bare)/[slug]/iframe/page.tsx).
+export const getPageWithCurrent = cache(async (slug: string) => {
   return prisma.page.findUnique({
     where: { slug },
     include: { current: true },
   });
-}
+});
 
 export async function getPageWithRevisions(slug: string) {
   return prisma.page.findUnique({

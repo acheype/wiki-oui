@@ -127,9 +127,11 @@ describe("a pasted embed snippet", () => {
   });
 });
 
-describe("Embed, for the author who has a URL rather than a snippet", () => {
+describe("Iframe, for the author who has a URL rather than a snippet", () => {
   it("embeds an external page, sandboxed and titled", async () => {
-    const html = await render(`<Embed url="https://example.com" title="Exemple" />`);
+    const html = await render(
+      `<Iframe link="https://example.com" title="Exemple" />`
+    );
     expect(html).toContain('src="https://example.com"');
     expect(html).toContain('title="Exemple"');
     expect(html).toContain("sandbox=");
@@ -138,17 +140,17 @@ describe("Embed, for the author who has a URL rather than a snippet", () => {
   });
 
   it("falls back to the url as a title rather than shipping none", async () => {
-    expect(await render(`<Embed url="https://example.com" />`)).toContain(
+    expect(await render(`<Iframe link="https://example.com" />`)).toContain(
       'title="https://example.com"'
     );
   });
 
   it("refuses anything that is not an http(s) url", async () => {
-    expect(await render(`<Embed url="javascript:alert(1)" />`)).not.toContain(
+    expect(await render(`<Iframe link="javascript:alert(1)" />`)).not.toContain(
       "<iframe"
     );
     expect(
-      await render(`<Embed url="data:text/html,<script>alert(1)</script>" />`)
+      await render(`<Iframe link="data:text/html,<script>alert(1)</script>" />`)
     ).not.toContain("<iframe");
   });
 });

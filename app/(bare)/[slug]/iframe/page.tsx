@@ -1,8 +1,10 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EntryContent } from "@/components/forms/entry-content";
 import { Prose } from "@/components/page/prose";
 import { WikiFrameResizeEmitter } from "@/components/wiki/internal/wiki-frame-emitter";
-import { renderMdx } from "@/lib/mdx";
+import { readEntryData } from "@/lib/form-descriptor";
+import { firstHeadingText, renderMdx } from "@/lib/mdx";
 import { getPageWithCurrent } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 
@@ -18,6 +20,24 @@ import { isValidSlug } from "@/lib/slug";
 // WikiFrame sizes to it same-origin; WikiFrameResizeEmitter posts it to a
 // cross-origin parent.
 export const dynamic = "force-dynamic";
+
+// The document <title> is the frame's accessible name (WCAG H64): WikiFrame
+// reads it same-origin and puts it on the <iframe>. A fiche uses its stored
+// title (ADR 0020); an MDX page uses its first heading, else the slug.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const slug = decodeURIComponent((await params).slug);
+  const page = await getPageWithCurrent(slug);
+  if (!page) return {};
+  if (page.formId) {
+    const title = readEntryData(page.current?.data).title;
+    return { title: typeof title === "string" && title.trim() ? title : slug };
+  }
+  return { title: firstHeadingText(page.current?.content ?? "") ?? slug };
+}
 
 export default async function IframePage({
   params,

@@ -3,6 +3,10 @@ import path from "node:path";
 import { compileMDX } from "next-mdx-remote/rsc";
 import { mdxAnnotations } from "mdx-annotations";
 import remarkGfm from "remark-gfm";
+import remarkMdx from "remark-mdx";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
+import { EXIT, visit } from "unist-util-visit";
 import type { MDXComponents } from "mdx/types";
 import { pascalCase } from "@/lib/component-descriptor";
 import {
@@ -131,6 +135,37 @@ function UnknownComponent() {
 // so layout slots like page-header can collapse instead of leaving a gap.
 export function isBlankMdx(source: string): boolean {
   return source.replace(/\{\/\*[\s\S]*?\*\/\}/g, "").trim() === "";
+}
+
+// The plain text of the first heading in MDX source, or null when there is
+// none (or the source does not parse). An MDX page has no stored title, so
+// this names it — for the embedded frame's accessible name (WCAG H64), see
+// app/(bare)/[slug]/iframe. Parsing to mdast (like lib/page-lint,
+// lib/slug-rename) means a `#` inside a code fence or a `{{ }}` annotation is
+// never mistaken for a heading.
+export function firstHeadingText(source: string): string | null {
+  let tree: unknown;
+  try {
+    tree = unified().use(remarkParse).use(remarkMdx).parse(source);
+  } catch {
+    return null;
+  }
+  let found: string | null = null;
+  visit(tree as Parameters<typeof visit>[0], "heading", (node) => {
+    const text = headingText(node).trim();
+    if (text) {
+      found = text;
+      return EXIT;
+    }
+  });
+  return found;
+}
+
+function headingText(node: unknown): string {
+  const typed = node as { value?: unknown; children?: unknown[] };
+  if (typeof typed.value === "string") return typed.value;
+  if (Array.isArray(typed.children)) return typed.children.map(headingText).join("");
+  return "";
 }
 
 function MdxCompileError({ message }: { message: string }) {

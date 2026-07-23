@@ -1,0 +1,45 @@
+# ComponentBuilder descriptor of <Iframe> (docs/component-builder.md, ADR
+# 0022). One target field, aliased on `link`: checked = an external URL,
+# unchecked = a wiki page picked from the wiki (page-list). ratio and the
+# accessible-name title only apply to the external case — an internal page
+# auto-sizes and takes its own title.
+label: Intégrer une page
+description: Afficher une page du wiki ou d'un autre site dans la page
+previewHeight: 320px
+properties:
+  external:
+    label: Page d'un autre site web
+    type: checkbox
+    default: true
+  url:
+    label: Adresse de la page à afficher
+    hint: N'oubliez pas le "https://". Tous les sites n'autorisent pas leur
+      affichage dans un autre site.
+    prop: link
+    type: url
+    required: true
+    showif:
+      external: true
+  page:
+    label: Page du wiki à afficher
+    prop: link
+    type: page-list
+    required: true
+    showif:
+      external: false
+  ratio:
+    label: Ratio pour l'affichage
+    type: list
+    default: landscape
+    options:
+      landscape: Paysage
+      portrait: Portrait
+      square: Carré
+    showif:
+      external: true
+  title:
+    label: Description pour les personnes malvoyantes
+    hint: Lu par les lecteurs d'écran à la place du contenu affiché.
+    type: text
+    showif:
+      external: true

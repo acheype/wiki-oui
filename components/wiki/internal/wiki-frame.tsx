@@ -14,7 +14,7 @@
 //     keeps its ratio box.
 
 import { useEffect, useRef, useState } from "react";
-import { isExternalHref, wikiHrefSlug } from "@/lib/slug";
+import { isExternalHref, isValidSlug, wikiHrefSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 
 const RATIO_CLASSES = {
@@ -42,18 +42,28 @@ export function WikiFrame({
   className?: string;
 }) {
   const external = isExternalHref(target);
+  // Internal target must resolve to a real slug: a `javascript:`/`data:` string
+  // (not http(s), so not "external" here) or any invalid slug renders nothing,
+  // never a bogus /{…}/iframe src.
+  const slug = external ? null : wikiHrefSlug(target) ?? target;
   const src = external
     ? target
-    : `/${wikiHrefSlug(target) ?? target}/iframe${hideTitle ? "?title=hidden" : ""}`;
+    : slug && isValidSlug(slug)
+      ? `/${slug}/iframe${hideTitle ? "?title=hidden" : ""}`
+      : null;
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [height, setHeight] = useState<number>();
+  // Internal only: the embedded page's <title>, read same-origin, becomes the
+  // frame's accessible name (WCAG H64) when the caller passes none.
+  const [docTitle, setDocTitle] = useState<string>();
 
   useEffect(() => {
     const iframe = iframeRef.current;
-    if (!iframe) return;
+    if (!iframe || !src) return;
     // A fresh target starts unmeasured so the previous height never lingers.
     setHeight(undefined);
+    setDocTitle(undefined);
     let observer: ResizeObserver | undefined;
 
     // Same-origin: read the render box directly. Cross-origin: contentDocument
@@ -61,6 +71,7 @@ export function WikiFrame({
     const onLoad = () => {
       let box: HTMLElement | null = null;
       try {
+        setDocTitle(iframe.contentDocument?.title || undefined);
         box = iframe.contentDocument?.querySelector("[data-wiki-frame]") ?? null;
       } catch {
         return; // cross-origin, walled off
@@ -95,6 +106,8 @@ export function WikiFrame({
     };
   }, [src]);
 
+  if (!src) return null;
+
   if (external) {
     return (
       <iframe
@@ -121,7 +134,7 @@ export function WikiFrame({
     <iframe
       ref={iframeRef}
       src={src}
-      title={title || "Fiche"}
+      title={title || docTitle || "Fiche"}
       // A frame with no measured height yet must not collapse to the browser
       // default; 240 is a plausible first paint before onLoad measures.
       style={{ height: height ?? 240 }}

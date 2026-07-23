@@ -122,7 +122,7 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
 
 - Menu de navigation : une liste imbriquée entre \`<Menu>\` et \`</Menu>\` devient un menu à plusieurs niveaux. Un item est un texte, un lien ou un \`<Button>\`.
 - Bouton : \`<Button icon="lucide:settings" text="Configuration" link="ma-page" />\` — les icônes viennent des jeux Iconify embarqués (noms en anglais), à choisir via le sélecteur de l'éditeur.
-- Page d'un autre site : \`<Embed url="https://example.com" title="Description pour les lecteurs d'écran" />\` — quand vous n'avez qu'une adresse. Si le site vous donne un extrait \`<iframe>\` tout fait (YouTube, OpenStreetMap…), collez-le directement, il fonctionne tel quel.
+- Intégrer une page : \`<Iframe link="https://example.com" title="Description pour les lecteurs d'écran" />\` pour un autre site — ou décochez « Page d'un autre site web » pour afficher une page du wiki. Si le site vous donne un extrait \`<iframe>\` tout fait (YouTube, OpenStreetMap…), collez-le directement, il fonctionne tel quel.
 
 \`\`\`
 <Menu>
