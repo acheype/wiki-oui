@@ -18,11 +18,14 @@ export async function EntryView({
   descriptor,
   data,
   linkTitles,
+  hideTitle = false,
 }: {
   descriptor: FormDescriptor;
   data: EntryData;
   /** slug → current title, for form-sourced option values (wiki links). */
   linkTitles: Record<string, string>;
+  /** Set by a container that already names the entry (see EntryContent). */
+  hideTitle?: boolean;
 }) {
   // Read, never recomputed (ADR 0020): the title is stored in `data` like
   // any other field value, automatic mode included.
@@ -37,7 +40,9 @@ export async function EntryView({
   );
   return (
     <div>
-      <h1 className="mb-6 text-3xl font-semibold tracking-tight">{title}</h1>
+      {!hideTitle && (
+        <h1 className="mb-6 text-3xl font-semibold tracking-tight">{title}</h1>
+      )}
       <dl className="grid gap-5">
         {rows.map(
           (row) =>

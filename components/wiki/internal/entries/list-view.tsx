@@ -11,6 +11,7 @@ import { entryValue } from "@/lib/entries-view";
 import type { ViewEntry } from "@/lib/entries-view";
 import { cn } from "@/lib/utils";
 import { Icon } from "../icon";
+import { WikiFrame } from "../wiki-frame";
 import type { ViewContext } from "./types";
 
 export function ListView({ context }: { context: ViewContext }) {
@@ -117,7 +118,9 @@ function ListRow({
         <div className="flex items-center gap-2.5 px-3 py-2.5">{header}</div>
       )}
       {expanded && (
-        <div className="border-t bg-muted/20 px-3 py-3">
+        // No padding, no tint: the render brings its own, and any frame drawn
+        // around it would read as a box inside the row.
+        <div className="border-t">
           <ExpandedEntry entry={entry} sample={context.data.sample} />
         </div>
       )}
@@ -136,7 +139,7 @@ function ExpandedEntry({
 }) {
   if (sample) {
     return (
-      <dl className="grid gap-1 text-sm">
+      <dl className="grid gap-1 px-3 py-3 text-sm">
         {Object.entries(entry.values)
           .filter(([name, value]) => !name.startsWith("$") && value !== "")
           .map(([name, value]) => (
@@ -154,11 +157,7 @@ function ExpandedEntry({
       </dl>
     );
   }
-  return (
-    <iframe
-      src={`/api/render/entry/${encodeURIComponent(entry.slug)}`}
-      title="Fiche dépliée"
-      className="h-96 w-full rounded-md border bg-background"
-    />
-  );
+  // The row header already carries the title: the render drops it rather than
+  // repeating it two lines below.
+  return <WikiFrame target={entry.slug} hideTitle />;
 }

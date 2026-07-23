@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { WikiFrame } from "./wiki-frame";
 
 // Client innard of WikiLink's modal target — also the popup rendering of
 // <Button> (trigger "hover" opens on mouse-over).
@@ -35,17 +36,19 @@ export function ModalLink({
         {children}
       </a>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-4xl">
+        {/* As wide as the page's content column (max-w-5xl in the site
+            layout): the target must read as it reads on its own page. Height
+            follows the frame, capped so a long page scrolls inside the modal. */}
+        <DialogContent className="max-h-[85vh] gap-3 overflow-y-auto sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle className="truncate pr-6 text-sm font-normal text-muted-foreground">
               {href}
             </DialogTitle>
           </DialogHeader>
-          <iframe
-            src={href}
-            title={href}
-            className="h-[70vh] w-full rounded-md border bg-background"
-          />
+          {/* An internal href loads the chrome-free /{slug}/iframe render (no
+              duplicate top bar, no "Modifier/Supprimer"); an external URL is
+              sandboxed at its ratio. */}
+          <WikiFrame target={href} />
         </DialogContent>
       </Dialog>
     </>

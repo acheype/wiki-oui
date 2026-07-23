@@ -16,9 +16,16 @@ import { prisma } from "@/lib/prisma";
 export async function EntryContent({
   formId,
   rawData,
+  hideTitle = false,
 }: {
   formId: string;
   rawData: unknown;
+  /**
+   * Drops the title from the default view, for a container that already names
+   * the entry. A template is left untouched: its author decides where — and
+   * whether — the title appears.
+   */
+  hideTitle?: boolean;
 }): Promise<React.ReactNode> {
   const form = await prisma.form.findUnique({ where: { id: formId } });
   if (!form) return null;
@@ -56,6 +63,7 @@ export async function EntryContent({
       descriptor={parsed.descriptor}
       data={data}
       linkTitles={linkTitles}
+      hideTitle={hideTitle}
     />
   );
 }

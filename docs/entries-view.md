@@ -48,6 +48,8 @@ Les réglages pointus restent dans leur section, marqués `advanced`. Hauteur d'
 
 Décoché des deux côtés = liste inerte (simple listing). Pas de zones Visuel/Badge en Liste (fidèle à YesWiki).
 
+La fiche dépliée est rendue **sans son titre** (la ligne le porte déjà) et **sans cadre** : elle occupe toute la largeur de la ligne, à sa hauteur naturelle. Un gabarit reste intact — son auteur décide où le titre apparaît.
+
 ### Grille (`grid`) — les fiches en cartes (ex-« Blocs »)
 
 | Prop | Libellé | Notes |
@@ -139,7 +141,7 @@ Grille justifiée moderne, **zoom au survol** avec voile révélant le titre —
 
 ### Lors du clic, afficher la fiche (`entryDisplay`)
 
-`popup` (**première position et défaut** partout sauf Carte) · `current-tab` · `new-tab` — plus, sur la Carte seulement : `sidebar` (défaut Carte) et `map-popup`. La popup affiche le rendu `show` réel de la fiche (gabarit ou rendu par défaut, sans chrome), se ferme par croix/clic dehors/Échap en restituant l'état exact (filtres, scroll, pagination), et porte un lien « Ouvrir la page de la fiche ↗ ». Prop absente = défaut de la vue (le composant tranche).
+`popup` (**première position et défaut** partout sauf Carte) · `current-tab` · `new-tab` — plus, sur la Carte seulement : `sidebar` (défaut Carte) et `map-popup`. La popup affiche le rendu `show` réel de la fiche (gabarit ou rendu par défaut, sans chrome), se ferme par croix/clic dehors/Échap en restituant l'état exact (filtres, scroll, pagination), et porte un lien « Ouvrir la page de la fiche ↗ » collé en bas. Elle est **aussi large que la colonne de contenu du site** et sans cadre autour de la fiche : on y lit la fiche exactement comme sur sa page. Prop absente = défaut de la vue (le composant tranche).
 
 ### Recherche
 

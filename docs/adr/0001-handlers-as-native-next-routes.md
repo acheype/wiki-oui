@@ -15,3 +15,4 @@ Option (2), 100 % natif Next. On abandonne le répertoire `handlers/` : le chemi
 - Pas d'indirection ni de registre custom à maintenir ; on suit les idiomes Next (SEO, `not-found`, liens actifs, `loading`/`error` par segment).
 - Ajouter un handler = créer un dossier + `page.tsx` (pas un fichier libre dans `handlers/`).
 - L'équivalence `/{slug}/show` ≡ `/{slug}` n'est pas gratuite : `/{slug}` est servi par `app/[slug]/page.tsx` ; on ne crée pas de segment `show/` (l'URL `/{slug}/show` redirige vers `/{slug}` ou renvoie 404, à décider).
+- Un handler qui doit être **sans chrome** ne peut pas vivre sous le groupe `(site)` (dont le layout porte le chrome, qu'un layout enfant ne retire pas). Il va dans un **groupe frère `(bare)`** : `app/(bare)/[slug]/iframe/page.tsx` sert `/{slug}/iframe` sans conflit avec `(site)/[slug]` (chemins distincts). C'est le cas du handler `iframe` (ADR 0022).

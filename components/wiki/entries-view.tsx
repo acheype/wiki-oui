@@ -50,6 +50,7 @@ import { AgendaView } from "./internal/entries/agenda-view";
 import { CalendarView } from "./internal/entries/calendar-view";
 import { CarouselView } from "./internal/entries/carousel-view";
 import { DirectoryView } from "./internal/entries/directory-view";
+import { WikiFrame } from "./internal/wiki-frame";
 
 // Leaflet touches window at import time: the map view loads client-only.
 const MapEntriesView = dynamic(
@@ -778,18 +779,18 @@ function EntryPopup({
 
   return (
     <Dialog open={slug !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[85vh] gap-2 overflow-y-auto sm:max-w-2xl">
+      {/* As wide as the page's content column (max-w-5xl in the site layout):
+          a fiche must read in the popup exactly as it reads on its page. */}
+      <DialogContent className="max-h-[85vh] gap-2 overflow-y-auto sm:max-w-5xl">
         <DialogTitle className="sr-only">Fiche</DialogTitle>
         {shown && (
           <>
-            <iframe
-              src={`/api/render/entry/${encodeURIComponent(shown)}`}
-              title="Fiche"
-              className="h-[60vh] w-full rounded-md border bg-background"
-            />
+            <WikiFrame target={shown} />
+            {/* Sticky: the frame is as tall as the fiche, so a long one would
+                otherwise push this link out of sight. */}
             <a
               href={`/${shown}`}
-              className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              className="sticky -bottom-6 -mx-6 -mb-6 flex items-center gap-1 border-t bg-popover px-6 py-3 text-sm text-muted-foreground hover:text-foreground"
             >
               Ouvrir la page de la fiche
               <ExternalLink className="size-3.5" aria-hidden />
