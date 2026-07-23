@@ -51,7 +51,7 @@ Chaque composant de `/components/wiki` porte son descripteur WikiOui (`button.ya
 
 ## Backlog (sans version prévue)
 
-Pages d'administration (Tableau de bord, Documentation, Gestion du site, Formulaire — rejoindront le menu roue crantée par édition de `page-rapide-haut`) · droits d'accès & authentification · étendre le contrôle à l'enregistrement (`lib/page-lint.ts`) aux fichiers absents du pool et aux gabarits de formulaire · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud.
+Pages d'administration (Tableau de bord, Documentation, Gestion du site, Formulaire — rejoindront le menu roue crantée par édition de `page-rapide-haut`) · droits d'accès & authentification · étendre le contrôle à l'enregistrement (`lib/page-lint.ts`) aux fichiers absents du pool et aux gabarits de formulaire · recherche/filtre par tags & vues (agenda, carte, annuaire…) · overlay-modal pour l'historique · table `Settings` éditable à chaud · auto-hauteur des sites tiers embarqués via `iframe-resizer` (option avancée `<Iframe>`/`<Lien>`, ADR 0022).
 
 ## Architecture en un coup d'œil
 
