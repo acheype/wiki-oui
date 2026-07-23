@@ -227,6 +227,18 @@ async function main() {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
   const prisma = new PrismaClient({ adapter });
 
+  // On a deployed instance the seed runs at every container start
+  // (docker-entrypoint.sh). SEED_ONLY_IF_EMPTY makes it a one-shot install
+  // step: a fresh database is populated once, but pages/forms/entries the
+  // operator later deletes are never silently recreated on restart (ADR 0021).
+  // Unset (dev / manual `pnpm prisma db seed`), the seed stays idempotent and
+  // tops up whatever is missing.
+  if (process.env.SEED_ONLY_IF_EMPTY && (await prisma.page.count()) > 0) {
+    console.log("Base de données déjà peuplée, seed ignoré.");
+    await prisma.$disconnect();
+    return;
+  }
+
   for (const slug of specialSlugs) {
     const existing = await prisma.page.findUnique({ where: { slug } });
     if (existing) {

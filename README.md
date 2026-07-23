@@ -89,12 +89,17 @@ pnpm test    # Vitest test suite
 
 Site-level configuration (special page slugs, upload limits and allowed extensions, embedded icon sets) lives in the typed module [`wiki.config.ts`](wiki.config.ts) — see [ADR 0004](docs/adr/0004-config-as-typed-ts-module.md).
 
+### Deploying to a VPS (Dokploy)
+
+To run WikiOui on your own server rather than locally, see [`docs/deployment-dokploy.md`](docs/deployment-dokploy.md) (in French) — a step-by-step guide to deploying on any VPS with [Dokploy](https://dokploy.com), including PostgreSQL setup and HTTPS.
+
 ## Documentation
 
 - [`CONTEXT.md`](CONTEXT.md) — domain glossary (in French) and scope per release.
 - [`docs/architecture.md`](docs/architecture.md) — architecture overview.
 - [`docs/adr/`](docs/adr/) — architecture decision records.
 - [`docs/component-builder.md`](docs/component-builder.md), [`docs/forms.md`](docs/forms.md), [`docs/entries-view.md`](docs/entries-view.md) — feature specifications.
+- [`docs/deployment-dokploy.md`](docs/deployment-dokploy.md) — VPS deployment guide (in French).
 
 ## License
 

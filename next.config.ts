@@ -4,6 +4,9 @@ import { wikiConfig } from "./wiki.config";
 const nextConfig: NextConfig = {
   // A stray lockfile in the home directory makes Next mis-infer the root.
   turbopack: { root: import.meta.dirname },
+  // Self-contained server bundle for Docker (docs/deployment-dokploy.md):
+  // only the traced runtime deps, not the full node_modules.
+  output: "standalone",
   async redirects() {
     return [
       {

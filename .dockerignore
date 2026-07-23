@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+coverage
+*.tsbuildinfo
+next-env.d.ts
+.image-cache
+
+# uploaded files (ADR 0012): instance data, never baked into the image
+/files
