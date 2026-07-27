@@ -19,6 +19,11 @@ import { isValidSlug } from "@/lib/slug";
 // (an unfolded Liste row). The [data-wiki-frame] box is the measurable height:
 // WikiFrame sizes to it same-origin; WikiFrameResizeEmitter posts it to a
 // cross-origin parent.
+//
+// No padding here: a caller that needs breathing room around the frame (the
+// unfolded Liste row, the Carte panel) adds it on its side, so the default —
+// a bare <Iframe> embed, a modal already padded by DialogContent — reads
+// flush, without an offset against the surrounding page's own text.
 export const dynamic = "force-dynamic";
 
 // The document <title> is the frame's accessible name (WCAG H64): WikiFrame
@@ -54,7 +59,7 @@ export default async function IframePage({
   if (!page) notFound();
 
   return (
-    <div data-wiki-frame className="p-4">
+    <div data-wiki-frame>
       <article>
         {page.formId ? (
           <EntryContent

@@ -130,15 +130,36 @@ export function WikiFrame({
     );
   }
 
+  // Unmeasured: the iframe keeps loading (visibility doesn't pause the
+  // fetch) but stays collapsed and invisible behind a skeleton, instead of
+  // painting at a guessed height — the target's real content is already
+  // taller, so a guessed height would show it clipped with a scrollbar for
+  // one frame, then jump to its true size the moment /{slug}/iframe's box is
+  // measured. h-60 echoes the old 240px guess, only now nothing is ever
+  // shown at the wrong size.
+  const measuring = height === undefined;
   return (
-    <iframe
-      ref={iframeRef}
-      src={src}
-      title={title || docTitle || "Fiche"}
-      // A frame with no measured height yet must not collapse to the browser
-      // default; 240 is a plausible first paint before onLoad measures.
-      style={{ height: height ?? 240 }}
-      className={cn("w-full bg-background", className)}
-    />
+    <div>
+      {measuring && (
+        <div className="h-60 w-full animate-pulse rounded-md bg-muted/40" />
+      )}
+      <iframe
+        ref={iframeRef}
+        src={src}
+        title={title || docTitle || "Fiche"}
+        // This frame is always sized to its exact content, so its own
+        // scrollbar should never be needed — not even the moment it's
+        // collapsed to 0 while measuring. Chrome doesn't reliably drop that
+        // scrollbar once the frame grows past it (Firefox does); `no` sidesteps
+        // relying on that recalculation instead of chasing the inconsistency.
+        scrolling="no"
+        style={measuring ? undefined : { height }}
+        className={cn(
+          "w-full bg-background",
+          measuring && "invisible h-0",
+          className
+        )}
+      />
+    </div>
   );
 }

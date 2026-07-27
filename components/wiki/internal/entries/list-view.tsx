@@ -118,8 +118,9 @@ function ListRow({
         <div className="flex items-center gap-2.5 px-3 py-2.5">{header}</div>
       )}
       {expanded && (
-        // No padding, no tint: the render brings its own, and any frame drawn
-        // around it would read as a box inside the row.
+        // No tint: any frame drawn around the render would read as a box
+        // inside the row. Padding now lives here (the shared /iframe route
+        // itself is flush) so it matches the sample fallback's px-3 py-3.
         <div className="border-t">
           <ExpandedEntry entry={entry} sample={context.data.sample} />
         </div>
@@ -158,6 +159,13 @@ function ExpandedEntry({
     );
   }
   // The row header already carries the title: the render drops it rather than
-  // repeating it two lines below.
-  return <WikiFrame target={entry.slug} hideTitle />;
+  // repeating it two lines below. Padding lives on this wrapper, not on the
+  // iframe itself: Tailwind's Preflight makes the iframe border-box, so
+  // padding on the element would eat into the height WikiFrame measures from
+  // the (unpadded) child document, leaving it short and forcing a scrollbar.
+  return (
+    <div className="px-3 py-3">
+      <WikiFrame target={entry.slug} hideTitle />
+    </div>
+  );
 }

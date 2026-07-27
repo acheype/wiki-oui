@@ -186,11 +186,12 @@ export function MapEntriesView({ context }: { context: ViewContext }) {
           ) : (
             // A docked panel of fixed height: the frame fills it and scrolls
             // internally, so it wants no auto-height (not a WikiFrame) — only
-            // the shared chrome-free route.
+            // the shared chrome-free route. p-4 matches the sample paragraph
+            // above (the route itself renders flush, with no baked-in padding).
             <iframe
               src={`/${encodeURIComponent(selectedSlug)}/iframe`}
               title="Fiche"
-              className="min-h-0 w-full flex-1 bg-background"
+              className="min-h-0 w-full flex-1 bg-background p-4"
             />
           )}
         </aside>
