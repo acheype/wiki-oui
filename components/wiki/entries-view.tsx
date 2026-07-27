@@ -251,7 +251,7 @@ export function EntriesView({
       )}
 
       {(showSearch || showSort) && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {showSearch && (
             <div className="relative">
               <Search
@@ -280,7 +280,7 @@ export function EntriesView({
 
       <div
         className={cn(
-          "flex flex-col gap-4 md:flex-row",
+          "flex min-w-0 flex-col gap-4 md:flex-row",
           showFilters && filtersPosition === "right" && "md:flex-row-reverse"
         )}
       >
