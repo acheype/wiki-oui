@@ -23,25 +23,27 @@ WikiOui re-implements this feature set — currently pages, revisions, component
 
 ## Releases
 
+Each release is a self-contained chunk of the YesWiki feature set. [`docs/architecture.md`](docs/architecture.md) details what each one brought and why.
+
 ### v0.1 — MVP
 
-Core wiki engine: page CRUD by slug, native Next.js page/handler routing, sandboxed MDX rendering, the built-in `<Menu>` and `<Button>` components, full revision history (diff + restore), the layout special pages, a rich CodeMirror editor (markdown toolbar, link modal, cursor-anchored contextual tools), and hard delete.
+The core wiki engine: pages addressed by slug, editable in place, versioned. Native Next.js page/handler routing, sandboxed MDX rendering, the built-in `<Menu>` and `<Button>` components, full revision history (diff + restore), the layout special pages, a rich CodeMirror editor (markdown toolbar, link modal, cursor-anchored contextual tools), and hard delete.
 
 ### v0.2 — File upload & component authoring
 
-File upload (toolbar button, drag & drop, paste) routed to `<Image>`, `<Pdf>` or `<FileLink>` by file family, with the `files/` directory as source of truth. **ComponentBuilder**: an authoring modal auto-generated from each component's YAML descriptor, with live preview through the real rendering pipeline, and an embedded Iconify icon picker.
+Rich content, authored rather than hand-typed. File upload (toolbar button, drag & drop, paste) routed to `<Image>`, `<Pdf>` or `<FileLink>` by file family, with the `files/` directory as the source of truth. **ComponentBuilder**: an authoring modal auto-generated from each component's YAML descriptor, with live preview through the real rendering pipeline, and an embedded Iconify icon picker.
 
 ### v0.3 — Forms & entries
 
-The BazaR equivalent: a **FormBuilder** (14 field types, drag & drop) to define forms, `<EntryForm>` to fill them in, entries rendered by an optional MDX template or a generated default view, a field renderer shared with ComponentBuilder, and Zod as the runtime contract. Along the way: an HTML-tag allowlist and an `<Embed>` component hardening the MDX sandbox, plus "change address" (slug renaming with full reference rewrite, no redirect) for pages, forms and fields.
+The BazaR equivalent: structured content next to prose. A **FormBuilder** (14 field types, drag & drop) defines forms; `<EntryForm>` fills them in; an entry *is* a page (same slug, history and restore) whose content is a JSON snapshot, rendered by an optional MDX template or a generated default view. Under the hood: a field renderer shared with ComponentBuilder, and Zod as the runtime contract. Along the way: an HTML-tag allowlist hardening the MDX sandbox, and "change address" — renaming a slug rewrites every reference, history included, with no redirect.
 
-### v0.4 — EntriesView (in progress)
+### v0.4 — EntriesView
 
-`<EntriesView>`: the nine entries-display views (list, grid, table, map, calendar, agenda, directory, carousel, photo gallery) in a single component, with instant client-side search/filter/sort, per-field color & icon, and a shared entry popup. Along the way: automatic entry titles moved from a read-time computation to a write-time one (stored, never stale — [ADR 0020](docs/adr/0020-automatic-title-stored-at-write.md)).
+Reading those entries back. `<EntriesView>` packs the nine entries-display views (list, grid, table, map, calendar, agenda, directory, carousel, photo gallery) into a single component, with instant client-side search/filter/sort, multi-form sources, per-field color & icon, and a shared entry popup. Along the way: automatic entry titles moved from a read-time computation to a write-time one (stored, never stale — [ADR 0020](docs/adr/0020-automatic-title-stored-at-write.md)), a chrome-free `/{slug}/iframe` handler behind the `<Iframe>` component, and a Docker image with a step-by-step VPS deployment guide.
 
 ### Backlog (not yet scheduled)
 
-Access rights & authentication, admin pages (dashboard, site management), search/filter by tags, an overlay-modal history view, and a hot-editable `Settings` table. See [`docs/architecture.md`](docs/architecture.md) for the full list.
+Access rights & authentication, admin pages (dashboard, site management), search/filter by tags, an overlay-modal history view, a hot-editable `Settings` table, and the per-feature leftovers (conditional fields, exports, the remaining YesWiki views). See [`docs/architecture.md`](docs/architecture.md) for the full list.
 
 ## Tech stack
 
