@@ -15,6 +15,14 @@ import { wikiConfig } from "@/wiki.config";
 // this layer will host cannot be bypassed by a caller that forgot them — the
 // risk being a silent read, which no test would ever catch.
 
+/**
+ * What a namespace-wide retcon is allowed to take (ADR 0016/0017/0020): a
+ * large wiki means many rewrites in one sweep, where Prisma's default 5s is
+ * sized for hot-path transactions. Shared with lib/forms.ts — the same rare
+ * cold admin actions, on the other side of the door.
+ */
+export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;
+
 // --- reads ------------------------------------------------------------------
 
 // Memoized per request (React cache): a page shown and its generateMetadata
@@ -192,9 +200,7 @@ export async function renamePageSlug(
       });
       await sweepSlugReferences(tx, rename, referenceProps, "page");
     },
-    // A large wiki means many rewrites in one sweep; the default 5s is for
-    // hot-path transactions, this is a rare cold admin action.
-    { timeout: 60_000 }
+    { timeout: COLD_ADMIN_TRANSACTION_TIMEOUT_MS }
   );
 }
 

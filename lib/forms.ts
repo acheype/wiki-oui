@@ -6,6 +6,7 @@ import {
   countTitleRecompute,
   sweepEntryTitles,
 } from "@/lib/entry-title-db";
+import { COLD_ADMIN_TRANSACTION_TIMEOUT_MS } from "@/lib/pages";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
@@ -96,7 +97,7 @@ export interface FormDefinition {
 export interface FormSaveSweeps {
   renames: FieldRenameMapping;
   /** The descriptor to recompute titles against, null when none is needed. */
-  recomputeTitles: FormDescriptor | null;
+  recomputeTitlesWith: FormDescriptor | null;
   authorName: string;
 }
 
@@ -109,17 +110,16 @@ export async function updateForm(
     async (tx) => {
       await tx.form.update({ where: { id: formId }, data: definition });
       await sweepFieldRenames(tx, formId, sweeps.renames);
-      if (sweeps.recomputeTitles) {
+      if (sweeps.recomputeTitlesWith) {
         await sweepEntryTitles(
           tx,
           formId,
-          sweeps.recomputeTitles,
+          sweeps.recomputeTitlesWith,
           sweeps.authorName
         );
       }
     },
-    // Same cold-admin-action allowance as renameFormSlug below.
-    { timeout: 60_000 }
+    { timeout: COLD_ADMIN_TRANSACTION_TIMEOUT_MS }
   );
 }
 
@@ -155,8 +155,6 @@ export async function renameFormSlug(
       });
       await sweepSlugReferences(tx, rename, referenceProps, "form");
     },
-    // A large wiki means many rewrites in one sweep; the default 5s is for
-    // hot-path transactions, this is a rare cold admin action.
-    { timeout: 60_000 }
+    { timeout: COLD_ADMIN_TRANSACTION_TIMEOUT_MS }
   );
 }

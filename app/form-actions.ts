@@ -173,7 +173,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     const before = parseFormDescriptor(existing.schema).descriptor;
     await updateForm(existing.id, data, {
       renames,
-      recomputeTitles:
+      recomputeTitlesWith:
         before && titleRecomputeNeeded(before, parsed.descriptor)
           ? parsed.descriptor
           : null,
