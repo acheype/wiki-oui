@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { username } from "better-auth/plugins";
+import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
 import { prisma } from "@/lib/prisma";
 import { isValidUsername } from "@/lib/username";
 
@@ -17,15 +18,16 @@ export const auth = betterAuth({
     // No SMTP is required to run a wiki (docs/permissions.md): a forgotten
     // password is answered by a link an administrator can also hand over.
     requireEmailVerification: false,
+    // The floor the installation screen announces, applied where it is
+    // enforced, so the two cannot drift apart.
+    minPasswordLength: MIN_PASSWORD_LENGTH,
   },
   plugins: [
     // The one plugin that is authentication rather than authorization: it
     // brings the stable identity the rights need, and sign-in by identifier
-    // as well as by email.
-    username({
-      usernameValidator: isValidUsername,
-      minUsernameLength: 2,
-    }),
+    // as well as by email. The slug pattern is the whole rule, length
+    // included — a second length option here would be a second rule.
+    username({ usernameValidator: isValidUsername }),
     // Server Actions and route handlers set the session cookie through it.
     nextCookies(),
   ],

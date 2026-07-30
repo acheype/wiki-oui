@@ -32,7 +32,9 @@ export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;
  * A live reference, not a name frozen at write time (ADR 0024): renaming an
  * account renames its signature throughout the history.
  */
-const PUBLIC_IDENTITY = { select: { name: true, username: true } } as const;
+export const PUBLIC_IDENTITY = {
+  select: { name: true, username: true },
+} as const;
 
 // --- reads ------------------------------------------------------------------
 

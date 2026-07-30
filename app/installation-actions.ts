@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/lib/installation";
 import { assignPagesOwner } from "@/lib/pages";
@@ -10,6 +11,34 @@ import { isInstalled, markInstalled } from "@/lib/settings";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 
 export type InstallError = { error: string };
+
+/**
+ * Creates the account and signs the installer in — the session cookie rides
+ * back out through the nextCookies plugin. On a second attempt the account is
+ * already there, and signing in is both the way to converge and the proof
+ * that the person retrying is the one who started: an installation that
+ * failed after creating the account must not brick the wiki behind a screen
+ * that refuses forever, nor let a passer-by finish it.
+ */
+async function signUpOrSignInInstaller(
+  email: string,
+  password: string
+): Promise<boolean> {
+  const body = { email, password };
+  try {
+    await auth.api.signUpEmail({
+      body: { ...body, name: INSTALLER.name, username: INSTALLER.username },
+    });
+    return true;
+  } catch {
+    try {
+      await auth.api.signInEmail({ body });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
 
 /**
  * The first visit (ADR 0027): create the administrator account, put @Admins
@@ -29,7 +58,7 @@ export async function installWiki(input: {
   }
 
   const email = input.email.trim();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  if (!z.email().safeParse(email).success) {
     return { error: "Cette adresse e-mail n'est pas valide." };
   }
   if (input.password.length < MIN_PASSWORD_LENGTH) {
@@ -38,18 +67,7 @@ export async function installWiki(input: {
     };
   }
 
-  try {
-    // Signs the installer in on the spot: the session cookie rides back out
-    // through the nextCookies plugin.
-    await auth.api.signUpEmail({
-      body: {
-        email,
-        password: input.password,
-        name: INSTALLER.name,
-        username: INSTALLER.username,
-      },
-    });
-  } catch {
+  if (!(await signUpOrSignInInstaller(email, input.password))) {
     return {
       error: "La création du compte a échoué. Réessayez dans un instant.",
     };

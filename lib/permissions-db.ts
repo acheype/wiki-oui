@@ -1,7 +1,12 @@
 import { headers } from "next/headers";
 import { cache } from "react";
 import { auth } from "@/lib/auth";
-import { type Actor, ADMINS_GROUP, VISITOR } from "@/lib/permissions";
+import {
+  type Actor,
+  ADMINS_GROUP,
+  type Identity,
+  VISITOR,
+} from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 // The database side of the rules (docs/permissions.md): who is acting, and —
@@ -35,14 +40,13 @@ export const currentActor = cache(async (): Promise<Actor> => {
  * 0025) rather than trusting a caller to pass it.
  */
 export async function currentUsername(): Promise<string | null> {
-  return (await currentActor()).username;
+  // Straight from the session: stamping a write needs the name of who is
+  // writing, not whether they administer the wiki.
+  return (await currentSession())?.user.username ?? null;
 }
 
 /** The signed-in person as the interface names them, null for a visitor. */
-export async function currentIdentity(): Promise<{
-  username: string;
-  name: string;
-} | null> {
+export async function currentIdentity(): Promise<Identity | null> {
   const session = await currentSession();
   if (!session?.user.username) return null;
   return { username: session.user.username, name: session.user.name };

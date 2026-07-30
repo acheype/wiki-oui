@@ -100,7 +100,7 @@ model Group {
 }
 
 // One membership: a person or a nested group, never both — a CHECK in the
-// migration holds the invariant. Cascade on both sides: an appartenance
+// migration holds the invariant. Cascade on both sides: a membership
 // disappears with what it names, which is the intended effect (ADR 0024).
 model GroupMember {
   id String @id @default(uuid(7)) @db.Uuid

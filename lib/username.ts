@@ -6,8 +6,8 @@
 import { SLUG_PATTERN, slugify } from "./slug";
 
 /** The identifier a display name suggests. "" when nothing survives. */
-export function deriveUsername(displayName: string): string {
-  return slugify(displayName);
+export function deriveUsername(name: string): string {
+  return slugify(name);
 }
 
 /**
@@ -38,7 +38,7 @@ export function signInMethod(value: string): "email" | "username" {
  */
 export const ANONYMOUS = "Anonyme";
 
-/** How a person is signed beside what they wrote. */
+/** Reading an owner or an author, either of whom may be nobody. */
 export function displayName(
   person: { name: string } | null | undefined
 ): string {

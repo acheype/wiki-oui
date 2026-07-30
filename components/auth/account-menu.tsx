@@ -14,6 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import type { Identity } from "@/lib/permissions";
 
 // The account corner of the top bar. It lives in the chrome rather than in
 // the seeded quick-access wheel, so that wikis installed before the accounts
@@ -22,7 +23,7 @@ export function AccountMenu({
   identity,
 }: {
   /** null for a visitor: nobody is signed in. */
-  identity: { username: string; name: string } | null;
+  identity: Identity | null;
 }) {
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();

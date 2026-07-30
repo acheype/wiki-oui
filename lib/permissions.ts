@@ -30,7 +30,12 @@ export const VISITOR: Actor = { username: null, isAdmin: false };
  */
 export const ADMINS_GROUP = { slug: "admins", name: "Admins" } as const;
 
-/** How a group is named in the interface: @Bureau, @Admins. */
-export function groupLabel(name: string): string {
-  return `@${name}`;
+/**
+ * A signed-in person as the interface names them. The display name signs
+ * contributions, the identifier is what the account screens link to — and
+ * the email is in neither, it belongs to gerer-utilisateurs alone.
+ */
+export interface Identity {
+  username: string;
+  name: string;
 }

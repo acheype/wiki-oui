@@ -1,8 +1,9 @@
 "use client";
 
 import { LogIn } from "lucide-react";
-import { useId, useState, useTransition } from "react";
+import { useId } from "react";
 import { signIn } from "@/app/auth-actions";
+import { AuthFormError, useAuthForm } from "@/components/auth/use-auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,23 +13,13 @@ import { Label } from "@/components/ui/label";
 export function SignInForm({ destination }: { destination?: string }) {
   const identifierId = useId();
   const passwordId = useId();
-  const [error, setError] = useState<string>();
-  const [isPending, startTransition] = useTransition();
-
-  function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    setError(undefined);
-    startTransition(async () => {
-      const result = await signIn({
-        identifier: String(form.get("identifier") ?? ""),
-        password: String(form.get("password") ?? ""),
-        destination,
-      });
-      // On success the action redirects and never returns.
-      if (result?.error) setError(result.error);
-    });
-  }
+  const { submit, error, isPending } = useAuthForm((fields) =>
+    signIn({
+      identifier: String(fields.get("identifier") ?? ""),
+      password: String(fields.get("password") ?? ""),
+      destination,
+    })
+  );
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-6">
@@ -63,11 +54,7 @@ export function SignInForm({ destination }: { destination?: string }) {
         />
       </div>
 
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
+      <AuthFormError error={error} />
 
       <Button type="submit" disabled={isPending}>
         {isPending ? "Connexion…" : "Se connecter"}

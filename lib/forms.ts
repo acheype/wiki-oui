@@ -6,7 +6,7 @@ import {
   countTitleRecompute,
   sweepEntryTitles,
 } from "@/lib/entry-title-db";
-import { COLD_ADMIN_TRANSACTION_TIMEOUT_MS } from "@/lib/pages";
+import { COLD_ADMIN_TRANSACTION_TIMEOUT_MS, PUBLIC_IDENTITY } from "@/lib/pages";
 import { currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
@@ -56,7 +56,7 @@ export async function listFormsWithEntries(slugs: string[]) {
       entries: {
         // `owner` feeds the $owner pseudo-field of <EntriesView>: the display
         // name, read live so a rename shows through (ADR 0024).
-        include: { current: true, owner: { select: { name: true } } },
+        include: { current: true, owner: PUBLIC_IDENTITY },
         orderBy: { createdAt: "desc" },
       },
     },
