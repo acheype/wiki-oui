@@ -306,7 +306,7 @@ Le widget portée + liste devient un **type de champ du vocabulaire de descripte
 
 ## Application des droits
 
-**Une seule porte** (ADR 0025). `lib/pages.ts` et `lib/forms.ts` deviennent le seul chemin vers `Page` et `Form`, et prennent l'acteur en premier paramètre ; une règle ESLint interdit `prisma.page` et `prisma.form` ailleurs, avec des exceptions listées (seed, balayage). Même esprit que la vérification de descripteurs au `prebuild` (ADR 0013) : l'invariant est tenu par un outil, pas par la vigilance. Environ 33 appels directs, répartis dans six fichiers, sont à rapatrier — `app/form-actions.ts` en concentre les deux tiers.
+**Une seule porte** (ADR 0025). `lib/pages.ts` et `lib/forms.ts` deviennent le seul chemin vers `Page` et `Form`, et résolvent eux-mêmes l'acteur courant ; une règle ESLint interdit `prisma.page` et `prisma.form` ailleurs, avec des exceptions listées (seed, balayage). Même esprit que la vérification de descripteurs au `prebuild` (ADR 0013) : l'invariant est tenu par un outil, pas par la vigilance. Environ 33 appels directs, répartis dans six fichiers, ont été rapatriés — `app/form-actions.ts` en concentrait les deux tiers.
 
 Deux chemins **échappent** au contrôle, délibérément : `getLayoutContents()`, qui lit les cinq pages de layout à chaque rendu (c'est du chrome, pas du contenu — le soumettre aux droits ferait disparaître le menu pour les uns et pas pour les autres), et le seed, qui écrit sans acteur.
 
