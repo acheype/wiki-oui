@@ -19,3 +19,19 @@ export function deriveUsername(displayName: string): string {
 export function isValidUsername(value: string): boolean {
   return SLUG_PATTERN.test(value);
 }
+
+/**
+ * One label for every content without an identified owner or author, whatever
+ * the reason — older than the accounts, written by a visitor on an open wiki,
+ * or an erased account (docs/permissions.md). The wiki does not tell those
+ * cases apart: it would do nothing with the distinction, and staying silent
+ * serves a requested erasure better than announcing it happened.
+ */
+export const ANONYMOUS = "Anonyme";
+
+/** How a person is signed beside what they wrote. */
+export function displayName(
+  person: { name: string } | null | undefined
+): string {
+  return person?.name ?? ANONYMOUS;
+}

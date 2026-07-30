@@ -16,6 +16,7 @@ import {
   sampleEntries,
 } from "@/lib/sample-entries";
 import { TEXT_SEARCH_TYPES } from "@/lib/entries-view";
+import { displayName } from "@/lib/username";
 
 export interface EntriesViewQuery {
   /** Chosen form slugs, in the author's order. */
@@ -88,7 +89,7 @@ export async function getEntriesViewData(
       const tagsField = kept.find((choice) => choice.type === "tags");
       if (tagsField) values[tagsField.name] = page.tags;
       values.$form = form.slug;
-      values.$owner = page.ownerName ?? "Anonyme";
+      values.$owner = displayName(page.owner);
       values.$createdAt = page.createdAt.toISOString();
       values.$editedAt = (page.current?.createdAt ?? page.createdAt).toISOString();
       const title = data.title;

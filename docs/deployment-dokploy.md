@@ -132,11 +132,15 @@ Cette voie construit une image plus simple (elle réinstalle l'ensemble des dép
 
 ### Variables d'environnement
 
-Dans l'onglet **Environment Variables** de l'application, ajoutez la chaîne de connexion à la base (celle de l'étape 5) :
+Dans l'onglet **Environment Variables** de l'application, ajoutez la chaîne de connexion à la base (celle de l'étape 5), le secret qui signe les sessions et l'adresse publique du wiki :
 
 ```
 DATABASE_URL=postgresql://utilisateur:motdepasse@wikioui-db:5432/nomdebase
+BETTER_AUTH_SECRET=collez-ici-le-resultat-de-openssl-rand-base64-32
+BETTER_AUTH_URL=https://wiki.mondomaine.fr
 ```
+
+Générez le secret sur votre machine avec `openssl rand -base64 32`, et **conservez-le** : le changer déconnecte tout le monde. Sans lui, le conteneur refuse de démarrer plutôt que de signer les sessions avec une valeur devinable. `BETTER_AUTH_URL` est l'adresse à laquelle vos utilisateurs ouvrent le wiki (étape 7) : les tentatives de connexion venues d'une autre origine sont refusées.
 
 ### Fichiers uploadés : le volume persistant
 

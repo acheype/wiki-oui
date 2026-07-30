@@ -11,6 +11,7 @@ import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
 import { getPageWithCurrent } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
+import { displayName } from "@/lib/username";
 
 // Wiki content is edited live; never serve a build-time snapshot.
 export const dynamic = "force-dynamic";
@@ -54,7 +55,7 @@ export default async function ShowPage({ params }: Props) {
       </DoubleClickToEdit>
       <p className="mt-10 border-t pt-3 text-xs text-muted-foreground">
         Créée le {formatDateTime(page.createdAt)} par{" "}
-        {page.ownerName ?? "Anonyme"}
+        {displayName(page.owner)}
         {page.current &&
           ` · dernière modification le ${formatDateTime(page.current.createdAt)}`}
       </p>

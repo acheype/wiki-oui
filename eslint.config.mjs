@@ -43,6 +43,13 @@ const eslintConfig = defineConfig([
       // The access layer itself.
       "lib/pages.ts",
       "lib/forms.ts",
+      // Its neighbours behind the same door: BetterAuth owns the account
+      // tables and touches nothing else (ADR 0023), the actor resolution
+      // reads group memberships, and the installation flag is a single row
+      // no rule applies to (ADR 0027). None of them reaches Page or Form.
+      "lib/auth.ts",
+      "lib/permissions-db.ts",
+      "lib/settings.ts",
       // Sweeps: they retcon a whole namespace in place, actor-free by nature
       // (ADR 0016/0017/0020). Future ones (acl-rename-db) belong here too.
       "lib/slug-rename-db.ts",

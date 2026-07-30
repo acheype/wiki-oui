@@ -48,9 +48,6 @@ import { isValidSlug, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
-// MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
-const AUTHOR = "Anonyme";
-
 export interface FormSummary {
   slug: string;
   name: string;
@@ -177,10 +174,9 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
         before && titleRecomputeNeeded(before, parsed.descriptor)
           ? parsed.descriptor
           : null,
-      authorName: AUTHOR,
     });
   } else {
-    await createForm(input.slug, data, AUTHOR);
+    await createForm(input.slug, data);
   }
 
   // Entry pages render through the form's schema/template: refresh the tree.
@@ -468,12 +464,7 @@ export async function saveEntry(
     if (!page || page.formId !== form.id) {
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
-    await writeEntryRevision({
-      pageId: page.id,
-      data: stored,
-      tags,
-      authorName: AUTHOR,
-    });
+    await writeEntryRevision({ pageId: page.id, data: stored, tags });
     revalidatePath("/", "layout");
     return { ok: true, slug: page.slug };
   }
@@ -488,13 +479,7 @@ export async function saveEntry(
   const clash = await getPage(slug);
   if (clash) return { ok: false, slugCollision: true };
 
-  await createEntryPage({
-    slug,
-    formId: form.id,
-    data: stored,
-    tags,
-    authorName: AUTHOR,
-  });
+  await createEntryPage({ slug, formId: form.id, data: stored, tags });
   revalidatePath("/", "layout");
   return { ok: true, slug };
 }

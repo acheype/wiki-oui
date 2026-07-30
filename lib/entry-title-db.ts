@@ -78,7 +78,7 @@ export async function sweepEntryTitles(
   db: Db,
   formId: string,
   descriptor: FormDescriptor,
-  authorName: string
+  authorUsername: string | null
 ): Promise<TitleRecomputeImpact> {
   const { changes, skipped } = await planTitleRecompute(db, formId, descriptor);
   for (const change of changes) {
@@ -86,7 +86,7 @@ export async function sweepEntryTitles(
       data: {
         pageId: change.pageId,
         data: change.data as Prisma.InputJsonValue,
-        authorName,
+        authorUsername,
       },
     });
     await db.page.update({

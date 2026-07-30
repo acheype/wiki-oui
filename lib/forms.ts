@@ -7,6 +7,7 @@ import {
   sweepEntryTitles,
 } from "@/lib/entry-title-db";
 import { COLD_ADMIN_TRANSACTION_TIMEOUT_MS } from "@/lib/pages";
+import { currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
@@ -52,7 +53,12 @@ export async function listFormsWithEntries(slugs: string[]) {
   return prisma.form.findMany({
     where: { slug: { in: slugs } },
     include: {
-      entries: { include: { current: true }, orderBy: { createdAt: "desc" } },
+      entries: {
+        // `owner` feeds the $owner pseudo-field of <EntriesView>: the display
+        // name, read live so a rename shows through (ADR 0024).
+        include: { current: true, owner: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 }
@@ -98,7 +104,6 @@ export interface FormSaveSweeps {
   renames: FieldRenameMapping;
   /** The descriptor to recompute titles against, null when none is needed. */
   recomputeTitlesWith: FormDescriptor | null;
-  authorName: string;
 }
 
 export async function updateForm(
@@ -106,17 +111,13 @@ export async function updateForm(
   definition: FormDefinition,
   sweeps: FormSaveSweeps
 ): Promise<void> {
+  const actor = await currentUsername();
   await prisma.$transaction(
     async (tx) => {
       await tx.form.update({ where: { id: formId }, data: definition });
       await sweepFieldRenames(tx, formId, sweeps.renames);
       if (sweeps.recomputeTitlesWith) {
-        await sweepEntryTitles(
-          tx,
-          formId,
-          sweeps.recomputeTitlesWith,
-          sweeps.authorName
-        );
+        await sweepEntryTitles(tx, formId, sweeps.recomputeTitlesWith, actor);
       }
     },
     { timeout: COLD_ADMIN_TRANSACTION_TIMEOUT_MS }
@@ -125,10 +126,10 @@ export async function updateForm(
 
 export async function createForm(
   slug: string,
-  definition: FormDefinition,
-  ownerName: string
+  definition: FormDefinition
 ): Promise<void> {
-  await prisma.form.create({ data: { ...definition, slug, ownerName } });
+  const ownerUsername = await currentUsername();
+  await prisma.form.create({ data: { ...definition, slug, ownerUsername } });
 }
 
 // Cascade (ADR 0014): deleting a form deletes its entry pages.

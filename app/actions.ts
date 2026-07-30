@@ -24,9 +24,6 @@ import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 
-// MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
-const AUTHOR = "Anonyme";
-
 export type ActionError = { error: string };
 export type SaveResult = ActionError | { unchanged: true } | { saved: true };
 
@@ -66,12 +63,7 @@ export async function savePage(input: {
   }
   const tags = normalizeTags(input.tags);
 
-  const { unchanged } = await writePageContent({
-    slug,
-    content,
-    tags,
-    authorName: AUTHOR,
-  });
+  const { unchanged } = await writePageContent({ slug, content, tags });
   if (unchanged) return { unchanged: true };
 
   // Any page can feed the layout (menu, title…), so revalidate the whole tree.
@@ -208,7 +200,6 @@ export async function restoreRevision(
     pageId: source.pageId,
     content: source.content,
     data: restored.data ?? undefined,
-    authorName: AUTHOR,
     restoredFromId: source.id,
   });
 

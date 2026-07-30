@@ -16,6 +16,7 @@ import { renderMdx } from "@/lib/mdx";
 import { getPageWithRevisions } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { displayName } from "@/lib/username";
 
 export const dynamic = "force-dynamic";
 
@@ -107,7 +108,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
         revisions={revisions.map((revision) => ({
           id: revision.id,
           createdAt: revision.createdAt,
-          authorName: revision.authorName,
+          authorName: displayName(revision.author),
           isCurrent: revision.id === current.id,
           isRestore: revision.restoredFromId !== null,
         }))}
@@ -119,7 +120,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
           <strong className="font-medium">
             {formatDateTime(selected.createdAt)}
           </strong>{" "}
-          par {selected.authorName ?? "Anonyme"}
+          par {displayName(selected.author)}
         </span>
         {selected.restoredFrom && (
           <span className="text-muted-foreground">

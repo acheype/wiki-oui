@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { type EntryData, readEntryData } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
@@ -23,6 +24,16 @@ import { wikiConfig } from "@/wiki.config";
  */
 export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;
 
+/**
+ * What the wiki says about a person beside a contribution: the display name,
+ * and the identifier the account screens link to. Never the email — it is
+ * shown in gerer-utilisateurs and nowhere else (docs/permissions.md).
+ *
+ * A live reference, not a name frozen at write time (ADR 0024): renaming an
+ * account renames its signature throughout the history.
+ */
+const PUBLIC_IDENTITY = { select: { name: true, username: true } } as const;
+
 // --- reads ------------------------------------------------------------------
 
 // Memoized per request (React cache): a page shown and its generateMetadata
@@ -30,7 +41,7 @@ export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;
 export const getPageWithCurrent = cache(async (slug: string) => {
   return prisma.page.findUnique({
     where: { slug },
-    include: { current: true },
+    include: { current: true, owner: PUBLIC_IDENTITY },
   });
 });
 
@@ -50,7 +61,10 @@ export async function getPageWithRevisions(slug: string) {
     include: {
       revisions: {
         orderBy: { createdAt: "asc" },
-        include: { restoredFrom: { select: { id: true, createdAt: true } } },
+        include: {
+          author: PUBLIC_IDENTITY,
+          restoredFrom: { select: { id: true, createdAt: true } },
+        },
       },
     },
   });
@@ -76,7 +90,7 @@ export async function listPagesWithCurrent(slugs: string[]) {
 export async function listEntryPages(formSlug?: string) {
   return prisma.page.findMany({
     where: formSlug ? { form: { slug: formSlug } } : { formId: { not: null } },
-    include: { form: true, current: true },
+    include: { form: true, current: true, owner: PUBLIC_IDENTITY },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -155,9 +169,8 @@ export async function writePageContent(input: {
   slug: string;
   content: string;
   tags: string[];
-  authorName: string;
 }): Promise<{ unchanged: boolean }> {
-  const { slug, content, tags, authorName } = input;
+  const { slug, content, tags } = input;
   const existing = await prisma.page.findUnique({
     where: { slug },
     include: { current: true },
@@ -171,12 +184,17 @@ export async function writePageContent(input: {
     return { unchanged: false };
   }
 
+  const actor = await currentUsername();
   await prisma.$transaction(async (tx) => {
     const page =
       existing ??
-      (await tx.page.create({ data: { slug, ownerName: authorName } }));
+      (await tx.page.create({ data: { slug, ownerUsername: actor } }));
 
-    await mintRevision(tx, { pageId: page.id, content, authorName }, { tags });
+    await mintRevision(
+      tx,
+      { pageId: page.id, content, authorUsername: actor },
+      { tags }
+    );
   });
   return { unchanged: false };
 }
@@ -215,17 +233,17 @@ export async function createEntryPage(input: {
   formId: string;
   data: EntryData;
   tags: string[];
-  authorName: string;
 }): Promise<void> {
-  const { slug, formId, data, tags, authorName } = input;
+  const { slug, formId, data, tags } = input;
+  const actor = await currentUsername();
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, ownerName: authorName, formId, tags },
+      data: { slug, ownerUsername: actor, formId, tags },
     });
     await mintRevision(tx, {
       pageId: page.id,
       data: data as Prisma.InputJsonValue,
-      authorName,
+      authorUsername: actor,
     });
   });
 }
@@ -239,22 +257,22 @@ export async function writeEntryRevision(input: {
   pageId: string;
   data: EntryData;
   tags: string[];
-  authorName: string;
 }): Promise<void> {
-  const { pageId, data, tags, authorName } = input;
+  const { pageId, data, tags } = input;
   const page = await prisma.page.findUniqueOrThrow({
     where: { id: pageId },
     include: { current: true },
   });
   const unchanged =
     JSON.stringify(readEntryData(page.current?.data)) === JSON.stringify(data);
+  const actor = await currentUsername();
   await prisma.$transaction(async (tx) => {
     await tx.page.update({ where: { id: pageId }, data: { tags } });
     if (unchanged) return;
     await mintRevision(tx, {
       pageId,
       data: data as Prisma.InputJsonValue,
-      authorName,
+      authorUsername: actor,
     });
   });
 }
@@ -269,16 +287,16 @@ export async function writeRestoredRevision(input: {
   pageId: string;
   content: string | null;
   data: Prisma.InputJsonValue | undefined;
-  authorName: string;
   restoredFromId: string;
 }): Promise<void> {
-  const { pageId, content, data, authorName, restoredFromId } = input;
+  const { pageId, content, data, restoredFromId } = input;
+  const actor = await currentUsername();
   await prisma.$transaction(async (tx) => {
     await mintRevision(tx, {
       pageId,
       content,
       data,
-      authorName,
+      authorUsername: actor,
       restoredFromId,
     });
   });

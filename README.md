@@ -67,8 +67,10 @@ cd wiki-oui
 # 2. Install dependencies
 pnpm install
 
-# 3. Configure the database connection
-echo 'DATABASE_URL="postgresql://user:password@localhost:5432/wikioui"' > .env
+# 3. Configure the database connection and the session secret
+cp .env.example .env
+# then edit DATABASE_URL, and paste `openssl rand -base64 32` into
+# BETTER_AUTH_SECRET
 
 # 4. Apply migrations and seed sample data
 pnpm prisma migrate dev

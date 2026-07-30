@@ -19,7 +19,6 @@ import { formSeeds } from "./seed/forms";
 import { pageSeeds, topMenuContent } from "./seed/pages";
 import { entrySeeds, IMAGE_ASSETS } from "./seed/entries";
 
-const AUTHOR = "Anonyme";
 const ASSETS_DIR = path.join(__dirname, "seed/assets");
 const FILES_DIR = path.join(process.cwd(), "files");
 
@@ -153,6 +152,11 @@ Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<form>\`, \`<
 
 // Shared two-step creation (docs/architecture.md): the current-revision
 // pointer can only be set once the revision row exists.
+//
+// Seeded content is born without an owner — the seed writes before anyone can
+// be an actor, and it stays free of BetterAuth (ADR 0023). The installation
+// screen then takes the special pages under its account (ADR 0027); the
+// example pages keep none, so demonstration content has no false owner.
 async function createMdxPage(
   prisma: PrismaClient,
   slug: string,
@@ -161,15 +165,10 @@ async function createMdxPage(
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, ownerName: AUTHOR, ...(createdAt && { createdAt }) },
+      data: { slug, ...(createdAt && { createdAt }) },
     });
     const revision = await tx.revision.create({
-      data: {
-        pageId: page.id,
-        content,
-        authorName: AUTHOR,
-        ...(createdAt && { createdAt }),
-      },
+      data: { pageId: page.id, content, ...(createdAt && { createdAt }) },
     });
     await tx.page.update({
       where: { id: page.id },
@@ -187,10 +186,10 @@ async function createEntryPage(
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, ownerName: AUTHOR, formId, createdAt },
+      data: { slug, formId, createdAt },
     });
     const revision = await tx.revision.create({
-      data: { pageId: page.id, data, authorName: AUTHOR, createdAt },
+      data: { pageId: page.id, data, createdAt },
     });
     await tx.page.update({
       where: { id: page.id },
@@ -260,7 +259,6 @@ async function main() {
         slug: form.slug,
         name: form.name,
         schema: form.schema as unknown as Prisma.InputJsonValue,
-        ownerName: AUTHOR,
       },
     });
     console.log(`+ formulaire ${form.slug}`);

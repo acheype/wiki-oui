@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
 export type TimelineRevision = {
   id: string;
   createdAt: Date;
-  authorName: string | null;
+  /** Already resolved: the display name, or « Anonyme ». */
+  authorName: string;
   isCurrent: boolean;
   isRestore: boolean;
 };
@@ -96,7 +97,7 @@ export function RevisionTimeline({
                   </TooltipTrigger>
                   <TooltipContent>
                     {formatDateTime(revision.createdAt)} ·{" "}
-                    {revision.authorName ?? "Anonyme"}
+                    {revision.authorName}
                     {revision.isRestore && " · restauration"}
                   </TooltipContent>
                 </Tooltip>
