@@ -3,7 +3,11 @@ import { type EntryData, readEntryData } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
-import { sweepSlugReferences } from "@/lib/slug-rename-db";
+import {
+  type SlugReferenceImpact,
+  countSlugReferenceImpact,
+  sweepSlugReferences,
+} from "@/lib/slug-rename-db";
 import { wikiConfig } from "@/wiki.config";
 
 // The only door to `Page` (ADR 0025), alongside lib/forms.ts for `Form`. An
@@ -69,6 +73,18 @@ export async function listEntryPages(formSlug?: string) {
   });
 }
 
+/**
+ * The rename dialog's headcount (ADR 0016): how many pages, entries and form
+ * definitions reference this page slug today. A read of everyone's content,
+ * hence a read through the door rather than beside it.
+ */
+export async function countPageSlugReferences(
+  slug: string,
+  referenceProps: ReadonlyMap<string, ReadonlySet<string>>
+): Promise<SlugReferenceImpact> {
+  return countSlugReferenceImpact(prisma, slug, referenceProps, "page");
+}
+
 /** The source of a restore, with what tells how to read its snapshot. */
 export async function getRevisionToRestore(revisionId: string) {
   return prisma.revision.findUnique({
@@ -103,6 +119,24 @@ function sameTags(a: string[], b: string[]): boolean {
 }
 
 /**
+ * Minting a revision and moving the page's current pointer onto it is one act
+ * (ADR 0003): the history is append-only and the pointer names its head, so
+ * the two writes always travel together, inside the caller's transaction.
+ * `pageData` rides along for the columns a caller writes in the same breath.
+ */
+async function mintRevision(
+  tx: Prisma.TransactionClient,
+  revision: Prisma.RevisionUncheckedCreateInput,
+  pageData: Prisma.PageUncheckedUpdateInput = {}
+): Promise<void> {
+  const minted = await tx.revision.create({ data: revision });
+  await tx.page.update({
+    where: { id: revision.pageId },
+    data: { ...pageData, currentRevisionId: minted.id },
+  });
+}
+
+/**
  * Saves the MDX source of a page, creating it on first save. Saving identical
  * content must not grow the history (revisions are the content's history, ADR
  * 0003), and a tags-only change updates the page without minting a revision —
@@ -134,13 +168,7 @@ export async function writePageContent(input: {
       existing ??
       (await tx.page.create({ data: { slug, ownerName: authorName } }));
 
-    const revision = await tx.revision.create({
-      data: { pageId: page.id, content, authorName },
-    });
-    await tx.page.update({
-      where: { id: page.id },
-      data: { currentRevisionId: revision.id, tags },
-    });
+    await mintRevision(tx, { pageId: page.id, content, authorName }, { tags });
   });
   return { unchanged: false };
 }
@@ -188,12 +216,10 @@ export async function createEntryPage(input: {
     const page = await tx.page.create({
       data: { slug, ownerName: authorName, formId, tags },
     });
-    const revision = await tx.revision.create({
-      data: { pageId: page.id, data: data as Prisma.InputJsonValue, authorName },
-    });
-    await tx.page.update({
-      where: { id: page.id },
-      data: { currentRevisionId: revision.id },
+    await mintRevision(tx, {
+      pageId: page.id,
+      data: data as Prisma.InputJsonValue,
+      authorName,
     });
   });
 }
@@ -219,12 +245,10 @@ export async function writeEntryRevision(input: {
   await prisma.$transaction(async (tx) => {
     await tx.page.update({ where: { id: pageId }, data: { tags } });
     if (unchanged) return;
-    const revision = await tx.revision.create({
-      data: { pageId, data: data as Prisma.InputJsonValue, authorName },
-    });
-    await tx.page.update({
-      where: { id: pageId },
-      data: { currentRevisionId: revision.id },
+    await mintRevision(tx, {
+      pageId,
+      data: data as Prisma.InputJsonValue,
+      authorName,
     });
   });
 }
@@ -244,12 +268,12 @@ export async function writeRestoredRevision(input: {
 }): Promise<void> {
   const { pageId, content, data, authorName, restoredFromId } = input;
   await prisma.$transaction(async (tx) => {
-    const revision = await tx.revision.create({
-      data: { pageId, content, data, authorName, restoredFromId },
-    });
-    await tx.page.update({
-      where: { id: pageId },
-      data: { currentRevisionId: revision.id },
+    await mintRevision(tx, {
+      pageId,
+      content,
+      data,
+      authorName,
+      restoredFromId,
     });
   });
 }

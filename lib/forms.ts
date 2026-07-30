@@ -1,10 +1,18 @@
 import type { FormDescriptor } from "@/lib/form-descriptor";
 import type { FieldRenameMapping } from "@/lib/field-rename";
-import { sweepFieldRenames } from "@/lib/field-rename-db";
-import { sweepEntryTitles } from "@/lib/entry-title-db";
+import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
+import {
+  type TitleRecomputeImpact,
+  countTitleRecompute,
+  sweepEntryTitles,
+} from "@/lib/entry-title-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
-import { sweepSlugReferences } from "@/lib/slug-rename-db";
+import {
+  type SlugReferenceImpact,
+  countSlugReferenceImpact,
+  sweepSlugReferences,
+} from "@/lib/slug-rename-db";
 
 // The only door to `Form` (ADR 0025), alongside lib/pages.ts for `Page`. An
 // ESLint rule refuses `prisma.form` anywhere else, so the permission checks
@@ -46,6 +54,30 @@ export async function listFormsWithEntries(slugs: string[]) {
       entries: { include: { current: true }, orderBy: { createdAt: "desc" } },
     },
   });
+}
+
+/** The rename dialog's headcount for a form identifier (ADR 0016). */
+export async function countFormSlugReferences(
+  slug: string,
+  referenceProps: ReadonlyMap<string, ReadonlySet<string>>
+): Promise<SlugReferenceImpact> {
+  return countSlugReferenceImpact(prisma, slug, referenceProps, "form");
+}
+
+/** How many of the form's entries carry this field key today (ADR 0017). */
+export async function countEntriesCarryingField(
+  formId: string,
+  fieldName: string
+): Promise<number> {
+  return countFieldCarriers(prisma, formId, fieldName);
+}
+
+/** What a title recompute would touch, against a candidate descriptor. */
+export async function countEntryTitleRecompute(
+  formId: string,
+  descriptor: FormDescriptor
+): Promise<TitleRecomputeImpact> {
+  return countTitleRecompute(prisma, formId, descriptor);
 }
 
 /** What a form save writes: no history (ADR 0014), saving overwrites. */

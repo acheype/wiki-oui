@@ -59,6 +59,22 @@ const eslintConfig = defineConfig([
             "Page and Form are reached through lib/pages.ts and lib/forms.ts only (ADR 0025). Add a function there rather than querying Prisma here.",
         },
       ],
+      // The syntax rule reads names, so it says nothing about a Page reached
+      // through a relation (`prisma.revision.findMany({ include: { page } })`)
+      // nor about raw SQL on "Page". Holding the client itself behind the two
+      // doors closes both: outside them there is nothing to query with.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/lib/prisma",
+              message:
+                "The Prisma client lives behind lib/pages.ts and lib/forms.ts (ADR 0025). Sweep modules receive their client as a parameter.",
+            },
+          ],
+        },
+      ],
     },
   },
   // Override default ignores of eslint-config-next.

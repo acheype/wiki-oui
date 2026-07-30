@@ -22,13 +22,12 @@ import {
 import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
-import { countFieldCarriers } from "@/lib/field-rename-db";
 import { titleRecomputeNeeded } from "@/lib/entry-title";
+import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
 import {
-  type TitleRecomputeImpact,
-  countTitleRecompute,
-} from "@/lib/entry-title-db";
-import {
+  countEntriesCarryingField,
+  countEntryTitleRecompute,
+  countFormSlugReferences,
   createForm,
   deleteFormById,
   getFormBySlug,
@@ -45,13 +44,9 @@ import {
   listEntryPages,
   writeEntryRevision,
 } from "@/lib/pages";
-import { prisma } from "@/lib/prisma";
 import { isValidSlug, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
-import {
-  type SlugReferenceImpact,
-  countSlugReferenceImpact,
-} from "@/lib/slug-rename-db";
+import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
 // MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
 const AUTHOR = "Anonyme";
@@ -212,7 +207,7 @@ export async function countFormReferences(
   slug: string
 ): Promise<SlugReferenceImpact> {
   const referenceProps = formReferenceProps(await loadComponentBuilders());
-  return countSlugReferenceImpact(prisma, slug, referenceProps, "form");
+  return countFormSlugReferences(slug, referenceProps);
 }
 
 /**
@@ -226,7 +221,7 @@ export async function countFieldReferences(
 ): Promise<number> {
   const form = await getFormBySlug(formSlug);
   if (!form) return 0;
-  return countFieldCarriers(prisma, form.id, fieldName);
+  return countEntriesCarryingField(form.id, fieldName);
 }
 
 /**
@@ -244,7 +239,7 @@ export async function countTitleImpact(
   const before = parseFormDescriptor(form.schema).descriptor;
   const after = parseFormDescriptor(schema).descriptor;
   if (!before || !after || !titleRecomputeNeeded(before, after)) return null;
-  return countTitleRecompute(prisma, form.id, after);
+  return countEntryTitleRecompute(form.id, after);
 }
 
 export type RenameFormResult = { error: string } | { ok: true };

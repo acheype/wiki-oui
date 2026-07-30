@@ -10,6 +10,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
 import {
+  countPageSlugReferences,
   deletePageById,
   getPage,
   getRevisionToRestore,
@@ -18,13 +19,9 @@ import {
   writePageContent,
   writeRestoredRevision,
 } from "@/lib/pages";
-import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
-import {
-  type SlugReferenceImpact,
-  countSlugReferenceImpact,
-} from "@/lib/slug-rename-db";
+import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 
 // MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
@@ -92,7 +89,7 @@ export async function countSlugReferences(
   slug: string
 ): Promise<SlugReferenceImpact> {
   const referenceProps = pageReferenceProps(await loadComponentBuilders());
-  return countSlugReferenceImpact(prisma, slug, referenceProps, "page");
+  return countPageSlugReferences(slug, referenceProps);
 }
 
 /**
