@@ -22,21 +22,35 @@ import {
 import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
-import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
+import { countFieldCarriers } from "@/lib/field-rename-db";
 import { titleRecomputeNeeded } from "@/lib/entry-title";
 import {
   type TitleRecomputeImpact,
   countTitleRecompute,
-  sweepEntryTitles,
 } from "@/lib/entry-title-db";
-import { Prisma } from "@/lib/generated/prisma/client";
+import {
+  createForm,
+  deleteFormById,
+  getFormBySlug,
+  listFormNames,
+  listFormsBySlugs,
+  listFormsWithEntryCount,
+  renameFormSlug,
+  updateForm,
+} from "@/lib/forms";
+import {
+  createEntryPage,
+  getPage,
+  getPageWithCurrent,
+  listEntryPages,
+  writeEntryRevision,
+} from "@/lib/pages";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import {
   type SlugReferenceImpact,
   countSlugReferenceImpact,
-  sweepSlugReferences,
 } from "@/lib/slug-rename-db";
 
 // MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
@@ -50,10 +64,7 @@ export interface FormSummary {
 }
 
 export async function listForms(): Promise<FormSummary[]> {
-  const forms = await prisma.form.findMany({
-    orderBy: { name: "asc" },
-    include: { _count: { select: { entries: true } } },
-  });
+  const forms = await listFormsWithEntryCount();
   return forms.map((form) => ({
     slug: form.slug,
     name: form.name,
@@ -70,7 +81,7 @@ export interface FormDetail {
 }
 
 export async function getForm(slug: string): Promise<FormDetail | null> {
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const form = await getFormBySlug(slug);
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {
@@ -139,9 +150,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     }
   }
 
-  const existing = issues.length === 0
-    ? await prisma.form.findUnique({ where: { slug: input.slug } })
-    : null;
+  const existing = issues.length === 0 ? await getFormBySlug(input.slug) : null;
   if (input.isNew && existing) {
     issues.push({
       message: `L'identifiant «\u00A0${input.slug}\u00A0» est déjà pris par un autre formulaire.`,
@@ -167,21 +176,16 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     // revision of the form's entries, and the recomputed titles to their
     // current one, or nothing does.
     const before = parseFormDescriptor(existing.schema).descriptor;
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.form.update({ where: { id: existing.id }, data });
-        await sweepFieldRenames(tx, existing.id, renames);
-        if (before && titleRecomputeNeeded(before, parsed.descriptor)) {
-          await sweepEntryTitles(tx, existing.id, parsed.descriptor, AUTHOR);
-        }
-      },
-      // Same cold-admin-action allowance as renameForm below.
-      { timeout: 60_000 }
-    );
-  } else {
-    await prisma.form.create({
-      data: { ...data, slug: input.slug, ownerName: AUTHOR },
+    await updateForm(existing.id, data, {
+      renames,
+      recomputeTitles:
+        before && titleRecomputeNeeded(before, parsed.descriptor)
+          ? parsed.descriptor
+          : null,
+      authorName: AUTHOR,
     });
+  } else {
+    await createForm(input.slug, data, AUTHOR);
   }
 
   // Entry pages render through the form's schema/template: refresh the tree.
@@ -194,11 +198,11 @@ export type DeleteFormResult = { error: string } | { ok: true };
 // Cascade (ADR 0014): deleting a form deletes its entry pages — the UI
 // confirmation announces the count beforehand.
 export async function deleteForm(slug: string): Promise<DeleteFormResult> {
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const form = await getFormBySlug(slug);
   if (!form) {
     return { error: "Ce formulaire n'existe pas." };
   }
-  await prisma.form.delete({ where: { id: form.id } });
+  await deleteFormById(form.id);
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -220,7 +224,7 @@ export async function countFieldReferences(
   formSlug: string,
   fieldName: string
 ): Promise<number> {
-  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  const form = await getFormBySlug(formSlug);
   if (!form) return 0;
   return countFieldCarriers(prisma, form.id, fieldName);
 }
@@ -235,7 +239,7 @@ export async function countTitleImpact(
   formSlug: string,
   schema: unknown
 ): Promise<TitleRecomputeImpact | null> {
-  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  const form = await getFormBySlug(formSlug);
   if (!form) return null;
   const before = parseFormDescriptor(form.schema).descriptor;
   const after = parseFormDescriptor(schema).descriptor;
@@ -265,11 +269,11 @@ export async function renameForm(
   if (newSlug === slug) {
     return { error: "Le nouvel identifiant est identique à l'actuel." };
   }
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const form = await getFormBySlug(slug);
   if (!form) {
     return { error: "Ce formulaire n'existe pas." };
   }
-  if (await prisma.form.findUnique({ where: { slug: newSlug } })) {
+  if (await getFormBySlug(newSlug)) {
     return {
       error: `L'identifiant «\u00A0${newSlug}\u00A0» est déjà pris par un autre formulaire.`,
     };
@@ -278,17 +282,7 @@ export async function renameForm(
   const rename: SlugRename = { oldSlug: slug, newSlug };
   const referenceProps = formReferenceProps(await loadComponentBuilders());
   try {
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.form.update({
-          where: { id: form.id },
-          data: { slug: newSlug },
-        });
-        await sweepSlugReferences(tx, rename, referenceProps, "form");
-      },
-      // Same cold-admin-action allowance as renamePage (app/actions.ts).
-      { timeout: 60_000 }
-    );
+    await renameFormSlug(form.id, rename, referenceProps);
   } catch {
     return {
       error: "Le changement d'identifiant a échoué. Réessayez dans un instant.",
@@ -311,11 +305,7 @@ export async function listFormOptions(
 export async function listFormChoices(): Promise<
   { slug: string; name: string }[]
 > {
-  const forms = await prisma.form.findMany({
-    orderBy: { name: "asc" },
-    select: { slug: true, name: true },
-  });
-  return forms;
+  return listFormNames();
 }
 
 /**
@@ -328,9 +318,7 @@ export async function listFormChoices(): Promise<
 export async function listEntryFieldChoices(
   formSlugs: string[]
 ): Promise<EntryFieldChoice[]> {
-  const forms = await prisma.form.findMany({
-    where: { slug: { in: formSlugs } },
-  });
+  const forms = await listFormsBySlugs(formSlugs);
   const bySlug = new Map(forms.map((form) => [form.slug, form]));
   const ordered = formSlugs.flatMap((slug) => {
     const form = bySlug.get(slug);
@@ -405,7 +393,7 @@ export async function getEntryForm(
   formSlug: string,
   entrySlug?: string
 ): Promise<EntryFormData | null> {
-  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  const form = await getFormBySlug(formSlug);
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {
@@ -415,10 +403,7 @@ export async function getEntryForm(
   let values: EntryData | null = null;
   let slug: string | null = null;
   if (entrySlug) {
-    const page = await prisma.page.findUnique({
-      where: { slug: entrySlug },
-      include: { current: true },
-    });
+    const page = await getPageWithCurrent(entrySlug);
     if (!page || page.formId !== form.id) return null;
     values = readEntryData(page.current?.data);
     const tagsField = tagsFieldName(parsed.descriptor);
@@ -451,7 +436,7 @@ export type SaveEntryResult =
 export async function saveEntry(
   input: SaveEntryInput
 ): Promise<SaveEntryResult> {
-  const form = await prisma.form.findUnique({ where: { slug: input.formSlug } });
+  const form = await getFormBySlug(input.formSlug);
   if (!form) return { ok: false, formError: "Ce formulaire n'existe plus." };
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {
@@ -484,13 +469,16 @@ export async function saveEntry(
   // Editing keeps the frozen slug; a new entry derives it from the title
   // (revealable, personalizable) and freezes it on this first save.
   if (input.entrySlug) {
-    const page = await prisma.page.findUnique({
-      where: { slug: input.entrySlug },
-    });
+    const page = await getPage(input.entrySlug);
     if (!page || page.formId !== form.id) {
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
-    await writeEntryRevision(page.id, stored, tags);
+    await writeEntryRevision({
+      pageId: page.id,
+      data: stored,
+      tags,
+      authorName: AUTHOR,
+    });
     revalidatePath("/", "layout");
     return { ok: true, slug: page.slug };
   }
@@ -502,50 +490,18 @@ export async function saveEntry(
     return { ok: false, slugCollision: true };
   }
   // Collision with any page (MDX or entry): explicit, never a silent suffix.
-  const clash = await prisma.page.findUnique({ where: { slug } });
+  const clash = await getPage(slug);
   if (clash) return { ok: false, slugCollision: true };
 
-  await prisma.$transaction(async (tx) => {
-    const page = await tx.page.create({
-      data: { slug, ownerName: AUTHOR, formId: form.id, tags },
-    });
-    const revision = await tx.revision.create({
-      data: { pageId: page.id, data: stored as Prisma.InputJsonValue, authorName: AUTHOR },
-    });
-    await tx.page.update({
-      where: { id: page.id },
-      data: { currentRevisionId: revision.id },
-    });
+  await createEntryPage({
+    slug,
+    formId: form.id,
+    data: stored,
+    tags,
+    authorName: AUTHOR,
   });
   revalidatePath("/", "layout");
   return { ok: true, slug };
-}
-
-// A new snapshot for an existing entry, unless the data is unchanged
-// (revisions are the content's history, ADR 0003). Tags live on the Page and
-// update without a revision (ADR 0007).
-async function writeEntryRevision(
-  pageId: string,
-  data: EntryData,
-  tags: string[]
-): Promise<void> {
-  const page = await prisma.page.findUniqueOrThrow({
-    where: { id: pageId },
-    include: { current: true },
-  });
-  const unchanged =
-    JSON.stringify(readEntryData(page.current?.data)) === JSON.stringify(data);
-  await prisma.$transaction(async (tx) => {
-    await tx.page.update({ where: { id: pageId }, data: { tags } });
-    if (unchanged) return;
-    const revision = await tx.revision.create({
-      data: { pageId, data: data as Prisma.InputJsonValue, authorName: AUTHOR },
-    });
-    await tx.page.update({
-      where: { id: pageId },
-      data: { currentRevisionId: revision.id },
-    });
-  });
 }
 
 export interface EntrySummary {
@@ -557,11 +513,7 @@ export interface EntrySummary {
 }
 
 export async function listEntries(formSlug?: string): Promise<EntrySummary[]> {
-  const pages = await prisma.page.findMany({
-    where: formSlug ? { form: { slug: formSlug } } : { formId: { not: null } },
-    include: { form: true, current: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const pages = await listEntryPages(formSlug);
   return pages.flatMap((page) => {
     if (!page.form) return [];
     const title = String(readEntryData(page.current?.data).title ?? page.slug);

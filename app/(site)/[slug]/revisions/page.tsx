@@ -11,9 +11,9 @@ import { RevisionTimeline } from "@/components/revisions/timeline";
 import { Button } from "@/components/ui/button";
 import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
 import { formatDateTime } from "@/lib/format";
+import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
 import { getPageWithRevisions } from "@/lib/pages";
-import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 
@@ -59,9 +59,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the
   // entry's default view (below).
-  const form = page.formId
-    ? await prisma.form.findUnique({ where: { id: page.formId } })
-    : null;
+  const form = page.formId ? await getFormById(page.formId) : null;
   const entryDescriptor = form
     ? parseFormDescriptor(form.schema).descriptor ?? null
     : null;

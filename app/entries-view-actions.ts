@@ -10,7 +10,7 @@ import { listEntryFieldChoices } from "@/app/form-actions";
 import type { EntryFieldChoice } from "@/lib/entry-fields";
 import type { ViewEntry } from "@/lib/entries-view";
 import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
-import { prisma } from "@/lib/prisma";
+import { listFormsWithEntries } from "@/lib/forms";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
   sampleEntries,
@@ -69,12 +69,7 @@ export async function getEntriesViewData(
   );
   const keptNames = new Set(kept.map((choice) => choice.name));
 
-  const forms = await prisma.form.findMany({
-    where: { slug: { in: query.forms } },
-    include: {
-      entries: { include: { current: true }, orderBy: { createdAt: "desc" } },
-    },
-  });
+  const forms = await listFormsWithEntries(query.forms);
   const bySlug = new Map(forms.map((form) => [form.slug, form]));
   const ordered = query.forms.flatMap((slug) => bySlug.get(slug) ?? []);
   const formNames = Object.fromEntries(

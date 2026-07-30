@@ -9,13 +9,21 @@ import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
+import {
+  deletePageById,
+  getPage,
+  getRevisionToRestore,
+  listPageSlugs,
+  renamePageSlug,
+  writePageContent,
+  writeRestoredRevision,
+} from "@/lib/pages";
 import { prisma } from "@/lib/prisma";
 import { isValidSlug } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import {
   type SlugReferenceImpact,
   countSlugReferenceImpact,
-  sweepSlugReferences,
 } from "@/lib/slug-rename-db";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 
@@ -35,12 +43,12 @@ export async function lintPage(
   content: string,
   slug?: string
 ): Promise<PageWarning[]> {
-  const [registry, builders, pages] = await Promise.all([
+  const [registry, builders, slugs] = await Promise.all([
     listWikiComponentNames(),
     loadComponentBuilders(),
-    prisma.page.findMany({ select: { slug: true } }),
+    listPageSlugs(),
   ]);
-  const existingSlugs = new Set(pages.map((page) => page.slug));
+  const existingSlugs = new Set(slugs);
   // A page may link to itself before its first save.
   if (slug) existingSlugs.add(slug);
   return lintPageSource(content, registry, builders, existingSlugs);
@@ -48,10 +56,6 @@ export async function lintPage(
 
 function normalizeTags(tags: string[]): string[] {
   return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
-}
-
-function sameTags(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((tag, index) => tag === b[index]);
 }
 
 export async function savePage(input: {
@@ -65,34 +69,13 @@ export async function savePage(input: {
   }
   const tags = normalizeTags(input.tags);
 
-  const existing = await prisma.page.findUnique({
-    where: { slug },
-    include: { current: true },
+  const { unchanged } = await writePageContent({
+    slug,
+    content,
+    tags,
+    authorName: AUTHOR,
   });
-
-  // Saving identical content must not grow the history (revisions are the
-  // content's history, ADR 0003). Nothing changed at all: tell the caller.
-  // Tags-only change: update the page — tags live outside revisions
-  // (ADR 0007), so none is minted.
-  if (existing && existing.current?.content === content) {
-    if (sameTags(existing.tags, tags)) {
-      return { unchanged: true };
-    }
-    await prisma.page.update({ where: { id: existing.id }, data: { tags } });
-  } else {
-    await prisma.$transaction(async (tx) => {
-      const page =
-        existing ?? (await tx.page.create({ data: { slug, ownerName: AUTHOR } }));
-
-      const revision = await tx.revision.create({
-        data: { pageId: page.id, content, authorName: AUTHOR },
-      });
-      await tx.page.update({
-        where: { id: page.id },
-        data: { currentRevisionId: revision.id, tags },
-      });
-    });
-  }
+  if (unchanged) return { unchanged: true };
 
   // Any page can feed the layout (menu, title…), so revalidate the whole tree.
   revalidatePath("/", "layout");
@@ -131,11 +114,11 @@ export async function renamePage(
   if (newSlug === slug) {
     return { error: "La nouvelle adresse est identique à l'actuelle." };
   }
-  const page = await prisma.page.findUnique({ where: { slug } });
+  const page = await getPage(slug);
   if (!page) {
     return { error: "Cette page n'existe pas." };
   }
-  if (await prisma.page.findUnique({ where: { slug: newSlug } })) {
+  if (await getPage(newSlug)) {
     return { error: `L'adresse «\u00A0${newSlug}\u00A0» est déjà utilisée.` };
   }
 
@@ -143,20 +126,7 @@ export async function renamePage(
   const referenceProps = pageReferenceProps(await loadComponentBuilders());
 
   try {
-    // One transaction for the whole retcon: the wiki never observes a state
-    // where the page answers to the new slug but references still say the old.
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.page.update({
-          where: { id: page.id },
-          data: { slug: newSlug },
-        });
-        await sweepSlugReferences(tx, rename, referenceProps, "page");
-      },
-      // A large wiki means many rewrites in one sweep; the default 5s is for
-      // hot-path transactions, this is a rare cold admin action.
-      { timeout: 60_000 }
-    );
+    await renamePageSlug(page.id, rename, referenceProps);
   } catch {
     // Most likely a unique-constraint race on the new slug.
     return {
@@ -172,13 +142,12 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   if (specialSlugs.includes(slug)) {
     return { error: "Les pages spéciales ne peuvent pas être supprimées." };
   }
-  const page = await prisma.page.findUnique({ where: { slug } });
+  const page = await getPage(slug);
   if (!page) {
     return { error: "Cette page n'existe pas." };
   }
 
-  // Hard delete (ADR 0008): revisions go with the page via onDelete: Cascade.
-  await prisma.page.delete({ where: { id: page.id } });
+  await deletePageById(page.id);
 
   revalidatePath("/", "layout");
   // Server-action redirects bypass next.config redirects(): aim straight at
@@ -232,33 +201,18 @@ export type RestoreResult =
 export async function restoreRevision(
   revisionId: string
 ): Promise<RestoreResult> {
-  const source = await prisma.revision.findUnique({
-    where: { id: revisionId },
-    include: { page: { include: { form: true } } },
-  });
+  const source = await getRevisionToRestore(revisionId);
   if (!source) {
     return { error: "Révision introuvable." };
   }
 
-  // A restore is a NEW revision labeled with its origin (ADR 0003/0009):
-  // history stays append-only, nothing is rewound. Copying both snapshot
-  // columns preserves the content-xor-data invariant (ADR 0014) for MDX
-  // pages and entries alike.
   const restored = restoredEntryData(source.page.form?.schema, source.data);
-  await prisma.$transaction(async (tx) => {
-    const revision = await tx.revision.create({
-      data: {
-        pageId: source.pageId,
-        content: source.content,
-        data: restored.data ?? undefined,
-        authorName: AUTHOR,
-        restoredFromId: source.id,
-      },
-    });
-    await tx.page.update({
-      where: { id: source.pageId },
-      data: { currentRevisionId: revision.id },
-    });
+  await writeRestoredRevision({
+    pageId: source.pageId,
+    content: source.content,
+    data: restored.data ?? undefined,
+    authorName: AUTHOR,
+    restoredFromId: source.id,
   });
 
   revalidatePath("/", "layout");

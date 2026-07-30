@@ -4,8 +4,11 @@ import { getEntryForm } from "@/app/form-actions";
 import { PageEditor } from "@/components/editor/page-editor";
 import { EntryEdit } from "@/components/forms/entry-edit";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
-import { prisma } from "@/lib/prisma";
-import { getPageWithCurrent, listPageSlugs } from "@/lib/pages";
+import {
+  getPageWithCurrent,
+  getPageWithForm,
+  listPageSlugs,
+} from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -30,10 +33,7 @@ export default async function EditPage({ params }: Props) {
 
   // A form entry (ADR 0014) edits through its generated form, never
   // CodeMirror: branch on the page's nature before loading editor data.
-  const existing = await prisma.page.findUnique({
-    where: { slug },
-    include: { form: true },
-  });
+  const existing = await getPageWithForm(slug);
   if (existing?.form) {
     const form = await getEntryForm(existing.form.slug, slug);
     if (!form) notFound();

@@ -6,8 +6,9 @@ import {
   parseFormDescriptor,
   readEntryData,
 } from "@/lib/form-descriptor";
+import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import { prisma } from "@/lib/prisma";
+import { listPagesWithCurrent } from "@/lib/pages";
 
 // The entry "show" rendering (ADR 0014), shared by the page at /[slug] and
 // the chrome-free popup service (docs/entries-view.md): the form's MDX
@@ -27,7 +28,7 @@ export async function EntryContent({
    */
   hideTitle?: boolean;
 }): Promise<React.ReactNode> {
-  const form = await prisma.form.findUnique({ where: { id: formId } });
+  const form = await getFormById(formId);
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) return null;
@@ -47,10 +48,7 @@ export async function EntryContent({
   // for the default view's wiki links; a deleted target keeps its raw slug.
   const referenced = formSourcedValues(parsed.descriptor, data);
   const targets = referenced.length
-    ? await prisma.page.findMany({
-        where: { slug: { in: referenced } },
-        include: { current: true },
-      })
+    ? await listPagesWithCurrent(referenced)
     : [];
   const linkTitles: Record<string, string> = {};
   for (const target of targets) {
