@@ -21,6 +21,15 @@ export function isValidUsername(value: string): boolean {
 }
 
 /**
+ * Sign-in asks for one thing, not two: "your email or your identifier". The
+ * @ is what tells them apart — an identifier follows the slug pattern, which
+ * has no room for one.
+ */
+export function signInMethod(value: string): "email" | "username" {
+  return value.trim().includes("@") ? "email" : "username";
+}
+
+/**
  * One label for every content without an identified owner or author, whatever
  * the reason — older than the accounts, written by a visitor on an open wiki,
  * or an erased account (docs/permissions.md). The wiki does not tell those

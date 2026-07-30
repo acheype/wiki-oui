@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { deriveUsername, displayName, isValidUsername } from "./username";
+import {
+  deriveUsername,
+  displayName,
+  isValidUsername,
+  signInMethod,
+} from "./username";
 
 // docs/permissions.md § Identité: the username is the project's slug pattern,
 // derived from the display name — the same fixed-identity move as a form slug
@@ -57,5 +62,23 @@ describe("displayName", () => {
     // was erased (onDelete: SetNull, ADR 0024) — one label for both.
     expect(displayName(null)).toBe("Anonyme");
     expect(displayName(undefined)).toBe("Anonyme");
+  });
+});
+
+// Sign-in has a single field, so nobody has to guess which one is expected
+// (docs/permissions.md § Identité). What tells the two apart is the @, which
+// an identifier can never contain.
+describe("signInMethod", () => {
+  it("reads an address as an email", () => {
+    expect(signInMethod("marie@asso.fr")).toBe("email");
+  });
+
+  it("reads anything else as an identifier", () => {
+    expect(signInMethod("marie-durand")).toBe("username");
+    expect(signInMethod("wiki-admin")).toBe("username");
+  });
+
+  it("ignores the spaces a copy-paste drags along", () => {
+    expect(signInMethod("  marie@asso.fr ")).toBe("email");
   });
 });

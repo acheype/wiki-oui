@@ -13,8 +13,12 @@ import { prisma } from "@/lib/prisma";
  * in the session: removing someone from a group must take effect at once, not
  * when their session is renewed.
  */
+const currentSession = cache(async () =>
+  auth.api.getSession({ headers: await headers() })
+);
+
 export const currentActor = cache(async (): Promise<Actor> => {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await currentSession();
   const username = session?.user.username ?? null;
   if (!username) return VISITOR;
 
@@ -32,6 +36,16 @@ export const currentActor = cache(async (): Promise<Actor> => {
  */
 export async function currentUsername(): Promise<string | null> {
   return (await currentActor()).username;
+}
+
+/** The signed-in person as the interface names them, null for a visitor. */
+export async function currentIdentity(): Promise<{
+  username: string;
+  name: string;
+} | null> {
+  const session = await currentSession();
+  if (!session?.user.username) return null;
+  return { username: session.user.username, name: session.user.name };
 }
 
 /**

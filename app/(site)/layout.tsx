@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { isBlankMdx, renderMdx } from "@/lib/mdx";
 import { getLayoutContents } from "@/lib/pages";
+import { currentIdentity } from "@/lib/permissions-db";
 import { cn } from "@/lib/utils";
 import { wikiConfig } from "@/wiki.config";
 
@@ -17,6 +19,9 @@ export default async function SiteLayout({
   children: React.ReactNode;
 }>) {
   const slots = await getLayoutContents();
+  // Server-resolved: the top bar renders signed in or out on the first
+  // paint, without the flash a client-side session fetch would bring.
+  const identity = await currentIdentity();
   // The five slot renders are independent: pipeline them.
   const [title, topMenu, topQuickAccess, header, footer] = await Promise.all([
     renderMdx(slots.title),
@@ -48,6 +53,7 @@ export default async function SiteLayout({
           >
             {topQuickAccess}
           </div>
+          <AccountMenu identity={identity} />
         </div>
       </div>
 
