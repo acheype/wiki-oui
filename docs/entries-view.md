@@ -97,7 +97,7 @@ Le clic marqueur applique **directement** `entryDisplay`, qui gagne ici deux opt
 | `startDateField` | Champ date de début | **requis** (sans lui : état vide explicite dans l'aperçu) ; pré-rempli si le formulaire n'a qu'un champ date ; pseudo-champs dates acceptés |
 | `endDateField` | Champ date de fin | optionnel — événements multi-jours |
 | `initialView` | Vue initiale | `month` (défaut) · `week` · `day` · `planning` |
-| `planningRange` | Portée du planning | avancé : `year` (défaut) · `month` · `week` |
+| `planningRange` | Étendue du planning | avancé : `year` (défaut) · `month` · `week` |
 | `compact` | Mini calendrier | rendu compact pour colonne étroite |
 
 `planning` (et `planningRange`) n'existent que si la bibliothèque calendrier retenue offre une vue liste — le critère de choix de la bibliothèque est l'ergonomie et l'esthétique, pas la parité YesWiki. Export iCal : backlog.
@@ -197,7 +197,7 @@ Tri visible pour Liste, Grille, Tableau, Carrousel, Galerie ; masqué pour Carte
 ## Architecture
 
 - **Builder 100 % descripteur** (ADR 0018) : le YAML d'EntriesView utilise six nouveaux types génériques — `view-picker` (tuiles), `form-field` (sélecteur de champ·s des formulaires choisis, options chargées par Server Action selon la valeur du champ frère `form`, filtrables par types de champs, pseudo-champs déclarables), `field-rows` (lignes ordonnées champ + titre éditable + extra optionnel), `color-mapping`, `icon-mapping`, `map-view`. Tous réutilisables par de futurs composants.
-- **Props structurées en expressions littérales** (ADR 0019) : `filters={[{ field: "type", title: "Type d'acteur" }]}` — le bac à sable les rend déjà (`lib/mdx-literal-props.ts`) ; le chantier est le **round-trip** du builder (parser l'AST du littéral, régénérer). Multi-formulaires : `form="associations"` ou `form={["associations", "evenements"]}` (même prop).
+- **Props structurées en expressions littérales** (ADR 0019) : `filters={[{ field: "type", title: "Type de structure" }]}` — le bac à sable les rend déjà (`lib/mdx-literal-props.ts`) ; le chantier est le **round-trip** du builder (parser l'AST du littéral, régénérer). Multi-formulaires : `form="associations"` ou `form={["associations", "evenements"]}` (même prop).
 - **Données** : composant client, chargement complet par **Server Action en lecture** (motif ADR 0014) — recherche, filtres, tri, compteurs et pagination s'exécutent **en mémoire** (latence zéro). Garde-fous : la Server Action ne renvoie que les **champs référencés** par la configuration (zones, colonnes, filtres, tri, recherche), et les longues listes sont paginées ou virtualisées. Si l'échelle l'exige un jour, le filtrage serveur deviendra une optimisation interne sans changer la balise.
 - **Popup fiche** : rendue par le vrai pipeline (mécanique d'aperçu existante), pas une re-implémentation.
 
@@ -294,7 +294,7 @@ Vues Blog, Timeline, Liste de liens, Carte-et-tableau · export (boutons CSV/JSO
 
 ## Bibliothèques retenues (arrêtées à l'implémentation)
 
-- **Calendrier : FullCalendar 7** (`@fullcalendar/react`, tout en sous-chemins : plugins daygrid/timegrid/list, locale française, thème) — retenu pour ses vues liste (le « Planning » avec ses trois portées). Le thème **forma** est re-mappé sur les tokens de design de WikiOui dans `app/globals.css` (`.entries-calendar`) : une seule table de correspondance sert clair et sombre, les tokens shadcn basculant d'eux-mêmes.
+- **Calendrier : FullCalendar 7** (`@fullcalendar/react`, tout en sous-chemins : plugins daygrid/timegrid/list, locale française, thème) — retenu pour ses vues liste (le « Planning » avec ses trois étendues). Le thème **forma** est re-mappé sur les tokens de design de WikiOui dans `app/globals.css` (`.entries-calendar`) : une seule table de correspondance sert clair et sombre, les tokens shadcn basculant d'eux-mêmes.
 - **Carrousel : Embla** (`embla-carousel-react` + plugin autoplay).
 - **Carte : Leaflet + react-leaflet** (déjà présents) + **`leaflet.markercluster`** pour le regroupement — les marqueurs sont gérés impérativement (react-leaflet 5 n'a pas d'histoire de clustering, le pont aurait coûté plus que la couche impérative).
 - **Tableau : fait main** — la suggestion TanStack Table est écartée : le pipeline en mémoire (recherche, filtres, tri, pagination) possède déjà le tri et la pagination, une seconde machinerie de tri aurait fait deux sources de vérité.

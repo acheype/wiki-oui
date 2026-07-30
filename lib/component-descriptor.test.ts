@@ -590,10 +590,10 @@ describe("parseLiteral", () => {
   it("parses the canonical structured forms", () => {
     expect(parseLiteral('["a", "b"]')).toEqual({ value: ["a", "b"] });
     expect(
-      parseLiteral('[{ field: "type", title: "Type d\'acteur" }, { field: "commune" }]')
+      parseLiteral('[{ field: "type", title: "Type de structure" }, { field: "commune" }]')
     ).toEqual({
       value: [
-        { field: "type", title: "Type d'acteur" },
+        { field: "type", title: "Type de structure" },
         { field: "commune" },
       ],
     });
@@ -625,12 +625,12 @@ describe("parseLiteral", () => {
 describe("serializeLiteral", () => {
   it("writes the form a JS author would write, and reads it back", () => {
     const value: LiteralValue = [
-      { field: "type", title: "Type d'acteur", icon: "lucide:users" },
+      { field: "type", title: "Type de structure", icon: "lucide:users" },
       { field: "commune" },
     ];
     const written = serializeLiteral(value);
     expect(written).toBe(
-      '[{ field: "type", title: "Type d\'acteur", icon: "lucide:users" }, { field: "commune" }]'
+      '[{ field: "type", title: "Type de structure", icon: "lucide:users" }, { field: "commune" }]'
     );
     expect(parseLiteral(written)).toEqual({ value });
   });

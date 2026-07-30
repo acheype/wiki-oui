@@ -62,7 +62,7 @@ La page spéciale `aide-memoire` qui résume toutes les syntaxes MDX supportées
 Un fragment de contenu non rendu par `show`, écrit avec la syntaxe de commentaire MDX `{/* … */}`. Visible dans l'éditeur et dans « Afficher le code Wiki », absent du rendu.
 
 **Fichier uploadé**:
-Un fichier de la bibliothèque du wiki : stocké dans le répertoire `files/` qui **fait foi** (pas de table — ADR 0012), servi à l'URL `/api/files/{nom}`, nom slugifié comme un slug de page. Sa **famille** (`image`, `pdf`, `other`), déterminée par son extension dans la config, décide du composant qui l'affiche et filtre les combobox `file-list`. Le pool est global au wiki : un fichier non référencé par une page (« orphelin ») reste légitime et réutilisable.
+Un fichier de la bibliothèque du wiki : stocké dans le répertoire `files/` qui **fait foi** (pas de table — ADR 0012), servi à l'URL `/api/files/{nom}`, nom slugifié comme un slug de page. Sa **famille** (`image`, `pdf`, `other`), déterminée par son extension dans la config, décide du composant qui l'affiche et filtre les combobox `file-list`. Le pool est global au wiki : un fichier non référencé par une page (« orphelin ») reste légitime et réutilisable. **Ne porte aucun droit** (v0.5) : accessible à qui connaît son adresse, quels que soient les droits de la page qui l'affiche — les droits des fichiers attendent leur table, qui naîtra avec la galerie de gestion des fichiers (backlog).
 _Avoid_: pièce jointe (un fichier n'appartient pas à une page)
 
 **Classe utilitaire auteur**:
@@ -124,7 +124,55 @@ _Avoid_: Facette (jargon YesWiki)
 Un champ synthétique proposé par EntriesView aux côtés des champs du formulaire : `$form` (le formulaire de la fiche, en multi-formulaires), `$owner`, `$createdAt`, `$editedAt`. Le préfixe `$` interdit toute collision avec un `name` de champ.
 _Avoid_: extraFields (jargon YesWiki), champ système
 
-## Portée
+**Acteur**:
+La personne qui agit sur le wiki à un instant donné, **connectée ou non** — donc l'un des trois niveaux d'accès, selon qui frappe. C'est le sujet de toute question de droit (« cet acteur peut-il modifier cette page ? ») et le premier paramètre de la couche d'accès. En code : `viewer`.
+_Avoid_: Demandeur, visiteur (il n'en est qu'un cas), lecteur (boite dès qu'il s'agit d'écrire), utilisateur courant
+
+**Niveau d'accès**:
+L'un des trois états possibles d'un acteur, du plus étroit au plus large : **visiteur** (non identifié), **utilisateur** (a un compte), **administrateur** (membre du groupe Admins). Un niveau ne se paramètre pas, il se constate — il découle de la session et de l'appartenance aux groupes. À ne pas confondre avec la **portée** d'un droit, qui est le réglage posé sur une page.
+_Avoid_: Rôle (il n'y a pas de champ rôle), profil, statut, permission
+
+**Visiteur**:
+Le niveau d'accès d'un acteur non identifié : sans compte, ou non connecté. N'obtient que ce qui est ouvert à « tout le monde ». Terme **étroit** : pour désigner qui que ce soit qui agit, le mot est *acteur*.
+_Avoid_: Anonyme (réservé au libellé d'un contenu sans auteur identifié), invité, utilisateur non connecté
+
+**Utilisateur**:
+Une personne dotée d'un compte. Ce que voit le lecteur, c'est son **nom affiché** (libre, un pseudonyme est accepté) et son avatar ; ce que désignent les droits, c'est son **username**. Un utilisateur est simple par défaut, et administrateur seulement s'il appartient au groupe Admins — il n'y a pas de champ rôle.
+_Avoid_: Membre (réservé à l'appartenance à un groupe), compte (l'objet technique de l'authentification)
+
+**Username**:
+L'identifiant public et unique d'un utilisateur (`marie-durand`), au même format qu'un slug de page. Dérivé du nom affiché à l'inscription, personnalisable, puis figé — et renommable ensuite par un geste explicite, comme tout identifiant du projet. C'est lui que stockent les droits, la propriété, l'auteur d'une révision et l'appartenance aux groupes, et lui qui distingue deux homonymes là où le nom affiché ne suffit pas. Présenté comme l'**identifiant** en UI.
+_Avoid_: login, pseudo, nom wiki (YesWiki), identifiant numérique
+
+**Administrateur**:
+Un utilisateur membre du groupe **Admins**. Peut lire et modifier toute page et toute fiche, sans exception — et sans jamais figurer dans les droits d'une page : son accès est un invariant, pas une autorisation accordée.
+_Avoid_: Rôle, superutilisateur, modérateur
+
+**Groupe**:
+Un ensemble nommé d'utilisateurs et/ou d'autres groupes, créé pour accorder des droits à plusieurs personnes d'un coup. Identifié par un slug, présenté préfixé d'un `@` (`@redacteurs`) — ce `@` est une marque visuelle qui distingue un groupe d'une personne, jamais une syntaxe à taper. **Admins** est le groupe seedé qui confère l'administration.
+_Avoid_: Rôle, équipe, liste
+
+**Propriétaire**:
+L'utilisateur à qui appartient une page ou une fiche : celui qui l'a créée, jusqu'à réattribution éventuelle. Il peut toujours la voir et la modifier, quels que soient les droits posés dessus — c'est un plancher, pas une case à cocher, et il ne figure donc jamais dans une liste de droits. Une page peut n'avoir **aucun** propriétaire (compte supprimé) : seuls les administrateurs y touchent alors.
+_Avoid_: Auteur (l'auteur est celui d'une révision, et n'ouvre aucun droit), créateur
+
+**Droit**:
+L'autorisation de **lire** ou d'**écrire** une page, une fiche ou un champ. Chacun des deux s'exprime par une **portée** — *tout le monde* · *les personnes connectées* · *seulement* — la troisième ouvrant une liste d'utilisateurs et de groupes. Le propriétaire et les administrateurs sont toujours autorisés et n'apparaissent pas dans cette liste ; une portée *seulement* à liste vide dit donc « eux seuls ». Écrire implique lire.
+_Avoid_: ACL (nom de code, à réserver au code), permission, rôle, « niveau » (réservé au niveau d'accès, qui décrit un acteur et non un réglage)
+
+**Création de fiche**:
+Le droit de **créer** une fiche d'un formulaire, distinct du droit de la **modifier** une fois créée. Un formulaire porte donc trois réglages : qui peut créer une fiche, et les deux droits par défaut (voir, modifier) de la fiche née. C'est ce qui permet le cas courant « chacun crée la sienne, chacun ne modifie que la sienne ».
+_Avoid_: saisie (ambigu : désigne aussi bien la création que l'édition), dépôt, soumission
+
+**Droit par défaut**:
+Un gabarit de droits **recopié** au moment d'une création — jamais un lien vivant. `wiki.config.ts` fournit ceux d'une page nouvelle et ceux d'un formulaire nouveau ; un formulaire fournit ceux de ses fiches. Modifier un défaut ne touche donc rien de ce qui existe : le seul chemin vers l'existant est un geste explicite (« Appliquer aux fiches existantes »), à confirmation chiffrée.
+_Avoid_: héritage, droit hérité, droit propagé (rien n'est lié)
+
+**Anonyme**:
+Le libellé d'un contenu sans auteur ni propriétaire identifié (`NULL` en base), **quelle qu'en soit la raison** : contenu antérieur aux comptes, écrit par un visiteur sur un wiki à création ouverte, ou dont le compte a été effacé. Le wiki ne distingue pas ces cas — il n'en ferait rien, et se taire sert mieux un effacement demandé que de signaler qu'il a eu lieu.
+_Avoid_: « Compte supprimé » (distinction écartée), visiteur (la personne, pas le libellé), invité, utilisateur inconnu
+
+## Périmètre
 
 **v0.1 (MVP)** : CRUD de pages par slug, routing page/handler, handlers `show` et `edit`, rendu MDX, révisions (historique + restauration), pages spéciales de layout, les composants intégrés `<Menu>` et `<Button>`, et un éditeur riche (barre d'outils de formatage markdown, modale de lien, outils contextuels ancrés au curseur ; double-clic sur le contenu d'une page pour passer en édition).
 
@@ -134,4 +182,6 @@ _Avoid_: extraFields (jargon YesWiki), champ système
 
 **v0.4** : `<EntriesView>` (spec grillée le 2026-07-19 : [`docs/entries-view.md`](docs/entries-view.md), ADR 0018/0019) — neuf vues de fiches, filtres/recherche/tri instantanés (chargement complet par Server Action, exécution client), couleur & icône par champ avec palette automatique, popup fiche commune (« Lors du clic »), six nouveaux types de descripteur (`view-picker`, `form-field` à options dépendantes, `field-rows`, mappings, `map-view`), props structurées en expressions littérales JSX. En cours de route (grillé le 2026-07-22), le **titre automatique passe d'un calcul à la lecture à un calcul à l'écriture** (ADR 0020) : il est stocké dans `data` comme toute valeur de champ, recalculé en masse à l'enregistrement du formulaire quand le gabarit change, et garanti non vide par une contrainte en base. S'y ajoutent le **rendu chrome-free** (handler `/{slug}/iframe` dans le groupe `(bare)`, brique `WikiFrame`, `<Embed>` renommé `<Iframe>` et élargi aux pages du wiki — ADR 0022) et le **déploiement** (image Docker `standalone`, `migrate` au démarrage et seed une seule fois — ADR 0021, guide [`docs/deployment-dokploy.md`](docs/deployment-dokploy.md)).
 
-Backlog sans version prévue (mais le domaine doit pouvoir l'accueillir) : droits d'accès et authentification, pages d'administration, recherche/filtre par tags et vues. Détail dans [`docs/architecture.md`](docs/architecture.md).
+**v0.5** : utilisateurs & droits (spec grillée le 2026-07-30 : [`docs/permissions.md`](docs/permissions.md), ADR 0023 à 0027) — authentification par BetterAuth (plugin `username`, connexion par email *ou* identifiant), autorisation entièrement WikiOui : trois niveaux d'accès, groupes imbriqués, et un droit = une **portée** (*tout le monde* · *les personnes connectées* · *seulement*) complétée d'une liste, le propriétaire et les administrateurs étant toujours autorisés. Les droits se posent à quatre étages — page/fiche, formulaire (créer une fiche + deux défauts), champ (fusion à l'écriture, jamais de remplacement), configuration — et les défauts se **recopient** à la création, sans jamais se lier (ADR 0026). Deux pages spéciales de plus, `gerer-utilisateurs` (comptes, invitations par lot, groupes et leur imbrication expliquée) et `gerer-pages` (recherche, filtres, lot « Remplacer » ou « Donner accès »). S'y ajoutent le handler **`/{slug}/raw`** (MDX ou JSON brut, champs restreints retirés), la propriété d'auteur `hideIfNoAccess` sur les liens, boutons et iframes, l'**écran d'installation** à drapeau irréversible (ADR 0027) et la première colonne de la table `Settings`. Le contrôle passe par une **couche d'accès unique gardée par ESLint** (ADR 0025), jamais par RLS ni par une extension Prisma.
+
+Backlog sans version prévue (mais le domaine doit pouvoir l'accueillir) : commentaires, galerie de gestion des fichiers (et, avec sa table, les droits sur les fichiers), limitation de débit et anti-abus, recherche/filtre par tags et vues. Détail dans [`docs/architecture.md`](docs/architecture.md).
