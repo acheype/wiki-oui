@@ -33,3 +33,25 @@ export const currentActor = cache(async (): Promise<Actor> => {
 export async function currentUsername(): Promise<string | null> {
   return (await currentActor()).username;
 }
+
+/**
+ * Creates @Admins around its first member, the account the installation
+ * screen just made (ADR 0027). Idempotent, so a retried installation
+ * converges instead of failing halfway.
+ */
+export async function createAdminsGroupWith(username: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.group.upsert({
+      where: { slug: ADMINS_GROUP.slug },
+      create: { slug: ADMINS_GROUP.slug, name: ADMINS_GROUP.name },
+      update: {},
+    });
+    await tx.groupMember.upsert({
+      where: {
+        groupSlug_username: { groupSlug: ADMINS_GROUP.slug, username },
+      },
+      create: { groupSlug: ADMINS_GROUP.slug, username },
+      update: {},
+    });
+  });
+}

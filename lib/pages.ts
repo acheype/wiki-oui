@@ -222,6 +222,22 @@ export async function renamePageSlug(
   );
 }
 
+/**
+ * Hands a set of pages to an owner, by address. The installation uses it to
+ * put the special pages under the initial administrator's account (ADR
+ * 0027): the site's chrome gets someone responsible for it, while the
+ * example pages keep no owner — demonstration content has none.
+ */
+export async function assignPagesOwner(
+  slugs: readonly string[],
+  username: string
+): Promise<void> {
+  await prisma.page.updateMany({
+    where: { slug: { in: [...slugs] } },
+    data: { ownerUsername: username },
+  });
+}
+
 // Hard delete (ADR 0008): revisions go with the page via onDelete: Cascade.
 export async function deletePageById(id: string): Promise<void> {
   await prisma.page.delete({ where: { id } });
