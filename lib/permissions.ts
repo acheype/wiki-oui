@@ -145,15 +145,31 @@ export function pageRule(page: PageRights, kind: PermKind): AccessRule {
 }
 
 /**
+ * The floor under every right on a page: whoever looks after it, plus the
+ * administrators. A page without an owner has nobody to be — the floor is
+ * empty, and only the administrators are left standing on it.
+ *
+ * The null test is not a formality. A visitor's `username` is null too, so
+ * comparing the two straight would make every unowned page — the shape the
+ * seeded example pages take — answer to anyone at all.
+ */
+export function ownsPage(
+  actor: Actor,
+  page: Pick<PageRights, "ownerUsername">
+): boolean {
+  if (isAdmin(actor)) return true;
+  return page.ownerUsername !== null && actor.username === page.ownerUsername;
+}
+
+/**
  * The owner and the administrators are always allowed and never appear in the
  * list: the owner is a floor, not a checkbox. A page without an owner is
  * therefore writable by administrators only — the floor is simply empty, and
  * nothing else can be read into an unowned page's write scope.
  */
 export function canWrite(actor: Actor, page: PageRights): boolean {
-  if (isAdmin(actor)) return true;
+  if (ownsPage(actor, page)) return true;
   if (page.ownerUsername === null) return false;
-  if (actor.username === page.ownerUsername) return true;
   return ruleAllows(actor, pageRule(page, "WRITE"));
 }
 

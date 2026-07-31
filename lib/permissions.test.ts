@@ -11,6 +11,7 @@ import {
   aclEntries,
   canRead,
   canWrite,
+  ownsPage,
   managedByLine,
   readableWhere,
   knownEntries,
@@ -60,6 +61,23 @@ describe("ruleAllows", () => {
     for (const actor of [VISITOR, MARIE, JEAN]) {
       expect(ruleAllows(actor, { scope: "restricted" })).toBe(false);
     }
+  });
+});
+
+describe("ownsPage", () => {
+  it("stands the owner and the administrators on the floor", () => {
+    expect(ownsPage(MARIE, page())).toBe(true);
+    expect(ownsPage(ADMIN, page())).toBe(true);
+    expect(ownsPage(JEAN, page())).toBe(false);
+  });
+
+  // A visitor's username is null, and so is an unowned page's owner: comparing
+  // the two straight would hand every seeded example page to anyone at all.
+  it("leaves an unowned page to the administrators, a visitor included", () => {
+    const orphan = page({ ownerUsername: null });
+    expect(ownsPage(VISITOR, orphan)).toBe(false);
+    expect(ownsPage(MARIE, orphan)).toBe(false);
+    expect(ownsPage(ADMIN, orphan)).toBe(true);
   });
 });
 

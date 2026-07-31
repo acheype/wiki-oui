@@ -13,6 +13,7 @@ import {
   canWrite,
   isAdmin,
   knownEntries,
+  ownsPage,
   pageRule,
   readableWhere,
   ruleAllows,
@@ -149,8 +150,7 @@ async function keepKnownPrincipals(acls: AclEntry[]): Promise<AclEntry[]> {
 
 /** Posing the rights is the owner's and the administrators' alone. */
 async function assertOwnsPage(page: PageRights): Promise<void> {
-  const actor = await currentActor();
-  if (isAdmin(actor) || actor.username === page.ownerUsername) return;
+  if (ownsPage(await currentActor(), page)) return;
   throw new Error(RIGHTS_REFUSED);
 }
 
@@ -474,8 +474,7 @@ export async function actorCanWrite(page: PageRights): Promise<boolean> {
 
 /** Posing the rights, like deleting, stops at the owner and the admins. */
 export async function actorOwns(page: PageRights): Promise<boolean> {
-  const actor = await currentActor();
-  return isAdmin(actor) || actor.username === page.ownerUsername;
+  return ownsPage(await currentActor(), page);
 }
 
 /** A page's rights as the modal poses them, both senses at once. */
