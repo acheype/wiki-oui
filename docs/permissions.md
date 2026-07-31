@@ -81,9 +81,11 @@ Un groupe contient des **utilisateurs et/ou d'autres groupes**, sans limite de p
 
 `@Admins` est protégé comme une page spéciale : ni supprimable, ni renommable, **jamais vide** (retirer le dernier administrateur est refusé), et il **n'accepte que des personnes** — son sélecteur ne propose pas de groupes, avec la note « ⓘ Ce groupe n'accepte que des personnes — on ne devient pas administrateur en étant membre d'un autre groupe. » Aucun message d'erreur : l'état est rendu impossible, pas rattrapé.
 
+Un groupe porte un **nom affiché** et un **slug** dérivé de lui à la création, personnalisable avant enregistrement puis figé — la règle d'identité commune du projet, et c'est le slug que retiennent les droits (ADR 0024). Renommer un groupe change son nom affiché ; déplacer son identifiant relèverait du geste de renommage de l'ADR 0016, hors périmètre v0.5.
+
 Créer et modifier un groupe est réservé aux administrateurs en v0.5.
 
-Les **groupes effectifs** d'un acteur (imbrication résolue) sont calculés par une requête récursive, une fois par requête HTTP, mémoïsée par le `cache()` de React — le motif déjà employé par `lib/pages.ts`. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
+Les **groupes effectifs** d'un acteur (imbrication résolue) sont résolus **en mémoire**, une fois par requête HTTP, mémoïsés par le `cache()` de React — le motif déjà employé par `lib/pages.ts`. Deux requêtes suffisent : les appartenances directes de l'acteur, et les arêtes groupe→groupe, peu nombreuses par nature. La clôture est alors une fonction pure (`lib/groups.ts`), et ce sont les mêmes arêtes qui répondent au refus de cycle et au « via @Bureau › @Trésorerie » des écrans — là où une requête récursive n'aurait donné que la liste. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
 
 ## Le droit
 

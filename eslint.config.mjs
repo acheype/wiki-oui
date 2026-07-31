@@ -45,9 +45,12 @@ const eslintConfig = defineConfig([
       "lib/forms.ts",
       // Its neighbours behind the same door: BetterAuth owns the account
       // tables and touches nothing else (ADR 0023), the actor resolution
-      // reads group memberships, and the installation flag is a single row
-      // no rule applies to (ADR 0027). None of them reaches Page or Form.
+      // reads the session, the groups are their own door — every gesture on
+      // one is an administrator's, checked there — and the installation flag
+      // is a single row no rule applies to (ADR 0027). None of them reaches
+      // Page or Form.
       "lib/auth.ts",
+      "lib/groups-db.ts",
       "lib/permissions-db.ts",
       "lib/settings.ts",
       // Sweeps: they retcon a whole namespace in place, actor-free by nature

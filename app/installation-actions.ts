@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { createAdminsGroupWith } from "@/lib/groups-db";
 import { assignPagesOwner } from "@/lib/pages";
-import { createAdminsGroupWith } from "@/lib/permissions-db";
 import { isInstalled, markInstalled } from "@/lib/settings";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 

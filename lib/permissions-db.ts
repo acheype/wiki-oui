@@ -1,11 +1,11 @@
 import { headers } from "next/headers";
 import { cache } from "react";
 import { auth } from "@/lib/auth";
-import { ADMINS_GROUP, type Identity } from "@/lib/permissions";
-import { prisma } from "@/lib/prisma";
+import type { Identity } from "@/lib/permissions";
 
 // The database side of the rules (docs/permissions.md): who is acting, and —
-// once the rights land — the `where` clauses that decide what they see.
+// once the rights land — the `where` clauses that decide what they see. The
+// groups that actor ends up in are resolved next door, in lib/groups-db.ts.
 
 /**
  * Who the current HTTP request comes from, memoized for its duration with
@@ -32,26 +32,4 @@ export async function currentIdentity(): Promise<Identity | null> {
   const session = await currentSession();
   if (!session?.user.username) return null;
   return { username: session.user.username, name: session.user.name };
-}
-
-/**
- * Creates @Admins around its first member, the account the installation
- * screen just made (ADR 0027). Idempotent, so a retried installation
- * converges instead of failing halfway.
- */
-export async function createAdminsGroupWith(username: string): Promise<void> {
-  await prisma.$transaction(async (tx) => {
-    await tx.group.upsert({
-      where: { slug: ADMINS_GROUP.slug },
-      create: { slug: ADMINS_GROUP.slug, name: ADMINS_GROUP.name },
-      update: {},
-    });
-    await tx.groupMember.upsert({
-      where: {
-        groupSlug_username: { groupSlug: ADMINS_GROUP.slug, username },
-      },
-      create: { groupSlug: ADMINS_GROUP.slug, username },
-      update: {},
-    });
-  });
 }

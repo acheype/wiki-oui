@@ -49,8 +49,14 @@ export const wikiConfig = {
     header: "page-header",
     footer: "page-footer",
   },
-  // formulaires/fiches host the form-administration screens (ADR 0014).
-  otherSpecialPages: ["aide-memoire", "formulaires", "fiches"],
+  // formulaires/fiches host the form-administration screens (ADR 0014),
+  // gerer-utilisateurs the accounts and groups ones (docs/permissions.md).
+  otherSpecialPages: [
+    "aide-memoire",
+    "formulaires",
+    "fiches",
+    "gerer-utilisateurs",
+  ],
   icons: {
     sets: ["lucide"],
   },

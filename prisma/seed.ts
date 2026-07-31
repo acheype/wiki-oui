@@ -58,6 +58,7 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
     - [Bandeau](page-header)
     - [Pied de page](page-footer)
     - [Formulaires](formulaires)
+    - [Utilisateurs](gerer-utilisateurs)
 </Menu>
 `,
 
@@ -74,6 +75,14 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
 `,
 
   fiches: `<EntriesAdmin />
+`,
+
+  // Both halves of the accounts screen, stacked (docs/permissions.md § Les
+  // écrans) — the components themselves refuse to render for anyone but an
+  // administrator, so the page needs no special status of its own.
+  "gerer-utilisateurs": `<UsersAdmin />
+
+<GroupsAdmin />
 `,
 
   "aide-memoire": `# Aide-mémoire
