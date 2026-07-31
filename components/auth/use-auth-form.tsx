@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 /**
  * The plumbing the installation and sign-in screens share: read the fields,
@@ -25,6 +27,43 @@ export function useAuthForm(
   }
 
   return { submit, error, isPending };
+}
+
+/**
+ * The password field of every screen where one is chosen — invitation, reset
+ * and free sign-up. Uncontrolled, like the rest of what these forms read: the
+ * value is the browser's until it is submitted, which is also what lets a
+ * password manager fill it.
+ */
+export function NewPasswordField({
+  minLength,
+  disabled,
+}: {
+  minLength: number;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor="new-password" className="gap-1">
+        Mot de passe
+        <span aria-hidden className="text-destructive">
+          *
+        </span>
+      </Label>
+      <Input
+        id="new-password"
+        name="password"
+        type="password"
+        autoComplete="new-password"
+        required
+        minLength={minLength}
+        disabled={disabled}
+      />
+      <p className="text-xs text-muted-foreground">
+        Au moins {minLength} caractères.
+      </p>
+    </div>
+  );
 }
 
 /** What an action refused, in the one place both screens show it. */

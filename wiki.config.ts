@@ -4,6 +4,13 @@
 export interface WikiConfig {
   /** Target of the `/` redirect. */
   homeSlug: string;
+  /**
+   * Free sign-up, closed by default (docs/permissions.md § Naissance d'un
+   * compte): accounts are born of an invitation, and a wiki nobody has to
+   * moderate is not the common case. Opened here, a « Créer un compte »
+   * appears beside the sign-in form and the sign-up endpoint answers again.
+   */
+  openSignUp: boolean;
   /** Special pages whose content feeds the site layout. */
   layoutPages: {
     title: string;
@@ -42,6 +49,7 @@ export interface WikiConfig {
 
 export const wikiConfig = {
   homeSlug: "page-principale",
+  openSignUp: false,
   layoutPages: {
     title: "page-titre",
     topMenu: "page-menu-haut",

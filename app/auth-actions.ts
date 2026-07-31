@@ -1,11 +1,20 @@
 "use server";
 
+import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { z } from "zod";
+import { ACCOUNT_DISABLED_CODE, ACCOUNT_DISABLED_MESSAGE } from "@/lib/accounts";
+import {
+  acceptInvitation,
+  requestPasswordReset,
+  resetPasswordWithLink,
+} from "@/lib/accounts-db";
 import { auth } from "@/lib/auth";
 import { destinationWithinWiki } from "@/lib/destination";
-import { signInMethod } from "@/lib/username";
+import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { isValidUsername, signInMethod } from "@/lib/username";
 import { wikiConfig } from "@/wiki.config";
 
 export type AuthError = { error: string };
@@ -19,7 +28,8 @@ function landing(destination: string | undefined): string {
  * One field for the email and the identifier alike, so nobody has to guess
  * which one is expected (docs/permissions.md). The @ picks the door; the
  * message on failure names neither, so a wrong password and an unknown
- * account are indistinguishable from outside.
+ * account are indistinguishable from outside — except for a disabled account,
+ * which is only ever told so once the password proved who is asking.
  */
 export async function signIn(input: {
   identifier: string;
@@ -41,7 +51,10 @@ export async function signIn(input: {
         body: { username: identifier, password: input.password },
       });
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof APIError && error.body?.code === ACCOUNT_DISABLED_CODE) {
+      return { error: ACCOUNT_DISABLED_MESSAGE };
+    }
     return { error: "Identifiant ou mot de passe incorrect." };
   }
 
@@ -53,4 +66,118 @@ export async function signOut(destination?: string): Promise<void> {
   await auth.api.signOut({ headers: await headers() });
   revalidatePath("/", "layout");
   redirect(landing(destination));
+}
+
+/**
+ * Free sign-up, when the wiki opens it (docs/permissions.md § Naissance d'un
+ * compte). The same identity rules as an invitation — a display name, an
+ * identifier derived from it and personalisable, then frozen — so the two
+ * ways in produce accounts nothing tells apart afterwards.
+ */
+export async function signUp(input: {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  destination?: string;
+}): Promise<AuthError | void> {
+  if (!wikiConfig.openSignUp) {
+    return { error: "L'inscription libre est fermée sur ce wiki." };
+  }
+  const refusal = identityRefusal(input);
+  if (refusal) return { error: refusal };
+
+  try {
+    await auth.api.signUpEmail({
+      body: {
+        email: input.email.trim(),
+        password: input.password,
+        name: input.name.trim(),
+        username: input.username,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof APIError &&
+      String(error.body?.code ?? "") === "USERNAME_IS_ALREADY_TAKEN"
+    ) {
+      return { error: "Cet identifiant est déjà pris. Personnalisez-le." };
+    }
+    return { error: "Cette adresse a peut-être déjà un compte. Connectez-vous." };
+  }
+
+  revalidatePath("/", "layout");
+  redirect(landing(input.destination));
+}
+
+/**
+ * What both ways of creating an account check before BetterAuth is asked
+ * anything: the fields a person fills, in the words they filled them.
+ */
+function identityRefusal(input: {
+  name: string;
+  username: string;
+  email?: string;
+  password: string;
+}): string | null {
+  if (input.name.trim() === "") {
+    return "Le nom affiché est obligatoire.";
+  }
+  if (!isValidUsername(input.username)) {
+    return `Identifiant invalide : « ${input.username} » (minuscules, chiffres et tirets).`;
+  }
+  if (input.email !== undefined && !z.email().safeParse(input.email.trim()).success) {
+    return "Cette adresse e-mail n'est pas valide.";
+  }
+  if (input.password.length < MIN_PASSWORD_LENGTH) {
+    return `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`;
+  }
+  return null;
+}
+
+/**
+ * The end of an invitation: the person names themselves and chooses a
+ * password, and the link is spent. Nobody is signed in when this runs — the
+ * token is the whole credential (lib/accounts-db.ts).
+ */
+export async function acceptInvitationLink(input: {
+  token: string;
+  name: string;
+  username: string;
+  password: string;
+}): Promise<AuthError | void> {
+  const refusal = identityRefusal(input);
+  if (refusal) return { error: refusal };
+
+  const failure = await acceptInvitation(input);
+  if (failure) return { error: failure };
+
+  revalidatePath("/", "layout");
+  redirect(`/${wikiConfig.homeSlug}`);
+}
+
+/** The same link on an address that already has an account: a new password. */
+export async function resetPasswordLink(input: {
+  token: string;
+  password: string;
+}): Promise<AuthError | void> {
+  if (input.password.length < MIN_PASSWORD_LENGTH) {
+    return {
+      error: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`,
+    };
+  }
+  const failure = await resetPasswordWithLink(input);
+  if (failure) return { error: failure };
+
+  revalidatePath("/", "layout");
+  redirect(`/${wikiConfig.homeSlug}`);
+}
+
+/**
+ * « Mot de passe oublié ». The answer never varies: whether the address is
+ * known is not this screen's to reveal, and an administrator remains the way
+ * through for a wiki with no SMTP.
+ */
+export async function requestPasswordLink(email: string): Promise<void> {
+  await requestPasswordReset(email);
 }

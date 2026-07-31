@@ -1,6 +1,7 @@
 "use client";
 
 import { LogIn } from "lucide-react";
+import Link from "next/link";
 import { useId } from "react";
 import { signIn } from "@/app/auth-actions";
 import { AuthFormError, useAuthForm } from "@/components/auth/use-auth-form";
@@ -10,7 +11,14 @@ import { Label } from "@/components/ui/label";
 
 // One field for the email and the identifier: the wiki knows which one it
 // received (lib/username.ts), so nobody has to.
-export function SignInForm({ destination }: { destination?: string }) {
+export function SignInForm({
+  destination,
+  openSignUp,
+}: {
+  destination?: string;
+  /** Free sign-up: the « Créer un compte » below appears only where it is on. */
+  openSignUp?: boolean;
+}) {
   const identifierId = useId();
   const passwordId = useId();
   const { submit, error, isPending } = useAuthForm((fields) =>
@@ -67,6 +75,33 @@ export function SignInForm({ destination }: { destination?: string }) {
       <Button type="submit" disabled={isPending}>
         {isPending ? "Connexion…" : "Se connecter"}
       </Button>
+
+      <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          href="/mot-de-passe-oublie"
+          className="underline underline-offset-4"
+        >
+          Mot de passe oublié ?
+        </Link>
+        {openSignUp && (
+          <span>
+            Pas encore de compte ?{" "}
+            <Link
+              href={destinationLink("/inscription", destination)}
+              className="underline underline-offset-4"
+            >
+              Créer un compte
+            </Link>
+          </span>
+        )}
+      </div>
     </form>
   );
+}
+
+/** Carries where the visitor was heading across to the other screen. */
+function destinationLink(path: string, destination?: string): string {
+  return destination
+    ? `${path}?suite=${encodeURIComponent(destination)}`
+    : path;
 }
