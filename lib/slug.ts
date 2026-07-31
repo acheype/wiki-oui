@@ -20,9 +20,9 @@ export const API_SEGMENT = "api";
  * answering first. Existing pages are a separate matter — that collision is
  * a lookup, worded by each caller.
  */
-export function routeSegmentRefusal(slug: string): string | null {
+export function reservedSlugRefusal(slug: string): string | null {
   return slug === API_SEGMENT
-    ? `L'adresse « ${slug} » est réservée à WikiOui.`
+    ? `L'adresse «\u00A0${slug}\u00A0» est réservée à WikiOui.`
     : null;
 }
 

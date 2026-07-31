@@ -44,7 +44,6 @@ import { authPagePath } from "@/wiki.config";
 // holds no account, a reset when it does. Which one it is, nobody stores —
 // the accounts table already knows.
 
-
 /** Why an account gesture was refused, or null once it went through. */
 export type AccountRefusal = string | null;
 

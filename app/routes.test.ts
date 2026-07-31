@@ -1,7 +1,7 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { routeSegmentRefusal } from "@/lib/slug";
+import { reservedSlugRefusal } from "@/lib/slug";
 
 // Every screen of WikiOui is a wiki page (ADR 0028). A new screen is a
 // special page whose content calls a built-in component — never a folder
@@ -34,11 +34,11 @@ describe("app/", () => {
 
 describe("the reserved segment", () => {
   it("is `api`, and it is the only slug a page may not take", () => {
-    expect(routeSegmentRefusal("api")).not.toBeNull();
+    expect(reservedSlugRefusal("api")).not.toBeNull();
     // What the rewrite buys: the installation screen answers everywhere while
     // the wiki is not installed, and gives this slug back once it is.
-    expect(routeSegmentRefusal("installation")).toBeNull();
+    expect(reservedSlugRefusal("installation")).toBeNull();
     // The account screens are pages: taken by an existing page, not reserved.
-    expect(routeSegmentRefusal("connexion")).toBeNull();
+    expect(reservedSlugRefusal("connexion")).toBeNull();
   });
 });

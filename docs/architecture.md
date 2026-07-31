@@ -6,7 +6,7 @@ Ce document est la **vue d'ensemble** : ce que chaque version apporte, et l'arch
 
 ## Stack
 
-Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **Zod** (contrat runtime) · `react-hook-form` + `dnd-kit` (formulaires) · Leaflet, FullCalendar, Embla (vues de fiches) · sharp (images) · **BetterAuth** (authentification seule, ADR 0023) · Vitest · **pnpm**.
+Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **Zod** (contrat runtime) · `react-hook-form` + `dnd-kit` (formulaires) · Nodemailer (courriels) · Leaflet, FullCalendar, Embla (vues de fiches) · sharp (images) · **BetterAuth** (authentification seule, ADR 0023) · Vitest · **pnpm**.
 
 ## v0.1 — MVP
 

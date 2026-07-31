@@ -44,7 +44,7 @@ import {
   listEntryPages,
   writeEntryRevision,
 } from "@/lib/pages";
-import { isValidSlug, routeSegmentRefusal, slugify } from "@/lib/slug";
+import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
@@ -472,9 +472,9 @@ export async function saveEntry(
   const slug = input.slug && input.slug.trim() !== ""
     ? input.slug
     : slugify(title);
-  // A route segment is taken like an existing page is (ADR 0028): the entry
-  // would be written and never open, so the screen asks for another address.
-  if (!isValidSlug(slug) || routeSegmentRefusal(slug)) {
+  // The reserved segment is taken like an existing page is (ADR 0028): the
+  // entry would be written and never open, so the screen asks for another.
+  if (!isValidSlug(slug) || reservedSlugRefusal(slug)) {
     return { ok: false, slugCollision: true };
   }
   // Collision with any page (MDX or entry): explicit, never a silent suffix.
