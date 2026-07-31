@@ -1,20 +1,21 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { routeSegmentRefusal } from "@/lib/slug";
 
 // Every screen of WikiOui is a wiki page (ADR 0028). A new screen is a
 // special page whose content calls a built-in component — never a folder
 // here: a route would shadow a slug nobody reserved, and it would take
 // segments (`/invitation/{jeton}`) where a page only knows handlers.
 //
-// Two exceptions, and this list is the whole of them: `api` groups the API
-// services (ADR 0012), `installation` is the first-visit screen the proxy
-// imposes before any page can be read (ADR 0027). Both are refused as page
-// slugs by lib/slug.ts, which is what keeps the shadowing impossible.
-const ROUTE_FOLDERS = ["(bare)", "(site)", "api", "installation"];
+// The single exception is `api`, the one reserved segment (ADR 0012), which
+// shelters the two screens that cannot be pages: the ComponentBuilder
+// preview, and the installation screen — reached by rewrite, so that even
+// `installation` stays an ordinary slug.
+const ROUTE_FOLDERS = ["(bare)", "(site)", "api"];
 
 describe("app/", () => {
-  it("holds no route beyond the wiki pages and the two exceptions", async () => {
+  it("holds no route beyond the wiki pages and the reserved segment", async () => {
     const entries = await readdir(path.join(import.meta.dirname), {
       withFileTypes: true,
     });
@@ -25,9 +26,19 @@ describe("app/", () => {
 
     expect(
       folders,
-      "Un écran de plus est une page WikiOui (ADR 0028), pas une route : " +
-        "ajoutez une page spéciale dans wiki.config.ts et un composant " +
-        "intégré dans components/wiki/."
+      "One more screen is a wiki page (ADR 0028), not a route: add a special " +
+        "page to wiki.config.ts and a built-in component to components/wiki/."
     ).toEqual(ROUTE_FOLDERS);
+  });
+});
+
+describe("the reserved segment", () => {
+  it("is `api`, and it is the only slug a page may not take", () => {
+    expect(routeSegmentRefusal("api")).not.toBeNull();
+    // What the rewrite buys: the installation screen answers everywhere while
+    // the wiki is not installed, and gives this slug back once it is.
+    expect(routeSegmentRefusal("installation")).toBeNull();
+    // The account screens are pages: taken by an existing page, not reserved.
+    expect(routeSegmentRefusal("connexion")).toBeNull();
   });
 });

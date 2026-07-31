@@ -2,13 +2,16 @@
 // Shared by the screen, its Server Action and the proxy that guards it, so
 // nothing here may reach the database or BetterAuth.
 
-import { ROUTE_SEGMENTS } from "@/lib/slug";
+import { API_SEGMENT } from "@/lib/slug";
 
 /**
- * A real route, not a wiki page (ADR 0028): it must answer before any page
- * exists, and it stops answering the day the wiki is installed.
+ * A real route, not a wiki page (ADR 0028): the screen must answer before any
+ * page can be read, and stops answering the day the wiki is installed. It
+ * hides under the one reserved segment rather than taking `/installation`,
+ * which stays a slug like any other — the proxy rewrites whatever address was
+ * asked for onto it, so nobody ever types this one.
  */
-export const INSTALLATION_PATH = `/${ROUTE_SEGMENTS.installation}`;
+export const INSTALLATION_PATH = `/${API_SEGMENT}/installation`;
 
 /**
  * The identity of the initial account, imposed rather than asked. Every

@@ -4,7 +4,7 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 
 ## Invariants
 
-- **Tout écran est une page WikiOui** (ADR 0028) : un écran neuf est une **page spéciale** (slug dans `wiki.config.ts`, seedée, réservée) dont le contenu appelle un **composant intégré** de `components/wiki/` — jamais une route dans `app/`. Ce dont l'écran a besoin voyage en **query string** (`?suite=`, `?jeton=`) : derrière le slug d'une page, un segment est un handler. Deux exceptions, et elles sont closes : `/api` (services d'API) et `/installation` (amorçage). `app/routes.test.ts` rougit si un dossier de plus apparaît sous `app/`.
+- **Tout écran est une page WikiOui** (ADR 0028) : un écran neuf est une **page spéciale** (slug dans `wiki.config.ts`, seedée, réservée) dont le contenu appelle un **composant intégré** de `components/wiki/` — jamais une route dans `app/`. Ce dont l'écran a besoin voyage en **query string** (`?suite=`, `?jeton=`) : derrière le slug d'une page, un segment est un handler. Une seule exception, `/api` — le segment réservé, qui abrite aussi les deux écrans ne pouvant pas être des pages (aperçu du ComponentBuilder, écran d'installation atteint par réécriture). `app/routes.test.ts` rougit si un dossier de plus apparaît sous `app/`.
 
 ## Conventions de code
 

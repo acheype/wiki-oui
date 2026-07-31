@@ -6,25 +6,22 @@ export function isValidSlug(value: string): boolean {
 }
 
 /**
- * The only two URL segments WikiOui serves itself (ADR 0028) — every other
- * screen is a wiki page. `api` groups the API services (ADR 0012),
- * `installation` is the first-visit screen the proxy imposes before any page
- * can be read (ADR 0027).
+ * The one URL segment WikiOui serves itself (ADR 0012, 0028): every other
+ * address is a wiki page. The installation screen lives under it too and is
+ * presented by rewriting whatever address was asked for (ADR 0027), so
+ * `installation` stays an ordinary slug — free for a page, which opens as
+ * soon as the wiki is installed.
  */
-export const ROUTE_SEGMENTS = {
-  api: "api",
-  installation: "installation",
-} as const;
+export const API_SEGMENT = "api";
 
 /**
  * Why a page may not take this slug, or null when it may: a page named after
- * a route segment would exist in the database and never open, the route
+ * the reserved segment would exist in the database and never open, the route
  * answering first. Existing pages are a separate matter — that collision is
  * a lookup, worded by each caller.
  */
 export function routeSegmentRefusal(slug: string): string | null {
-  const reserved: readonly string[] = Object.values(ROUTE_SEGMENTS);
-  return reserved.includes(slug)
+  return slug === API_SEGMENT
     ? `L'adresse « ${slug} » est réservée à WikiOui.`
     : null;
 }
