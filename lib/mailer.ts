@@ -2,7 +2,7 @@ import nodemailer, { type Transporter } from "nodemailer";
 import {
   INVITATION_LIFETIME_DAYS,
   type LinkPurpose,
-  type MailDelivery,
+  type MailFailure,
   RESET_LIFETIME_DAYS,
 } from "@/lib/invitations";
 
@@ -13,28 +13,59 @@ import {
 // nothing here ever decides whether a gesture succeeded; it only says what
 // became of the delivery.
 
-// Configured by environment (see .env.example): a connection string and the
-// address the wiki writes from. Both are needed — an SMTP server that accepts
-// a message with no sender is the exception, not the rule.
-function smtpUrl(): string | undefined {
-  return process.env.SMTP_URL;
+// Configured by environment (see .env.example), one setting per line rather
+// than a connection string: what an operator has in hand is a host, a port
+// and an account — a URL asks them to assemble it, and to percent-encode a
+// password whose @ or / would otherwise break it silently. These settings
+// move to the configuration screen the day `Settings` grows (ADR 0027).
+interface SmtpSettings {
+  host: string;
+  port: number;
+  /** TLS from the first byte (port 465); elsewhere STARTTLS upgrades it. */
+  secure: boolean;
+  /** Both or neither: a relay that authenticates asks for the pair. */
+  auth?: { user: string; pass: string };
 }
 
+const DEFAULT_SMTP_PORT = 587;
+/** The port that speaks TLS from the first byte, and the only usual one. */
+const IMPLICIT_TLS_PORT = 465;
+
+function smtpSettings(): SmtpSettings | null {
+  const host = process.env.SMTP_HOST?.trim();
+  if (!host) return null;
+
+  const port = Number(process.env.SMTP_PORT) || DEFAULT_SMTP_PORT;
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS;
+  return {
+    host,
+    port,
+    // Left unset, the port decides — the one setting nobody should have to
+    // think about, and the one most often wrong when they do.
+    secure: process.env.SMTP_SECURE
+      ? process.env.SMTP_SECURE.trim().toLowerCase() === "true"
+      : port === IMPLICIT_TLS_PORT,
+    ...(user && pass ? { auth: { user, pass } } : {}),
+  };
+}
+
+/** The address the wiki writes from: a server accepting none is the exception. */
 function sender(): string | undefined {
-  return process.env.SMTP_FROM;
+  return process.env.SMTP_FROM?.trim() || undefined;
 }
 
 /** Whether the wiki can send at all — what the invitation screens announce. */
 export function isMailerConfigured(): boolean {
-  return Boolean(smtpUrl() && sender());
+  return Boolean(smtpSettings() && sender());
 }
 
 // One transport for the process: nodemailer pools its connections, and
 // rebuilding it per mail would reconnect for every invitation of a batch.
 let transporter: Transporter | null = null;
 
-function transport(url: string): Transporter {
-  transporter ??= nodemailer.createTransport(url);
+function transport(settings: SmtpSettings): Transporter {
+  transporter ??= nodemailer.createTransport(settings);
   return transporter;
 }
 
@@ -47,18 +78,50 @@ export async function sendAccountLink(mail: {
   to: string;
   url: string;
   purpose: LinkPurpose;
-}): Promise<MailDelivery> {
-  const url = smtpUrl();
+}): Promise<MailFailure | null> {
+  const settings = smtpSettings();
   const from = sender();
-  if (!url || !from) return "not-configured";
+  if (!settings || !from) return { cause: "not-configured" };
 
   const { subject, text } = message(mail.purpose, mail.url);
   try {
-    await transport(url).sendMail({ from, to: mail.to, subject, text });
-    return "sent";
-  } catch {
-    return "failed";
+    await transport(settings).sendMail({ from, to: mail.to, subject, text });
+    return null;
+  } catch (error) {
+    return refused(error, `envoi à ${mail.to}`);
   }
+}
+
+/**
+ * Whether a mail could leave, without sending one. « Mot de passe oublié »
+ * must answer the same thing for an address the wiki knows and one it does
+ * not — so where there is nothing to send, it proves it could have. A broken
+ * server is then announced for every address alike, and the announcement
+ * teaches nobody which addresses hold an account.
+ */
+export async function probeMailer(): Promise<MailFailure | null> {
+  const settings = smtpSettings();
+  if (!settings || !sender()) return { cause: "not-configured" };
+
+  try {
+    await transport(settings).verify();
+    return null;
+  } catch (error) {
+    return refused(error, "vérification du serveur d'envoi");
+  }
+}
+
+/**
+ * What the server said, kept for the administrator who configured it: the
+ * message names the credential, the host or the certificate at fault, which
+ * is what a misconfiguration needs to be found. It also goes to the logs —
+ * an administrator who was not at the keyboard has no other way to learn of
+ * it, the wiki having nowhere yet to record one (backlog: table `Settings`).
+ */
+function refused(error: unknown, context: string): MailFailure {
+  const detail = error instanceof Error ? error.message : String(error);
+  console.error(`[wikioui] SMTP — ${context} : ${detail}`);
+  return { cause: "refused", detail };
 }
 
 // Deliberately plain text, and deliberately terse: the wiki has one thing to

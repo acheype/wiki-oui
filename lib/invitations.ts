@@ -25,12 +25,23 @@ export const INVITATION_TOKEN_PARAM = "jeton";
 export const RESET_LIFETIME_DAYS = 1;
 
 /**
- * What became of one mail — the delivery, never the gesture: an invitation
- * whose mail failed is an invitation all the same, and the screen falls back
- * on the link it can always show. Declared here rather than in lib/mailer.ts
- * so the screens can name it without pulling an SMTP client into the browser.
+ * Why a mail did not leave, or null when it did — the delivery, never the
+ * gesture: an invitation whose mail failed is an invitation all the same, and
+ * the screen falls back on the link it can always show. Declared here rather
+ * than in lib/mailer.ts so the screens can name it without pulling an SMTP
+ * client into the browser.
+ *
+ * `detail` is what the server answered. It is shown to an administrator, who
+ * configured the thing and can fix it, and never to anyone else: it names
+ * hosts and accounts, and a stranger can do nothing with it but learn.
  */
-export type MailDelivery = "sent" | "not-configured" | "failed";
+export type MailFailure =
+  | { cause: "not-configured" }
+  | { cause: "refused"; detail: string };
+
+/** What a failed delivery says to whoever is not an administrator. */
+export const MAIL_FAILURE_NOTICE =
+  "Le wiki n'a pas réussi à envoyer le courriel. Prévenez un administrateur du wiki : son serveur d'envoi ne répond pas.";
 
 /**
  * Which of the two a link turns out to be. Not a stored kind: the accounts

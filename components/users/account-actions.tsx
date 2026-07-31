@@ -147,7 +147,7 @@ export function AccountActions({
             <LinkToCopy
               url={link.url}
               email={user.email}
-              delivery={link.delivery}
+              failure={link.failure}
             />
           )}
           <DialogFooter>
@@ -347,7 +347,7 @@ export function InvitationActions({
             <LinkToCopy
               url={link.url}
               email={invitation.email}
-              delivery={link.delivery}
+              failure={link.failure}
             />
           )}
           <DialogFooter>

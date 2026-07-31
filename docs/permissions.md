@@ -48,15 +48,28 @@ Un administrateur **ne définit jamais de mot de passe**. Une invitation est un 
 ```
 Créer l'invitation  →  /invitation?jeton=…   (14 jours, usage unique)
                         │
-        ┌───────────────┴───────────────┐
-   SMTP configuré                 pas de SMTP
-   le serveur l'envoie      l'admin copie le lien
-                            et le transmet comme il veut
+        ┌───────────────┼───────────────────────┐
+   SMTP configuré   envoi refusé           pas de SMTP
+   le serveur       l'écran le dit,        l'admin copie le lien
+   l'envoie         message du serveur     et le transmet comme il veut
+                    en détail + journaux
 ```
 
 Le jeton voyage en **paramètre**, jamais en segment : la page `invitation` est une page du wiki, et ce qui suit le slug d'une page est un de ses handlers (ADR 0028).
 
 La personne choisit son nom affiché, son identifiant et son mot de passe. **Une seule primitive pour trois besoins** : invitation, « mot de passe oublié », et réinitialisation déclenchée par un administrateur. Le SMTP n'est donc jamais une dépendance de fonctionnement, seulement un confort d'acheminement.
+
+**Un envoi qui échoue se dit.** Un SMTP mal réglé ne se remarquait pas : l'écran annonçait un courriel parti. Désormais l'échec est annoncé partout où il se produit, et le **détail** — ce que le serveur a répondu — va à qui peut le corriger :
+
+| Qui regarde | Ce qu'il voit |
+| --- | --- |
+| Un administrateur (invitation, lien de mot de passe) | « L'envoi a échoué » **et** le message du serveur, replié sous « Détail de l'erreur d'envoi », avec les six réglages à vérifier |
+| Une personne sur « mot de passe oublié » | « Le courriel n'est pas parti — prévenez un administrateur », sans détail : il ne nommerait que des hôtes et des comptes à qui ne peut rien en faire |
+| Personne (envoi de nuit, lot) | La ligne `[wikioui] SMTP — …` dans les journaux du serveur, seule trace quand il n'y a pas d'écran |
+
+Le « mot de passe oublié » garde son silence sur l'adresse : quand elle ne porte aucun compte, le wiki **vérifie tout de même** qu'il aurait pu envoyer, si bien que la réponse est la même pour toutes les adresses et n'apprend à personne lesquelles existent.
+
+Les réglages d'envoi sont six variables d'environnement (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) plutôt qu'une chaîne de connexion : c'est ce que donne un hébergeur de messagerie, et un mot de passe ne s'y encode pas. Elles descendront dans `Settings` avec l'écran de configuration.
 
 **Invitation en masse** : un champ qui digère ce qui sort d'un client mail — virgules, points-virgules, retours à la ligne et la forme `Nom <adresse>`. Doublons fusionnés, adresses déjà titulaires d'un compte ou d'une invitation signalées sans être recréées. Un sélecteur « Ajouter aussi au groupe » évite la corvée qui suit toujours.
 

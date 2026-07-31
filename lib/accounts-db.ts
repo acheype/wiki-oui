@@ -22,11 +22,11 @@ import {
   INVITATION_TOKEN_PARAM,
   type InvitationReport,
   type LinkPurpose,
-  type MailDelivery,
+  type MailFailure,
   RESET_LIFETIME_DAYS,
   expiresIn,
 } from "@/lib/invitations";
-import { sendAccountLink } from "@/lib/mailer";
+import { probeMailer, sendAccountLink } from "@/lib/mailer";
 import { countOwnedByAccount, reassignOwnedPages } from "@/lib/pages";
 import { currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
@@ -98,7 +98,8 @@ async function openLink(
 /** A minted link, and what became of the attempt to deliver it by mail. */
 export interface DeliveredLink {
   url: string;
-  delivery: MailDelivery;
+  /** null once the mail left; otherwise why it did not. */
+  failure: MailFailure | null;
 }
 
 async function deliver(
@@ -106,7 +107,7 @@ async function deliver(
   url: string,
   purpose: LinkPurpose
 ): Promise<DeliveredLink> {
-  return { url, delivery: await sendAccountLink({ to: email, url, purpose }) };
+  return { url, failure: await sendAccountLink({ to: email, url, purpose }) };
 }
 
 // --- reads --------------------------------------------------------------------
@@ -318,19 +319,27 @@ export async function createResetLink(
 
 /**
  * « Mot de passe oublié », asked by whoever is at the keyboard — no actor, so
- * no check, and deliberately no answer either: the link goes to the address
- * or nowhere, and the screen says the same thing in both cases. Returning it
- * would let anyone harvest a reset link for an address they merely guessed.
+ * no check, and deliberately no answer about the address either: the link
+ * goes to it or nowhere, and the screen says the same thing in both cases.
+ * Returning it would let anyone harvest a reset link for an address they
+ * merely guessed.
+ *
+ * What *is* answered is whether the wiki could send at all, because promising
+ * a mail that never leaves sends the person waiting for nothing. That answer
+ * is address-independent — an address with no account makes the wiki prove it
+ * could have sent (probeMailer) — so it reveals nothing the silence did not.
  */
-export async function requestPasswordReset(email: string): Promise<void> {
+export async function requestPasswordReset(
+  email: string
+): Promise<MailFailure | null> {
   const address = email.trim().toLowerCase();
   const user = await prisma.user.findUnique({
     where: { email: address },
     select: { disabledAt: true },
   });
-  if (!user || user.disabledAt !== null) return;
+  if (!user || user.disabledAt !== null) return probeMailer();
   const url = await openLink(address, RESET_LIFETIME_DAYS, null);
-  await sendAccountLink({ to: address, url, purpose: "reset" });
+  return sendAccountLink({ to: address, url, purpose: "reset" });
 }
 
 // --- accepting a link ---------------------------------------------------------

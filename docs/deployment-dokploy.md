@@ -144,14 +144,20 @@ Générez le secret sur votre machine avec `openssl rand -base64 32`, et **conse
 
 ### Envoi des courriels : facultatif
 
-Les comptes naissent d'une **invitation**, c'est-à-dire d'un lien à usage unique. L'envoyer par courriel n'est qu'un mode de livraison : sans serveur d'envoi, l'administrateur voit le lien à l'écran, le copie et le transmet comme il veut — le wiki fonctionne entièrement sans. Pour que le wiki les envoie lui-même, ajoutez deux variables :
+Les comptes naissent d'une **invitation**, c'est-à-dire d'un lien à usage unique. L'envoyer par courriel n'est qu'un mode de livraison : sans serveur d'envoi, l'administrateur voit le lien à l'écran, le copie et le transmet comme il veut — le wiki fonctionne entièrement sans. Pour que le wiki les envoie lui-même, reprenez les réglages que votre hébergeur de messagerie vous donne :
 
 ```
-SMTP_URL=smtps://utilisateur:motdepasse@smtp.mondomaine.fr:465
+SMTP_HOST=smtp.mondomaine.fr
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=wiki@mondomaine.fr
+SMTP_PASS=le-mot-de-passe
 SMTP_FROM=WikiOui <wiki@mondomaine.fr>
 ```
 
-Avec elles, le «&nbsp;mot de passe oublié&nbsp;» devient autonome ; sans elles, cet écran renvoie vers un administrateur.
+`SMTP_HOST` suffit à activer l'envoi, le reste se déduit : le port vaut **587** par défaut, et `SMTP_SECURE` vaut **true** sur le port 465 (chiffré dès le premier octet) et **false** ailleurs (chiffrement négocié par STARTTLS). `SMTP_USER` et `SMTP_PASS` ne servent qu'aux serveurs qui demandent une authentification — c'est le cas général. Le mot de passe s'écrit tel quel, sans encodage.
+
+Avec ces réglages, le «&nbsp;mot de passe oublié&nbsp;» devient autonome ; sans eux, cet écran renvoie vers un administrateur. **Si un envoi échoue** — mot de passe refusé, port fermé, certificat invalide — l'écran le dit au lieu de laisser croire au départ du courriel : l'administrateur voit le message exact du serveur sous «&nbsp;Détail de l'erreur d'envoi&nbsp;», et la même ligne part dans les journaux du conteneur (`[wikioui] SMTP — …`), seule trace disponible quand personne n'était devant l'écran.
 
 ### Fichiers uploadés : le volume persistant
 

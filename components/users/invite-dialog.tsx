@@ -36,7 +36,7 @@ import { plural } from "@/lib/format";
 import type { GroupSummary } from "@/lib/groups-db";
 import {
   INVITATION_LIFETIME_DAYS,
-  type MailDelivery,
+  type MailFailure,
   invitationSummaryLines,
   parseAddressList,
 } from "@/lib/invitations";
@@ -47,7 +47,7 @@ const NO_GROUP = SELECT_NONE;
 interface Sent {
   lines: string[];
   /** Each with what became of its own mail, never the batch's verdict. */
-  links: { email: string; url: string; delivery: MailDelivery }[];
+  links: { email: string; url: string; failure: MailFailure | null }[];
 }
 
 export function InviteDialog({ onInvited }: { onInvited: () => void }) {
@@ -222,7 +222,7 @@ function Outcome({ sent }: { sent: Sent }) {
               key={link.email}
               url={link.url}
               email={link.email}
-              delivery={link.delivery}
+              failure={link.failure}
             />
           ))}
         </div>

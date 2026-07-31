@@ -192,10 +192,16 @@ export async function resetPasswordLink(input: {
 }
 
 /**
- * « Mot de passe oublié ». The answer never varies: whether the address is
- * known is not this screen's to reveal, and an administrator remains the way
- * through for a wiki with no SMTP.
+ * « Mot de passe oublié ». The answer never varies about the address: whether
+ * it is known is not this screen's to reveal, and an administrator remains
+ * the way through for a wiki with no SMTP. What it does report is whether a
+ * mail could leave at all — the same verdict for every address, since one
+ * with no account makes the wiki prove it could have sent (lib/mailer.ts).
+ * Only the failure travels back, never its detail: the screen is open to
+ * anyone, and the reason names hosts and accounts.
  */
-export async function requestPasswordLink(email: string): Promise<void> {
-  await requestPasswordReset(email);
+export async function requestPasswordLink(
+  email: string
+): Promise<{ undelivered: true } | null> {
+  return (await requestPasswordReset(email)) ? { undelivered: true } : null;
 }
