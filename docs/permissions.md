@@ -2,7 +2,7 @@
 
 L'équivalent de la gestion des droits de YesWiki, refondue pour tenir sans documentation : un seul mode de paramétrage, des comportements généralisés, et une interface qui se suffit à elle-même.
 
-ADR [0023](adr/0023-betterauth-authentifie-wikioui-autorise.md) (frontière authentification/autorisation), [0024](adr/0024-droits-par-username-et-slug.md) (ce que stockent les droits), [0025](adr/0025-couche-acces-gardee-par-eslint.md) (où le contrôle s'applique), [0026](adr/0026-defauts-recopies-jamais-lies.md) (les défauts se recopient), [0027](adr/0027-installation-drapeau-irreversible.md) (l'amorçage). Glossaire : [`../CONTEXT.md`](../CONTEXT.md).
+ADR [0023](adr/0023-betterauth-authentifie-wikioui-autorise.md) (frontière authentification/autorisation), [0024](adr/0024-droits-par-username-et-slug.md) (ce que stockent les droits), [0025](adr/0025-couche-acces-gardee-par-eslint.md) (où le contrôle s'applique), [0026](adr/0026-defauts-recopies-jamais-lies.md) (les défauts se recopient), [0027](adr/0027-installation-drapeau-irreversible.md) (l'amorçage), [0028](adr/0028-tout-ecran-est-une-page.md) (les écrans sont des pages). Glossaire : [`../CONTEXT.md`](../CONTEXT.md).
 
 ## Le modèle en deux phrases
 
@@ -46,13 +46,15 @@ L'inscription libre est **fermée par défaut**, ouvrable par `wiki.config.ts`. 
 Un administrateur **ne définit jamais de mot de passe**. Une invitation est un **lien à usage unique** dont l'envoi par mail n'est qu'un mode de livraison :
 
 ```
-Créer l'invitation  →  /invitation/{jeton}   (14 jours, usage unique)
+Créer l'invitation  →  /invitation?jeton=…   (14 jours, usage unique)
                         │
         ┌───────────────┴───────────────┐
    SMTP configuré                 pas de SMTP
    le serveur l'envoie      l'admin copie le lien
                             et le transmet comme il veut
 ```
+
+Le jeton voyage en **paramètre**, jamais en segment : la page `invitation` est une page du wiki, et ce qui suit le slug d'une page est un de ses handlers (ADR 0028).
 
 La personne choisit son nom affiché, son identifiant et son mot de passe. **Une seule primitive pour trois besoins** : invitation, « mot de passe oublié », et réinitialisation déclenchée par un administrateur. Le SMTP n'est donc jamais une dépendance de fonctionnement, seulement un confort d'acheminement.
 
@@ -73,7 +75,7 @@ Une page sans propriétaire n'est modifiable que par les administrateurs — con
 
 ### Écran d'installation
 
-Tant que le wiki n'a **jamais été installé**, toute route redirige vers `/installation` (ADR 0027). L'écran impose le nom affiché **Wiki Admin** et l'identifiant **`wiki-admin`** — convention identique sur toutes les installations WikiOui — et ne demande que l'email et le mot de passe. Il crée le compte, l'ajoute à `@Admins`, lui attribue les pages spéciales, et pose `Settings.installedAt`.
+Tant que le wiki n'a **jamais été installé**, toute route redirige vers `/installation` (ADR 0027). C'est, avec `/api`, la seule adresse qui ne soit pas une page : elle doit répondre avant qu'aucune page ne soit lisible, et cesse de répondre le jour où le wiki est installé (ADR 0028). L'écran impose le nom affiché **Wiki Admin** et l'identifiant **`wiki-admin`** — convention identique sur toutes les installations WikiOui — et ne demande que l'email et le mot de passe. Il crée le compte, l'ajoute à `@Admins`, lui attribue les pages spéciales, et pose `Settings.installedAt`.
 
 La condition est **irréversible** : vider `@Admins` ne rouvre pas l'écran. Reprendre la main sans administrateur exige un accès à la machine, pas une requête HTTP.
 
@@ -224,6 +226,8 @@ Une `<Iframe>` sur une page inaccessible rend le même bloc, en version compacte
 ## Les écrans
 
 Deux **pages spéciales** seedées de plus, dont le contenu appelle des composants intégrés — même philosophie que `formulaires` et `fiches`. Elles rejoignent la roue crantée de `page-rapide-haut`.
+
+Les quatre écrans de comptes en sont aussi : `connexion` (`<SignIn />`), `inscription` (`<SignUp />`), `mot-de-passe-oublie` (`<ForgotPassword />`) et `invitation` (`<Invitation />`) — tout écran est une page (ADR 0028), l'installation exceptée. Elles portent le chrome du site comme n'importe quelle page : on se connecte **dans** le wiki. Deux conséquences à tenir quand les droits de lecture arriveront : ces quatre pages restent **lisibles par tout le monde** quel que soit le droit posé dessus (la connexion doit répondre là où le contenu refuse), et l'inscription libre étant fermée par défaut, `inscription` affiche alors où trouver un compte plutôt qu'un formulaire inutilisable.
 
 ### `gerer-utilisateurs`
 

@@ -2,6 +2,10 @@
 
 Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/adr/`), glossaire du domaine : [`CONTEXT.md`](CONTEXT.md).
 
+## Invariants
+
+- **Tout écran est une page WikiOui** (ADR 0028) : un écran neuf est une **page spéciale** (slug dans `wiki.config.ts`, seedée, réservée) dont le contenu appelle un **composant intégré** de `components/wiki/` — jamais une route dans `app/`. Ce dont l'écran a besoin voyage en **query string** (`?suite=`, `?jeton=`) : derrière le slug d'une page, un segment est un handler. Deux exceptions, et elles sont closes : `/api` (services d'API) et `/installation` (amorçage). `app/routes.test.ts` rougit si un dossier de plus apparaît sous `app/`.
+
 ## Conventions de code
 
 - **Tout le code est en anglais** : noms de fichiers, composants (y compris les composants MDX du registre, ex. `<Button>`), props/attributs, variables, fonctions, clés de config, classes CSS. Le français est réservé à ce que voit ou tape l'utilisateur : textes d'UI, contenus seedés, slugs des pages spéciales, valeurs saisies par les auteurs (ex. noms d'icônes).
