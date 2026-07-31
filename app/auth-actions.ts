@@ -4,21 +4,15 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { destinationWithinWiki } from "@/lib/destination";
 import { signInMethod } from "@/lib/username";
 import { wikiConfig } from "@/wiki.config";
 
 export type AuthError = { error: string };
 
-/**
- * Where to land afterwards. Only a path inside this wiki is honoured: the
- * parameter travels in a URL, so anyone can write it, and following it to
- * another host would turn the sign-in screen into an open redirect.
- */
-function safeDestination(destination: string | undefined): string {
-  if (destination?.startsWith("/") && !destination.startsWith("//")) {
-    return destination;
-  }
-  return `/${wikiConfig.homeSlug}`;
+/** Where to land afterwards, home when nothing usable was carried. */
+function landing(destination: string | undefined): string {
+  return destinationWithinWiki(destination, `/${wikiConfig.homeSlug}`);
 }
 
 /**
@@ -52,11 +46,11 @@ export async function signIn(input: {
   }
 
   revalidatePath("/", "layout");
-  redirect(safeDestination(input.destination));
+  redirect(landing(input.destination));
 }
 
 export async function signOut(destination?: string): Promise<void> {
   await auth.api.signOut({ headers: await headers() });
   revalidatePath("/", "layout");
-  redirect(safeDestination(destination));
+  redirect(landing(destination));
 }

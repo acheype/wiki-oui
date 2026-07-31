@@ -1,38 +1,22 @@
 import { headers } from "next/headers";
 import { cache } from "react";
 import { auth } from "@/lib/auth";
-import {
-  type Actor,
-  ADMINS_GROUP,
-  type Identity,
-  VISITOR,
-} from "@/lib/permissions";
+import { ADMINS_GROUP, type Identity } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 // The database side of the rules (docs/permissions.md): who is acting, and —
 // once the rights land — the `where` clauses that decide what they see.
 
 /**
- * The actor behind the current HTTP request, memoized for its duration with
- * React's cache() — the pattern getPageWithCurrent already uses. Never stored
- * in the session: removing someone from a group must take effect at once, not
- * when their session is renewed.
+ * Who the current HTTP request comes from, memoized for its duration with
+ * React's cache() — the pattern getPageWithCurrent already uses. What is
+ * derived from an account is deliberately never carried in the session:
+ * removing someone from a group must take effect at once, not when their
+ * session is renewed.
  */
 const currentSession = cache(async () =>
   auth.api.getSession({ headers: await headers() })
 );
-
-export const currentActor = cache(async (): Promise<Actor> => {
-  const session = await currentSession();
-  const username = session?.user.username ?? null;
-  if (!username) return VISITOR;
-
-  const admin = await prisma.groupMember.findFirst({
-    where: { groupSlug: ADMINS_GROUP.slug, username },
-    select: { id: true },
-  });
-  return { username, isAdmin: admin !== null };
-});
 
 /**
  * The username stamped on what is written now — null for a visitor, which the
@@ -40,8 +24,6 @@ export const currentActor = cache(async (): Promise<Actor> => {
  * 0025) rather than trusting a caller to pass it.
  */
 export async function currentUsername(): Promise<string | null> {
-  // Straight from the session: stamping a write needs the name of who is
-  // writing, not whether they administer the wiki.
   return (await currentSession())?.user.username ?? null;
 }
 
