@@ -11,7 +11,7 @@ import {
   AuthFormError,
   NewPasswordField,
   useAuthForm,
-} from "@/components/auth/use-auth-form";
+} from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
 

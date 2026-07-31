@@ -3,6 +3,7 @@
 // and client-safe, like lib/groups.ts beside it — lib/accounts-db.ts loads
 // what these functions need and writes their verdict back.
 
+import { plural } from "./format";
 import { LAST_ADMIN_REFUSAL } from "./permissions";
 
 /**
@@ -133,7 +134,7 @@ export const OWN_ERASURE_NOTICE = [
 export const ERASURE_KEEPS_CONTENT =
   "Les pages et l'historique subsistent dans tous les cas : seule la signature change.";
 
+/** Nothing to count is nothing to say: the fragment leaves the sentence. */
 function countOf(total: number, one: string, many: string): string | null {
-  if (total === 0) return null;
-  return `${total} ${total > 1 ? many : one}`;
+  return total === 0 ? null : plural(total, one, many);
 }

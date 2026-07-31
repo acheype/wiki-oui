@@ -4,11 +4,14 @@ import { useId, useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// What the five authentication screens share — installation, connexion,
+// invitation, réinitialisation, inscription: the submit-and-report plumbing,
+// and the two fields they all draw the same way.
+
 /**
- * The plumbing the installation and sign-in screens share: read the fields,
- * hand them to a Server Action, and show what it refused. Both actions
- * redirect on success and never return, so the only thing that ever comes
- * back is an error.
+ * Read the fields, hand them to a Server Action, and show what it refused.
+ * These actions redirect on success and never return, so the only thing that
+ * ever comes back is an error.
  */
 export function useAuthForm(
   action: (fields: FormData) => Promise<{ error: string } | void>

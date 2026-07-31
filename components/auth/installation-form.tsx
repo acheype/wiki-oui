@@ -3,7 +3,7 @@
 import { Info, Sprout } from "lucide-react";
 import { useId } from "react";
 import { installWiki } from "@/app/installation-actions";
-import { AuthFormError, useAuthForm } from "@/components/auth/use-auth-form";
+import { AuthFormError, useAuthForm } from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

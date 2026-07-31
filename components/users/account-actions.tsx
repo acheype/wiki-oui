@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
+  SELECT_NONE,
   Select,
   SelectContent,
   SelectItem,
@@ -48,8 +49,8 @@ import type {
   UserRow,
 } from "@/lib/accounts-db";
 
-/** The Select needs a non-empty value for « personne » (ADR 0024: « Anonyme »). */
-const NOBODY = "—";
+/** « Personne » — the pages then read « Anonyme » (ADR 0024). */
+const NOBODY = SELECT_NONE;
 
 export function AccountActions({
   user,

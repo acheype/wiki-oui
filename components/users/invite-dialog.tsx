@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
+  SELECT_NONE,
   Select,
   SelectContent,
   SelectItem,
@@ -31,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { plural } from "@/lib/format";
 import type { GroupSummary } from "@/lib/groups-db";
 import {
   INVITATION_LIFETIME_DAYS,
@@ -39,8 +41,8 @@ import {
   parseAddressList,
 } from "@/lib/invitations";
 
-/** The Select needs a non-empty value for « aucun groupe ». */
-const NO_GROUP = "—";
+/** « Aucun groupe » — the invitation then joins nobody to anything. */
+const NO_GROUP = SELECT_NONE;
 
 interface Sent {
   lines: string[];
@@ -187,15 +189,16 @@ function PasteCount({
   return (
     <p className="text-xs">
       {emails > 0 && (
-        <span>
-          {emails} adresse{emails > 1 ? "s" : ""} reconnue
-          {emails > 1 ? "s" : ""}
-        </span>
+        <span>{plural(emails, "adresse reconnue", "adresses reconnues")}</span>
       )}
       {invalid.length > 0 && (
         <span className="text-destructive">
           {emails > 0 && " · "}
-          {invalid.length} fragment{invalid.length > 1 ? "s" : ""} sans adresse
+          {plural(
+            invalid.length,
+            "fragment sans adresse",
+            "fragments sans adresse"
+          )}{" "}
           : {invalid.join(", ")}
         </span>
       )}

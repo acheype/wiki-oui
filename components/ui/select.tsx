@@ -6,6 +6,18 @@ import { Select as SelectPrimitive } from "radix-ui"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
+/**
+ * The stand-in value of a « none » choice. Radix refuses an item whose value
+ * is the empty string — for it, "" means *nothing selected* — so a choice
+ * that stands for the absence of one needs a value of its own. It is never
+ * displayed: the item's label is, and the caller turns this back into null,
+ * or into "" where that is what absence means.
+ *
+ * Local addition to the generated component, so the constraint is met where
+ * it is imposed rather than restated in every dialog that hits it.
+ */
+export const SELECT_NONE = "—"
+
 function Select({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {

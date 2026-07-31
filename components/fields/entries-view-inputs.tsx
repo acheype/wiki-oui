@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  SELECT_NONE,
   Select,
   SelectContent,
   SelectItem,
@@ -193,8 +194,8 @@ export function ViewPickerTiles({
  * form-field — selector over the chosen forms' fields
  * ------------------------------------------------------------------ */
 
-// Radix Select refuses an empty item value: a sentinel stands for "none".
-const NONE = "∅";
+// « Aucun » stands for the empty string here: no caption field, no filter.
+const NONE = SELECT_NONE;
 
 function PartialBadge({ carriers }: { carriers?: string[] }) {
   if (!carriers) return null;

@@ -5,6 +5,7 @@
 // pasted rather than after a round trip.
 
 import { z } from "zod";
+import { plural } from "./format";
 
 /** The fortnight an invitation lasts, announced beside the link. */
 export const INVITATION_LIFETIME_DAYS = 14;
@@ -111,7 +112,7 @@ export function invitationSummaryLines(report: InvitationReport): string[] {
   const lines = [
     report.invited.length === 0
       ? "Aucune invitation créée."
-      : `${count(report.invited, "invitation créée", "invitations créées")}.`,
+      : `${plural(report.invited.length, "invitation créée", "invitations créées")}.`,
   ];
   if (report.alreadyMember.length > 0) {
     lines.push(
@@ -139,10 +140,7 @@ export function invitationSummaryLines(report: InvitationReport): string[] {
   return lines;
 }
 
-function count(items: string[], one: string, many: string): string {
-  return `${items.length} ${items.length > 1 ? many : one}`;
-}
-
+/** A count and the addresses behind it: forty names, forty ways to look. */
 function listed(items: string[], one: string, many: string): string {
-  return `${count(items, one, many)} : ${items.join(", ")}`;
+  return `${plural(items.length, one, many)} : ${items.join(", ")}`;
 }

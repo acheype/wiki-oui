@@ -18,7 +18,7 @@ import {
   AuthFormError,
   NewPasswordField,
   useAuthForm,
-} from "@/components/auth/use-auth-form";
+} from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

@@ -37,6 +37,13 @@ export function formatShortDateTime(date: Date): string {
   return shortDateTimeFormat.format(date);
 }
 
+// « 1 page », « 12 pages » — the French agreement, singular at zero and one,
+// plural from two. One rule, so one place: the screens that count things
+// (comptes, invitations, impact d'une suppression) all say it through here.
+export function plural(total: number, one: string, many: string): string {
+  return `${total} ${total > 1 ? many : one}`;
+}
+
 // "28/07" — a date the reader only needs to situate, as on the line of a
 // pending invitation, where the hour would say nothing.
 const dayMonthFormat = new Intl.DateTimeFormat("fr-FR", {
