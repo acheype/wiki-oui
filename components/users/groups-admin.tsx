@@ -12,8 +12,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createGroup, listGroups } from "@/app/group-actions";
-import type { GroupSummary } from "@/lib/groups-db";
-import { GroupEditor } from "@/components/accounts/group-editor";
+import { GroupEditor } from "@/components/users/group-editor";
 import { SlugInlineEdit } from "@/components/slug/slug-input";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { GroupSummary } from "@/lib/groups-db";
 import { slugify } from "@/lib/slug";
 
 export function GroupsAdmin() {
@@ -52,8 +52,13 @@ function GroupsList() {
     listGroups().then(setGroups);
   }, []);
 
+  const needle = filter.trim().toLowerCase();
   const visible = (groups ?? []).filter((group) =>
-    group.name.toLowerCase().includes(filter.trim().toLowerCase())
+    // The slug too: it is what the rights store and what the URL carries, so
+    // it is what one has at hand when arriving from either.
+    [group.name, group.slug].some((field) =>
+      field.toLowerCase().includes(needle)
+    )
   );
 
   return (

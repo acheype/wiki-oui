@@ -1,6 +1,7 @@
 import { cache } from "react";
 import {
   type InheritedMember,
+  type MemberRef,
   type Nesting,
   acceptsNestedGroups,
   effectiveGroups,
@@ -29,11 +30,7 @@ import { prisma } from "@/lib/prisma";
 /** What a person's line and a group's chip need to name someone. */
 const PERSON = { select: { username: true, name: true } } as const;
 
-class AdminOnly extends Error {
-  constructor() {
-    super("Réservé aux administrateurs.");
-  }
-}
+const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";
 
 // --- the actor's groups ------------------------------------------------------
 
@@ -70,7 +67,7 @@ export async function isCurrentAdmin(): Promise<boolean> {
 }
 
 async function assertAdmin(): Promise<void> {
-  if (!(await isCurrentAdmin())) throw new AdminOnly();
+  if (!(await isCurrentAdmin())) throw new Error(ADMINISTRATORS_ONLY);
 }
 
 // --- reads -------------------------------------------------------------------
@@ -97,6 +94,34 @@ async function listMemberships() {
     groupSlug: membership.groupSlug,
     username: membership.username!,
   }));
+}
+
+export interface Person {
+  username: string;
+  name: string;
+}
+
+export interface NamedGroup {
+  slug: string;
+  name: string;
+}
+
+/** Every person of the wiki, as a screen names them. */
+async function listPeople(): Promise<Person[]> {
+  const users = await prisma.user.findMany({
+    ...PERSON,
+    orderBy: { name: "asc" },
+  });
+  return users.flatMap((user) =>
+    // The username is what a right, an ownership or a membership points at
+    // (ADR 0024): an account without one is invisible to all of them.
+    user.username ? [{ username: user.username, name: user.name }] : []
+  );
+}
+
+/** A group's display name from its slug, for the paths screens print. */
+function groupNames(groups: NamedGroup[]): Map<string, string> {
+  return new Map(groups.map((group) => [group.slug, group.name]));
 }
 
 export interface GroupSummary {
@@ -130,16 +155,6 @@ export async function listGroupSummaries(): Promise<GroupSummary[]> {
   });
 }
 
-export interface Person {
-  username: string;
-  name: string;
-}
-
-export interface NamedGroup {
-  slug: string;
-  name: string;
-}
-
 /** Someone the group holds through its nesting, and the way they come in by. */
 export interface InheritedPerson extends Person {
   path: NamedGroup[];
@@ -167,7 +182,7 @@ export async function getGroupDetail(
   slug: string
 ): Promise<GroupDetail | null> {
   await assertAdmin();
-  const [group, groups, nestings, memberships] = await Promise.all([
+  const [group, groups, users, nestings, memberships] = await Promise.all([
     prisma.group.findUnique({
       where: { slug },
       include: {
@@ -178,12 +193,13 @@ export async function getGroupDetail(
       },
     }),
     prisma.group.findMany({ orderBy: { name: "asc" } }),
+    listPeople(),
     listNestings(),
     listMemberships(),
   ]);
   if (!group) return null;
 
-  const nameOf = new Map(groups.map((one) => [one.slug, one.name]));
+  const nameOf = groupNames(groups);
   const people = group.members
     .flatMap((member) =>
       // The username is what a membership points at (ADR 0024), so a member
@@ -198,8 +214,9 @@ export async function getGroupDetail(
     .map((nested) => ({ slug: nested.slug, name: nested.name }))
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const inherited = await namePeople(
+  const inherited = namePeople(
     inheritedMembers(nestings, memberships, slug),
+    users,
     nameOf
   );
   const direct = new Set(people.map((person) => person.username));
@@ -227,26 +244,19 @@ export async function getGroupDetail(
     // Only direct members are off the list: someone the nesting brings in can
     // still be added by hand, which pins them here whatever happens to the
     // group they came through. They then show up once, as a chip.
-    addablePeople: (
-      await prisma.user.findMany({ ...PERSON, orderBy: { name: "asc" } })
-    ).flatMap((user) =>
-      user.username && !direct.has(user.username)
-        ? [{ username: user.username, name: user.name }]
-        : []
-    ),
+    addablePeople: users.filter((person) => !direct.has(person.username)),
   };
 }
 
 /** Turns the slug paths of the pure module into what a screen can print. */
-async function namePeople(
+function namePeople(
   members: InheritedMember[],
+  people: Person[],
   nameOf: Map<string, string>
-): Promise<InheritedPerson[]> {
-  const users = await prisma.user.findMany({
-    where: { username: { in: members.map((member) => member.username) } },
-    ...PERSON,
-  });
-  const displayName = new Map(users.map((user) => [user.username, user.name]));
+): InheritedPerson[] {
+  const displayName = new Map(
+    people.map((person) => [person.username, person.name])
+  );
   return members.map((member) => ({
     username: member.username,
     name: displayName.get(member.username) ?? member.username,
@@ -254,7 +264,7 @@ async function namePeople(
   }));
 }
 
-export interface AccountRow extends Person {
+export interface UserRow extends Person {
   /** Shown here and nowhere else in the wiki (docs/permissions.md). */
   email: string;
   groups: NamedGroup[];
@@ -262,11 +272,11 @@ export interface AccountRow extends Person {
 }
 
 /**
- * The accounts of the wiki with their groups, direct and inherited — the
- * users list of `gerer-utilisateurs`. Administrators only: it is the one
- * screen where email addresses are shown.
+ * The people of the wiki with their groups, direct and inherited — the users
+ * list of `gerer-utilisateurs`. Administrators only: it is the one screen
+ * where email addresses are shown.
  */
-export async function listAccounts(): Promise<AccountRow[]> {
+export async function listUsersWithGroups(): Promise<UserRow[]> {
   await assertAdmin();
   const [users, groups, nestings] = await Promise.all([
     prisma.user.findMany({
@@ -281,7 +291,7 @@ export async function listAccounts(): Promise<AccountRow[]> {
     prisma.group.findMany({ orderBy: { name: "asc" } }),
     listNestings(),
   ]);
-  const nameOf = new Map(groups.map((group) => [group.slug, group.name]));
+  const nameOf = groupNames(groups);
   const named = (slug: string) => ({ slug, name: nameOf.get(slug) ?? slug });
 
   return users.flatMap((user) => {
@@ -330,6 +340,7 @@ export async function createAdminsGroupWith(username: string): Promise<void> {
 }
 
 export async function groupExists(slug: string): Promise<boolean> {
+  await assertAdmin();
   return (await prisma.group.count({ where: { slug } })) > 0;
 }
 
@@ -355,14 +366,13 @@ export type MembershipRefusal = string | null;
 export async function addPersonToGroup(
   groupSlug: string,
   username: string
-): Promise<MembershipRefusal> {
+): Promise<void> {
   await assertAdmin();
   await prisma.groupMember.upsert({
     where: { groupSlug_username: { groupSlug, username } },
     create: { groupSlug, username },
     update: {},
   });
-  return null;
 }
 
 /**
@@ -400,7 +410,7 @@ export async function nestGroup(
  */
 export async function removeGroupMember(
   groupSlug: string,
-  member: { username?: string; memberGroupSlug?: string }
+  member: MemberRef
 ): Promise<MembershipRefusal> {
   await assertAdmin();
   const refusal = memberRemovalRefusal({
@@ -412,9 +422,9 @@ export async function removeGroupMember(
   await prisma.groupMember.deleteMany({
     where: {
       groupSlug,
-      ...(member.username !== undefined
+      ...("username" in member
         ? { username: member.username }
-        : { memberGroupSlug: member.memberGroupSlug }),
+        : { memberGroupSlug: member.groupSlug }),
     },
   });
   return null;

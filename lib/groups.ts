@@ -39,6 +39,13 @@ export interface InheritedGroup {
 }
 
 /**
+ * What a membership names, as the table holds it: a person or a group, never
+ * both. One shape from the screen to the door, so nothing translates it on
+ * the way.
+ */
+export type MemberRef = { username: string } | { groupSlug: string };
+
+/**
  * Every group the actor counts as a member of: the ones they were added to,
  * plus every group holding those, at any depth. Sorted, so a caller comparing
  * two resolutions never sees a difference that traversal order invented.
@@ -65,13 +72,32 @@ export function effectiveGroups(
 function holdersByMemberGroup(
   nestings: readonly Nesting[]
 ): Map<string, string[]> {
-  const holders = new Map<string, string[]>();
-  for (const { groupSlug, memberGroupSlug } of nestings) {
-    const known = holders.get(memberGroupSlug);
-    if (known) known.push(groupSlug);
-    else holders.set(memberGroupSlug, [groupSlug]);
+  return adjacency(nestings, (nesting) => [
+    nesting.memberGroupSlug,
+    nesting.groupSlug,
+  ]);
+}
+
+/** And downwards: which groups this one holds. */
+function heldByGroup(nestings: readonly Nesting[]): Map<string, string[]> {
+  return adjacency(nestings, (nesting) => [
+    nesting.groupSlug,
+    nesting.memberGroupSlug,
+  ]);
+}
+
+function adjacency(
+  nestings: readonly Nesting[],
+  edge: (nesting: Nesting) => [from: string, to: string]
+): Map<string, string[]> {
+  const links = new Map<string, string[]>();
+  for (const nesting of nestings) {
+    const [from, to] = edge(nesting);
+    const known = links.get(from);
+    if (known) known.push(to);
+    else links.set(from, [to]);
   }
-  return holders;
+  return links;
 }
 
 /**
@@ -141,8 +167,8 @@ export function inheritedGroups(
 /** Between two groups of a way down, as every screen writes it. */
 export const PATH_SEPARATOR = " › ";
 
-/** A group, as the interface always shows it: prefixed by an @. */
-export function groupLabel(name: string): string {
+/** A group, as every message writes it: its name behind an @. */
+function groupLabel(name: string): string {
   return `@${name}`;
 }
 
@@ -217,15 +243,15 @@ export function nestingCycle(
 export function nestingCycleMessage(names: readonly string[]): string {
   const [holder, ...rest] = names;
   if (rest.length === 0) {
-    return `@${holder} ne peut pas se contenir lui-même.`;
+    return `${groupLabel(holder)} ne peut pas se contenir lui-même.`;
   }
   const held = rest[rest.length - 1];
   const between = rest.slice(0, -1);
   const via =
     between.length === 0
       ? ""
-      : `, via ${between.map((name) => `@${name}`).join(PATH_SEPARATOR)}`;
-  return `@${holder} contient déjà @${held}${via}.`;
+      : `, via ${between.map(groupLabel).join(PATH_SEPARATOR)}`;
+  return `${groupLabel(holder)} contient déjà ${groupLabel(held)}${via}.`;
 }
 
 /**
@@ -241,13 +267,7 @@ export function nestedGroupPaths(
   nestings: readonly Nesting[],
   groupSlug: string
 ): Map<string, string[]> {
-  const held = new Map<string, string[]>();
-  for (const nesting of nestings) {
-    const known = held.get(nesting.groupSlug);
-    if (known) known.push(nesting.memberGroupSlug);
-    else held.set(nesting.groupSlug, [nesting.memberGroupSlug]);
-  }
-
+  const held = heldByGroup(nestings);
   const paths = new Map<string, string[]>();
   let front = [groupSlug];
   while (front.length > 0) {

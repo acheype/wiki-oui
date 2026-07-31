@@ -6,7 +6,7 @@
 // administrator's gesture — the check lives behind the door, in
 // lib/groups-db.ts, so none of these can forget it.
 
-import { isProtectedGroup } from "@/lib/groups";
+import { type MemberRef, isProtectedGroup } from "@/lib/groups";
 import {
   type GroupDetail,
   type GroupSummary,
@@ -81,17 +81,15 @@ export async function deleteGroup(slug: string): Promise<GroupError | void> {
   await deleteGroupBySlug(slug);
 }
 
-/** A member is a person or a group, exactly as the table holds it. */
-export type MemberRef = { username: string } | { groupSlug: string };
-
 export async function addMember(
   groupSlug: string,
   member: MemberRef
 ): Promise<GroupError | void> {
-  const refusal =
-    "username" in member
-      ? await addPersonToGroup(groupSlug, member.username)
-      : await nestGroup(groupSlug, member.groupSlug);
+  if ("username" in member) {
+    await addPersonToGroup(groupSlug, member.username);
+    return;
+  }
+  const refusal = await nestGroup(groupSlug, member.groupSlug);
   if (refusal) return { error: refusal };
 }
 
@@ -99,11 +97,6 @@ export async function removeMember(
   groupSlug: string,
   member: MemberRef
 ): Promise<GroupError | void> {
-  const refusal = await removeGroupMember(
-    groupSlug,
-    "username" in member
-      ? { username: member.username }
-      : { memberGroupSlug: member.groupSlug }
-  );
+  const refusal = await removeGroupMember(groupSlug, member);
   if (refusal) return { error: refusal };
 }

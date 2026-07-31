@@ -13,13 +13,13 @@ import { UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { listUsers } from "@/app/account-actions";
+import { listUsers } from "@/app/user-actions";
 import { Input } from "@/components/ui/input";
 import { PATH_SEPARATOR } from "@/lib/groups";
-import type { AccountRow, NamedGroup } from "@/lib/groups-db";
+import type { NamedGroup, UserRow } from "@/lib/groups-db";
 
 export function UsersAdmin() {
-  const [users, setUsers] = useState<AccountRow[] | null>(null);
+  const [users, setUsers] = useState<UserRow[] | null>(null);
   const [filter, setFilter] = useState("");
   const filterRef = useRef<HTMLInputElement>(null);
 

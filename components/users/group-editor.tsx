@@ -12,7 +12,6 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
-  type MemberRef,
   addMember,
   deleteGroup,
   getGroup,
@@ -46,7 +45,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { PATH_SEPARATOR, PEOPLE_ONLY_NOTE, stillMemberMessage } from "@/lib/groups";
+import {
+  type MemberRef,
+  PATH_SEPARATOR,
+  PEOPLE_ONLY_NOTE,
+  stillMemberMessage,
+} from "@/lib/groups";
 import type { GroupDetail, NamedGroup, Person } from "@/lib/groups-db";
 
 export function GroupEditor({
