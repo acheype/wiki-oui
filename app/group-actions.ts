@@ -49,12 +49,12 @@ export async function createGroup(group: {
   }
   if (!isValidSlug(group.slug)) {
     return {
-      error: `Identifiant invalide : « ${group.slug} » (minuscules, chiffres et tirets).`,
+      error: `Identifiant invalide : «\u00A0${group.slug}\u00A0» (minuscules, chiffres et tirets).`,
     };
   }
   if (await groupExists(group.slug)) {
     return {
-      error: `Un groupe porte déjà l'identifiant « ${group.slug} ».`,
+      error: `Un groupe porte déjà l'identifiant «\u00A0${group.slug}\u00A0».`,
     };
   }
   await insertGroup({ slug: group.slug, name });

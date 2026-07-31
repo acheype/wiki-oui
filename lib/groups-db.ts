@@ -393,7 +393,7 @@ export async function nestGroup(
   ]);
   const cycle = nestingCycle(nestings, { groupSlug, memberGroupSlug });
   if (cycle) {
-    const nameOf = new Map(groups.map((group) => [group.slug, group.name]));
+    const nameOf = groupNames(groups);
     return nestingCycleMessage(cycle.map((slug) => nameOf.get(slug) ?? slug));
   }
   await prisma.groupMember.upsert({

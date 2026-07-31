@@ -110,27 +110,21 @@ export function UsersAdmin() {
 /** A group of a person's line: direct as a chip, inherited greyed out. */
 function GroupChip({ group, path }: { group: NamedGroup; path?: NamedGroup[] }) {
   const pathname = usePathname();
-  const inherited = path !== undefined;
+  const way = path
+    ?.map((step) => `@${step.name}`)
+    .join(PATH_SEPARATOR);
   return (
     <Link
       href={`${pathname}?groupe=${group.slug}`}
-      title={
-        inherited
-          ? `Membre via ${path.map((step) => `@${step.name}`).join(PATH_SEPARATOR)}`
-          : undefined
-      }
+      title={way && `Membre via ${way}`}
       className={
-        inherited
+        way
           ? "rounded-full border border-dashed px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground"
           : "rounded-full border px-2.5 py-0.5 text-xs hover:bg-accent"
       }
     >
       @{group.name}
-      {inherited && (
-        <span className="ml-1">
-          · via {path.map((step) => `@${step.name}`).join(PATH_SEPARATOR)}
-        </span>
-      )}
+      {way && <span className="ml-1">· via {way}</span>}
     </Link>
   );
 }
