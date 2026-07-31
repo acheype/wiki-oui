@@ -549,6 +549,21 @@ export async function accountDeletionImpact(
   username: string
 ): Promise<AccountDeletionImpact> {
   await assertAdmin();
+  return countErasure(username);
+}
+
+/**
+ * The same numbers, for whoever is asking about their own account — no
+ * administrator involved, since the only account this can ever describe is
+ * the one already signed in.
+ */
+export async function ownDeletionImpact(): Promise<AccountDeletionImpact | null> {
+  const username = await currentUsername();
+  if (!username) return null;
+  return countErasure(username);
+}
+
+async function countErasure(username: string): Promise<AccountDeletionImpact> {
   const [owned, forms, gesture] = await Promise.all([
     countOwnedByAccount(username),
     countFormsOwnedByAccount(username),
@@ -563,10 +578,8 @@ export async function accountDeletionImpact(
 }
 
 /**
- * The erasure that was asked for (docs/permissions.md § Fin d'un compte).
- * Reassignment first, when one was chosen; then a plain DELETE, and the
- * `onDelete` of each relation does the rest — memberships and pending link
- * gone with the account, pages and history staying, signed « Anonyme ».
+ * The erasure an administrator carries out (docs/permissions.md § Fin d'un
+ * compte). Reassignment first, when one was chosen; then the plain DELETE.
  */
 export async function deleteAccount(
   username: string,
@@ -580,6 +593,31 @@ export async function deleteAccount(
     await reassignOwnedPages(username, reassignToUsername);
     await reassignOwnedForms(username, reassignToUsername);
   }
+  return erase(username);
+}
+
+/**
+ * The erasure someone asks for themselves — the droit à l'effacement, which
+ * belongs to the person and not to an administrator's goodwill. It needs no
+ * check beyond being signed in, because it reaches exactly one account: the
+ * one acting. Nothing is reassigned: handing pages to a named colleague would
+ * mean showing a departing user the list of everyone else, and « Anonyme » is
+ * what an erasure asks for anyway.
+ */
+export async function deleteOwnAccount(): Promise<AccountRefusal> {
+  const username = await currentUsername();
+  if (!username) return "Vous n'êtes pas connecté.";
+  const refusal = deleteRefusal(await gestureOn(username));
+  if (refusal) return refusal;
+  return erase(username);
+}
+
+/**
+ * The DELETE itself: the `onDelete` of each relation does the rest —
+ * memberships, sessions and pending link gone with the account, pages and
+ * history staying, signed « Anonyme » (ADR 0024).
+ */
+async function erase(username: string): Promise<AccountRefusal> {
   const user = await prisma.user.findUnique({
     where: { username },
     select: { id: true, email: true },

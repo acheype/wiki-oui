@@ -52,23 +52,29 @@ export interface AccountGesture {
 }
 
 /**
- * Why this account cannot be disabled, or null when it can. Both refusals
- * guard the same thing — a wiki nobody can administer any more — and the
- * installation screen will not hand it back (ADR 0027): it is a one-way door.
+ * Why this account cannot be disabled, or null when it can. Disabling one's
+ * own is refused outright: it locks the author of the gesture out on the
+ * spot, and « se déconnecter » is what they were looking for.
  */
 export function disableRefusal(gesture: AccountGesture): string | null {
-  return closureRefusal(gesture, "désactiver");
-}
-
-export function deleteRefusal(gesture: AccountGesture): string | null {
-  return closureRefusal(gesture, "supprimer");
-}
-
-/** The verb is all that differs: the two gestures close the same doors. */
-function closureRefusal(gesture: AccountGesture, verb: string): string | null {
   if (gesture.username === gesture.actorUsername) {
-    return `Vous ne pouvez pas ${verb} votre propre compte.`;
+    return "Vous ne pouvez pas désactiver votre propre compte. Déconnectez-vous plutôt.";
   }
+  return lastAdminRefusal(gesture);
+}
+
+/**
+ * Why this account cannot be erased, or null when it can. Erasing one's own
+ * is a right, not an accident (RGPD, droit à l'effacement) — so nothing
+ * stands in its way but the wiki's one invariant: an administrator has to
+ * hand the wiki on before they go, since the installation screen will not
+ * give it back (ADR 0027).
+ */
+export function deleteRefusal(gesture: AccountGesture): string | null {
+  return lastAdminRefusal(gesture);
+}
+
+function lastAdminRefusal(gesture: AccountGesture): string | null {
   return gesture.lastAdmin ? LAST_ADMIN_REFUSAL : null;
 }
 
@@ -109,6 +115,23 @@ export function deletionImpactLines(impact: DeletionImpact): string[] {
   }
   return lines;
 }
+
+/**
+ * What an erasure does, in the words owed to whoever asks for their own
+ * (RGPD, droit à l'effacement). Two halves that must be said together: the
+ * personal data goes, and the contributions stay — a wiki emptied of its
+ * pages every time someone leaves would be no wiki, and nothing in what
+ * remains carries a name any more.
+ */
+export const OWN_ERASURE_NOTICE = [
+  "Conformément au RGPD, vos données personnelles sont effacées : nom affiché, identifiant, adresse e-mail et mot de passe.",
+  "Plus rien ne portera votre nom : les pages, fiches et formulaires dont vous êtes propriétaire ou auteur s'afficheront « Anonyme », historique compris.",
+  "Ces contenus, eux, restent sur le wiki : votre départ ne les emporte pas.",
+];
+
+/** And what it does not do, on the screen where someone erases another. */
+export const ERASURE_KEEPS_CONTENT =
+  "Les pages et l'historique subsistent dans tous les cas : seule la signature change.";
 
 function countOf(total: number, one: string, many: string): string | null {
   if (total === 0) return null;

@@ -49,7 +49,9 @@ describe("disableRefusal", () => {
         actorUsername: "jean-martin",
         lastAdmin: false,
       })
-    ).toBe("Vous ne pouvez pas désactiver votre propre compte.");
+    ).toBe(
+      "Vous ne pouvez pas désactiver votre propre compte. Déconnectez-vous plutôt."
+    );
   });
 
   it("refuses to leave the wiki without an administrator", () => {
@@ -60,20 +62,30 @@ describe("disableRefusal", () => {
 });
 
 describe("deleteRefusal", () => {
-  it("says the gesture it refuses, not the other one", () => {
+  it("lets someone erase their own account, as the RGPD asks", () => {
     expect(
       deleteRefusal({
         username: "jean-martin",
         actorUsername: "jean-martin",
         lastAdmin: false,
       })
-    ).toBe("Vous ne pouvez pas supprimer votre propre compte.");
+    ).toBeNull();
   });
 
   it("holds the same floor as disabling", () => {
     expect(
       deleteRefusal({
         username: "marie-durand",
+        actorUsername: "jean-martin",
+        lastAdmin: true,
+      })
+    ).toBe(LAST_ADMIN_REFUSAL);
+  });
+
+  it("holds it against the last administrator erasing themselves too", () => {
+    expect(
+      deleteRefusal({
+        username: "jean-martin",
         actorUsername: "jean-martin",
         lastAdmin: true,
       })

@@ -17,7 +17,11 @@ import { Mail, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listInvitations, listUsers } from "@/app/user-actions";
+import {
+  listInvitations,
+  listUsers,
+  signedInUsername,
+} from "@/app/user-actions";
 import { AccountActions, InvitationActions } from "@/components/users/account-actions";
 import { InviteDialog } from "@/components/users/invite-dialog";
 import { Input } from "@/components/ui/input";
@@ -38,6 +42,8 @@ export function UsersAdmin() {
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [filter, setFilter] = useState<AccountFilter>("all");
   const [needle, setNeedle] = useState("");
+  /** Whose session this is: their own line offers other gestures. */
+  const [me, setMe] = useState<string | null>(null);
   const filterRef = useRef<HTMLInputElement>(null);
 
   const reload = useCallback(() => {
@@ -46,6 +52,10 @@ export function UsersAdmin() {
   }, []);
 
   useEffect(() => reload(), [reload]);
+
+  useEffect(() => {
+    signedInUsername().then(setMe);
+  }, []);
 
   // Direct-keyboard filter (docs/forms.md): typing anywhere fills the filter
   // without clicking it first.
@@ -164,6 +174,7 @@ export function UsersAdmin() {
               <AccountActions
                 user={user}
                 users={users}
+                own={user.username === me}
                 onChanged={reload}
               />
             </li>

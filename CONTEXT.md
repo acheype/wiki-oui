@@ -145,7 +145,7 @@ Un **lien à usage unique** posé sur une adresse e-mail, par lequel une personn
 _Avoid_: Token, inscription (réservée à la création libre d'un compte, fermée par défaut), création de compte par un administrateur
 
 **Compte désactivé**:
-Un compte dont l'accès est coupé : connexion refusée, sessions révoquées à l'instant, et **rien d'autre ne bouge** — ses pages, ses fiches et ses révisions restent à son nom. Réversible d'un clic, contrairement à la suppression, qui est un effacement demandé. Un wiki garde toujours au moins un administrateur capable de se connecter : c'est la limite que les deux gestes refusent de franchir.
+Un compte dont l'accès est coupé : connexion refusée, sessions révoquées à l'instant, et **rien d'autre ne bouge** — ses pages, ses fiches et ses révisions restent à son nom. Réversible d'un clic, et jamais posé sur son propre compte : ce qu'on y cherche est « se déconnecter ». À distinguer de la **suppression**, qui est un effacement : les données personnelles disparaissent, les contributions restent sous « Anonyme », et elle appartient à la personne elle-même (RGPD) autant qu'à un administrateur. Un wiki garde toujours au moins un administrateur capable de se connecter : c'est la limite que les deux gestes refusent de franchir.
 _Avoid_: Banni, suspendu, compte fermé, archivé
 
 **Username**:

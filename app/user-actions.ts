@@ -4,7 +4,14 @@
 // Reading them is an administrator's gesture — email addresses are shown here
 // and nowhere else — and the check lives behind the door, in
 // lib/accounts-db.ts, so none of these can forget it.
+//
+// The two at the end are the exception, and are not called from that screen:
+// erasing one's own account belongs to the person, not to an administrator's
+// goodwill, and it can reach no account but the one signed in.
 
+import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import {
   type AccountDeletionImpact,
   type AccountRefusal,
@@ -15,15 +22,20 @@ import {
   accountDeletionImpact,
   createResetLink,
   deleteAccount,
+  deleteOwnAccount,
   inviteAddresses,
   listPendingInvitations,
   listUsersWithGroups,
+  ownDeletionImpact,
   resendInvitation,
   revokeInvitation,
   setAccountDisabled,
 } from "@/lib/accounts-db";
+import { auth } from "@/lib/auth";
 import { parseAddressList } from "@/lib/invitations";
 import { isMailerConfigured } from "@/lib/mailer";
+import { currentUsername } from "@/lib/permissions-db";
+import { wikiConfig } from "@/wiki.config";
 
 export type UserError = { error: string };
 
@@ -95,4 +107,38 @@ export async function deleteUser(
     reassignToUsername
   );
   if (refusal) return { error: refusal };
+}
+
+/**
+ * Whose session this is, so the accounts list can tell one line from the
+ * others: on your own, disabling is not offered and erasing is the RGPD
+ * gesture rather than an administrator's.
+ */
+export async function signedInUsername(): Promise<string | null> {
+  return currentUsername();
+}
+
+/** What the person's own erasure would leave behind, for the modal. */
+export async function getOwnDeletionImpact(): Promise<AccountDeletionImpact | null> {
+  return ownDeletionImpact();
+}
+
+/**
+ * The droit à l'effacement, exercised by whoever holds the account. The
+ * sessions went with it — `onDelete: Cascade` — so what is left to do is
+ * clear the cookie that pointed at one, and land the visitor on the home
+ * page, where the wiki now reads them like anyone else arriving.
+ */
+export async function deleteOwnUser(): Promise<UserError | void> {
+  const refusal: AccountRefusal = await deleteOwnAccount();
+  if (refusal) return { error: refusal };
+
+  try {
+    await auth.api.signOut({ headers: await headers() });
+  } catch {
+    // The session row is already gone with the account: there is nothing to
+    // sign out of, and a cookie pointing at nothing reads as a visitor.
+  }
+  revalidatePath("/", "layout");
+  redirect(`/${wikiConfig.homeSlug}`);
 }

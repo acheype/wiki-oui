@@ -17,6 +17,7 @@ import {
   sendResetLink,
   setUserDisabled,
 } from "@/app/user-actions";
+import { DeleteOwnAccountDialog } from "@/components/users/delete-own-account-dialog";
 import { LinkToCopy } from "@/components/users/link-to-copy";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { deletionImpactLines } from "@/lib/accounts";
+import { ERASURE_KEEPS_CONTENT, deletionImpactLines } from "@/lib/accounts";
 import type {
   DeliveredLink,
   PendingInvitation,
@@ -53,11 +54,14 @@ const NOBODY = "—";
 export function AccountActions({
   user,
   users,
+  own,
   onChanged,
 }: {
   user: UserRow;
   /** Everyone else, as candidates to take over what this account owns. */
   users: UserRow[];
+  /** This line is the actor's own: what they may do to it is not the same. */
+  own: boolean;
   onChanged: () => void;
 }) {
   const [link, setLink] = useState<DeliveredLink | null>(null);
@@ -110,16 +114,21 @@ export function AccountActions({
               Envoyer un lien de mot de passe
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem onSelect={toggleDisabled}>
-            <UserMinus />
-            {user.disabled ? "Réactiver le compte" : "Désactiver le compte"}
-          </DropdownMenuItem>
+          {/* One's own account is not disabled from here: it would lock the
+              author of the gesture out on the spot, and « se déconnecter » is
+              what they were after. */}
+          {!own && (
+            <DropdownMenuItem onSelect={toggleDisabled}>
+              <UserMinus />
+              {user.disabled ? "Réactiver le compte" : "Désactiver le compte"}
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             variant="destructive"
             onSelect={() => setDeleting(true)}
           >
             <Trash2 />
-            Supprimer le compte…
+            {own ? "Supprimer mon compte…" : "Supprimer le compte…"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -146,14 +155,20 @@ export function AccountActions({
         </DialogContent>
       </Dialog>
 
-      {deleting && (
-        <DeleteAccountDialog
-          user={user}
-          users={users}
-          onClose={() => setDeleting(false)}
-          onDeleted={onChanged}
-        />
-      )}
+      {deleting &&
+        (own ? (
+          // The same erasure, said in the words it is owed when the account
+          // is one's own — and it ends signed out, so there is no list to
+          // refresh afterwards.
+          <DeleteOwnAccountDialog onClose={() => setDeleting(false)} />
+        ) : (
+          <DeleteAccountDialog
+            user={user}
+            users={users}
+            onClose={() => setDeleting(false)}
+            onDeleted={onChanged}
+          />
+        ))}
     </>
   );
 }
@@ -254,8 +269,7 @@ function DeleteAccountDialog({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Les pages et l&apos;historique subsistent dans tous les cas :
-                seule la signature change.
+                {ERASURE_KEEPS_CONTENT}
               </p>
             </div>
           </div>
