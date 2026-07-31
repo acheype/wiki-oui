@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   acceptsNestedGroups,
   effectiveGroups,
+  groupDeletionRefusal,
+  groupRenameRefusal,
   inheritedGroups,
   inheritedMembers,
   isProtectedGroup,
@@ -242,5 +244,26 @@ describe("inheritedGroups", () => {
     expect(
       inheritedGroups(REDACTEURS_NESTING, ["tresorerie", "bureau"])
     ).toEqual([{ slug: "redacteurs", path: ["bureau"] }]);
+  });
+});
+
+// Refusing a gesture on the protected group names it: « ce groupe » leaves
+// the reader to work out which one, on a screen that shows several.
+describe("the gestures @Admins refuses", () => {
+  it("names the group it will not let be renamed", () => {
+    expect(groupRenameRefusal(ADMINS_GROUP.slug)).toBe(
+      "Le groupe @Admins ne peut pas être renommé."
+    );
+  });
+
+  it("names the group it will not let be deleted", () => {
+    expect(groupDeletionRefusal(ADMINS_GROUP.slug)).toBe(
+      "Le groupe @Admins ne peut pas être supprimé."
+    );
+  });
+
+  it("refuses neither gesture on any other group", () => {
+    expect(groupRenameRefusal("bureau")).toBeNull();
+    expect(groupDeletionRefusal("bureau")).toBeNull();
   });
 });

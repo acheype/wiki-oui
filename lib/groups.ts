@@ -190,6 +190,27 @@ export function isProtectedGroup(slug: string): boolean {
   return slug === ADMINS_GROUP.slug;
 }
 
+// The name of the protected group is the constant, never a stored value: it
+// is protected against renaming, so what the installation gave it is what it
+// still reads.
+const PROTECTED_GROUP = groupLabel(ADMINS_GROUP.name);
+
+/**
+ * Why this group refuses to be renamed, or null when it may be. The refusal
+ * names the group: a screen shows several at a time, and « ce groupe » would
+ * leave the reader to work out which one answered.
+ */
+export function groupRenameRefusal(slug: string): string | null {
+  if (!isProtectedGroup(slug)) return null;
+  return `Le groupe ${PROTECTED_GROUP} ne peut pas être renommé.`;
+}
+
+/** And why it refuses to be deleted. */
+export function groupDeletionRefusal(slug: string): string | null {
+  if (!isProtectedGroup(slug)) return null;
+  return `Le groupe ${PROTECTED_GROUP} ne peut pas être supprimé.`;
+}
+
 /**
  * Why this member cannot be taken out, or null when they may go. Only
  * @Admins ever refuses: a wiki whose administrators' group is empty is one

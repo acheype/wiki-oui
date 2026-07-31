@@ -6,7 +6,11 @@
 // administrator's gesture — the check lives behind the door, in
 // lib/groups-db.ts, so none of these can forget it.
 
-import { type MemberRef, isProtectedGroup } from "@/lib/groups";
+import {
+  type MemberRef,
+  groupDeletionRefusal,
+  groupRenameRefusal,
+} from "@/lib/groups";
 import {
   type GroupDetail,
   type GroupSummary,
@@ -65,8 +69,9 @@ export async function renameGroup(
   slug: string,
   name: string
 ): Promise<GroupError | void> {
-  if (isProtectedGroup(slug)) {
-    return { error: "Ce groupe ne peut pas être renommé." };
+  const protectedRefusal = groupRenameRefusal(slug);
+  if (protectedRefusal) {
+    return { error: protectedRefusal };
   }
   if (name.trim() === "") {
     return { error: "Le nom du groupe est obligatoire." };
@@ -75,8 +80,9 @@ export async function renameGroup(
 }
 
 export async function deleteGroup(slug: string): Promise<GroupError | void> {
-  if (isProtectedGroup(slug)) {
-    return { error: "Ce groupe ne peut pas être supprimé." };
+  const protectedRefusal = groupDeletionRefusal(slug);
+  if (protectedRefusal) {
+    return { error: protectedRefusal };
   }
   await deleteGroupBySlug(slug);
 }
