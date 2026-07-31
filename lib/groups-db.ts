@@ -202,8 +202,9 @@ export async function getGroupDetail(
     inheritedMembers(nestings, memberships, slug),
     nameOf
   );
+  const direct = new Set(people.map((person) => person.username));
   const held = new Set([
-    ...people.map((person) => person.username),
+    ...direct,
     ...inherited.map((person) => person.username),
   ]);
   const nestedSlugs = new Set(nestedGroups.map((nested) => nested.slug));
@@ -223,10 +224,13 @@ export async function getGroupDetail(
           .filter((one) => one.slug !== slug && !nestedSlugs.has(one.slug))
           .map((one) => ({ slug: one.slug, name: one.name }))
       : [],
+    // Only direct members are off the list: someone the nesting brings in can
+    // still be added by hand, which pins them here whatever happens to the
+    // group they came through. They then show up once, as a chip.
     addablePeople: (
       await prisma.user.findMany({ ...PERSON, orderBy: { name: "asc" } })
     ).flatMap((user) =>
-      user.username && !held.has(user.username)
+      user.username && !direct.has(user.username)
         ? [{ username: user.username, name: user.name }]
         : []
     ),
