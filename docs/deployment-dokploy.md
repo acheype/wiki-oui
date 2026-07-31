@@ -140,7 +140,18 @@ BETTER_AUTH_SECRET=collez-ici-le-resultat-de-openssl-rand-base64-32
 BETTER_AUTH_URL=https://wiki.mondomaine.fr
 ```
 
-Générez le secret sur votre machine avec `openssl rand -base64 32`, et **conservez-le** : le changer déconnecte tout le monde. Sans lui, le conteneur refuse de démarrer plutôt que de signer les sessions avec une valeur devinable. `BETTER_AUTH_URL` est l'adresse à laquelle vos utilisateurs ouvrent le wiki (étape 7) : les tentatives de connexion venues d'une autre origine sont refusées.
+Générez le secret sur votre machine avec `openssl rand -base64 32`, et **conservez-le** : le changer déconnecte tout le monde. Sans lui, le conteneur refuse de démarrer plutôt que de signer les sessions avec une valeur devinable. `BETTER_AUTH_URL` est l'adresse à laquelle vos utilisateurs ouvrent le wiki (étape 7) : les tentatives de connexion venues d'une autre origine sont refusées, et c'est aussi l'adresse que portent les liens d'invitation, puisqu'ils sortent du wiki.
+
+### Envoi des courriels : facultatif
+
+Les comptes naissent d'une **invitation**, c'est-à-dire d'un lien à usage unique. L'envoyer par courriel n'est qu'un mode de livraison : sans serveur d'envoi, l'administrateur voit le lien à l'écran, le copie et le transmet comme il veut — le wiki fonctionne entièrement sans. Pour que le wiki les envoie lui-même, ajoutez deux variables :
+
+```
+SMTP_URL=smtps://utilisateur:motdepasse@smtp.mondomaine.fr:465
+SMTP_FROM=WikiOui <wiki@mondomaine.fr>
+```
+
+Avec elles, le «&nbsp;mot de passe oublié&nbsp;» devient autonome ; sans elles, cet écran renvoie vers un administrateur.
 
 ### Fichiers uploadés : le volume persistant
 

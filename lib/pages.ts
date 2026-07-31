@@ -240,6 +240,37 @@ export async function assignPagesOwner(
   });
 }
 
+/**
+ * What an account leaves behind, for the modal that announces the numbers
+ * before an erasure (docs/permissions.md § Fin d'un compte). Entries are
+ * pages (ADR 0014), so one count covers both.
+ */
+export async function countOwnedByAccount(
+  username: string
+): Promise<{ pages: number; revisions: number }> {
+  const [pages, revisions] = await Promise.all([
+    prisma.page.count({ where: { ownerUsername: username } }),
+    prisma.revision.count({ where: { authorUsername: username } }),
+  ]);
+  return { pages, revisions };
+}
+
+/**
+ * Hands the pages of one account to another, the reassignment the deletion
+ * modal offers. Only ownership moves: a revision keeps its author, since
+ * rewriting who wrote what would be a lie the history cannot carry — those go
+ * to « Anonyme » on their own, by `onDelete: SetNull`.
+ */
+export async function reassignOwnedPages(
+  fromUsername: string,
+  toUsername: string
+): Promise<void> {
+  await prisma.page.updateMany({
+    where: { ownerUsername: fromUsername },
+    data: { ownerUsername: toUsername },
+  });
+}
+
 // Hard delete (ADR 0008): revisions go with the page via onDelete: Cascade.
 export async function deletePageById(id: string): Promise<void> {
   await prisma.page.delete({ where: { id } });

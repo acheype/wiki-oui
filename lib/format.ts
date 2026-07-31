@@ -36,3 +36,14 @@ const shortDateTimeFormat = new Intl.DateTimeFormat("fr-FR", {
 export function formatShortDateTime(date: Date): string {
   return shortDateTimeFormat.format(date);
 }
+
+// "28/07" — a date the reader only needs to situate, as on the line of a
+// pending invitation, where the hour would say nothing.
+const dayMonthFormat = new Intl.DateTimeFormat("fr-FR", {
+  day: "2-digit",
+  month: "2-digit",
+});
+
+export function formatDayMonth(date: Date): string {
+  return dayMonthFormat.format(date);
+}

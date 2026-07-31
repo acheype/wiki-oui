@@ -132,6 +132,24 @@ export async function createForm(
   await prisma.form.create({ data: { ...definition, slug, ownerUsername } });
 }
 
+/** The form half of what an erasure would leave without an owner. */
+export async function countFormsOwnedByAccount(
+  username: string
+): Promise<number> {
+  return prisma.form.count({ where: { ownerUsername: username } });
+}
+
+/** The form half of the reassignment the deletion modal offers. */
+export async function reassignOwnedForms(
+  fromUsername: string,
+  toUsername: string
+): Promise<void> {
+  await prisma.form.updateMany({
+    where: { ownerUsername: fromUsername },
+    data: { ownerUsername: toUsername },
+  });
+}
+
 // Cascade (ADR 0014): deleting a form deletes its entry pages.
 export async function deleteFormById(id: string): Promise<void> {
   await prisma.form.delete({ where: { id } });

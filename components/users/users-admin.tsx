@@ -8,24 +8,44 @@
 // A person's line carries their groups both ways round: the ones they were
 // added to as chips, the ones nesting put them in greyed out with the way in.
 // That is usually where one looks for *why* someone has access.
+//
+// Pending invitations share the list rather than sitting in one of their own:
+// an address invited and a person arrived are the same population seen a
+// fortnight apart, and the filters are what tell them apart.
 
-import { UserRound } from "lucide-react";
+import { Mail, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { listUsers } from "@/app/user-actions";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { listInvitations, listUsers } from "@/app/user-actions";
+import { AccountActions, InvitationActions } from "@/components/users/account-actions";
+import { InviteDialog } from "@/components/users/invite-dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  ACCOUNT_FILTERS,
+  type AccountFilter,
+  matchesAccountFilter,
+} from "@/lib/accounts";
+import type { AccountRow, PendingInvitation } from "@/lib/accounts-db";
+import { formatDayMonth } from "@/lib/format";
 import { PATH_SEPARATOR } from "@/lib/groups";
-import type { NamedGroup, UserRow } from "@/lib/groups-db";
+import type { NamedGroup } from "@/lib/groups-db";
 
 export function UsersAdmin() {
-  const [users, setUsers] = useState<UserRow[] | null>(null);
-  const [filter, setFilter] = useState("");
+  const [users, setUsers] = useState<AccountRow[] | null>(null);
+  const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
+  const [filter, setFilter] = useState<AccountFilter>("all");
+  const [needle, setNeedle] = useState("");
   const filterRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     listUsers().then(setUsers);
+    listInvitations().then(setInvitations);
   }, []);
+
+  useEffect(() => reload(), [reload]);
 
   // Direct-keyboard filter (docs/forms.md): typing anywhere fills the filter
   // without clicking it first.
@@ -46,35 +66,64 @@ export function UsersAdmin() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const needle = filter.trim().toLowerCase();
-  const visible = (users ?? []).filter((user) =>
-    [user.name, user.username, user.email].some((field) =>
-      field.toLowerCase().includes(needle)
-    )
+  const searched = needle.trim().toLowerCase();
+  const matches = (...fields: string[]) =>
+    fields.some((field) => field.toLowerCase().includes(searched));
+
+  const visibleUsers = (users ?? []).filter(
+    (user) =>
+      matches(user.name, user.username, user.email) &&
+      matchesAccountFilter(user.disabled ? "disabled" : "active", filter)
   );
+  const visibleInvitations = invitations.filter(
+    (invitation) =>
+      matches(invitation.email) && matchesAccountFilter("invited", filter)
+  );
+  const empty = visibleUsers.length === 0 && visibleInvitations.length === 0;
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-lg font-semibold">Utilisateurs</h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="flex-1 text-lg font-semibold">Utilisateurs</h2>
+        <InviteDialog onInvited={reload} />
+      </div>
 
       <Input
         ref={filterRef}
-        value={filter}
+        value={needle}
         placeholder="Tapez pour filtrer…"
-        onChange={(event) => setFilter(event.target.value)}
+        onChange={(event) => setNeedle(event.target.value)}
       />
+
+      <RadioGroup
+        value={filter}
+        onValueChange={(value) => setFilter(value as AccountFilter)}
+        className="flex flex-wrap gap-x-5 gap-y-2"
+      >
+        {ACCOUNT_FILTERS.map((choice) => (
+          <div key={choice.value} className="flex items-center gap-2">
+            <RadioGroupItem value={choice.value} id={`accounts-${choice.value}`} />
+            <Label
+              htmlFor={`accounts-${choice.value}`}
+              className="text-sm font-normal"
+            >
+              {choice.label}
+            </Label>
+          </div>
+        ))}
+      </RadioGroup>
 
       {users === null ? (
         <p className="text-sm text-muted-foreground">Chargement…</p>
-      ) : visible.length === 0 ? (
+      ) : empty ? (
         <p className="rounded-md border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
-          {users.length === 0
+          {users.length === 0 && invitations.length === 0
             ? "Aucun compte pour l'instant."
             : "Aucun compte ne correspond au filtre."}
         </p>
       ) : (
         <ul className="grid gap-2">
-          {visible.map((user) => (
+          {visibleUsers.map((user) => (
             <li
               key={user.username}
               className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border px-3 py-2.5"
@@ -82,8 +131,21 @@ export function UsersAdmin() {
               <span className="flex min-w-0 flex-1 items-center gap-2">
                 <UserRound className="size-4 text-muted-foreground" />
                 <span className="min-w-0">
-                  <span className="block truncate font-medium">
-                    {user.name}
+                  <span className="flex items-center gap-2">
+                    <span
+                      className={
+                        user.disabled
+                          ? "truncate font-medium text-muted-foreground line-through"
+                          : "truncate font-medium"
+                      }
+                    >
+                      {user.name}
+                    </span>
+                    {user.disabled && (
+                      <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                        Désactivé
+                      </span>
+                    )}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     <code className="font-mono">{user.username}</code> ·{" "}
@@ -99,6 +161,31 @@ export function UsersAdmin() {
                   <GroupChip key={group.slug} group={group} path={path} />
                 ))}
               </span>
+              <AccountActions
+                account={user}
+                accounts={users}
+                onChanged={reload}
+              />
+            </li>
+          ))}
+
+          {visibleInvitations.map((invitation) => (
+            <li
+              key={invitation.email}
+              className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-dashed px-3 py-2.5"
+            >
+              <span className="flex min-w-0 flex-1 items-center gap-2">
+                <Mail className="size-4 text-muted-foreground" />
+                <span className="min-w-0">
+                  <span className="block truncate">{invitation.email}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {invitation.expired ? "invitation expirée, envoyée le" : "invité le"}{" "}
+                    {formatDayMonth(invitation.invitedAt)}
+                    {invitation.group && ` · rejoindra @${invitation.group.name}`}
+                  </span>
+                </span>
+              </span>
+              <InvitationActions invitation={invitation} onChanged={reload} />
             </li>
           ))}
         </ul>

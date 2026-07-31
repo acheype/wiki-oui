@@ -18,6 +18,15 @@
 export const ADMINS_GROUP = { slug: "admins", name: "Admins" } as const;
 
 /**
+ * The floor every gesture on an account or a membership stops at: a wiki
+ * whose administrators have all gone is one nobody can take back, since the
+ * installation screen is a one-way door (ADR 0027). One sentence, because it
+ * is one rule — removing the last member of @Admins, disabling them and
+ * deleting them are three ways to the same place.
+ */
+export const LAST_ADMIN_REFUSAL = "Ce wiki doit garder au moins un administrateur.";
+
+/**
  * A signed-in person as the interface names them. The display name signs
  * contributions, the identifier is what the account screens link to — and
  * the email is in neither, it belongs to gerer-utilisateurs alone.

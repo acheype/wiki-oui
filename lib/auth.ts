@@ -1,7 +1,12 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { username } from "better-auth/plugins";
+import {
+  ACCOUNT_DISABLED_CODE,
+  ACCOUNT_DISABLED_MESSAGE,
+} from "@/lib/accounts";
 import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
 import { prisma } from "@/lib/prisma";
 import { isValidUsername } from "@/lib/username";
@@ -21,6 +26,29 @@ export const auth = betterAuth({
     // The floor the installation screen announces, applied where it is
     // enforced, so the two cannot drift apart.
     minPasswordLength: MIN_PASSWORD_LENGTH,
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        /**
+         * A disabled account signs in nowhere (docs/permissions.md § Fin d'un
+         * compte). The refusal sits on the creation of the session rather
+         * than in the wiki's own sign-in action, because BetterAuth's
+         * endpoints are mounted too: one door refused here is every door.
+         */
+        before: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { disabledAt: true },
+          });
+          if (!user?.disabledAt) return;
+          throw new APIError("FORBIDDEN", {
+            code: ACCOUNT_DISABLED_CODE,
+            message: ACCOUNT_DISABLED_MESSAGE,
+          });
+        },
+      },
+    },
   },
   plugins: [
     // The one plugin that is authentication rather than authorization: it

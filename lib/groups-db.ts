@@ -5,7 +5,6 @@ import {
   type Nesting,
   acceptsNestedGroups,
   effectiveGroups,
-  inheritedGroups,
   inheritedMembers,
   isProtectedGroup,
   memberRemovalRefusal,
@@ -66,14 +65,19 @@ export async function isCurrentAdmin(): Promise<boolean> {
   return (await currentGroupSlugs()).includes(ADMINS_GROUP.slug);
 }
 
-async function assertAdmin(): Promise<void> {
+/**
+ * The check every gesture of the two administration screens passes, here
+ * rather than in each caller (ADR 0025) — lib/accounts-db.ts holds the other
+ * half of `gerer-utilisateurs` and asks for it by name.
+ */
+export async function assertAdmin(): Promise<void> {
   if (!(await isCurrentAdmin())) throw new Error(ADMINISTRATORS_ONLY);
 }
 
 // --- reads -------------------------------------------------------------------
 
 /** Every group-to-group edge of the wiki: the nesting, and nothing else. */
-async function listNestings(): Promise<Nesting[]> {
+export async function listNestings(): Promise<Nesting[]> {
   const nested = await prisma.groupMember.findMany({
     where: { memberGroupSlug: { not: null } },
     select: { groupSlug: true, memberGroupSlug: true },
@@ -120,7 +124,7 @@ async function listPeople(): Promise<Person[]> {
 }
 
 /** A group's display name from its slug, for the paths screens print. */
-function groupNames(groups: NamedGroup[]): Map<string, string> {
+export function groupNames(groups: NamedGroup[]): Map<string, string> {
   return new Map(groups.map((group) => [group.slug, group.name]));
 }
 
@@ -262,56 +266,6 @@ function namePeople(
     name: displayName.get(member.username) ?? member.username,
     path: member.path.map((slug) => ({ slug, name: nameOf.get(slug) ?? slug })),
   }));
-}
-
-export interface UserRow extends Person {
-  /** Shown here and nowhere else in the wiki (docs/permissions.md). */
-  email: string;
-  groups: NamedGroup[];
-  inherited: { group: NamedGroup; path: NamedGroup[] }[];
-}
-
-/**
- * The people of the wiki with their groups, direct and inherited — the users
- * list of `gerer-utilisateurs`. Administrators only: it is the one screen
- * where email addresses are shown.
- */
-export async function listUsersWithGroups(): Promise<UserRow[]> {
-  await assertAdmin();
-  const [users, groups, nestings] = await Promise.all([
-    prisma.user.findMany({
-      orderBy: { name: "asc" },
-      select: {
-        username: true,
-        name: true,
-        email: true,
-        groupMemberships: { select: { groupSlug: true } },
-      },
-    }),
-    prisma.group.findMany({ orderBy: { name: "asc" } }),
-    listNestings(),
-  ]);
-  const nameOf = groupNames(groups);
-  const named = (slug: string) => ({ slug, name: nameOf.get(slug) ?? slug });
-
-  return users.flatMap((user) => {
-    if (!user.username) return [];
-    const direct = user.groupMemberships.map(
-      (membership) => membership.groupSlug
-    );
-    return [
-      {
-        username: user.username,
-        name: user.name,
-        email: user.email,
-        groups: direct.map(named).sort((a, b) => a.name.localeCompare(b.name)),
-        inherited: inheritedGroups(nestings, direct).map((group) => ({
-          group: named(group.slug),
-          path: group.path.map(named),
-        })),
-      },
-    ];
-  });
 }
 
 // --- writes ------------------------------------------------------------------

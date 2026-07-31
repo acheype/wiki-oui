@@ -45,11 +45,14 @@ const eslintConfig = defineConfig([
       "lib/forms.ts",
       // Its neighbours behind the same door: BetterAuth owns the account
       // tables and touches nothing else (ADR 0023), the actor resolution
-      // reads the session, the groups are their own door — every gesture on
-      // one is an administrator's, checked there — and the installation flag
-      // is a single row no rule applies to (ADR 0027). None of them reaches
-      // Page or Form.
+      // reads the session, the accounts and the groups are their own door —
+      // every gesture on one is an administrator's or a link holder's,
+      // checked there — and the installation flag is a single row no rule
+      // applies to (ADR 0027). None of them reaches Page or Form except
+      // through lib/pages.ts and lib/forms.ts, which is why the counts and
+      // the reassignment of an erased account live over there.
       "lib/auth.ts",
+      "lib/accounts-db.ts",
       "lib/groups-db.ts",
       "lib/permissions-db.ts",
       "lib/settings.ts",

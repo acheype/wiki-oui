@@ -8,7 +8,7 @@
 // membership would close a cycle, and by which path someone lands in a group
 // they were never added to.
 
-import { ADMINS_GROUP } from "./permissions";
+import { ADMINS_GROUP, LAST_ADMIN_REFUSAL } from "./permissions";
 
 /** One nesting: `groupSlug` holds `memberGroupSlug` among its members. */
 export interface Nesting {
@@ -224,7 +224,7 @@ export function memberRemovalRefusal(group: {
   if (group.groupSlug !== ADMINS_GROUP.slug || group.memberCount > 1) {
     return null;
   }
-  return "Ce wiki doit garder au moins un administrateur.";
+  return LAST_ADMIN_REFUSAL;
 }
 
 /**
