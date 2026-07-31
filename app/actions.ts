@@ -19,7 +19,7 @@ import {
   writePageContent,
   writeRestoredRevision,
 } from "@/lib/pages";
-import { isValidSlug } from "@/lib/slug";
+import { isValidSlug, routeSegmentRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
@@ -61,6 +61,10 @@ export async function savePage(input: {
   if (!isValidSlug(slug)) {
     return { error: `Slug invalide : «\u00A0${slug}\u00A0»` };
   }
+  // A page named after a route segment would be written and never open (ADR
+  // 0028): the route answers first, whatever the database holds.
+  const reserved = routeSegmentRefusal(slug);
+  if (reserved) return { error: reserved };
   const tags = normalizeTags(input.tags);
 
   const { unchanged } = await writePageContent({ slug, content, tags });
@@ -103,6 +107,8 @@ export async function renamePage(
   if (newSlug === slug) {
     return { error: "La nouvelle adresse est identique à l'actuelle." };
   }
+  const reserved = routeSegmentRefusal(newSlug);
+  if (reserved) return { error: reserved };
   const page = await getPage(slug);
   if (!page) {
     return { error: "Cette page n'existe pas." };

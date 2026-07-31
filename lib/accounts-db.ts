@@ -19,6 +19,7 @@ import {
 } from "@/lib/groups-db";
 import {
   INVITATION_LIFETIME_DAYS,
+  INVITATION_TOKEN_PARAM,
   type InvitationReport,
   type LinkPurpose,
   type MailDelivery,
@@ -30,6 +31,7 @@ import { countOwnedByAccount, reassignOwnedPages } from "@/lib/pages";
 import { currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/site-url";
+import { authPagePath } from "@/wiki.config";
 
 // The accounts half of `gerer-utilisateurs` (docs/permissions.md § Comptes):
 // how a person gets in, and the two ways they stop getting in. Every gesture
@@ -42,8 +44,6 @@ import { absoluteUrl } from "@/lib/site-url";
 // holds no account, a reset when it does. Which one it is, nobody stores —
 // the accounts table already knows.
 
-/** Where a link leads, and where the accepting screen lives. */
-const INVITATION_PATH = "/invitation";
 
 /** Why an account gesture was refused, or null once it went through. */
 export type AccountRefusal = string | null;
@@ -89,7 +89,11 @@ async function openLink(
     create: { email, tokenHash, expiresAt, groupSlug },
     update: { tokenHash, expiresAt, groupSlug },
   });
-  return absoluteUrl(`${INVITATION_PATH}/${token}`);
+  // The screen that accepts the link is the `invitation` wiki page, so the
+  // token travels as a query parameter: a segment behind the slug would be
+  // read as a page handler (ADR 0028).
+  const path = `${authPagePath("invitation")}?${INVITATION_TOKEN_PARAM}=${token}`;
+  return absoluteUrl(path);
 }
 
 /** A minted link, and what became of the attempt to deliver it by mail. */

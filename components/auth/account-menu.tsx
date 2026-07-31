@@ -15,7 +15,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DESTINATION_PARAM } from "@/lib/destination";
 import type { Identity } from "@/lib/permissions";
+import { authPagePath } from "@/wiki.config";
 
 // The account corner of the top bar. It lives in the chrome rather than in
 // the seeded quick-access wheel, so that wikis installed before the accounts
@@ -33,7 +35,9 @@ export function AccountMenu({
   if (!identity) {
     return (
       <Button asChild variant="ghost" size="sm">
-        <Link href={`/connexion?suite=${encodeURIComponent(pathname)}`}>
+        <Link
+          href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
+        >
           <LogIn />
           Se connecter
         </Link>

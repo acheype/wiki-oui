@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { isCurrentAdmin } from "@/lib/groups-db";
 import { currentIdentity } from "@/lib/permissions-db";
+import { authPagePath } from "@/wiki.config";
 
 // A block of content nobody else may see is shown with its reason and a way
 // on (docs/permissions.md § Ce que voit qui n'a pas le droit) — unlike an
@@ -18,7 +19,7 @@ export async function AdminOnly({ children }: { children: React.ReactNode }) {
       <span className="flex-1">Réservé aux administrateurs.</span>
       {!identity && (
         <Button asChild variant="outline" size="sm">
-          <Link href="/connexion">Se connecter</Link>
+          <Link href={authPagePath("signIn")}>Se connecter</Link>
         </Button>
       )}
     </div>

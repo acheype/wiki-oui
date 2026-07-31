@@ -11,6 +11,13 @@ import { plural } from "./format";
 export const INVITATION_LIFETIME_DAYS = 14;
 
 /**
+ * The query parameter the link carries its token in. The screen that accepts
+ * it is a wiki page (ADR 0028), and what follows the slug of a page is one of
+ * its handlers — so the token can only travel in the query string.
+ */
+export const INVITATION_TOKEN_PARAM = "jeton";
+
+/**
  * A password reset is the same primitive with a shorter fuse: the person is
  * at their keyboard asking for it, or an administrator is handing it over
  * right now — nobody waits a fortnight for either.

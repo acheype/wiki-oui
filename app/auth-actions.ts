@@ -7,8 +7,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { ACCOUNT_DISABLED_CODE, ACCOUNT_DISABLED_MESSAGE } from "@/lib/accounts";
 import {
+  type AccountLinkTarget,
   acceptInvitation,
   clearAccountLink,
+  readAccountLink,
   requestPasswordReset,
   resetPasswordWithLink,
   signUpRefusal,
@@ -135,6 +137,20 @@ function identityRefusal(input: {
     return `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`;
   }
   return null;
+}
+
+/**
+ * What the `invitation` page draws, decided by the token its URL carries: an
+ * invitation asks for a name, an identifier and a password, a reset only for
+ * a password, and a spent link for nothing at all. A read through a Server
+ * Action like the other built-in screens (ADR 0014) — the page is MDX, so its
+ * component only meets the query string client-side. No actor to check: the
+ * token is the whole credential, and reading it does not spend it.
+ */
+export async function readInvitation(
+  token: string
+): Promise<AccountLinkTarget | null> {
+  return readAccountLink(token);
 }
 
 /**

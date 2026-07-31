@@ -8,6 +8,7 @@
 
 import { UserRoundPlus } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useId } from "react";
 import { signUp } from "@/app/auth-actions";
 import {
@@ -22,9 +23,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DESTINATION_PARAM } from "@/lib/destination";
 import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { authPagePath } from "@/wiki.config";
 
-export function SignUpForm({ destination }: { destination?: string }) {
+export function SignUpForm() {
+  const destination = useSearchParams().get(DESTINATION_PARAM) ?? undefined;
   const emailId = useId();
   const identity = useIdentityFields();
   const { submit, error, isPending } = useAuthForm((fields) =>
@@ -76,7 +80,10 @@ export function SignUpForm({ destination }: { destination?: string }) {
 
       <p className="text-center text-sm text-muted-foreground">
         Vous avez déjà un compte ?{" "}
-        <Link href="/connexion" className="underline underline-offset-4">
+        <Link
+          href={authPagePath("signIn")}
+          className="underline underline-offset-4"
+        >
           Se connecter
         </Link>
       </p>

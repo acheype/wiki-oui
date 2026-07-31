@@ -85,6 +85,21 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
 <GroupsAdmin />
 `,
 
+  // The account screens, hosted by pages like every other screen (ADR 0028).
+  // Each page holds nothing but its component: the form draws its own title,
+  // and anything written above it would sit over the screen.
+  [wikiConfig.authPages.signIn]: `<SignIn />
+`,
+
+  [wikiConfig.authPages.signUp]: `<SignUp />
+`,
+
+  [wikiConfig.authPages.forgotPassword]: `<ForgotPassword />
+`,
+
+  [wikiConfig.authPages.invitation]: `<Invitation />
+`,
+
   "aide-memoire": `# Aide-mémoire
 
 ## Mise en forme

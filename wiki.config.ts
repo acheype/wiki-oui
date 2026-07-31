@@ -19,6 +19,17 @@ export interface WikiConfig {
     header: string;
     footer: string;
   };
+  /**
+   * Special pages hosting an account screen (ADR 0028). Every screen of the
+   * wiki is a page, signing in included: these slugs are named here because
+   * the chrome and the mails have to link to them.
+   */
+  authPages: {
+    signIn: string;
+    signUp: string;
+    forgotPassword: string;
+    invitation: string;
+  };
   /** Special pages that feed no layout slot but are still reserved. */
   otherSpecialPages: string[];
   icons: {
@@ -56,6 +67,12 @@ export const wikiConfig = {
     topQuickAccess: "page-rapide-haut",
     header: "page-header",
     footer: "page-footer",
+  },
+  authPages: {
+    signIn: "connexion",
+    signUp: "inscription",
+    forgotPassword: "mot-de-passe-oublie",
+    invitation: "invitation",
   },
   // formulaires/fiches host the form-administration screens (ADR 0014),
   // gerer-utilisateurs the accounts and groups ones (docs/permissions.md).
@@ -96,5 +113,11 @@ export const wikiConfig = {
 export const specialSlugs: readonly string[] = [
   wikiConfig.homeSlug,
   ...Object.values(wikiConfig.layoutPages),
+  ...Object.values(wikiConfig.authPages),
   ...wikiConfig.otherSpecialPages,
 ];
+
+/** The wiki page an account screen lives on, as a link (`/connexion`). */
+export function authPagePath(page: keyof WikiConfig["authPages"]): string {
+  return `/${wikiConfig.authPages[page]}`;
+}

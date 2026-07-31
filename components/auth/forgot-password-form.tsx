@@ -13,6 +13,7 @@ import { requestPasswordLink } from "@/app/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authPagePath } from "@/wiki.config";
 
 export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
   const emailId = useId();
@@ -40,7 +41,7 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           lien de mot de passe : il pourra vous le transmettre directement.
         </p>
         <Button asChild variant="outline">
-          <Link href="/connexion">Retour à la connexion</Link>
+          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
         </Button>
       </div>
     );
@@ -58,7 +59,7 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           Il est valable 24 heures et ne fonctionne qu&apos;une seule fois.
         </p>
         <Button asChild variant="outline">
-          <Link href="/connexion">Retour à la connexion</Link>
+          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
         </Button>
       </div>
     );
@@ -99,7 +100,10 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        <Link href="/connexion" className="underline underline-offset-4">
+        <Link
+          href={authPagePath("signIn")}
+          className="underline underline-offset-4"
+        >
           Retour à la connexion
         </Link>
       </p>
