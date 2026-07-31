@@ -56,11 +56,14 @@ export function PageRightsButton({
         return;
       }
       setOpen(false);
-      toast.success("Les droits de cette page ont été enregistrés.");
+      toast.success(`Les droits de ${subject} ont été enregistrés.`);
     });
   }
 
   const managedBy = rights ? managedByLine(rights.ownerName) : null;
+  // The modal is the same for a fiche; only what it calls the thing changes.
+  // Both nouns are feminine, so the second question needs no variant.
+  const subject = rights?.isEntry ? "cette fiche" : "cette page";
 
   return (
     <Dialog open={open} onOpenChange={openWith}>
@@ -71,7 +74,7 @@ export function PageRightsButton({
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Droits de cette page</DialogTitle>
+          <DialogTitle>Droits de {subject}</DialogTitle>
           {managedBy && <DialogDescription>{managedBy}</DialogDescription>}
         </DialogHeader>
 
@@ -81,17 +84,17 @@ export function PageRightsButton({
           <div className="grid gap-5">
             <Field
               id="page-read-acl"
-              spec={{ type: "acl", label: "Qui peut voir cette page ?" }}
-              value={read as never}
+              spec={{ type: "acl", label: `Qui peut voir ${subject} ?` }}
+              value={read}
               environment={{ directory: rights.directory }}
-              onChange={(value) => setRead(value as unknown as AccessRule)}
+              onChange={(value) => setRead(value as AccessRule)}
             />
             <Field
               id="page-write-acl"
               spec={{ type: "acl", label: "Qui peut la modifier ?" }}
-              value={write as never}
+              value={write}
               environment={{ directory: rights.directory }}
-              onChange={(value) => setWrite(value as unknown as AccessRule)}
+              onChange={(value) => setWrite(value as AccessRule)}
             />
           </div>
         )}

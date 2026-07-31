@@ -6,7 +6,11 @@ import {
   countTitleRecompute,
   sweepEntryTitles,
 } from "@/lib/entry-title-db";
-import { COLD_ADMIN_TRANSACTION_TIMEOUT_MS, PUBLIC_IDENTITY } from "@/lib/pages";
+import {
+  COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
+  PUBLIC_IDENTITY,
+  currentReadableWhere,
+} from "@/lib/pages";
 import { currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
@@ -30,9 +34,12 @@ export async function getFormById(id: string) {
 }
 
 export async function listFormsWithEntryCount() {
+  // The count is filtered like the list it heads: a form announcing 40 entries
+  // and then showing 12 would be a leak dressed as a bug.
+  const readable = await currentReadableWhere();
   return prisma.form.findMany({
     orderBy: { name: "asc" },
-    include: { _count: { select: { entries: true } } },
+    include: { _count: { select: { entries: { where: readable } } } },
   });
 }
 
@@ -48,12 +55,19 @@ export async function listFormsBySlugs(slugs: string[]) {
   return prisma.form.findMany({ where: { slug: { in: slugs } } });
 }
 
-/** The forms and their entries, newest first — what <EntriesView> reads. */
+/**
+ * The forms and their entries, newest first — what <EntriesView> reads. It
+ * loads in bulk, which is exactly why the filter is a `where` and not a pass
+ * afterwards (docs/permissions.md § Deux temps): the counters, the pagination
+ * and « effacer les filtres » then come out right mechanically, since they
+ * work on what arrived.
+ */
 export async function listFormsWithEntries(slugs: string[]) {
   return prisma.form.findMany({
     where: { slug: { in: slugs } },
     include: {
       entries: {
+        where: await currentReadableWhere(),
         // `owner` feeds the $owner pseudo-field of <EntriesView>: the display
         // name, read live so a rename shows through (ADR 0024).
         include: { current: true, owner: PUBLIC_IDENTITY },

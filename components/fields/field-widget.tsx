@@ -39,10 +39,11 @@ import {
   propKindFits,
 } from "@/lib/component-descriptor";
 import type { FormFieldType } from "@/lib/form-descriptor";
-import type { AccessRule } from "@/lib/permissions";
+import type { AccessRule, AclDirectory } from "@/lib/permissions";
 import type { PseudoField } from "@/lib/pseudo-fields";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { AclInput } from "./acl-input";
 import {
   ColorMappingInput,
   EntryFieldChips,
@@ -52,7 +53,6 @@ import {
   MultiFormListInput,
   ViewPickerTiles,
 } from "./entries-view-inputs";
-import { type AclDirectory, AclInput } from "./acl-input";
 import { IconPicker } from "./icon-picker";
 import type { MapViewValue } from "./map-view-input";
 import { TagsInput } from "./tags-input";
@@ -129,7 +129,11 @@ export interface FieldWidgetSpec {
 }
 
 /** What a widget can hold: component props stay scalar, entry values go richer. */
-export type FieldValue = PropValue | string[] | { lat: number; lng: number };
+export type FieldValue =
+  | PropValue
+  | string[]
+  | { lat: number; lng: number }
+  | AccessRule;
 
 /** Ambient data some widgets list from (injected by the envelope). */
 export interface FieldEnvironment {
@@ -490,7 +494,7 @@ export function FieldWidget({
           id={id}
           value={asRule(value)}
           directory={environment.directory}
-          onChange={(rule) => onChange(rule as unknown as FieldValue)}
+          onChange={onChange}
         />
       );
     // text-like inputs: text (and its number subtype), url, email, title.

@@ -1,16 +1,18 @@
 import { cache } from "react";
 import { type EntryData, readEntryData } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
+import { existingPrincipals } from "@/lib/groups-db";
 import {
   type AccessRule,
+  type AclEntry,
   type PageRights,
   CREATE_REFUSED,
   RIGHTS_REFUSED,
   WRITE_REFUSED,
   canRead,
   canWrite,
-  copyDefaultRights,
   isAdmin,
+  knownEntries,
   pageRule,
   readableWhere,
   ruleAllows,
@@ -65,7 +67,16 @@ const WITH_RIGHTS = {
   acls: ACL_ROWS,
 } as const;
 
-type Decidable = PageRights & { owner: { name: string } | null };
+type Decidable = PageRights & { slug: string; owner: { name: string } | null };
+
+/**
+ * The four account screens answer to everyone, whatever right is posed on
+ * them (docs/permissions.md § Les écrans): signing in has to work exactly
+ * where the content refuses, and the refusal screen's own « Se connecter »
+ * would otherwise lead to a second refusal. Read by the single-page check and
+ * by the list clause alike, so the two cannot drift apart.
+ */
+const ALWAYS_READABLE: readonly string[] = Object.values(wikiConfig.authPages);
 
 /**
  * What a refused read hands back instead of the page. A distinct shape rather
@@ -91,13 +102,19 @@ export function isRefused<T extends object>(
  * come out right mechanically, working on what actually arrived.
  */
 export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
-  return readableWhere(await currentActor());
+  return {
+    OR: [
+      readableWhere(await currentActor()),
+      { slug: { in: [...ALWAYS_READABLE] } },
+    ],
+  };
 }
 
 /** A single page's read decision — the lists get a `where` instead. */
 async function ifReadable<T extends Decidable>(
   page: T
 ): Promise<T | AccessRefusal> {
+  if (ALWAYS_READABLE.includes(page.slug)) return page;
   if (canRead(await currentActor(), page)) return page;
   return { refused: true, ownerName: page.owner?.name ?? null };
 }
@@ -120,6 +137,16 @@ async function assertCanCreatePage(): Promise<void> {
   if (!(await actorCanCreatePage())) throw new Error(CREATE_REFUSED);
 }
 
+/** The configured principals that still exist, as the pure filter reads them. */
+async function keepKnownPrincipals(acls: AclEntry[]): Promise<AclEntry[]> {
+  if (acls.length === 0) return acls;
+  const known = await existingPrincipals({
+    usernames: acls.flatMap((acl) => (acl.username ? [acl.username] : [])),
+    groupSlugs: acls.flatMap((acl) => (acl.groupSlug ? [acl.groupSlug] : [])),
+  });
+  return knownEntries(acls, known);
+}
+
 /** Posing the rights is the owner's and the administrators' alone. */
 async function assertOwnsPage(page: PageRights): Promise<void> {
   const actor = await currentActor();
@@ -131,16 +158,21 @@ async function assertOwnsPage(page: PageRights): Promise<void> {
  * The rights a page is born with: the wiki's defaults, copied — never linked
  * (ADR 0026). Written as a nested create so the page and its list land in one
  * statement, and no page ever exists without the columns saying what it is.
+ *
+ * A default naming an account or a group that has since gone is dropped here
+ * rather than granted on the quiet (ADR 0026) — and the query that decides
+ * that runs only when the configuration names anyone at all, which the shape
+ * a wiki ships with does not.
  */
-function bornWithDefaultRights() {
-  const born = copyDefaultRights({
-    read: wikiConfig.permissions.defaultPageRead,
-    write: wikiConfig.permissions.defaultPageWrite,
-  });
+async function bornWithDefaultRights() {
+  const born = storedRights(
+    wikiConfig.permissions.defaultPageRead,
+    wikiConfig.permissions.defaultPageWrite
+  );
   return {
     readScope: born.readScope,
     writeScope: born.writeScope,
-    acls: { create: born.acls },
+    acls: { create: await keepKnownPrincipals(born.acls) },
   };
 }
 
@@ -193,9 +225,25 @@ export async function getPageWithRevisions(slug: string) {
   return page && ifReadable(page);
 }
 
+/** The slugs a link may be suggested from: what the actor can actually read. */
 export async function listPageSlugs(): Promise<string[]> {
+  return slugsMatching(await currentReadableWhere());
+}
+
+/**
+ * Every slug, readable or not — what « cette page n'existe pas » is decided
+ * against (lib/page-lint.ts). Filtering here would report a link to a page the
+ * author cannot read as a broken one, and the spec is explicit that the
+ * warning is about a writing mistake and nothing else: a slug one has already
+ * typed is not an enumeration of the wiki.
+ */
+export async function listAllPageSlugs(): Promise<string[]> {
+  return slugsMatching({});
+}
+
+async function slugsMatching(where: Prisma.PageWhereInput): Promise<string[]> {
   const pages = await prisma.page.findMany({
-    where: await currentReadableWhere(),
+    where,
     select: { slug: true },
     orderBy: { slug: "asc" },
   });
@@ -330,7 +378,7 @@ export async function writePageContent(input: {
     const page =
       existing ??
       (await tx.page.create({
-        data: { slug, ownerUsername: actor, ...bornWithDefaultRights() },
+        data: { slug, ownerUsername: actor, ...(await bornWithDefaultRights()) },
       }));
 
     await mintRevision(
@@ -433,6 +481,8 @@ export async function actorOwns(page: PageRights): Promise<boolean> {
 /** A page's rights as the modal poses them, both senses at once. */
 export interface PageRightsView {
   ownerName: string | null;
+  /** A fiche, so the modal names it as one — « Qui peut voir cette fiche ? ». */
+  isEntry: boolean;
   read: AccessRule;
   write: AccessRule;
 }
@@ -446,6 +496,7 @@ export async function getPageRights(slug: string): Promise<PageRightsView | null
   await assertOwnsPage(page);
   return {
     ownerName: page.owner?.name ?? null,
+    isEntry: page.formId !== null,
     read: pageRule(page, "READ"),
     write: pageRule(page, "WRITE"),
   };
@@ -517,15 +568,10 @@ export async function createEntryPage(input: {
   const { slug, formId, data, tags } = input;
   await assertCanCreatePage();
   const actor = await currentUsername();
+  const born = await bornWithDefaultRights();
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: {
-        slug,
-        ownerUsername: actor,
-        formId,
-        tags,
-        ...bornWithDefaultRights(),
-      },
+      data: { slug, ownerUsername: actor, formId, tags, ...born },
     });
     await mintRevision(tx, {
       pageId: page.id,

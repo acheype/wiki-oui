@@ -45,6 +45,7 @@ import {
   listEntryPages,
   writeEntryRevision,
 } from "@/lib/pages";
+import { refusalMessage } from "@/lib/permissions";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -467,7 +468,14 @@ export async function saveEntry(
     if (!page || page.formId !== form.id) {
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
-    await writeEntryRevision({ pageId: page.id, data: stored, tags });
+    // The form refuses long before this, so reaching it means the right went
+    // away between opening the fiche and saving it: a refusal to report, not
+    // an error boundary to fall into.
+    try {
+      await writeEntryRevision({ pageId: page.id, data: stored, tags });
+    } catch (error) {
+      return { ok: false, formError: refusalMessage(error) };
+    }
     revalidatePath("/", "layout");
     return { ok: true, slug: page.slug };
   }
@@ -484,7 +492,11 @@ export async function saveEntry(
   const clash = await getPage(slug);
   if (clash) return { ok: false, slugCollision: true };
 
-  await createEntryPage({ slug, formId: form.id, data: stored, tags });
+  try {
+    await createEntryPage({ slug, formId: form.id, data: stored, tags });
+  } catch (error) {
+    return { ok: false, formError: refusalMessage(error) };
+  }
   revalidatePath("/", "layout");
   return { ok: true, slug };
 }

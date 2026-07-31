@@ -11,7 +11,7 @@ import {
   nestingCycle,
   nestingCycleMessage,
 } from "@/lib/groups";
-import { ADMINS_GROUP } from "@/lib/permissions";
+import { type AclDirectory, ADMINS_GROUP } from "@/lib/permissions";
 import { assertAdmin, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 
@@ -108,10 +108,7 @@ async function listPeople(): Promise<Person[]> {
  * first that the actor may pose rights on something. A page's owner is not an
  * administrator and still has to be able to name whoever they open it to.
  */
-export async function listDirectory(): Promise<{
-  people: Person[];
-  groups: NamedGroup[];
-}> {
+export async function listDirectory(): Promise<AclDirectory> {
   const [people, groups] = await Promise.all([
     listPeople(),
     prisma.group.findMany({
@@ -120,6 +117,36 @@ export async function listDirectory(): Promise<{
     }),
   ]);
   return { people, groups };
+}
+
+/**
+ * Which of these names still exist, so that a right copied from the
+ * configuration cannot grant anything to an account or a group that has gone
+ * (ADR 0026). Names nothing, asks nothing: the empty case is the one a wiki
+ * runs in, and it costs no query.
+ */
+export async function existingPrincipals(names: {
+  usernames: readonly string[];
+  groupSlugs: readonly string[];
+}): Promise<{ usernames: Set<string>; groupSlugs: Set<string> }> {
+  const [users, groups] = await Promise.all([
+    names.usernames.length === 0
+      ? []
+      : prisma.user.findMany({
+          where: { username: { in: [...names.usernames] } },
+          select: { username: true },
+        }),
+    names.groupSlugs.length === 0
+      ? []
+      : prisma.group.findMany({
+          where: { slug: { in: [...names.groupSlugs] } },
+          select: { slug: true },
+        }),
+  ]);
+  return {
+    usernames: new Set(users.flatMap((user) => (user.username ? [user.username] : []))),
+    groupSlugs: new Set(groups.map((group) => group.slug)),
+  };
 }
 
 /** A group's display name from its slug, for the paths screens print. */

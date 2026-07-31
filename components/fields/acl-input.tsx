@@ -18,17 +18,12 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   type AccessRule,
+  type AclDirectory,
   type Scope,
   OWNER_AND_ADMINS_NOTE,
   SCOPES,
   SCOPE_LABELS,
 } from "@/lib/permissions";
-
-/** Who a list may name, as the widget's envelope hands them over. */
-export interface AclDirectory {
-  people: { username: string; name: string }[];
-  groups: { slug: string; name: string }[];
-}
 
 const EMPTY_DIRECTORY: AclDirectory = { people: [], groups: [] };
 
@@ -179,7 +174,7 @@ function AddToListPopover({
       <PopoverTrigger asChild>
         <Button type="button" variant="ghost" size="sm">
           <Plus />
-          Ajouter une personne…
+          Ajouter…
         </Button>
       </PopoverTrigger>
       <PopoverContent className="grid w-72 gap-2 p-3" align="start">

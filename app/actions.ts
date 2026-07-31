@@ -15,12 +15,12 @@ import {
   getPage,
   getRevisionToRestore,
   isRefused,
-  listPageSlugs,
+  listAllPageSlugs,
   renamePageSlug,
   writePageContent,
   writeRestoredRevision,
 } from "@/lib/pages";
-import { ACCESS_DENIED } from "@/lib/permissions";
+import { ACCESS_DENIED, refusalMessage } from "@/lib/permissions";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -42,7 +42,7 @@ export async function lintPage(
   const [registry, builders, slugs] = await Promise.all([
     listWikiComponentNames(),
     loadComponentBuilders(),
-    listPageSlugs(),
+    listAllPageSlugs(),
   ]);
   const existingSlugs = new Set(slugs);
   // A page may link to itself before its first save.
@@ -69,8 +69,16 @@ export async function savePage(input: {
   if (reserved) return { error: reserved };
   const tags = normalizeTags(input.tags);
 
-  const { unchanged } = await writePageContent({ slug, content, tags });
-  if (unchanged) return { unchanged: true };
+  // The editor refuses long before this, so reaching it means the right went
+  // away between opening the page and saving it — a refusal to report, not an
+  // error boundary to fall into.
+  let result: { unchanged: boolean };
+  try {
+    result = await writePageContent({ slug, content, tags });
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
+  if (result.unchanged) return { unchanged: true };
 
   // Any page can feed the layout (menu, title…), so revalidate the whole tree.
   revalidatePath("/", "layout");

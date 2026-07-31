@@ -131,11 +131,14 @@ export function ruleAllows(actor: Actor, rule: AccessRule): boolean {
   }
 }
 
+/** The column a sense's scope lives in, named once for the check and the clause. */
+const SCOPE_COLUMN = { READ: "readScope", WRITE: "writeScope" } as const;
+
 /** The page's right in one sense, read back as the widget poses it. */
 export function pageRule(page: PageRights, kind: PermKind): AccessRule {
   const listed = page.acls.filter((acl) => acl.kind === kind);
   return {
-    scope: kind === "READ" ? page.readScope : page.writeScope,
+    scope: page[SCOPE_COLUMN[kind]],
     usernames: listed.flatMap((acl) => (acl.username ? [acl.username] : [])),
     groupSlugs: listed.flatMap((acl) => (acl.groupSlug ? [acl.groupSlug] : [])),
   };
@@ -187,7 +190,7 @@ function aclBranches(actor: Actor): Prisma.PageAclWhereInput[] {
 
 /** What the scope of one sense lets this actor through by. */
 function scopeBranches(actor: Actor, kind: PermKind): Prisma.PageWhereInput[] {
-  const scope = kind === "READ" ? "readScope" : "writeScope";
+  const scope = SCOPE_COLUMN[kind];
   const branches: Prisma.PageWhereInput[] = [{ [scope]: "everyone" }];
   if (isSignedIn(actor)) branches.push({ [scope]: "authenticated" });
   const listed = aclBranches(actor);
@@ -224,13 +227,7 @@ export function readableWhere(actor: Actor): Prisma.PageWhereInput {
   return { OR: [...writeBranches(actor), ...scopeBranches(actor, "READ")] };
 }
 
-// --- copying a default -------------------------------------------------------
-
-/** The rights a page is born with, before anyone has posed any. */
-export interface PageRightsDefaults {
-  read: AccessRule;
-  write: AccessRule;
-}
+// --- what a page stores ------------------------------------------------------
 
 /** The columns and rows a page carries its rights in, ready to be written. */
 export interface StoredRights {
@@ -258,24 +255,39 @@ export function aclEntries(rule: AccessRule, kind: PermKind): AclEntry[] {
 
 /**
  * A page's rights at its creation: the wiki's defaults, copied — never linked
- * (ADR 0026). Changing a default afterwards touches nothing that exists, and
- * the only way to the existing is an explicit « Appliquer aux fiches
- * existantes ».
+ * Both senses at once, since a page carries both: what the modal saves, and
+ * — the wiki's defaults being two rules like any other — what a page is born
+ * with, copied and never linked (ADR 0026). One function, because copying a
+ * default and posing a right by hand write exactly the same thing.
  */
-export function copyDefaultRights(defaults: PageRightsDefaults): StoredRights {
+export function storedRights(read: AccessRule, write: AccessRule): StoredRights {
   return {
-    readScope: defaults.read.scope,
-    writeScope: defaults.write.scope,
-    acls: [
-      ...aclEntries(defaults.read, "READ"),
-      ...aclEntries(defaults.write, "WRITE"),
-    ],
+    readScope: read.scope,
+    writeScope: write.scope,
+    acls: [...aclEntries(read, "READ"), ...aclEntries(write, "WRITE")],
   };
 }
 
-/** The rights the modal saves, both senses at once. */
-export function storedRights(read: AccessRule, write: AccessRule): StoredRights {
-  return copyDefaultRights({ read, write });
+/**
+ * A default naming an account or a group that has since gone must not grant
+ * anything on the quiet, so the unknown are dropped as the copy is made (ADR
+ * 0026) — the caller passes what still exists, since only the database knows.
+ */
+export function knownEntries(
+  acls: readonly AclEntry[],
+  known: { usernames: ReadonlySet<string>; groupSlugs: ReadonlySet<string> }
+): AclEntry[] {
+  return acls.filter((acl) =>
+    acl.username !== null
+      ? known.usernames.has(acl.username)
+      : acl.groupSlug !== null && known.groupSlugs.has(acl.groupSlug)
+  );
+}
+
+/** Who an `acl` list may name: the people and groups of the wiki. */
+export interface AclDirectory {
+  people: Identity[];
+  groups: { slug: string; name: string }[];
 }
 
 // --- what someone without the right is told ----------------------------------
@@ -303,3 +315,12 @@ export const RIGHTS_REFUSED =
   "Seuls le propriétaire et les administrateurs peuvent modifier les droits d'une page.";
 export const UPLOAD_REFUSED =
   "Vous n'avez pas le droit de déposer un fichier sur ce wiki.";
+
+/**
+ * That refusal, as the screen that asked can show it. A Server Action that
+ * let it through would land on the error boundary, where a right that went
+ * away between opening a page and saving it reads as a crash.
+ */
+export function refusalMessage(error: unknown): string {
+  return error instanceof Error ? error.message : ACCESS_DENIED;
+}

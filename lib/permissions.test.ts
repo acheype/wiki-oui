@@ -11,10 +11,11 @@ import {
   aclEntries,
   canRead,
   canWrite,
-  copyDefaultRights,
   managedByLine,
   readableWhere,
+  knownEntries,
   ruleAllows,
+  storedRights,
   writableWhere,
 } from "./permissions";
 
@@ -114,13 +115,13 @@ describe("canRead", () => {
   });
 });
 
-describe("copyDefaultRights", () => {
+describe("storedRights", () => {
   it("copies the scopes and turns the two lists into rows", () => {
     expect(
-      copyDefaultRights({
-        read: { scope: "everyone" },
-        write: { scope: "restricted", usernames: ["marie-durand"], groupSlugs: ["bureau"] },
-      })
+      storedRights(
+        { scope: "everyone" },
+        { scope: "restricted", usernames: ["marie-durand"], groupSlugs: ["bureau"] }
+      )
     ).toEqual({
       readScope: "everyone",
       writeScope: "restricted",
@@ -133,6 +134,32 @@ describe("copyDefaultRights", () => {
 
   it("writes no row for a scope that opens no list", () => {
     expect(aclEntries({ scope: "everyone", usernames: ["marie-durand"] }, "READ")).toEqual([]);
+  });
+});
+
+describe("knownEntries", () => {
+  // A default naming an account or a group that has gone must not grant
+  // anything on the quiet: it is dropped as the copy is made (ADR 0026).
+  const rows: AclEntry[] = [
+    { kind: "READ", username: "marie-durand", groupSlug: null },
+    { kind: "READ", username: "parti-e", groupSlug: null },
+    { kind: "WRITE", username: null, groupSlug: "bureau" },
+    { kind: "WRITE", username: null, groupSlug: "dissous" },
+  ];
+
+  it("keeps only the names that still exist", () => {
+    expect(
+      knownEntries(rows, {
+        usernames: new Set(["marie-durand"]),
+        groupSlugs: new Set(["bureau"]),
+      })
+    ).toEqual([rows[0], rows[2]]);
+  });
+
+  it("drops everything when nothing exists yet", () => {
+    expect(
+      knownEntries(rows, { usernames: new Set(), groupSlugs: new Set() })
+    ).toEqual([]);
   });
 });
 

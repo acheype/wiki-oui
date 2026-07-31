@@ -7,7 +7,11 @@ import {
   getPageRights,
   setPageRights,
 } from "@/lib/pages";
-import type { AccessRule } from "@/lib/permissions";
+import {
+  type AccessRule,
+  type AclDirectory,
+  refusalMessage,
+} from "@/lib/permissions";
 
 // The « Droits » modal's two calls. Posing rights is a mutation, so it opens
 // from the action bar rather than from a /{slug}/droits handler — the same
@@ -17,10 +21,7 @@ import type { AccessRule } from "@/lib/permissions";
 
 export interface PageRightsForm extends PageRightsView {
   /** Who the two lists may name. */
-  directory: {
-    people: { username: string; name: string }[];
-    groups: { slug: string; name: string }[];
-  };
+  directory: AclDirectory;
 }
 
 export async function loadPageRights(
@@ -42,7 +43,7 @@ export async function savePageRights(
   try {
     await setPageRights(slug, read, write);
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Échec de l'enregistrement." };
+    return { error: refusalMessage(error) };
   }
   // A page whose read scope just closed must disappear from the menus and the
   // lists of whoever no longer sees it: the whole tree, like a save.

@@ -14,6 +14,7 @@ import {
   computeAutomaticTitle,
   parseFormDescriptor,
 } from "../lib/form-descriptor";
+import { storedRights } from "../lib/permissions";
 import { specialSlugs, wikiConfig } from "../wiki.config";
 import { formSeeds } from "./seed/forms";
 import { pageSeeds, topMenuContent } from "./seed/pages";
@@ -174,13 +175,18 @@ Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<form>\`, \`<
 `,
 };
 
-// Seeded pages take the wiki's own defaults, copied like any page's are
-// (ADR 0026) — the seed is one of the two paths that write without an actor,
-// so it copies them by hand rather than through lib/pages.ts.
-const SEEDED_RIGHTS = {
-  readScope: wikiConfig.permissions.defaultPageRead.scope,
-  writeScope: wikiConfig.permissions.defaultPageWrite.scope,
-} as const;
+// Seeded pages take the wiki's own defaults, copied by the same function
+// every other page's are (ADR 0026) — the seed writes without an actor, so it
+// calls the pure copy rather than going through lib/pages.ts.
+//
+// The « seulement » list is deliberately dropped: it can only name accounts
+// and groups, and at seed time none exists. That is the same rule the door
+// applies, on a database where every name is unknown.
+const { readScope, writeScope } = storedRights(
+  wikiConfig.permissions.defaultPageRead,
+  wikiConfig.permissions.defaultPageWrite
+);
+const SEEDED_RIGHTS = { readScope, writeScope } as const;
 
 // Shared two-step creation (docs/architecture.md): the current-revision
 // pointer can only be set once the revision row exists.
