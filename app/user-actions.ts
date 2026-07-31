@@ -8,16 +8,16 @@
 import {
   type AccountDeletionImpact,
   type AccountRefusal,
-  type AccountRow,
   type DeliveredLink,
   type InvitationOutcome,
   type PendingInvitation,
+  type UserRow,
   accountDeletionImpact,
   createResetLink,
   deleteAccount,
   inviteAddresses,
-  listAccounts,
   listPendingInvitations,
+  listUsersWithGroups,
   resendInvitation,
   revokeInvitation,
   setAccountDisabled,
@@ -27,8 +27,8 @@ import { isMailerConfigured } from "@/lib/mailer";
 
 export type UserError = { error: string };
 
-export async function listUsers(): Promise<AccountRow[]> {
-  return listAccounts();
+export async function listUsers(): Promise<UserRow[]> {
+  return listUsersWithGroups();
 }
 
 export async function listInvitations(): Promise<PendingInvitation[]> {

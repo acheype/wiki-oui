@@ -1,6 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import {
   INVITATION_LIFETIME_DAYS,
+  type LinkPurpose,
   type MailDelivery,
   RESET_LIFETIME_DAYS,
 } from "@/lib/invitations";
@@ -11,9 +12,6 @@ import {
 // and what the person then goes through is the same screen either way. So
 // nothing here ever decides whether a gesture succeeded; it only says what
 // became of the delivery.
-
-/** Which of the two links is being delivered. */
-export type LinkPurpose = "invitation" | "reset";
 
 // Configured by environment (see .env.example): a connection string and the
 // address the wiki writes from. Both are needed — an SMTP server that accepts

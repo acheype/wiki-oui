@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -42,16 +42,17 @@ export function NewPasswordField({
   minLength: number;
   disabled?: boolean;
 }) {
+  const passwordId = useId();
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor="new-password" className="gap-1">
+      <Label htmlFor={passwordId} className="gap-1">
         Mot de passe
         <span aria-hidden className="text-destructive">
           *
         </span>
       </Label>
       <Input
-        id="new-password"
+        id={passwordId}
         name="password"
         type="password"
         autoComplete="new-password"

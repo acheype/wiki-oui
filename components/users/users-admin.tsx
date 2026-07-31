@@ -28,13 +28,13 @@ import {
   type AccountFilter,
   matchesAccountFilter,
 } from "@/lib/accounts";
-import type { AccountRow, PendingInvitation } from "@/lib/accounts-db";
+import type { PendingInvitation, UserRow } from "@/lib/accounts-db";
 import { formatDayMonth } from "@/lib/format";
 import { PATH_SEPARATOR } from "@/lib/groups";
 import type { NamedGroup } from "@/lib/groups-db";
 
 export function UsersAdmin() {
-  const [users, setUsers] = useState<AccountRow[] | null>(null);
+  const [users, setUsers] = useState<UserRow[] | null>(null);
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [filter, setFilter] = useState<AccountFilter>("all");
   const [needle, setNeedle] = useState("");
@@ -162,8 +162,8 @@ export function UsersAdmin() {
                 ))}
               </span>
               <AccountActions
-                account={user}
-                accounts={users}
+                user={user}
+                users={users}
                 onChanged={reload}
               />
             </li>

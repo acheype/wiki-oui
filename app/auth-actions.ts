@@ -8,8 +8,10 @@ import { z } from "zod";
 import { ACCOUNT_DISABLED_CODE, ACCOUNT_DISABLED_MESSAGE } from "@/lib/accounts";
 import {
   acceptInvitation,
+  clearAccountLink,
   requestPasswordReset,
   resetPasswordWithLink,
+  signUpRefusal,
 } from "@/lib/accounts-db";
 import { auth } from "@/lib/auth";
 import { destinationWithinWiki } from "@/lib/destination";
@@ -87,24 +89,24 @@ export async function signUp(input: {
   const refusal = identityRefusal(input);
   if (refusal) return { error: refusal };
 
+  const email = input.email.trim().toLowerCase();
   try {
     await auth.api.signUpEmail({
       body: {
-        email: input.email.trim(),
+        email,
         password: input.password,
         name: input.name.trim(),
         username: input.username,
       },
     });
   } catch (error) {
-    if (
-      error instanceof APIError &&
-      String(error.body?.code ?? "") === "USERNAME_IS_ALREADY_TAKEN"
-    ) {
-      return { error: "Cet identifiant est déjà pris. Personnalisez-le." };
-    }
-    return { error: "Cette adresse a peut-être déjà un compte. Connectez-vous." };
+    return { error: signUpRefusal(error) };
   }
+
+  // An address that was invited and signed up on its own spends its link all
+  // the same: left standing, it would read as a password reset for the
+  // account just created, and hand it to whoever still held the old mail.
+  await clearAccountLink(email);
 
   revalidatePath("/", "layout");
   redirect(landing(input.destination));

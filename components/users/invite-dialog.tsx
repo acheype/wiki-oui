@@ -44,8 +44,8 @@ const NO_GROUP = "—";
 
 interface Sent {
   lines: string[];
-  links: { email: string; url: string }[];
-  delivery: MailDelivery;
+  /** Each with what became of its own mail, never the batch's verdict. */
+  links: { email: string; url: string; delivery: MailDelivery }[];
 }
 
 export function InviteDialog({ onInvited }: { onInvited: () => void }) {
@@ -74,7 +74,6 @@ export function InviteDialog({ onInvited }: { onInvited: () => void }) {
       setSent({
         lines: invitationSummaryLines(outcome.report),
         links: outcome.links,
-        delivery: outcome.delivery,
       });
       onInvited();
     });
@@ -220,7 +219,7 @@ function Outcome({ sent }: { sent: Sent }) {
               key={link.email}
               url={link.url}
               email={link.email}
-              delivery={sent.delivery}
+              delivery={link.delivery}
             />
           ))}
         </div>

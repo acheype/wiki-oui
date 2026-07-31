@@ -24,6 +24,13 @@ export const RESET_LIFETIME_DAYS = 1;
  */
 export type MailDelivery = "sent" | "not-configured" | "failed";
 
+/**
+ * Which of the two a link turns out to be. Not a stored kind: the accounts
+ * table decides it, the address being invited when it holds no account and
+ * reset when it does — one primitive, read twice.
+ */
+export type LinkPurpose = "invitation" | "reset";
+
 /** When a link minted now stops working. */
 export function expiresIn(from: Date, days: number): Date {
   return new Date(from.getTime() + days * 24 * 60 * 60 * 1000);

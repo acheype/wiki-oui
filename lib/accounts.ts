@@ -57,15 +57,17 @@ export interface AccountGesture {
  * installation screen will not hand it back (ADR 0027): it is a one-way door.
  */
 export function disableRefusal(gesture: AccountGesture): string | null {
-  if (gesture.username === gesture.actorUsername) {
-    return "Vous ne pouvez pas désactiver votre propre compte.";
-  }
-  return gesture.lastAdmin ? LAST_ADMIN_REFUSAL : null;
+  return closureRefusal(gesture, "désactiver");
 }
 
 export function deleteRefusal(gesture: AccountGesture): string | null {
+  return closureRefusal(gesture, "supprimer");
+}
+
+/** The verb is all that differs: the two gestures close the same doors. */
+function closureRefusal(gesture: AccountGesture, verb: string): string | null {
   if (gesture.username === gesture.actorUsername) {
-    return "Vous ne pouvez pas supprimer votre propre compte.";
+    return `Vous ne pouvez pas ${verb} votre propre compte.`;
   }
   return gesture.lastAdmin ? LAST_ADMIN_REFUSAL : null;
 }

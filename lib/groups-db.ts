@@ -293,6 +293,36 @@ export async function createAdminsGroupWith(username: string): Promise<void> {
   });
 }
 
+/**
+ * Who administers the wiki, directly — nesting never makes an administrator
+ * (docs/permissions.md § Groupes), so this list is the whole answer. Read by
+ * lib/accounts-db.ts before it disables or erases anyone: the memberships are
+ * this door's, whoever asks.
+ */
+export async function listAdminUsernames(): Promise<string[]> {
+  const members = await prisma.groupMember.findMany({
+    where: { groupSlug: ADMINS_GROUP.slug, username: { not: null } },
+    select: { username: true },
+  });
+  return members.map((member) => member.username!);
+}
+
+/**
+ * The membership an accepted invitation carries out. No administrator is
+ * acting — the person joining is nobody's — and what allows it is the
+ * invitation that named the group, back when one did have the say.
+ */
+export async function joinGroupOnInvitation(
+  groupSlug: string,
+  username: string
+): Promise<void> {
+  await prisma.groupMember.upsert({
+    where: { groupSlug_username: { groupSlug, username } },
+    create: { groupSlug, username },
+    update: {},
+  });
+}
+
 export async function groupExists(slug: string): Promise<boolean> {
   await assertAdmin();
   return (await prisma.group.count({ where: { slug } })) > 0;

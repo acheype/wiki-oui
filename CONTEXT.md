@@ -140,6 +140,14 @@ _Avoid_: Anonyme (réservé au libellé d'un contenu sans auteur identifié), in
 Une personne dotée d'un compte. Ce que voit le lecteur, c'est son **nom affiché** (libre, un pseudonyme est accepté) et son avatar ; ce que désignent les droits, c'est son **username**. Un utilisateur est simple par défaut, et administrateur seulement s'il appartient au groupe Admins — il n'y a pas de champ rôle.
 _Avoid_: Membre (réservé à l'appartenance à un groupe), compte (l'objet technique de l'authentification)
 
+**Invitation**:
+Un **lien à usage unique** posé sur une adresse e-mail, par lequel une personne se crée un compte en choisissant elle-même son nom affiché, son identifiant et son mot de passe — un administrateur n'en définit jamais un. La même primitive sert au «&nbsp;mot de passe oublié&nbsp;» et à la réinitialisation déclenchée par un administrateur : ce qu'elle vaut se lit sur la table des comptes, invitation tant que l'adresse n'en a pas, réinitialisation dès qu'elle en a un. L'envoyer par courriel n'est qu'un mode de livraison — sans SMTP, l'administrateur copie le lien.
+_Avoid_: Token, inscription (réservée à la création libre d'un compte, fermée par défaut), création de compte par un administrateur
+
+**Compte désactivé**:
+Un compte dont l'accès est coupé : connexion refusée, sessions révoquées à l'instant, et **rien d'autre ne bouge** — ses pages, ses fiches et ses révisions restent à son nom. Réversible d'un clic, contrairement à la suppression, qui est un effacement demandé. Un wiki garde toujours au moins un administrateur capable de se connecter : c'est la limite que les deux gestes refusent de franchir.
+_Avoid_: Banni, suspendu, compte fermé, archivé
+
 **Username**:
 L'identifiant public et unique d'un utilisateur (`marie-durand`), au même format qu'un slug de page. Dérivé du nom affiché à l'inscription, personnalisable, puis figé — et renommable ensuite par un geste explicite, comme tout identifiant du projet. C'est lui que stockent les droits, la propriété, l'auteur d'une révision et l'appartenance aux groupes, et lui qui distingue deux homonymes là où le nom affiché ne suffit pas. Présenté comme l'**identifiant** en UI.
 _Avoid_: login, pseudo, nom wiki (YesWiki), identifiant numérique

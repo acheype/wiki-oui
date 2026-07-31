@@ -13,18 +13,20 @@ import {
   type Person,
   assertAdmin,
   groupNames,
+  joinGroupOnInvitation,
+  listAdminUsernames,
   listNestings,
 } from "@/lib/groups-db";
 import {
   INVITATION_LIFETIME_DAYS,
   type InvitationReport,
+  type LinkPurpose,
   type MailDelivery,
   RESET_LIFETIME_DAYS,
   expiresIn,
 } from "@/lib/invitations";
 import { sendAccountLink } from "@/lib/mailer";
 import { countOwnedByAccount, reassignOwnedPages } from "@/lib/pages";
-import { ADMINS_GROUP } from "@/lib/permissions";
 import { currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/site-url";
@@ -45,6 +47,13 @@ const INVITATION_PATH = "/invitation";
 
 /** Why an account gesture was refused, or null once it went through. */
 export type AccountRefusal = string | null;
+
+/**
+ * Expired, already used, or never issued: one answer for the three. Telling
+ * them apart would only teach whoever is holding a link they should not have,
+ * and the way forward is the same in every case.
+ */
+const SPENT_LINK = "Ce lien n'est plus valable. Demandez-en un nouveau.";
 
 // --- the link primitive -------------------------------------------------------
 
@@ -92,14 +101,14 @@ export interface DeliveredLink {
 async function deliver(
   email: string,
   url: string,
-  purpose: "invitation" | "reset"
+  purpose: LinkPurpose
 ): Promise<DeliveredLink> {
   return { url, delivery: await sendAccountLink({ to: email, url, purpose }) };
 }
 
 // --- reads --------------------------------------------------------------------
 
-export interface AccountRow extends Person {
+export interface UserRow extends Person {
   /** Shown here and nowhere else in the wiki (docs/permissions.md). */
   email: string;
   /** Access cut: sign-in refused, everything they own left as it was. */
@@ -113,7 +122,7 @@ export interface AccountRow extends Person {
  * accounts list of `gerer-utilisateurs`. Administrators only: it is the one
  * screen where email addresses are shown.
  */
-export async function listAccounts(): Promise<AccountRow[]> {
+export async function listUsersWithGroups(): Promise<UserRow[]> {
   await assertAdmin();
   const [users, groups, nestings] = await Promise.all([
     prisma.user.findMany({
@@ -201,16 +210,15 @@ export async function listPendingInvitations(): Promise<PendingInvitation[]> {
 export interface InvitationOutcome {
   report: InvitationReport;
   /** One per address actually invited, for the administrator to copy. */
-  links: { email: string; url: string }[];
-  /** How the mails went: nothing was attempted when SMTP is unconfigured. */
-  delivery: MailDelivery;
+  links: (DeliveredLink & { email: string })[];
 }
 
 /**
  * Invites a list of addresses at once (docs/permissions.md § Naissance d'un
  * compte). An address that already holds an account is reported and left
- * alone; one that already has a pending invitation keeps it, link and date
- * included — resending is a gesture of its own, on its own line.
+ * alone; so is one whose invitation is still live — resending that one is a
+ * gesture of its own, on its own line. An expired link is not: it opens
+ * nothing any more, so pasting the address again simply invites afresh.
  */
 export async function inviteAddresses(
   emails: readonly string[],
@@ -218,18 +226,19 @@ export async function inviteAddresses(
   invalid: readonly string[] = []
 ): Promise<InvitationOutcome> {
   await assertAdmin();
+  const now = new Date();
   const [members, invited] = await Promise.all([
     prisma.user.findMany({
       where: { email: { in: [...emails] } },
       select: { email: true },
     }),
     prisma.accountLink.findMany({
-      where: { email: { in: [...emails] } },
+      where: { email: { in: [...emails] }, expiresAt: { gt: now } },
       select: { email: true },
     }),
   ]);
   const hasAccount = new Set(members.map((user) => user.email));
-  const hasInvitation = new Set(invited.map((link) => link.email));
+  const hasLiveInvitation = new Set(invited.map((link) => link.email));
 
   const report: InvitationReport = {
     invited: [],
@@ -237,28 +246,24 @@ export async function inviteAddresses(
     alreadyInvited: [],
     invalid: [...invalid],
   };
-  const links: { email: string; url: string }[] = [];
-  let delivery: MailDelivery = "not-configured";
+  const links: (DeliveredLink & { email: string })[] = [];
 
   for (const email of emails) {
     if (hasAccount.has(email)) {
       report.alreadyMember.push(email);
       continue;
     }
-    if (hasInvitation.has(email)) {
+    if (hasLiveInvitation.has(email)) {
       report.alreadyInvited.push(email);
       continue;
     }
     const url = await openLink(email, INVITATION_LIFETIME_DAYS, groupSlug);
-    const sent = await deliver(email, url, "invitation");
     report.invited.push(email);
-    links.push({ email, url });
-    // One verdict for the batch: what matters to the screen is whether it
-    // must show the links, and a single failure means it must.
-    if (sent.delivery !== "sent") delivery = sent.delivery;
-    else if (delivery === "not-configured") delivery = "sent";
+    // Each link carries what became of its own mail: one verdict for the
+    // batch would tell an address whose mail left that it failed.
+    links.push({ email, ...(await deliver(email, url, "invitation")) });
   }
-  return { report, links, delivery };
+  return { report, links };
 }
 
 /** Mints a fresh link for a pending invitation — the old one stops working. */
@@ -279,6 +284,16 @@ export async function revokeInvitation(email: string): Promise<void> {
 }
 
 /**
+ * Spends whatever link stood on an address, once an account is there by some
+ * other way — free sign-up on an invited address. Left behind, the row would
+ * read as a password reset for the account just created (readAccountLink
+ * decides by the accounts table), and the old invitation would take it over.
+ */
+export async function clearAccountLink(email: string): Promise<void> {
+  await prisma.accountLink.deleteMany({ where: { email: email.toLowerCase() } });
+}
+
+/**
  * The reset an administrator triggers — « je lui renvoie un lien ». Same
  * primitive as an invitation, shorter fuse, and still no password set by
  * anyone but the person themselves.
@@ -289,9 +304,11 @@ export async function createResetLink(
   await assertAdmin();
   const user = await prisma.user.findUnique({
     where: { username },
-    select: { email: true },
+    select: { email: true, disabledAt: true },
   });
-  if (!user) return null;
+  // A disabled account gets no link: it would open on « ce lien n'est plus
+  // valable », since a link never reopens an access somebody closed.
+  if (!user || user.disabledAt) return null;
   const url = await openLink(user.email, RESET_LIFETIME_DAYS, null);
   return deliver(user.email, url, "reset");
 }
@@ -319,7 +336,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
 export interface AccountLinkTarget {
   email: string;
   /** An invitation creates the account; a reset only changes its password. */
-  purpose: "invitation" | "reset";
+  purpose: LinkPurpose;
   /** The group the invitation adds to, named for the screen to announce it. */
   group: NamedGroup | null;
   /** The account the reset is for, so the screen can greet it by name. */
@@ -372,7 +389,7 @@ export async function acceptInvitation(input: {
 }): Promise<AccountRefusal> {
   const target = await readAccountLink(input.token);
   if (!target || target.purpose !== "invitation") {
-    return "Ce lien n'est plus valable. Demandez-en un nouveau.";
+    return SPENT_LINK;
   }
 
   try {
@@ -390,19 +407,7 @@ export async function acceptInvitation(input: {
 
   await prisma.accountLink.deleteMany({ where: { email: target.email } });
   if (target.group) {
-    // Written here rather than through the groups door: the person joining is
-    // nobody's administrator, and what allows this membership is the
-    // invitation that named the group when an administrator did have the say.
-    await prisma.groupMember.upsert({
-      where: {
-        groupSlug_username: {
-          groupSlug: target.group.slug,
-          username: input.username,
-        },
-      },
-      create: { groupSlug: target.group.slug, username: input.username },
-      update: {},
-    });
+    await joinGroupOnInvitation(target.group.slug, input.username);
   }
   return null;
 }
@@ -412,7 +417,7 @@ export async function acceptInvitation(input: {
  * (docs/permissions.md § Identité) — the identifier is public and permanent,
  * so `marie-durand-2` would be a name nobody chose.
  */
-function signUpRefusal(error: unknown): string {
+export function signUpRefusal(error: unknown): string {
   if (error instanceof APIError) {
     const code = String(error.body?.code ?? "");
     if (code === "USERNAME_IS_ALREADY_TAKEN") {
@@ -437,14 +442,14 @@ export async function resetPasswordWithLink(input: {
 }): Promise<AccountRefusal> {
   const target = await readAccountLink(input.token);
   if (!target || target.purpose !== "reset") {
-    return "Ce lien n'est plus valable. Demandez-en un nouveau.";
+    return SPENT_LINK;
   }
 
   const user = await prisma.user.findUnique({
     where: { email: target.email },
     select: { id: true },
   });
-  if (!user) return "Ce lien n'est plus valable. Demandez-en un nouveau.";
+  if (!user) return SPENT_LINK;
 
   // BetterAuth owns passwords and their hashing (ADR 0023); what the wiki
   // owns is the link that says this person may set one.
@@ -480,15 +485,10 @@ export async function resetPasswordWithLink(input: {
  * count, since an account that cannot sign in cannot take anything back.
  */
 async function isLastAdmin(username: string): Promise<boolean> {
-  const admins = await prisma.groupMember.findMany({
-    where: { groupSlug: ADMINS_GROUP.slug, username: { not: null } },
-    select: { username: true },
-  });
-  if (!admins.some((member) => member.username === username)) return false;
+  const admins = await listAdminUsernames();
+  if (!admins.includes(username)) return false;
 
-  const others = admins
-    .map((member) => member.username!)
-    .filter((member) => member !== username);
+  const others = admins.filter((member) => member !== username);
   if (others.length === 0) return true;
   const stillThere = await prisma.user.count({
     where: { username: { in: others }, disabledAt: null },

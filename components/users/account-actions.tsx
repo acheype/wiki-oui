@@ -42,22 +42,22 @@ import {
 } from "@/components/ui/select";
 import { deletionImpactLines } from "@/lib/accounts";
 import type {
-  AccountRow,
   DeliveredLink,
   PendingInvitation,
+  UserRow,
 } from "@/lib/accounts-db";
 
 /** The Select needs a non-empty value for « personne » (ADR 0024: « Anonyme »). */
 const NOBODY = "—";
 
 export function AccountActions({
-  account,
-  accounts,
+  user,
+  users,
   onChanged,
 }: {
-  account: AccountRow;
+  user: UserRow;
   /** Everyone else, as candidates to take over what this account owns. */
-  accounts: AccountRow[];
+  users: UserRow[];
   onChanged: () => void;
 }) {
   const [link, setLink] = useState<DeliveredLink | null>(null);
@@ -66,15 +66,15 @@ export function AccountActions({
 
   function toggleDisabled() {
     startTransition(async () => {
-      const result = await setUserDisabled(account.username, !account.disabled);
+      const result = await setUserDisabled(user.username, !user.disabled);
       if (result?.error) {
         toast.error(result.error);
         return;
       }
       toast.success(
-        account.disabled
-          ? `${account.name} peut à nouveau se connecter.`
-          : `${account.name} ne peut plus se connecter. Ses pages restent à son nom.`
+        user.disabled
+          ? `${user.name} peut à nouveau se connecter.`
+          : `${user.name} ne peut plus se connecter. Ses pages restent à son nom.`
       );
       onChanged();
     });
@@ -82,7 +82,7 @@ export function AccountActions({
 
   function resetPassword() {
     startTransition(async () => {
-      const delivered = await sendResetLink(account.username);
+      const delivered = await sendResetLink(user.username);
       if (delivered) setLink(delivered);
     });
   }
@@ -95,19 +95,24 @@ export function AccountActions({
             variant="ghost"
             size="icon"
             disabled={isPending}
-            aria-label={`Actions sur le compte de ${account.name}`}
+            aria-label={`Actions sur le compte de ${user.name}`}
           >
             <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={resetPassword}>
-            <KeyRound />
-            Envoyer un lien de mot de passe
-          </DropdownMenuItem>
+          {/* Not offered to a disabled account: a link would open on « ce lien
+              n'est plus valable », and an action that cannot be taken informs
+              nobody (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
+          {!user.disabled && (
+            <DropdownMenuItem onSelect={resetPassword}>
+              <KeyRound />
+              Envoyer un lien de mot de passe
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onSelect={toggleDisabled}>
             <UserMinus />
-            {account.disabled ? "Réactiver le compte" : "Désactiver le compte"}
+            {user.disabled ? "Réactiver le compte" : "Désactiver le compte"}
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
@@ -125,13 +130,13 @@ export function AccountActions({
             <DialogTitle>Lien de mot de passe</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            {account.name} choisira son mot de passe : un administrateur n&apos;en
+            {user.name} choisira son mot de passe : un administrateur n&apos;en
             définit jamais un à la place de quelqu&apos;un.
           </p>
           {link && (
             <LinkToCopy
               url={link.url}
-              email={account.email}
+              email={user.email}
               delivery={link.delivery}
             />
           )}
@@ -143,8 +148,8 @@ export function AccountActions({
 
       {deleting && (
         <DeleteAccountDialog
-          account={account}
-          accounts={accounts}
+          user={user}
+          users={users}
           onClose={() => setDeleting(false)}
           onDeleted={onChanged}
         />
@@ -159,13 +164,13 @@ export function AccountActions({
  * history stay where they are, signed « Anonyme » unless someone takes them.
  */
 function DeleteAccountDialog({
-  account,
-  accounts,
+  user,
+  users,
   onClose,
   onDeleted,
 }: {
-  account: AccountRow;
-  accounts: AccountRow[];
+  user: UserRow;
+  users: UserRow[];
   onClose: () => void;
   onDeleted: () => void;
 }) {
@@ -179,39 +184,39 @@ function DeleteAccountDialog({
   // Counted when the modal opens, not while the list is drawn: it is one query
   // per account, and the answer only matters to whoever asks this question.
   useEffect(() => {
-    getDeletionImpact(account.username).then((counted) =>
+    getDeletionImpact(user.username).then((counted) =>
       setImpact({
         lines: deletionImpactLines(counted),
         refusal: counted.refusal,
       })
     );
-  }, [account.username]);
+  }, [user.username]);
 
   function confirm() {
     startTransition(async () => {
       const result = await deleteUser(
-        account.username,
+        user.username,
         heir === NOBODY ? null : heir
       );
       if (result?.error) {
         toast.error(result.error);
         return;
       }
-      toast.success(`Le compte de ${account.name} a été supprimé.`);
+      toast.success(`Le compte de ${user.name} a été supprimé.`);
       onClose();
       onDeleted();
     });
   }
 
-  const heirs = accounts.filter(
-    (candidate) => candidate.username !== account.username
+  const heirs = users.filter(
+    (candidate) => candidate.username !== user.username
   );
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Supprimer le compte de {account.name} ?</DialogTitle>
+          <DialogTitle>Supprimer le compte de {user.name} ?</DialogTitle>
         </DialogHeader>
 
         {impact === null ? (
