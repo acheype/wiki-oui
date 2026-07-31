@@ -29,8 +29,11 @@ export function SignInForm({ destination }: { destination?: string }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={identifierId}>
+        <Label htmlFor={identifierId} className="gap-1">
           Adresse e-mail ou identifiant
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
         </Label>
         <Input
           id={identifierId}
@@ -43,7 +46,12 @@ export function SignInForm({ destination }: { destination?: string }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={passwordId}>Mot de passe</Label>
+        <Label htmlFor={passwordId} className="gap-1">
+          Mot de passe
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
+        </Label>
         <Input
           id={passwordId}
           name="password"

@@ -31,9 +31,8 @@ export function InstallationForm() {
           Installer votre wiki
         </h1>
         <p className="text-sm text-muted-foreground">
-          Ce wiki n&apos;a pas encore d&apos;administrateur. Créez le compte qui
-          en aura la charge : il pourra ensuite inviter d&apos;autres personnes
-          et régler les droits.
+          Créez le compte administrateur de ce wiki. Vous pourrez ensuite inviter d&apos;autres 
+          personnes et gérer les droits.
         </p>
       </div>
 
@@ -46,14 +45,18 @@ export function InstallationForm() {
       <p className="-mt-4 flex gap-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
         <span>
-          Ces deux valeurs sont les mêmes sur toutes les installations WikiOui,
-          pour qu&apos;on puisse vous aider sans rien vous demander. Vous
-          pourrez les changer une fois connecté.
+          Par convention, ces deux valeurs sont les mêmes sur toutes les installations WikiOui.
+          Vous pourrez néanmoins les modifier une fois connecté si votre contexte l&apos;exige.
         </span>
       </p>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={emailId}>Adresse e-mail</Label>
+        <Label htmlFor={emailId} className="gap-1">
+          Adresse e-mail
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
+        </Label>
         <Input
           id={emailId}
           name="email"
@@ -66,7 +69,12 @@ export function InstallationForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor={passwordId}>Mot de passe</Label>
+        <Label htmlFor={passwordId} className="gap-1">
+          Mot de passe
+          <span aria-hidden className="text-destructive">
+            *
+          </span>
+        </Label>
         <Input
           id={passwordId}
           name="password"
