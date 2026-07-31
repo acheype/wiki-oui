@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { EntryContent } from "@/components/forms/entry-content";
+import { AccessRefused } from "@/components/page/access-refused";
 import { Prose } from "@/components/page/prose";
 import { WikiFrameResizeEmitter } from "@/components/wiki/internal/wiki-frame-emitter";
 import { readEntryData } from "@/lib/form-descriptor";
 import { firstHeadingText, renderMdx } from "@/lib/mdx";
-import { getPageWithCurrent } from "@/lib/pages";
+import { getPageWithCurrent, isRefused } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 
 // The /{slug}/iframe handler (ADR 0001): the page's real "show" rendering
@@ -36,7 +37,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const slug = decodeURIComponent((await params).slug);
   const page = await getPageWithCurrent(slug);
-  if (!page) return {};
+  if (!page || isRefused(page)) return {};
   if (page.formId) {
     const title = readEntryData(page.current?.data).title;
     return { title: typeof title === "string" && title.trim() ? title : slug };
@@ -57,6 +58,17 @@ export default async function IframePage({
 
   const page = await getPageWithCurrent(slug);
   if (!page) notFound();
+
+  // A frame onto a page the reader may not see shows the same refusal as the
+  // page itself, and WikiFrame sizes down to it (ADR 0022).
+  if (isRefused(page)) {
+    return (
+      <div data-wiki-frame>
+        <AccessRefused slug={slug} ownerName={page.ownerName} />
+        <WikiFrameResizeEmitter />
+      </div>
+    );
+  }
 
   return (
     <div data-wiki-frame>

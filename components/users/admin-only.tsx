@@ -1,8 +1,7 @@
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { isCurrentAdmin } from "@/lib/groups-db";
-import { currentIdentity } from "@/lib/permissions-db";
+import { currentIdentity, isCurrentAdmin } from "@/lib/permissions-db";
 import { authPagePath } from "@/wiki.config";
 
 // A block of content nobody else may see is shown with its reason and a way

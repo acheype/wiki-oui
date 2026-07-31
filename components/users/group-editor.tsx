@@ -12,6 +12,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
+  type GroupDetailWithRights,
   addMember,
   deleteGroup,
   getGroup,
@@ -49,9 +50,10 @@ import {
   type MemberRef,
   PATH_SEPARATOR,
   PEOPLE_ONLY_NOTE,
+  groupDeletionImpact,
   stillMemberMessage,
 } from "@/lib/groups";
-import type { GroupDetail, NamedGroup, Person } from "@/lib/groups-db";
+import type { NamedGroup, Person } from "@/lib/groups-db";
 
 export function GroupEditor({
   slug,
@@ -61,7 +63,7 @@ export function GroupEditor({
   /** Back to the list: the group being edited no longer exists. */
   onDeleted: () => void;
 }) {
-  const [group, setGroup] = useState<GroupDetail | null>(null);
+  const [group, setGroup] = useState<GroupDetailWithRights | null>(null);
   const [missing, setMissing] = useState(false);
   const [, startTransition] = useTransition();
   const pathname = usePathname();
@@ -72,7 +74,7 @@ export function GroupEditor({
     );
   }, [slug]);
 
-  async function reload(): Promise<GroupDetail | null> {
+  async function reload(): Promise<GroupDetailWithRights | null> {
     const detail = await getGroup(slug);
     if (detail) setGroup(detail);
     else setMissing(true);
@@ -95,7 +97,7 @@ export function GroupEditor({
 
   function change(
     run: () => Promise<{ error: string } | void>,
-    onDone?: (group: GroupDetail) => void
+    onDone?: (group: GroupDetailWithRights) => void
   ) {
     startTransition(async () => {
       const result = await run();
@@ -292,7 +294,7 @@ function AddMemberPopover({
   group,
   onAdd,
 }: {
-  group: GroupDetail;
+  group: GroupDetailWithRights;
   onAdd: (member: MemberRef) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -386,7 +388,7 @@ function RenameGroupDialog({
   group,
   onRename,
 }: {
-  group: GroupDetail;
+  group: GroupDetailWithRights;
   onRename: (name: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -445,9 +447,10 @@ function DeleteGroupButton({
   group,
   onDelete,
 }: {
-  group: GroupDetail;
+  group: GroupDetailWithRights;
   onDelete: () => void;
 }) {
+  const impact = groupDeletionImpact(group.name, group.pagesGranting);
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -467,6 +470,10 @@ function DeleteGroupButton({
           <AlertDialogDescription>
             @{group.name} sera supprimé, ainsi que les appartenances qui le
             nomment. Les comptes, eux, restent.
+            {/* Deleting a group also drops every right that names it, by
+                cascade — a consequence that reaches well beyond the group
+                screen, so it is counted and said before the click. */}
+            {impact && <span className="mt-2 block">{impact}</span>}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

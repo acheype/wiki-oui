@@ -14,11 +14,13 @@ import {
   deletePageById,
   getPage,
   getRevisionToRestore,
+  isRefused,
   listPageSlugs,
   renamePageSlug,
   writePageContent,
   writeRestoredRevision,
 } from "@/lib/pages";
+import { ACCESS_DENIED } from "@/lib/permissions";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -199,6 +201,9 @@ export async function restoreRevision(
   const source = await getRevisionToRestore(revisionId);
   if (!source) {
     return { error: "Révision introuvable." };
+  }
+  if (isRefused(source)) {
+    return { error: ACCESS_DENIED };
   }
 
   const restored = restoredEntryData(source.page.form?.schema, source.data);

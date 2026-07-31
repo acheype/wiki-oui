@@ -4,6 +4,7 @@
 
 import { z } from "zod";
 import { FORM_FIELD_TYPES } from "./form-descriptor";
+import { SCOPES } from "./permissions";
 import { PSEUDO_FIELDS } from "./pseudo-fields";
 
 const FIELD_TYPES = [
@@ -22,6 +23,7 @@ const FIELD_TYPES = [
   "color-mapping",
   "icon-mapping",
   "map-view",
+  "acl",
   "divider",
 ] as const;
 
@@ -34,6 +36,7 @@ export type FieldType = (typeof FIELD_TYPES)[number];
  * - `rows`: ordered `{ field, title?, icon? }` objects (field-rows);
  * - `mapping`: a value → string record (color/icon mappings);
  * - `area`: a `{ lat, lng, zoom }` object (map-view).
+ * - `rule`: an `{ scope, usernames?, groupSlugs? }` object (acl).
  */
 export type PropKind =
   | "string"
@@ -43,7 +46,8 @@ export type PropKind =
   | "strings"
   | "rows"
   | "mapping"
-  | "area";
+  | "area"
+  | "rule";
 
 // Exhaustive on purpose (no `default`): a new field type must state what its
 // prop holds, or the compiler objects. The save-time report leans on this to
@@ -66,6 +70,8 @@ export function propKind(
       return "mapping";
     case "map-view":
       return "area";
+    case "acl":
+      return "rule";
     case "form-list":
     case "form-field":
       return field.multiple ? "strings" : "string";
@@ -126,6 +132,20 @@ export function propKindFits(kind: PropKind, value: unknown): boolean {
         typeof area.lat === "number" &&
         typeof area.lng === "number" &&
         typeof area.zoom === "number"
+      );
+    }
+    case "rule": {
+      if (value === null || typeof value !== "object" || Array.isArray(value)) {
+        return false;
+      }
+      const rule = value as Record<string, unknown>;
+      const names = (list: unknown) =>
+        list === undefined ||
+        (Array.isArray(list) && list.every((one) => typeof one === "string"));
+      return (
+        SCOPES.some((scope) => scope === rule.scope) &&
+        names(rule.usernames) &&
+        names(rule.groupSlugs)
       );
     }
   }

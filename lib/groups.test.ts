@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   acceptsNestedGroups,
   effectiveGroups,
+  groupDeletionImpact,
   groupDeletionRefusal,
   groupRenameRefusal,
   inheritedGroups,
@@ -265,5 +266,21 @@ describe("the gestures @Admins refuses", () => {
   it("refuses neither gesture on any other group", () => {
     expect(groupRenameRefusal("bureau")).toBeNull();
     expect(groupDeletionRefusal("bureau")).toBeNull();
+  });
+});
+
+describe("groupDeletionImpact", () => {
+  it("says how many pages carry a right naming the group", () => {
+    expect(groupDeletionImpact("Bureau", 23)).toBe(
+      "@Bureau apparaît dans les droits de 23 pages. Le supprimer retirera ces droits."
+    );
+  });
+
+  it("agrees in the singular", () => {
+    expect(groupDeletionImpact("Bureau", 1)).toContain("de 1 page.");
+  });
+
+  it("says nothing when the deletion takes no right with it", () => {
+    expect(groupDeletionImpact("Bureau", 0)).toBeNull();
   });
 });

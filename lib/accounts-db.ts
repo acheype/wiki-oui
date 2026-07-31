@@ -11,7 +11,6 @@ import { inheritedGroups } from "@/lib/groups";
 import {
   type NamedGroup,
   type Person,
-  assertAdmin,
   groupNames,
   joinGroupOnInvitation,
   listAdminUsernames,
@@ -28,7 +27,7 @@ import {
 } from "@/lib/invitations";
 import { probeMailer, sendAccountLink } from "@/lib/mailer";
 import { countOwnedByAccount, reassignOwnedPages } from "@/lib/pages";
-import { currentUsername } from "@/lib/permissions-db";
+import { assertAdmin, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/site-url";
 import { authPagePath } from "@/wiki.config";

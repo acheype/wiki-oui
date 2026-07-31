@@ -1,6 +1,8 @@
 // Typed config module (ADR 0004): nothing here is hot-editable in the MVP.
 // Operator-facing settings move to a `Settings` table once auth/admin lands.
 
+import type { AccessRule } from "@/lib/permissions";
+
 export interface WikiConfig {
   /** Target of the `/` redirect. */
   homeSlug: string;
@@ -32,6 +34,21 @@ export interface WikiConfig {
   };
   /** Special pages that feed no layout slot but are still reserved. */
   otherSpecialPages: string[];
+  /**
+   * The wiki's own rights (docs/permissions.md § Où s'appliquent les droits):
+   * who may create a page, and what a page is born with. This file is the
+   * only place a human writes rights by hand, and the only one where no
+   * cascade can play — it names usernames and group slugs all the same, so
+   * that what it writes reads like what a screen shows (ADR 0024).
+   *
+   * The defaults are *copied* at creation, never linked (ADR 0026): changing
+   * one here touches nothing that already exists.
+   */
+  permissions: {
+    createPage: AccessRule;
+    defaultPageRead: AccessRule;
+    defaultPageWrite: AccessRule;
+  };
   icons: {
     /**
      * Embedded Iconify sets offered by the icon picker. Each name needs its
@@ -82,6 +99,14 @@ export const wikiConfig = {
     "fiches",
     "gerer-utilisateurs",
   ],
+  // « Seulement » with an empty list reads as « son propriétaire et les
+  // administrateurs » — the shape a wiki where each author looks after what
+  // they wrote takes, and the one to widen first when it should be otherwise.
+  permissions: {
+    createPage: { scope: "authenticated" },
+    defaultPageRead: { scope: "everyone" },
+    defaultPageWrite: { scope: "restricted" },
+  },
   icons: {
     sets: ["lucide"],
   },

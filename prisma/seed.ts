@@ -174,6 +174,14 @@ Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<form>\`, \`<
 `,
 };
 
+// Seeded pages take the wiki's own defaults, copied like any page's are
+// (ADR 0026) — the seed is one of the two paths that write without an actor,
+// so it copies them by hand rather than through lib/pages.ts.
+const SEEDED_RIGHTS = {
+  readScope: wikiConfig.permissions.defaultPageRead.scope,
+  writeScope: wikiConfig.permissions.defaultPageWrite.scope,
+} as const;
+
 // Shared two-step creation (docs/architecture.md): the current-revision
 // pointer can only be set once the revision row exists.
 //
@@ -189,7 +197,7 @@ async function createMdxPage(
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, ...(createdAt && { createdAt }) },
+      data: { slug, ...SEEDED_RIGHTS, ...(createdAt && { createdAt }) },
     });
     const revision = await tx.revision.create({
       data: { pageId: page.id, content, ...(createdAt && { createdAt }) },
@@ -210,7 +218,7 @@ async function createEntryPage(
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, formId, createdAt },
+      data: { slug, formId, createdAt, ...SEEDED_RIGHTS },
     });
     const revision = await tx.revision.create({
       data: { pageId: page.id, data, createdAt },

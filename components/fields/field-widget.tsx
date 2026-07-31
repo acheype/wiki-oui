@@ -32,8 +32,14 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import type { FieldType, FileFamily, PropValue } from "@/lib/component-descriptor";
+import {
+  type FieldType,
+  type FileFamily,
+  type PropValue,
+  propKindFits,
+} from "@/lib/component-descriptor";
 import type { FormFieldType } from "@/lib/form-descriptor";
+import type { AccessRule } from "@/lib/permissions";
 import type { PseudoField } from "@/lib/pseudo-fields";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
@@ -46,6 +52,7 @@ import {
   MultiFormListInput,
   ViewPickerTiles,
 } from "./entries-view-inputs";
+import { type AclDirectory, AclInput } from "./acl-input";
 import { IconPicker } from "./icon-picker";
 import type { MapViewValue } from "./map-view-input";
 import { TagsInput } from "./tags-input";
@@ -136,6 +143,8 @@ export interface FieldEnvironment {
   // options depend on another field of the same modal — form-field reading
   // `formFrom`, mappings reading `fieldFrom` (ADR 0018).
   siblingValues?: Record<string, unknown>;
+  /** Who an `acl` list may name: the people and groups of the wiki. */
+  directory?: AclDirectory;
 }
 
 const EMPTY_ENVIRONMENT: FieldEnvironment = {};
@@ -475,6 +484,15 @@ export function FieldWidget({
           onChange={onChange}
         />
       );
+    case "acl":
+      return (
+        <AclInput
+          id={id}
+          value={asRule(value)}
+          directory={environment.directory}
+          onChange={(rule) => onChange(rule as unknown as FieldValue)}
+        />
+      );
     // text-like inputs: text (and its number subtype), url, email, title.
     default:
       return (
@@ -526,6 +544,15 @@ function isGeoPoint(value: FieldValue): value is { lat: number; lng: number } {
 
 function isMapView(value: FieldValue): value is MapViewValue {
   return isGeoPoint(value) && typeof (value as { zoom?: unknown }).zoom === "number";
+}
+
+// An empty widget starts on the narrowest scope, so an author who says
+// nothing has said « le propriétaire et les administrateurs seulement » —
+// the one starting point a forgotten field cannot open the wiki with.
+function asRule(value: FieldValue): AccessRule {
+  return propKindFits("rule", value)
+    ? (value as unknown as AccessRule)
+    : { scope: "restricted" };
 }
 
 function inputType(spec: FieldWidgetSpec): string {

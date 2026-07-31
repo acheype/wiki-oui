@@ -38,6 +38,7 @@ model User {
   // What WikiOui hangs on the account. The rights point at `username`, never
   // at `id` (ADR 0024), so these are its back-relations.
   groupMemberships  GroupMember[]
+  pageAcls          PageAcl[]
   ownedForms        Form[]        @relation("FormOwner")
   ownedPages        Page[]        @relation("PageOwner")
   authoredRevisions Revision[]    @relation("RevisionAuthor")
@@ -107,6 +108,7 @@ model Group {
   members     GroupMember[] @relation("GroupMembers")
   memberships GroupMember[] @relation("NestedGroup")
   invitations AccountLink[]
+  pageAcls    PageAcl[]
 }
 
 // A single-use link that lets whoever holds it choose a password
@@ -185,11 +187,35 @@ model Form {
   @@index([ownerUsername])
 }
 
+// The three exclusive scopes of a right (docs/permissions.md § Le droit).
+// There is no `admins` scope: administrators are an invariant, not one option
+// among three, and offering it would suggest the other two exclude them.
+enum Scope {
+  everyone
+  authenticated
+  restricted // « seulement » — the owner, the administrators, and the list
+}
+
+enum PermKind {
+  READ
+  WRITE
+}
+
 model Page {
   id        String   @id @default(uuid(7)) @db.Uuid
   slug      String   @unique
   tags      String[] // Postgres text[] (ADR 0007)
   createdAt DateTime @default(now())
+
+  // The scope is a column, the list is a table: a scalar on one side, a
+  // collection on the other — and in an ordinary wiki the vast majority of
+  // pages have no row in PageAcl at all, so the common case is decided
+  // without touching it. No default here on purpose: the wiki's defaults are
+  // copied at creation by lib/permissions.ts, never linked (ADR 0026), and a
+  // second default in the database would be a second source of truth.
+  readScope  Scope
+  writeScope Scope
+  acls       PageAcl[]
 
   // SetNull, not Cascade: the same cascade would destroy pages when an
   // account is erased (ADR 0024). A page without an owner reads as
@@ -208,6 +234,31 @@ model Page {
   form   Form?   @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([ownerUsername])
+}
+
+// One line of the « seulement » list: a person or a group, never both — a
+// CHECK in the migration holds the invariant, as it does for GroupMember.
+// Cascade on both sides: the right disappears with what it names, which is
+// the intended effect (ADR 0024) — where the same cascade on ownership would
+// have destroyed pages.
+model PageAcl {
+  id String @id @default(uuid(7)) @db.Uuid
+
+  pageId String @db.Uuid
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  kind PermKind
+
+  username String?
+  user     User?   @relation(fields: [username], references: [username], onUpdate: Cascade, onDelete: Cascade)
+
+  groupSlug String?
+  group     Group?  @relation(fields: [groupSlug], references: [slug], onUpdate: Cascade, onDelete: Cascade)
+
+  @@unique([pageId, kind, username])
+  @@unique([pageId, kind, groupSlug])
+  @@index([username])
+  @@index([groupSlug])
 }
 
 model Revision {

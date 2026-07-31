@@ -129,7 +129,7 @@ Un champ synthétique proposé par EntriesView aux côtés des champs du formula
 _Avoid_: extraFields (jargon YesWiki), champ système
 
 **Acteur**:
-La personne qui agit sur le wiki à un instant donné, **connectée ou non** — donc l'un des trois niveaux d'accès, selon qui frappe. C'est le sujet de toute question de droit (« cet acteur peut-il modifier cette page ? ») et le premier paramètre de la couche d'accès. En code : `viewer`.
+La personne qui agit sur le wiki à un instant donné, **connectée ou non** — donc l'un des trois niveaux d'accès, selon qui frappe. C'est le sujet de toute question de droit (« cet acteur peut-il modifier cette page ? ») et le premier paramètre de la couche d'accès. En code : `Actor`, résolu par `currentActor()`.
 _Avoid_: Demandeur, visiteur (il n'en est qu'un cas), lecteur (boite dès qu'il s'agit d'écrire), utilisateur courant
 
 **Niveau d'accès**:

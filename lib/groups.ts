@@ -8,6 +8,7 @@
 // membership would close a cycle, and by which path someone lands in a group
 // they were never added to.
 
+import { plural } from "./format";
 import { ADMINS_GROUP, LAST_ADMIN_REFUSAL } from "./permissions";
 
 /** One nesting: `groupSlug` holds `memberGroupSlug` among its members. */
@@ -209,6 +210,20 @@ export function groupRenameRefusal(slug: string): string | null {
 export function groupDeletionRefusal(slug: string): string | null {
   if (!isProtectedGroup(slug)) return null;
   return `Le groupe ${PROTECTED_GROUP} ne peut pas être supprimé.`;
+}
+
+/**
+ * What deleting this group would take away, when it would take anything: the
+ * rights naming it go with it, by `onDelete: Cascade` (ADR 0024). The
+ * confirmation says the number, because « supprimer un groupe » does not read
+ * as « fermer 23 pages » until someone writes it down.
+ */
+export function groupDeletionImpact(
+  name: string,
+  pageCount: number
+): string | null {
+  if (pageCount === 0) return null;
+  return `${groupLabel(name)} apparaît dans les droits de ${plural(pageCount, "page", "pages")}. Le supprimer retirera ces droits.`;
 }
 
 /**

@@ -41,6 +41,7 @@ import {
   createEntryPage,
   getPage,
   getPageWithCurrent,
+  isRefused,
   listEntryPages,
   writeEntryRevision,
 } from "@/lib/pages";
@@ -395,7 +396,9 @@ export async function getEntryForm(
   let slug: string | null = null;
   if (entrySlug) {
     const page = await getPageWithCurrent(entrySlug);
-    if (!page || page.formId !== form.id) return null;
+    // A refused read reads as « no such entry » here: the caller is the entry
+    // form, and the refusal screen has already answered on the way in.
+    if (!page || isRefused(page) || page.formId !== form.id) return null;
     values = readEntryData(page.current?.data);
     const tagsField = tagsFieldName(parsed.descriptor);
     if (tagsField) values = { ...values, [tagsField]: page.tags };

@@ -12,7 +12,7 @@ import {
   nestingCycleMessage,
 } from "@/lib/groups";
 import { ADMINS_GROUP } from "@/lib/permissions";
-import { currentUsername } from "@/lib/permissions-db";
+import { assertAdmin, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 
 // The database side of the groups (docs/permissions.md § Groupes): it loads
@@ -28,8 +28,6 @@ import { prisma } from "@/lib/prisma";
 
 /** What a person's line and a group's chip need to name someone. */
 const PERSON = { select: { username: true, name: true } } as const;
-
-const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";
 
 // --- the actor's groups ------------------------------------------------------
 
@@ -54,25 +52,6 @@ export const currentGroupSlugs = cache(async (): Promise<string[]> => {
     direct.map((membership) => membership.groupSlug)
   );
 });
-
-/**
- * The administrator access level: a membership of @Admins, nesting resolved —
- * except that @Admins holds no group, so the resolution can only ever confirm
- * a direct membership. Reading it through the same door keeps a single answer
- * to « who is an administrator ».
- */
-export async function isCurrentAdmin(): Promise<boolean> {
-  return (await currentGroupSlugs()).includes(ADMINS_GROUP.slug);
-}
-
-/**
- * The check every gesture of the two administration screens passes, here
- * rather than in each caller (ADR 0025) — lib/accounts-db.ts holds the other
- * half of `gerer-utilisateurs` and asks for it by name.
- */
-export async function assertAdmin(): Promise<void> {
-  if (!(await isCurrentAdmin())) throw new Error(ADMINISTRATORS_ONLY);
-}
 
 // --- reads -------------------------------------------------------------------
 
@@ -121,6 +100,26 @@ async function listPeople(): Promise<Person[]> {
     // (ADR 0024): an account without one is invisible to all of them.
     user.username ? [{ username: user.username, name: user.name }] : []
   );
+}
+
+/**
+ * Who a rights list may name: everyone of the wiki, people and groups alike.
+ * Unguarded on purpose, unlike the rest of this module — its callers check
+ * first that the actor may pose rights on something. A page's owner is not an
+ * administrator and still has to be able to name whoever they open it to.
+ */
+export async function listDirectory(): Promise<{
+  people: Person[];
+  groups: NamedGroup[];
+}> {
+  const [people, groups] = await Promise.all([
+    listPeople(),
+    prisma.group.findMany({
+      orderBy: { name: "asc" },
+      select: { slug: true, name: true },
+    }),
+  ]);
+  return { people, groups };
 }
 
 /** A group's display name from its slug, for the paths screens print. */

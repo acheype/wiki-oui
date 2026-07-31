@@ -11,9 +11,10 @@ import { RevisionTimeline } from "@/components/revisions/timeline";
 import { Button } from "@/components/ui/button";
 import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
 import { formatDateTime } from "@/lib/format";
+import { AccessRefused } from "@/components/page/access-refused";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import { getPageWithRevisions } from "@/lib/pages";
+import { getPageWithRevisions, isRefused } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { displayName } from "@/lib/username";
@@ -50,7 +51,13 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   }
 
   const page = await getPageWithRevisions(slug);
-  if (!page || page.revisions.length === 0) {
+  if (!page) redirect(`/${slug}`);
+  // The history is a read gesture, so a refusal lands on the same screen the
+  // page itself would have shown — reached from its own address.
+  if (isRefused(page)) {
+    return <AccessRefused slug={slug} ownerName={page.ownerName} />;
+  }
+  if (page.revisions.length === 0) {
     redirect(`/${slug}`);
   }
 

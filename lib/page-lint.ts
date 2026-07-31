@@ -273,6 +273,8 @@ function propMisfit(kind: PropKind, value: unknown): string | null {
       return 'attend un objet { valeur: "…" }, par exemple {{ oui: "#16a34a" }}.';
     case "area":
       return "attend un objet { lat, lng, zoom } fait de nombres.";
+    case "rule":
+      return 'attend un droit, par exemple {{ scope: "restricted", groupSlugs: ["bureau"] }}.';
   }
 }
 

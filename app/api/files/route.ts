@@ -1,12 +1,22 @@
 import { FILE_FAMILIES } from "@/lib/component-descriptor";
 import { fileFamily, listFiles, saveFile } from "@/lib/files";
 import { formatFileSize } from "@/lib/format";
+import { canContributeSomewhere } from "@/lib/pages";
+import { UPLOAD_REFUSED } from "@/lib/permissions";
 import { wikiConfig } from "@/wiki.config";
 
 // Upload service (ADR 0012): a mutation carried by an API service because
 // showing upload progress requires holding the request (xhr.upload.onprogress)
 // — a Server Action hides its transport. Limits are checked before any write.
 export async function POST(request: Request) {
+  // No setting of its own: the question is « cet acteur peut-il contribuer
+  // quelque part ? » (docs/permissions.md § Quel droit commande quel geste).
+  // A wiki configured open therefore accepts anonymous uploads — that is
+  // intended, and rate limiting is another job (backlog).
+  if (!(await canContributeSomewhere())) {
+    return Response.json({ error: UPLOAD_REFUSED }, { status: 403 });
+  }
+
   const form = await request.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {

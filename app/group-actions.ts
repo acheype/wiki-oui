@@ -24,6 +24,7 @@ import {
   removeGroupMember,
   updateGroupName,
 } from "@/lib/groups-db";
+import { countPagesGrantingGroup } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 
 export type GroupError = { error: string };
@@ -32,8 +33,23 @@ export async function listGroups(): Promise<GroupSummary[]> {
   return listGroupSummaries();
 }
 
-export async function getGroup(slug: string): Promise<GroupDetail | null> {
-  return getGroupDetail(slug);
+/**
+ * A group's editor also says what deleting it would take with it: how many
+ * pages carry a right naming it (docs/permissions.md § Les écrans). Counted
+ * here rather than in lib/groups-db.ts, because it is a question about pages
+ * — and pages answer through their own door (ADR 0025).
+ */
+export interface GroupDetailWithRights extends GroupDetail {
+  pagesGranting: number;
+}
+
+export async function getGroup(
+  slug: string
+): Promise<GroupDetailWithRights | null> {
+  // getGroupDetail refuses anyone but an administrator, and it runs first.
+  const detail = await getGroupDetail(slug);
+  if (!detail) return null;
+  return { ...detail, pagesGranting: await countPagesGrantingGroup(slug) };
 }
 
 /**
