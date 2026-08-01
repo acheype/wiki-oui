@@ -21,6 +21,7 @@ import {
   type AccessRule,
   type AclDirectory,
   type AclFloor,
+  type PrincipalList,
   type Scope,
   SCOPES,
   SCOPE_LABELS,
@@ -32,31 +33,37 @@ import {
 const EMPTY_DIRECTORY: AclDirectory = { people: [], groups: [] };
 /** The floor of a subject with no owner to name — the wiki's own defaults. */
 export const NO_FLOOR: AclFloor = { owner: null };
+/** Nobody locked in, nobody covered: the shape a lot's list takes. */
+const NO_PRINCIPALS: PrincipalList = { usernames: [], groupSlugs: [] };
+/**
+ * What « Ne pas changer » stands in for in the radio group. Never a Scope: a
+ * sense left alone poses no right at all, and stores nothing.
+ */
+const KEEP = "keep";
 
 export function AclInput({
   id,
   value,
   directory = EMPTY_DIRECTORY,
   floor,
+  keep,
   onChange,
 }: {
   id: string;
   value: AccessRule;
   directory?: AclDirectory;
   floor: AclFloor;
+  /**
+   * The « Ne pas changer » an action by lot offers above the three scopes, so
+   * that touching the reading alone is one click away (docs/permissions.md §
+   * gerer-pages). Absent wherever a right is posed on a single subject, where
+   * both senses are being answered.
+   */
+  keep?: { label: string; selected: boolean; onSelect: () => void };
   onChange: (rule: AccessRule) => void;
 }) {
-  const locked = aclFloorLabels(floor);
-  const covered = aclFloorPrincipals(floor);
   const usernames = value.usernames ?? [];
   const groupSlugs = value.groupSlugs ?? [];
-
-  const nameOfPerson = new Map(
-    directory.people.map((person) => [person.username, person.name]),
-  );
-  const nameOfGroup = new Map(
-    directory.groups.map((group) => [group.slug, group.name]),
-  );
 
   function set(next: Partial<AccessRule>) {
     onChange({ scope: value.scope, usernames, groupSlugs, ...next });
@@ -65,14 +72,25 @@ export function AclInput({
   return (
     <div className="grid gap-2">
       <RadioGroup
-        value={value.scope}
+        value={keep?.selected ? KEEP : value.scope}
         // The list keeps what it holds while another scope is selected: a
         // change of mind costs nothing, and « seulement » comes back with the
         // people already named. Only what is saved is read (aclEntries drops
         // the list for the other two scopes).
-        onValueChange={(scope) => set({ scope: scope as Scope })}
+        onValueChange={(scope) =>
+          scope === KEEP ? keep?.onSelect() : set({ scope: scope as Scope })
+        }
         className="gap-1.5"
       >
+        {keep && (
+          <Label
+            htmlFor={`${id}-${KEEP}`}
+            className="flex items-center gap-2 font-normal"
+          >
+            <RadioGroupItem id={`${id}-${KEEP}`} value={KEEP} />
+            {keep.label}
+          </Label>
+        )}
         {SCOPES.map((scope) => (
           <Label
             key={scope}
@@ -86,67 +104,111 @@ export function AclInput({
         ))}
       </RadioGroup>
 
-      {value.scope === "restricted" && (
-        <div className="ml-6 flex flex-wrap items-center gap-2 rounded-md border p-2">
-          {/* Shown because an empty box reads as « personne », where what was
-              chosen is « eux seuls ». */}
-          {locked.people.map((label) => (
-            <LockedChip
-              key={label}
-              icon={<UserRound className="size-3.5" />}
-              label={label}
-            />
-          ))}
-          {locked.groups.map((label) => (
-            <LockedChip
-              key={label}
-              icon={<UsersRound className="size-3.5" />}
-              label={label}
-            />
-          ))}
-          {usernames
-            .filter((username) => !covered.usernames.includes(username))
-            .map((username) => (
-              <AclChip
-                key={username}
-                icon={<UserRound className="size-3.5" />}
-                label={nameOfPerson.get(username) ?? username}
-                onRemove={() =>
-                  set({
-                    usernames: usernames.filter((one) => one !== username),
-                  })
-                }
-              />
-            ))}
-          {groupSlugs
-            .filter((slug) => !covered.groupSlugs.includes(slug))
-            .map((slug) => (
-              <AclChip
-                key={slug}
-                icon={<UsersRound className="size-3.5" />}
-                label={`@${nameOfGroup.get(slug) ?? slug}`}
-                onRemove={() =>
-                  set({ groupSlugs: groupSlugs.filter((one) => one !== slug) })
-                }
-              />
-            ))}
-          <AddToListPopover
+      {value.scope === "restricted" && !keep?.selected && (
+        <div className="ml-6">
+          <PrincipalBox
+            value={{ usernames, groupSlugs }}
             directory={directory}
-            // The floor joins what is already listed: adding either would
-            // write a row that grants nothing.
-            listed={{
-              usernames: [...usernames, ...covered.usernames],
-              groupSlugs: [...groupSlugs, ...covered.groupSlugs],
-            }}
-            onAddPerson={(username) =>
-              set({ usernames: [...usernames, username] })
-            }
-            onAddGroup={(slug) => set({ groupSlugs: [...groupSlugs, slug] })}
+            // Shown because an empty box reads as « personne », where what was
+            // chosen is « eux seuls ».
+            locked={aclFloorLabels(floor)}
+            covered={aclFloorPrincipals(floor)}
+            onChange={set}
           />
         </div>
       )}
 
-      <InfoNote>{alwaysAllowedNote(floor)}</InfoNote>
+      {!keep?.selected && <InfoNote>{alwaysAllowedNote(floor)}</InfoNote>}
+    </div>
+  );
+}
+
+/**
+ * The bordered box of the widget: who is named, and the way to name someone
+ * else. On its own so that « Donner accès » — which adds to lists it never
+ * shows, and so has no scope to offer — names people exactly as posing a
+ * right does.
+ */
+export function PrincipalBox({
+  value: { usernames, groupSlugs },
+  directory = EMPTY_DIRECTORY,
+  locked = { people: [], groups: [] },
+  covered = NO_PRINCIPALS,
+  onChange,
+}: {
+  value: PrincipalList;
+  directory?: AclDirectory;
+  /** Names shown locked, which the box neither offers nor lets go. */
+  locked?: { people: string[]; groups: string[] };
+  /** Who those locked names cover, as a right names them. */
+  covered?: PrincipalList;
+  onChange: (value: PrincipalList) => void;
+}) {
+  const nameOfPerson = new Map(
+    directory.people.map((person) => [person.username, person.name]),
+  );
+  const nameOfGroup = new Map(
+    directory.groups.map((group) => [group.slug, group.name]),
+  );
+
+  function set(next: Partial<PrincipalList>) {
+    onChange({
+      usernames: [...(next.usernames ?? usernames)],
+      groupSlugs: [...(next.groupSlugs ?? groupSlugs)],
+    });
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-md border p-2">
+      {locked.people.map((label) => (
+        <LockedChip
+          key={label}
+          icon={<UserRound className="size-3.5" />}
+          label={label}
+        />
+      ))}
+      {locked.groups.map((label) => (
+        <LockedChip
+          key={label}
+          icon={<UsersRound className="size-3.5" />}
+          label={label}
+        />
+      ))}
+      {usernames
+        .filter((username) => !covered.usernames.includes(username))
+        .map((username) => (
+          <AclChip
+            key={username}
+            icon={<UserRound className="size-3.5" />}
+            label={nameOfPerson.get(username) ?? username}
+            onRemove={() =>
+              set({ usernames: usernames.filter((one) => one !== username) })
+            }
+          />
+        ))}
+      {groupSlugs
+        .filter((slug) => !covered.groupSlugs.includes(slug))
+        .map((slug) => (
+          <AclChip
+            key={slug}
+            icon={<UsersRound className="size-3.5" />}
+            label={`@${nameOfGroup.get(slug) ?? slug}`}
+            onRemove={() =>
+              set({ groupSlugs: groupSlugs.filter((one) => one !== slug) })
+            }
+          />
+        ))}
+      <AddToListPopover
+        directory={directory}
+        // The floor joins what is already listed: adding either would write a
+        // row that grants nothing.
+        listed={{
+          usernames: [...usernames, ...covered.usernames],
+          groupSlugs: [...groupSlugs, ...covered.groupSlugs],
+        }}
+        onAddPerson={(username) => set({ usernames: [...usernames, username] })}
+        onAddGroup={(slug) => set({ groupSlugs: [...groupSlugs, slug] })}
+      />
     </div>
   );
 }

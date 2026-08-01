@@ -92,12 +92,14 @@ export const wikiConfig = {
     invitation: "invitation",
   },
   // formulaires/fiches host the form-administration screens (ADR 0014),
-  // gerer-utilisateurs the accounts and groups ones (docs/permissions.md).
+  // gerer-utilisateurs the accounts and groups ones and gerer-pages the rights
+  // of the whole wiki (docs/permissions.md).
   otherSpecialPages: [
     "aide-memoire",
     "formulaires",
     "fiches",
     "gerer-utilisateurs",
+    "gerer-pages",
   ],
   // « Seulement » with an empty list reads as « son propriétaire et les
   // administrateurs » — the shape a wiki where each author looks after what

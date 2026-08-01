@@ -10,11 +10,15 @@ import { KeyRound, UserRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { transferOwnership } from "@/app/page-rights-actions";
+import { PersonPicker } from "@/components/page/person-picker";
 import { Button } from "@/components/ui/button";
 import { InfoNote } from "@/components/ui/info-note";
-import { Input } from "@/components/ui/input";
-import { type Identity, ownerLine } from "@/lib/permissions";
-import { cn } from "@/lib/utils";
+import {
+  type Identity,
+  ownerLine,
+  ownerTransferNote,
+  ownerTransferWarning,
+} from "@/lib/permissions";
 
 export function OwnerTransfer({
   slug,
@@ -32,7 +36,6 @@ export function OwnerTransfer({
 }) {
   const [picking, setPicking] = useState(false);
   const [chosen, setChosen] = useState<Identity | null>(null);
-  const [query, setQuery] = useState("");
   const [transferring, startTransferring] = useTransition();
 
   const candidates = people.filter(
@@ -51,12 +54,6 @@ export function OwnerTransfer({
       onTransferred(chosen);
     });
   }
-
-  const matching = (person: Identity) =>
-    `${person.name} ${person.username}`
-      .toLowerCase()
-      .includes(query.trim().toLowerCase());
-  const shown = candidates.filter(matching);
 
   return (
     <div className="grid gap-2 rounded-md border p-3">
@@ -80,46 +77,12 @@ export function OwnerTransfer({
 
       {picking && (
         <div className="grid gap-2">
-          <Input
-            value={query}
-            autoFocus
-            placeholder="Rechercher une personne…"
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          <div className="grid max-h-48 gap-0.5 overflow-y-auto">
-            {shown.map((person) => (
-              <button
-                key={person.username}
-                type="button"
-                aria-pressed={chosen?.username === person.username}
-                onClick={() => setChosen(person)}
-                className={cn(
-                  "flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground",
-                  chosen?.username === person.username &&
-                    "bg-accent text-accent-foreground"
-                )}
-              >
-                <UserRound className="size-3.5 text-muted-foreground" />
-                <span className="min-w-0 flex-1 truncate">{person.name}</span>
-                <code className="font-mono text-xs text-muted-foreground">
-                  {person.username}
-                </code>
-              </button>
-            ))}
-            {shown.length === 0 && (
-              <p className="py-3 text-center text-sm text-muted-foreground">
-                Personne de ce nom.
-              </p>
-            )}
-          </div>
+          <p className="text-sm text-muted-foreground">{ownerTransferNote(1)}</p>
+          <PersonPicker people={candidates} chosen={chosen} onChoose={setChosen} />
           {/* Shown before the choice is made, and whoever is transferring:
               there is no way back for the one who gives, and the spec puts
               that sentence on the confirmation. */}
-          <InfoNote>
-            Ce geste est sans retour : une fois la page transmise, seul son
-            nouveau propriétaire — ou un administrateur — pourra vous la
-            rendre.
-          </InfoNote>
+          <InfoNote>{ownerTransferWarning(1)}</InfoNote>
           <div className="flex justify-end gap-2">
             <Button
               type="button"
@@ -128,7 +91,6 @@ export function OwnerTransfer({
               onClick={() => {
                 setPicking(false);
                 setChosen(null);
-                setQuery("");
               }}
             >
               Annuler

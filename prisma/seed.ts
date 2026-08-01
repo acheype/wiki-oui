@@ -60,6 +60,7 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
     - [Pied de page](page-footer)
     - [Formulaires](formulaires)
     - [Utilisateurs](gerer-utilisateurs)
+    - [Pages et droits](gerer-pages)
 </Menu>
 `,
 
@@ -84,6 +85,11 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
   "gerer-utilisateurs": `<UsersAdmin />
 
 <GroupsAdmin />
+`,
+
+  // The rights of the whole wiki, and the action by lot that changes them
+  // (docs/permissions.md § gerer-pages).
+  "gerer-pages": `<PagesAdmin />
 `,
 
   // The account screens, hosted by pages like every other screen (ADR 0028).
