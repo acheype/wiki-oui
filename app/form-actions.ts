@@ -32,6 +32,7 @@ import {
 } from "@/lib/form-rights";
 import {
   actorCanCreateEntry,
+  actorCanCreateForm,
   actorCanEditForm,
   applyFormDefaults,
   countEntriesCarryingField,
@@ -137,10 +138,18 @@ export async function listRightsDirectory(
   formSlug: string | null
 ): Promise<AclDirectory> {
   const form = formSlug ? await getFormBySlug(formSlug) : null;
+  // A form being created has no owner yet to hang the editing rung on, so the
+  // rung the act itself stops at answers for it: whoever may not create a form
+  // has no business reading the wiki's membership either.
   const allowed = form
     ? await actorCanEditForm(form)
-    : (await currentIdentity()) !== null;
+    : await actorCanCreateForm();
   return allowed ? listDirectory() : { people: [], groups: [] };
+}
+
+/** Whether the screens offer « Nouveau formulaire » at all. */
+export async function canAddForm(): Promise<boolean> {
+  return actorCanCreateForm();
 }
 
 /**

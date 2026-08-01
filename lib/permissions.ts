@@ -553,6 +553,13 @@ export const CREATE_REFUSED = "Vous n'avez pas le droit de créer une page sur c
  */
 export const CREATE_ENTRY_REFUSED =
   "Vous n'avez pas le droit de créer une fiche avec ce formulaire.";
+/**
+ * Creating a form reads the wiki's own rule, beside createPage and distinct
+ * from it (docs/permissions.md § Où s'appliquent les droits): a page engages a
+ * page, a form engages every fiche ever written with it.
+ */
+export const CREATE_FORM_REFUSED =
+  "Vous n'avez pas le droit de créer un formulaire sur ce wiki.";
 export const FORM_EDIT_REFUSED =
   "Seuls le propriétaire du formulaire et les administrateurs peuvent le modifier.";
 export const RIGHTS_REFUSED =

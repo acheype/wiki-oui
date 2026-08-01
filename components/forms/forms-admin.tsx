@@ -12,13 +12,14 @@ import { toast } from "sonner";
 import {
   type FormDetail,
   type FormSummary,
+  canAddForm,
   deleteForm,
   getForm,
   listForms,
   listFormChoices,
   listRightsDirectory,
 } from "@/app/form-actions";
-import type { AclDirectory } from "@/lib/permissions";
+import { type AclDirectory, CREATE_FORM_REFUSED } from "@/lib/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,11 +54,16 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
   const [forms, setForms] = useState<FormSummary[] | null>(null);
   const [filter, setFilter] = useState("");
   const [toDelete, setToDelete] = useState<FormSummary | null>(null);
+  // Creating a form is the wiki's own rule (docs/permissions.md § Où
+  // s'appliquent les droits): the button is absent when the actor has not got
+  // it, never greyed out.
+  const [canCreate, setCanCreate] = useState(false);
   const filterRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
     listForms().then(setForms);
+    canAddForm().then(setCanCreate);
   }, []);
 
   useDirectKeyboard(filterRef);
@@ -85,12 +91,14 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex-1 text-lg font-semibold">Formulaires</h1>
-        <Button asChild>
-          <Link href="?nouveau">
-            <Plus />
-            Nouveau formulaire
-          </Link>
-        </Button>
+        {canCreate && (
+          <Button asChild>
+            <Link href="?nouveau">
+              <Plus />
+              Nouveau formulaire
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Input
@@ -204,6 +212,10 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
   });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // ?nouveau is a URL anyone can type, and the button that leads to it is
+  // already gone for whoever lacks the right: the screen answers the same
+  // refusal the door would, rather than an empty builder that fails on save.
+  const [refused, setRefused] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -211,9 +223,11 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
       editSlug ? getForm(editSlug) : Promise.resolve(null),
       listFormChoices(),
       listRightsDirectory(editSlug),
-    ]).then(([form, choices, people]) => {
+      editSlug ? Promise.resolve(true) : canAddForm(),
+    ]).then(([form, choices, people, allowed]) => {
       if (!live) return;
       if (editSlug && !form) setNotFound(true);
+      setRefused(!allowed);
       setInitial(form);
       setForms(choices);
       setDirectory(people);
@@ -226,6 +240,16 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Chargement…</p>;
+  }
+  if (refused) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">{CREATE_FORM_REFUSED}</p>
+        <Button asChild variant="outline" className="w-fit">
+          <Link href="/formulaires">Retour à la liste</Link>
+        </Button>
+      </div>
+    );
   }
   if (notFound) {
     return (

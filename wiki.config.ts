@@ -36,8 +36,8 @@ export interface WikiConfig {
   otherSpecialPages: string[];
   /**
    * The wiki's own rights (docs/permissions.md § Où s'appliquent les droits):
-   * who may create a page, and what a page is born with. This file is the
-   * only place a human writes rights by hand, and the only one where no
+   * who may create a page and a form, and what a page is born with. This file
+   * is the only place a human writes rights by hand, and the only one where no
    * cascade can play — it names usernames and group slugs all the same, so
    * that what it writes reads like what a screen shows (ADR 0024).
    *
@@ -46,6 +46,17 @@ export interface WikiConfig {
    */
   permissions: {
     createPage: AccessRule;
+    /**
+     * Writing a page engages a page; creating a form engages a class of
+     * content — it shapes every fiche written with it, is named across the
+     * wiki, and its deletion takes its fiches along (ADR 0014). Hence a right
+     * of its own rather than a reading of createPage.
+     *
+     * A policy, not an invariant, so it is a rule and not a constant: unlike
+     * @Admins — which must never be empty, whatever anyone configures — who
+     * builds the forms is a matter of how a wiki is run, and it varies.
+     */
+    createForm: AccessRule;
     defaultPageRead: AccessRule;
     defaultPageWrite: AccessRule;
   };
@@ -104,8 +115,11 @@ export const wikiConfig = {
   // « Seulement » with an empty list reads as « son propriétaire et les
   // administrateurs » — the shape a wiki where each author looks after what
   // they wrote takes, and the one to widen first when it should be otherwise.
+  // On createForm, which is posed on the wiki and not on a subject, there is
+  // no owner to read: an empty list there means the administrators alone.
   permissions: {
     createPage: { scope: "authenticated" },
+    createForm: { scope: "restricted" },
     defaultPageRead: { scope: "everyone" },
     defaultPageWrite: { scope: "restricted" },
   },

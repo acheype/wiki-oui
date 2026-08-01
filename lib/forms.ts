@@ -20,7 +20,13 @@ import {
   countEntryRightsImpact,
   currentReadableWhere,
 } from "@/lib/pages";
-import { FORM_EDIT_REFUSED, ownsSubject } from "@/lib/permissions";
+import {
+  CREATE_FORM_REFUSED,
+  FORM_EDIT_REFUSED,
+  isAdmin,
+  ownsSubject,
+  ruleAllows,
+} from "@/lib/permissions";
 import { currentActor, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
@@ -29,6 +35,7 @@ import {
   countSlugReferenceImpact,
   sweepSlugReferences,
 } from "@/lib/slug-rename-db";
+import { wikiConfig } from "@/wiki.config";
 
 // The only door to `Form` (ADR 0025), alongside lib/pages.ts for `Page`. An
 // ESLint rule refuses `prisma.form` anywhere else, so the permission checks
@@ -52,6 +59,22 @@ async function assertFormStructuring(form: OwnedForm): Promise<void> {
 /** Whether the screens offer those permissions at all, or simply leave them out. */
 export async function actorCanEditForm(form: OwnedForm): Promise<boolean> {
   return ownsSubject(await currentActor(), form.ownerUsername);
+}
+
+/**
+ * Creating a form reads the wiki's own rule, the twin of actorCanCreatePage
+ * on the other side of the door (docs/permissions.md § Où s'appliquent les
+ * droits). Distinct from createPage because the two acts differ in reach: a
+ * page engages a page, a form shapes every fiche written with it and takes
+ * them all with it when it goes (ADR 0014).
+ *
+ * Posed on the wiki, so there is no owner under the rule — a « seulement »
+ * with an empty list, which the shipped configuration writes, means the
+ * administrators alone.
+ */
+export async function actorCanCreateForm(): Promise<boolean> {
+  const actor = await currentActor();
+  return isAdmin(actor) || ruleAllows(actor, wikiConfig.permissions.createForm);
 }
 
 /** The same read, from the identifier a screen holds. */
@@ -200,10 +223,16 @@ export async function updateForm(
   );
 }
 
+/**
+ * The creator owns what they made, which is what makes the rung above
+ * coherent: opening the creation to someone opens the editing of theirs, and
+ * of nothing else.
+ */
 export async function createForm(
   slug: string,
   definition: FormDefinition
 ): Promise<void> {
+  if (!(await actorCanCreateForm())) throw new Error(CREATE_FORM_REFUSED);
   const ownerUsername = await currentUsername();
   await prisma.form.create({ data: { ...definition, slug, ownerUsername } });
 }

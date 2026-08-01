@@ -61,7 +61,7 @@ Deux nouvelles **pages spéciales** seedées (non supprimables, éditables), don
 
 - L'entrée **Formulaires** est ajoutée au contenu seedé de `page-rapide-haut` (roue crantée).
 - Les composants sont **clients**, lisent l'état dans l'URL (`useSearchParams()` — F5, bouton retour et liens directs fonctionnent) et chargent leurs données par **Server Actions, y compris en lecture** (aménagement du triptyque de `CONTEXT.md`).
-- **Liste des formulaires** : filtre par nom **au clavier direct** — taper n'importe où sur la page remplit le champ de filtre sans avoir à le cliquer. Actions par ligne : éditer, supprimer (confirmation cascade), « Nouvelle fiche » (→ `/fiches?nouvelle&formulaire={slug}`).
+- **Liste des formulaires** : filtre par nom **au clavier direct** — taper n'importe où sur la page remplit le champ de filtre sans avoir à le cliquer. Actions par ligne : éditer, supprimer (confirmation cascade), « Nouvelle fiche » (→ `/fiches?nouvelle&formulaire={slug}`). Chacune **disparaît** pour qui n'a pas le droit correspondant : éditer et supprimer sont au propriétaire du formulaire ou à un administrateur, « Nouvelle fiche » suit le `createEntry` du formulaire, et « Nouveau formulaire » le `createForm` du wiki — voir [`permissions.md`](permissions.md) § Formulaire et § Qui peut créer un formulaire.
 - Les handlers de page de ces pages spéciales (`/formulaires/edit`…) restent ceux du MDX de la page hôte — assumé.
 
 ## Le FormBuilder

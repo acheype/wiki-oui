@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { CREATE_FORM_REFUSED } from "@/lib/permissions";
 
 // What a screen announces and what it then shows have to be filtered the same
 // way. Nothing held that: the count of `formulaires` read one clause and the
@@ -10,7 +11,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { db, actor } = vi.hoisted(() => ({
   db: {
-    form: { findMany: vi.fn() },
+    form: { findMany: vi.fn(), create: vi.fn() },
     page: { findMany: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -24,9 +25,12 @@ vi.mock("@/lib/permissions-db", () => ({
   assertAdmin: async () => {},
 }));
 
-const { listFormsWithEntries, listFormsWithEntryCount } = await import(
-  "@/lib/forms"
-);
+const {
+  actorCanCreateForm,
+  createForm,
+  listFormsWithEntries,
+  listFormsWithEntryCount,
+} = await import("@/lib/forms");
 
 /** The `where` each call handed Prisma for the entries of a form. */
 function countClause() {
@@ -75,5 +79,48 @@ describe("the count of a screen and the list it heads", () => {
     actor.current = { username: null, groupSlugs: [] };
     await listFormsWithEntryCount();
     expect(countClause()).not.toEqual({});
+  });
+});
+
+// Creating a form was open to anyone who could reach the screen, which on a
+// wiki that had closed its pages was still every signed-in member: a form
+// shapes every fiche written with it and takes them all with it when it goes
+// (ADR 0014), so it is the wiki's own rule that decides — and the check is
+// held here, at the door, not in the button that hides it.
+describe("the door on creating a form", () => {
+  const DEFINITION = {
+    name: "Agenda",
+    schema: { fields: [] },
+    template: null,
+  };
+
+  it("refuses a visitor, and writes nothing", async () => {
+    actor.current = { username: null, groupSlugs: [] };
+    expect(await actorCanCreateForm()).toBe(false);
+    await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
+      CREATE_FORM_REFUSED
+    );
+    expect(db.form.create).not.toHaveBeenCalled();
+  });
+
+  // The shipped configuration writes « seulement » with an empty list, and on
+  // a rule posed on the wiki there is no owner under it: an ordinary member
+  // is refused, where the same shape on a page would let its owner through.
+  it("refuses an ordinary member under the shipped configuration", async () => {
+    actor.current = { username: "jean-martin", groupSlugs: ["bureau"] };
+    expect(await actorCanCreateForm()).toBe(false);
+    await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
+      CREATE_FORM_REFUSED
+    );
+    expect(db.form.create).not.toHaveBeenCalled();
+  });
+
+  it("lets an administrator through, and hands them what they made", async () => {
+    actor.current = { username: "wiki-admin", groupSlugs: ["admins"] };
+    expect(await actorCanCreateForm()).toBe(true);
+    await createForm("agenda", DEFINITION);
+    expect(db.form.create).toHaveBeenCalledWith({
+      data: { ...DEFINITION, slug: "agenda", ownerUsername: "wiki-admin" },
+    });
   });
 });

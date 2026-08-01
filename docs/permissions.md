@@ -133,7 +133,7 @@ Qui peut voir cette page ?
 | Page, fiche | lecture, écriture | `Page.readScope`/`writeScope` + table `PageAcl` |
 | Formulaire | création de fiche, défauts de lecture et d'écriture d'une fiche | `Form.schema.permissions` |
 | Champ | lecture, écriture | `Form.schema.fields[].readAcl`/`writeAcl` |
-| Wiki | création de page, défauts d'une page | `wiki.config.ts` (puis `Settings`) |
+| Wiki | création de page, création de formulaire, défauts d'une page | `wiki.config.ts` (puis `Settings`) |
 
 **La portée est une colonne, la liste est une table.** Un scalaire d'un côté, une collection de l'autre ; et dans un wiki ordinaire l'immense majorité des pages n'ont **aucune ligne** dans `PageAcl` — la vérification du cas courant se fait sans toucher la table.
 
@@ -163,6 +163,18 @@ Un formulaire écrit avant l'onglet n'en porte aucun : les défauts du wiki rép
 **Créer une fiche ne consulte pas `createPage`.** Le droit du wiki commande les pages, celui du formulaire commande ses fiches : c'est ce qui permet à un wiki qui ne distribue aucune page d'accueillir quand même « chacun propose un événement ».
 
 **Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même cran que les actions structurantes d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que l'acteur n'a pas est **absent** de la liste des formulaires, jamais grisé.
+
+### Qui peut créer un formulaire
+
+**`createForm`, une quatrième règle du wiki**, à côté de `createPage` et distincte d'elle. Écrire une page engage une page ; créer un formulaire engage une **classe de contenu** — il donne sa forme à toutes les fiches écrites avec lui, il est nommé partout dans le wiki, et sa suppression les emporte (ADR 0014). Deux portées d'effet différentes, donc deux droits.
+
+Le défaut est `{ scope: "restricted" }` **sans liste**. Sur une règle posée sur le wiki il n'y a pas de propriétaire à lire — contrairement à une page, où « seulement » à liste vide veut dire « son propriétaire et les admins » : ici, ça veut dire **les administrateurs**, et rien d'autre. Un wiki qui veut confier la fabrique à son bureau écrit `{ scope: "restricted", groupSlugs: ["bureau"] }`.
+
+**Une règle plutôt qu'une constante**, et c'est le point : les groupes, eux, sont codés en dur aux administrateurs, parce qu'ils portent un invariant — `@Admins` ne doit jamais être vide, quoi qu'on configure. Qui fabrique les formulaires n'est pas un invariant, c'est une politique éditoriale, et elle change d'une association à l'autre. « Administrateurs seulement » est d'ailleurs le cas particulier de la règle : partir de la règle donne cette sécurité par défaut sans fermer la porte, là où l'inverse demanderait de rouvrir la spec.
+
+**Le créateur devient propriétaire** de ce qu'il fabrique — c'est ce qui rend le cran du dessus cohérent : ouvrir la création à quelqu'un lui ouvre l'édition des siens, et d'aucun autre.
+
+Le bouton « Nouveau formulaire » **disparaît** pour qui n'a pas le droit, et `?nouveau` tapé à la main répond le même refus plutôt qu'un builder qui échouerait à l'enregistrement. La vérification tient à la porte (`lib/forms.ts`), pas dans le bouton qui la masque.
 
 **« Appliquer aux fiches existantes »** est le seul chemin des défauts vers l'existant. Le bouton enregistre le formulaire, puis remplace les droits de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand l'action n'écrirait rien :
 
@@ -199,6 +211,7 @@ La même action aux deux étages (ADR 0026). Modifier un défaut ne touche rien 
 ```ts
 permissions: {
   createPage:       { scope: "authenticated" },
+  createForm:       { scope: "restricted" },   // sans liste : les administrateurs
   defaultPageRead:  { scope: "everyone" },
   defaultPageWrite: { scope: "restricted" },
 }
