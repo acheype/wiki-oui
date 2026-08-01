@@ -7,6 +7,7 @@
 // The model in two sentences: BetterAuth authenticates, WikiOui authorizes
 // (ADR 0023); and a right is a scope, optionally completed by a list.
 
+import { plural } from "@/lib/format";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { ANONYMOUS } from "@/lib/username";
 
@@ -61,14 +62,21 @@ export const PERM_KINDS = ["READ", "WRITE"] as const;
 export type PermKind = (typeof PERM_KINDS)[number];
 
 /**
- * One right, as the widget poses it and as the configuration writes it: a
- * scope, and the two lists only the « seulement » scope ever reads. The lists
- * hold usernames and group slugs, never ids (ADR 0024).
+ * The people and groups a right names, in the one shape they travel in: two
+ * lists of names, never ids (ADR 0024). A rule holds one, so does the floor it
+ * stands on, and so does what an action by lot is about to add.
  */
-export interface AccessRule {
+export interface PrincipalList {
+  usernames: readonly string[];
+  groupSlugs: readonly string[];
+}
+
+/**
+ * One right, as the widget poses it and as the configuration writes it: a
+ * scope, and the list only the « seulement » scope ever reads.
+ */
+export interface AccessRule extends Partial<PrincipalList> {
   scope: Scope;
-  usernames?: readonly string[];
-  groupSlugs?: readonly string[];
 }
 
 /** A row of `PageAcl`: a person or a group, never both. */
@@ -319,6 +327,47 @@ export function knownEntries(
   );
 }
 
+/**
+ * A rule as a column of a list has room for it (docs/permissions.md §
+ * gerer-pages): where the widget poses a right, this reads one back at a
+ * glance, over hundreds of lines. The floor is what an empty « seulement »
+ * list means — « eux seuls » — so the summary names it rather than showing
+ * nothing, which would read as « personne ».
+ */
+export function ruleSummary(
+  rule: AccessRule,
+  floor: AclFloor,
+  directory: AclDirectory
+): string {
+  switch (rule.scope) {
+    case "everyone":
+      return "Tous";
+    case "authenticated":
+      return "Connectés";
+    case "restricted": {
+      const nameOfPerson = new Map(
+        directory.people.map((person) => [person.username, person.name])
+      );
+      const nameOfGroup = new Map(
+        directory.groups.map((group) => [group.slug, group.name])
+      );
+      const named = [
+        ...(rule.usernames ?? []).map(
+          (username) => nameOfPerson.get(username) ?? username
+        ),
+        ...(rule.groupSlugs ?? []).map(
+          (slug) => `@${nameOfGroup.get(slug) ?? slug}`
+        ),
+      ];
+      if (named.length === 0) {
+        return floor.owner === null ? `@${ADMINS_GROUP.name}` : "Le propriétaire";
+      }
+      const others = named.length - 1;
+      return others === 0 ? named[0] : `${named[0]} +${others}`;
+    }
+  }
+}
+
 /** Who an `acl` list may name: the people and groups of the wiki. */
 export interface AclDirectory {
   people: Identity[];
@@ -387,6 +436,29 @@ export function alwaysAllowedNote(floor: AclFloor): string {
  * someone reached the page from a link that names it.
  */
 export const ACCESS_DENIED = "Vous n'avez pas accès à cette page.";
+
+/**
+ * What handing pages over means for whoever receives them, as the two screens
+ * that offer it say it — the « Accès » modal on one page, `gerer-pages` on a
+ * lot. Written out both ways rather than built from a count: at one page the
+ * pronoun agrees with it too, and assembling the pieces is what once produced
+ * « 1 page passeront sous la responsabilité ».
+ */
+export function ownerTransferNote(total: number): string {
+  return total === 1
+    ? "La personne choisie deviendra responsable de cette page. Elle pourra la voir, la modifier et définir qui peut y accéder."
+    : `La personne choisie deviendra responsable de ces ${plural(total, "page", "pages")}. Elle pourra les voir, les modifier et définir qui peut y accéder.`;
+}
+
+/**
+ * And what it means for whoever gives them: transmettre la propriété est sans
+ * retour (docs/permissions.md § Quel droit commande quel geste), so the
+ * confirmation says so before the click rather than after it.
+ */
+export function ownerTransferWarning(total: number): string {
+  const subject = total === 1 ? "cette page" : "ces pages";
+  return `Une fois le transfert effectué, seul le nouveau propriétaire, ou un administrateur, pourra transférer à nouveau la propriété de ${subject}.`;
+}
 
 /**
  * Who looks after the page, as a screen states it. A page with no owner says

@@ -46,6 +46,18 @@ export interface InheritedGroup {
  */
 export type MemberRef = { username: string } | { groupSlug: string };
 
+// Which of the two it is, asked once here rather than by every caller that
+// has to write the pair into a row or key a map by it — the same shape reaches
+// the ACL table, the rights lists and the counts of an action by lot.
+
+export function refUsername(ref: MemberRef): string | null {
+  return "username" in ref ? ref.username : null;
+}
+
+export function refGroupSlug(ref: MemberRef): string | null {
+  return "groupSlug" in ref ? ref.groupSlug : null;
+}
+
 /**
  * Every group the actor counts as a member of: the ones they were added to,
  * plus every group holding those, at any depth. Sorted, so a caller comparing

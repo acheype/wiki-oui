@@ -20,7 +20,10 @@ import {
   ownsPage,
   pageGestures,
   readableWhere,
+  ownerTransferNote,
+  ownerTransferWarning,
   ruleAllows,
+  ruleSummary,
   storedRights,
   writableWhere,
 } from "./permissions";
@@ -261,6 +264,24 @@ describe("ownerLine", () => {
   });
 });
 
+describe("what handing a page over says", () => {
+  it("agrees with the count, pronoun and all", () => {
+    expect(ownerTransferNote(1)).toBe(
+      "La personne choisie deviendra responsable de cette page. Elle pourra la voir, la modifier et définir qui peut y accéder."
+    );
+    expect(ownerTransferNote(12)).toBe(
+      "La personne choisie deviendra responsable de ces 12 pages. Elle pourra les voir, les modifier et définir qui peut y accéder."
+    );
+  });
+
+  it("warns that giving is final, whatever the count", () => {
+    expect(ownerTransferWarning(1)).toBe(
+      "Une fois le transfert effectué, seul le nouveau propriétaire, ou un administrateur, pourra transférer à nouveau la propriété de cette page."
+    );
+    expect(ownerTransferWarning(12)).toContain("la propriété de ces pages.");
+  });
+});
+
 const MARIE_FLOOR = { owner: { username: "marie-durand", name: "Marie Durand" } };
 const NO_OWNER_FLOOR = { owner: null };
 
@@ -281,6 +302,53 @@ describe("the floor a « seulement » list stands on", () => {
     expect(alwaysAllowedNote(MARIE_FLOOR)).toContain(
       "Le propriétaire et les administrateurs"
     );
+  });
+});
+
+describe("ruleSummary", () => {
+  const directory = {
+    people: [
+      { username: "paul-riva", name: "Paul Riva" },
+      { username: "jean-martin", name: "Jean Martin" },
+    ],
+    groups: [{ slug: "bureau", name: "Bureau" }],
+  };
+
+  it("names the two open scopes in the room a column leaves", () => {
+    expect(ruleSummary({ scope: "everyone" }, MARIE_FLOOR, directory)).toBe("Tous");
+    expect(ruleSummary({ scope: "authenticated" }, MARIE_FLOOR, directory)).toBe(
+      "Connectés"
+    );
+  });
+
+  it("reads an empty « seulement » list as the floor it stands on", () => {
+    expect(ruleSummary({ scope: "restricted" }, MARIE_FLOOR, directory)).toBe(
+      "Le propriétaire"
+    );
+    expect(ruleSummary({ scope: "restricted" }, NO_OWNER_FLOOR, directory)).toBe(
+      "@Admins"
+    );
+  });
+
+  it("names whoever is listed, and counts the rest", () => {
+    expect(
+      ruleSummary(
+        { scope: "restricted", groupSlugs: ["bureau"] },
+        MARIE_FLOOR,
+        directory
+      )
+    ).toBe("@Bureau");
+    expect(
+      ruleSummary(
+        {
+          scope: "restricted",
+          usernames: ["paul-riva", "jean-martin"],
+          groupSlugs: ["bureau"],
+        },
+        MARIE_FLOOR,
+        directory
+      )
+    ).toBe("Paul Riva +2");
   });
 });
 
