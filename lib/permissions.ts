@@ -174,6 +174,35 @@ export function canRead(actor: Actor, page: PageRights): boolean {
   return ruleAllows(actor, pageRule(page, "READ"));
 }
 
+/**
+ * The three rungs the gestures on a page stop at (docs/permissions.md § Quel
+ * droit commande quel geste), what the action bar reads to decide what it
+ * offers at all. Each rung is named after the reach of what it lets through,
+ * not after who it lets in: the ladder is a matter of how far the effect
+ * travels, not a hierarchy of people.
+ */
+export interface PageGestures {
+  /** Éditer · restaurer une révision · poser des tags. */
+  write: boolean;
+  /**
+   * Supprimer · modifier les droits · transmettre la propriété. Whoever may
+   * write can blank a page anyway — but the history survives a blanking, not
+   * a deletion, and opening the writing must not let someone shut the owner
+   * out of their own page.
+   */
+  structuring: boolean;
+  /** Changer l'adresse (ADR 0016: retcons references across the whole wiki). */
+  address: boolean;
+}
+
+export function pageGestures(actor: Actor, page: PageRights): PageGestures {
+  return {
+    write: canWrite(actor, page),
+    structuring: ownsPage(actor, page),
+    address: isAdmin(actor),
+  };
+}
+
 // --- the same decisions, as a `where` ----------------------------------------
 
 // Two moments, never a load followed by a sort (docs/permissions.md): SQL says
@@ -371,6 +400,12 @@ export const WRITE_REFUSED = "Vous n'avez pas le droit de modifier cette page.";
 export const CREATE_REFUSED = "Vous n'avez pas le droit de créer une page sur ce wiki.";
 export const RIGHTS_REFUSED =
   "Seuls le propriétaire et les administrateurs peuvent modifier les droits d'une page.";
+export const DELETE_REFUSED =
+  "Seuls le propriétaire et les administrateurs peuvent supprimer une page.";
+export const TRANSFER_REFUSED =
+  "Seuls le propriétaire et les administrateurs peuvent transmettre la propriété d'une page.";
+export const ADDRESS_REFUSED =
+  "Seuls les administrateurs peuvent changer l'adresse d'une page.";
 export const UPLOAD_REFUSED =
   "Vous n'avez pas le droit de déposer un fichier sur ce wiki.";
 

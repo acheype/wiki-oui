@@ -18,6 +18,7 @@ import {
   ownerLine,
   withoutFloor,
   ownsPage,
+  pageGestures,
   readableWhere,
   ruleAllows,
   storedRights,
@@ -141,6 +142,61 @@ describe("canRead", () => {
 
   it("keeps an unowned page readable when its scope says so", () => {
     expect(canRead(VISITOR, page({ ownerUsername: null }))).toBe(true);
+  });
+});
+
+describe("pageGestures", () => {
+  // The rungs of docs/permissions.md § Quel droit commande quel geste, on the
+  // page the whole file reads: Marie owns it, Jean may write it.
+  const shared = page({
+    writeScope: "restricted",
+    acls: [{ kind: "WRITE", username: "jean-martin", groupSlug: null }],
+  });
+
+  it("stops an author at editing, whatever they may write", () => {
+    expect(pageGestures(JEAN, shared)).toEqual({
+      write: true,
+      structuring: false,
+      address: false,
+    });
+  });
+
+  it("opens the structuring gestures to the owner, the address to nobody", () => {
+    expect(pageGestures(MARIE, shared)).toEqual({
+      write: true,
+      structuring: true,
+      address: false,
+    });
+  });
+
+  it("opens every rung to an administrator", () => {
+    expect(pageGestures(ADMIN, shared)).toEqual({
+      write: true,
+      structuring: true,
+      address: true,
+    });
+  });
+
+  it("offers a visitor nothing on a page they can only read", () => {
+    expect(pageGestures(VISITOR, page())).toEqual({
+      write: false,
+      structuring: false,
+      address: false,
+    });
+  });
+
+  // An unowned page has an empty floor, so the structuring rung is the
+  // administrators' alone — even for someone the write list names.
+  it("leaves the structuring gestures of an unowned page to the administrators", () => {
+    const orphan = page({
+      ownerUsername: null,
+      writeScope: "everyone",
+    });
+    expect(pageGestures(JEAN, orphan)).toEqual({
+      write: true,
+      structuring: false,
+      address: false,
+    });
   });
 });
 
