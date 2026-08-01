@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { GrantTarget } from "@/lib/bulk-rights";
 import {
   type InheritedMember,
   type MemberRef,
@@ -10,6 +11,8 @@ import {
   memberRemovalRefusal,
   nestingCycle,
   nestingCycleMessage,
+  refGroupSlug,
+  refUsername,
 } from "@/lib/groups";
 import { type AclDirectory, ADMINS_GROUP } from "@/lib/permissions";
 import { assertAdmin, currentUsername } from "@/lib/permissions-db";
@@ -52,6 +55,55 @@ export const currentGroupSlugs = cache(async (): Promise<string[]> => {
     direct.map((membership) => membership.groupSlug)
   );
 });
+
+/**
+ * The same question asked about someone other than the actor: which groups
+ * reach a person or a group named in a rights list. Nesting runs upwards, so
+ * a group's own answer holds the groups that contain it — whoever is granted
+ * @Rédacteurs is already granting @Bureau, nested inside it.
+ *
+ * What « Donner accès » counts as « y donne déjà accès » (lib/bulk-rights.ts)
+ * rests on this: a line that only repeats what a group already carries adds
+ * nothing.
+ */
+export async function reachingGroups(ref: MemberRef): Promise<string[]> {
+  const nestings = await listNestings();
+  const username = refUsername(ref);
+  if (username === null) {
+    return effectiveGroups(nestings, [refGroupSlug(ref)!]);
+  }
+  const direct = await prisma.groupMember.findMany({
+    where: { username },
+    select: { groupSlug: true },
+  });
+  return effectiveGroups(
+    nestings,
+    direct.map((membership) => membership.groupSlug)
+  );
+}
+
+/**
+ * A principal as « Donner accès » counts and prints them: the name the note
+ * says, and the groups that reach them. Null when the account or the group has
+ * gone since the picker listed it — the lot then names one fewer, rather than
+ * writing a row pointing at nothing.
+ */
+export async function grantTarget(ref: MemberRef): Promise<GrantTarget | null> {
+  const groupSlugs = await reachingGroups(ref);
+  const username = refUsername(ref);
+  if (username === null) {
+    const group = await prisma.group.findUnique({
+      where: { slug: refGroupSlug(ref)! },
+      select: { name: true },
+    });
+    return group && { label: `@${group.name}`, ref, groupSlugs };
+  }
+  const person = await prisma.user.findUnique({
+    where: { username },
+    select: { name: true },
+  });
+  return person && { label: person.name, ref, groupSlugs };
+}
 
 // --- reads -------------------------------------------------------------------
 
