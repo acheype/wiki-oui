@@ -16,11 +16,19 @@ import {
   getRevisionToRestore,
   isRefused,
   listAllPageSlugs,
+  listOwnerCandidates,
   renamePageSlug,
+  transferPageOwnership,
   writePageContent,
   writeRestoredRevision,
 } from "@/lib/pages";
-import { ACCESS_DENIED, refusalMessage } from "@/lib/permissions";
+import {
+  ACCESS_DENIED,
+  ADDRESS_REFUSED,
+  type Identity,
+  refusalMessage,
+} from "@/lib/permissions";
+import { isCurrentAdmin } from "@/lib/permissions-db";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -108,6 +116,9 @@ export async function renamePage(
   slug: string,
   newSlug: string
 ): Promise<ActionError | void> {
+  // Asked here rather than read back from the catch below, which speaks for
+  // the rename's own failure — a unique-constraint race on the new slug.
+  if (!(await isCurrentAdmin())) return { error: ADDRESS_REFUSED };
   if (specialSlugs.includes(slug)) {
     return { error: "L'adresse d'une page spéciale ne peut pas être changée." };
   }
@@ -152,12 +163,43 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
     return { error: "Cette page n'existe pas." };
   }
 
-  await deletePageById(page.id);
+  // The bar leaves the gesture out for anyone but the owner and the
+  // administrators, so reaching this means the page changed hands — or a
+  // direct call — and the refusal belongs in a toast, not on the error
+  // boundary.
+  try {
+    await deletePageById(page.id);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
 
   revalidatePath("/", "layout");
   // Server-action redirects bypass next.config redirects(): aim straight at
   // the home slug instead of "/".
   redirect(`/${wikiConfig.homeSlug}`);
+}
+
+/** Who the « Transmettre la propriété » modal offers, once it is opened. */
+export async function loadOwnerCandidates(slug: string): Promise<Identity[]> {
+  return listOwnerCandidates(slug);
+}
+
+/**
+ * « Transmettre la propriété » (docs/permissions.md): sans retour for whoever
+ * gives it away, which is why the modal warns before the click. No redirect
+ * afterwards — the giver may well have just lost the right to what they are
+ * looking at, and the page they land back on says so on its own.
+ */
+export async function transferOwnership(
+  slug: string,
+  toUsername: string
+): Promise<ActionError | void> {
+  try {
+    await transferPageOwnership(slug, toUsername);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
+  revalidatePath("/", "layout");
 }
 
 // Only door that removes an uploaded file: cancelling the component modal
@@ -215,12 +257,19 @@ export async function restoreRevision(
   }
 
   const restored = restoredEntryData(source.page.form?.schema, source.data);
-  await writeRestoredRevision({
-    pageId: source.pageId,
-    content: source.content,
-    data: restored.data ?? undefined,
-    restoredFromId: source.id,
-  });
+  // Restoring is a write (docs/permissions.md § Quel droit commande quel
+  // geste): the history stays readable to whoever may read the page, and the
+  // button that puts a revision back is offered to whoever may write it.
+  try {
+    await writeRestoredRevision({
+      pageId: source.pageId,
+      content: source.content,
+      data: restored.data ?? undefined,
+      restoredFromId: source.id,
+    });
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
 
   revalidatePath("/", "layout");
   return { slug: source.page.slug, titleKept: restored.titleKept };

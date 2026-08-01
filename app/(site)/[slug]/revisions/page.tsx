@@ -14,7 +14,7 @@ import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
 import { formatDateTime } from "@/lib/format";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import { getPageWithRevisions, isRefused } from "@/lib/pages";
+import { actorCanWrite, getPageWithRevisions, isRefused } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { displayName } from "@/lib/username";
@@ -63,6 +63,10 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
 
   const query = await searchParams;
   const revisions = page.revisions; // oldest first
+  // Reading the history is a read gesture, putting a revision back is a write
+  // (docs/permissions.md § Quel droit commande quel geste): whoever may only
+  // read gets the whole screen, minus the button.
+  const writable = await actorCanWrite(page);
 
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the
@@ -136,7 +140,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
           </span>
         )}
         <div className="ml-auto">
-          {selected.id !== current.id && (
+          {writable && selected.id !== current.id && (
             <RestoreButton revisionId={selected.id} />
           )}
         </div>

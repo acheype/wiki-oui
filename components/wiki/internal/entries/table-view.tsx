@@ -8,6 +8,7 @@
 
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { deletePage } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -248,8 +249,15 @@ function ActionsCell({ entry, sample }: { entry: ViewEntry; sample: boolean }) {
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
+              // Deleting stops at the owner and the administrators
+              // (docs/permissions.md): a row that vanished on a refusal would
+              // report a deletion the wiki did not make.
               onClick={async () => {
-                await deletePage(entry.slug);
+                const result = await deletePage(entry.slug);
+                if (result?.error) {
+                  toast.error(result.error);
+                  return;
+                }
                 setDeleted(true);
               }}
             >

@@ -1,20 +1,26 @@
 import { cache } from "react";
 import { type EntryData, readEntryData } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { existingPrincipals } from "@/lib/groups-db";
+import { existingPrincipals, listDirectory } from "@/lib/groups-db";
 import {
   type AccessRule,
   type AclEntry,
   type AclFloor,
+  type Identity,
+  type PageGestures,
   type PageRights,
+  ADDRESS_REFUSED,
   CREATE_REFUSED,
+  DELETE_REFUSED,
   RIGHTS_REFUSED,
+  TRANSFER_REFUSED,
   WRITE_REFUSED,
   canRead,
   canWrite,
   isAdmin,
   knownEntries,
   ownsPage,
+  pageGestures,
   pageRule,
   readableWhere,
   ruleAllows,
@@ -150,10 +156,27 @@ async function keepKnownPrincipals(acls: AclEntry[]): Promise<AclEntry[]> {
   return knownEntries(acls, known);
 }
 
-/** Posing the rights is the owner's and the administrators' alone. */
-async function assertOwnsPage(page: PageRights): Promise<void> {
+/**
+ * The rung deleting, posing the rights and handing the page on stop at. Each
+ * caller names the refusal its own gesture would print: they all land in the
+ * same toast, where « vous ne pouvez pas supprimer cette page » says something
+ * and « vous n'êtes pas le propriétaire » leaves the reader to work it out.
+ */
+async function assertStructuring(
+  page: PageRights,
+  refusal: string
+): Promise<void> {
   if (ownsPage(await currentActor(), page)) return;
-  throw new Error(RIGHTS_REFUSED);
+  throw new Error(refusal);
+}
+
+/**
+ * Changing an address is the administrators' alone: the rename retcons
+ * references throughout the wiki (ADR 0016), so its effect leaves the page
+ * the way no other gesture on it does.
+ */
+async function assertAddress(): Promise<void> {
+  if (!isAdmin(await currentActor())) throw new Error(ADDRESS_REFUSED);
 }
 
 /**
@@ -403,6 +426,7 @@ export async function renamePageSlug(
   rename: SlugRename,
   referenceProps: ReadonlyMap<string, ReadonlySet<string>>
 ): Promise<void> {
+  await assertAddress();
   await prisma.$transaction(
     async (tx) => {
       await tx.page.update({
@@ -463,8 +487,62 @@ export async function reassignOwnedPages(
 }
 
 // Hard delete (ADR 0008): revisions go with the page via onDelete: Cascade.
+// The rights are read here rather than taken from the caller: deleting is the
+// one gesture nothing undoes, and the door owes it its own look at the page.
 export async function deletePageById(id: string): Promise<void> {
+  const page = await prisma.page.findUniqueOrThrow({
+    where: { id },
+    include: WITH_RIGHTS,
+  });
+  await assertStructuring(page, DELETE_REFUSED);
   await prisma.page.delete({ where: { id } });
+}
+
+/**
+ * Who the page may be handed to: everyone of the wiki but whoever holds it
+ * today. Read behind the same check as the transfer itself — the list is the
+ * whole membership, and only someone who may give the page away has any
+ * business seeing it.
+ */
+export async function listOwnerCandidates(slug: string): Promise<Identity[]> {
+  const page = await prisma.page.findUniqueOrThrow({
+    where: { slug },
+    include: WITH_RIGHTS,
+  });
+  await assertStructuring(page, TRANSFER_REFUSED);
+  const { people } = await listDirectory();
+  return people.filter((person) => person.username !== page.ownerUsername);
+}
+
+/**
+ * « Transmettre la propriété » (docs/permissions.md § Quel droit commande quel
+ * geste): sans retour for whoever gives it away — nothing hands the page back,
+ * and the confirmation says so before the click.
+ *
+ * Only the ownership moves. The revisions keep their authors: rewriting who
+ * wrote what would be a lie the history cannot carry.
+ */
+export async function transferPageOwnership(
+  slug: string,
+  toUsername: string
+): Promise<void> {
+  const page = await prisma.page.findUniqueOrThrow({
+    where: { slug },
+    include: WITH_RIGHTS,
+  });
+  await assertStructuring(page, TRANSFER_REFUSED);
+  await prisma.$transaction(async (tx) => {
+    await tx.page.update({
+      where: { id: page.id },
+      data: { ownerUsername: toUsername },
+    });
+    // The new owner stands on the floor of both senses now, so the lines
+    // naming them grant nothing — the rule withoutFloor applies when the
+    // rights are posed, reaching the same rows from the other end.
+    await tx.pageAcl.deleteMany({
+      where: { pageId: page.id, username: toUsername },
+    });
+  });
 }
 
 // --- the rights of one page --------------------------------------------------
@@ -474,9 +552,14 @@ export async function actorCanWrite(page: PageRights): Promise<boolean> {
   return canWrite(await currentActor(), page);
 }
 
-/** Posing the rights, like deleting, stops at the owner and the admins. */
-export async function actorOwns(page: PageRights): Promise<boolean> {
-  return ownsPage(await currentActor(), page);
+/**
+ * What the action bar may offer at all — the three rungs at once, so a screen
+ * asks the question once and cannot answer half of it. What it does not get
+ * is absent from the bar, never greyed out: an offer nobody can take up
+ * informs nobody (docs/permissions.md § Ce que voit qui n'a pas le droit).
+ */
+export async function actorGestures(page: PageRights): Promise<PageGestures> {
+  return pageGestures(await currentActor(), page);
 }
 
 /** Whoever the page always allows, whatever its lists hold. */
@@ -503,7 +586,7 @@ export async function getPageRights(slug: string): Promise<PageRightsView | null
     include: WITH_RIGHTS,
   });
   if (!page) return null;
-  await assertOwnsPage(page);
+  await assertStructuring(page, RIGHTS_REFUSED);
   return {
     floor: pageFloor(page),
     isEntry: page.formId !== null,
@@ -527,7 +610,7 @@ export async function setPageRights(
     where: { slug },
     include: WITH_RIGHTS,
   });
-  await assertOwnsPage(page);
+  await assertStructuring(page, RIGHTS_REFUSED);
   const rights = storedRights(read, write);
   const kept = withoutFloor(rights.acls, pageFloor(page));
   await prisma.$transaction(async (tx) => {
