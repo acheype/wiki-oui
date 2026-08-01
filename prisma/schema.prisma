@@ -23,6 +23,9 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   username        String? // public identifier, slug pattern (lib/username.ts)
+  // The plugin's, and always equal to `username` here: it exists to keep the
+  // casing someone typed while `username` is stored normalized, and our
+  // usernameValidator admits none. Not a display name — that is `name`.
   displayUsername String?
   sessions        Session[]
   accounts        Account[]
