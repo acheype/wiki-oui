@@ -281,23 +281,43 @@ export function readableWhere(actor: Actor): Prisma.PageWhereInput {
 }
 
 /**
+ * « This clause, or that one » — the only way these clauses are ever joined.
+ *
+ * Written by hand, that join is a trap: an actor who may read everything gets
+ * the empty clause `{}`, and **Prisma drops an empty branch from an `OR`**.
+ * The branch that meant « everything » disappears, leaving the others to
+ * narrow what should not have been narrowed — silently, and only for whoever
+ * has the most rights, which is why it went unnoticed for days.
+ *
+ * Here the empty clause absorbs instead, as « everything or anything » does in
+ * logic. An ESLint rule refuses `OR:` around these clauses so that this
+ * function is not merely the recommended way but the only one left.
+ */
+export function anyClause(
+  clauses: readonly Prisma.PageWhereInput[]
+): Prisma.PageWhereInput {
+  if (clauses.some(isEverything)) return {};
+  return { OR: [...clauses] };
+}
+
+/** No condition at all, which SQL-side means every row — never « no row ». */
+function isEverything(clause: Prisma.PageWhereInput): boolean {
+  return Object.keys(clause).length === 0;
+}
+
+/**
  * What a list filters on: what the actor may read, plus the handful of pages
  * that answer to everyone whatever is posed on them (the account screens —
  * signing in has to work where the content refuses).
- *
- * An administrator's clause is empty, and is handed back as it is rather than
- * joined to the rest: **Prisma drops an empty branch from an `OR`**, so the
- * `OR` would keep the account pages alone — hiding the whole wiki from
- * whoever has the most rights. It is the one composition where an empty
- * clause means « everything » to us and « nothing » to the query builder.
  */
 export function listReadableWhere(
   actor: Actor,
   alwaysReadable: readonly string[]
 ): Prisma.PageWhereInput {
-  const readable = readableWhere(actor);
-  if (Object.keys(readable).length === 0) return readable;
-  return { OR: [readable, { slug: { in: [...alwaysReadable] } }] };
+  return anyClause([
+    readableWhere(actor),
+    { slug: { in: [...alwaysReadable] } },
+  ]);
 }
 
 // --- what a page stores ------------------------------------------------------

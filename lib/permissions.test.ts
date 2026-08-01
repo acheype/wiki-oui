@@ -19,6 +19,7 @@ import {
   withoutFloor,
   ownsPage,
   permissionsOn,
+  anyClause,
   listReadableWhere,
   readableWhere,
   ownerTransferNote,
@@ -493,6 +494,23 @@ describe("the filter clause and the unit decision", () => {
       });
     }
   }
+});
+
+describe("anyClause", () => {
+  // The trap it exists for: `{}` means every row, and Prisma drops an empty
+  // branch from an OR — so joining it by hand turns « everything » into
+  // « only the other branches ».
+  it("lets an empty clause absorb the others, as « everything » does", () => {
+    expect(anyClause([{}, { slug: { in: ["connexion"] } }])).toEqual({});
+  });
+
+  it("joins the rest with an OR", () => {
+    expect(
+      anyClause([{ readScope: "everyone" }, { slug: { in: ["connexion"] } }])
+    ).toEqual({
+      OR: [{ readScope: "everyone" }, { slug: { in: ["connexion"] } }],
+    });
+  });
 });
 
 describe("the read clause of a list", () => {

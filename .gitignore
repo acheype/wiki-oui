@@ -23,6 +23,9 @@
 # misc
 .DS_Store
 *.pem
+# backups left behind by patch/merge tools: the content is already in git
+*.orig
+*.rej
 
 # debug
 npm-debug.log*

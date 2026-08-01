@@ -30,6 +30,17 @@ const directPageOrFormAccess =
   "MemberExpression[object.property.name=/^(page|form)$/]" +
   `[property.name=/^(${PRISMA_MODEL_METHODS})$/]`;
 
+// The three clauses that may come out empty, `{}` meaning « every row » for
+// an actor who reads or writes everything. Prisma drops an empty branch from
+// an `OR`, so joining one by hand turns « everything » into « only the other
+// branches » — see anyClause() in lib/permissions.ts, which absorbs instead.
+const ACCESS_CLAUSES = "readableWhere|writableWhere|listReadableWhere|currentReadableWhere";
+
+// An `OR: [ … ]` holding a call to one of them, however deep in the array.
+const accessClauseInsideOr =
+  `Property[key.name='OR'] > ArrayExpression CallExpression[callee.name=/^(${ACCESS_CLAUSES})$/],` +
+  `Property[key.name='OR'] > ArrayExpression AwaitExpression > CallExpression[callee.name=/^(${ACCESS_CLAUSES})$/]`;
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -46,7 +57,7 @@ const eslintConfig = defineConfig([
       // Its neighbours behind the same door: BetterAuth owns the account
       // tables and touches nothing else (ADR 0023), the actor resolution
       // reads the session, the accounts and the groups are their own door —
-      // every gesture on one is an administrator's or a link holder's,
+      // every action on one is an administrator's or a link holder's,
       // checked there — and the installation flag is a single row no rule
       // applies to (ADR 0027). None of them reaches Page or Form except
       // through lib/pages.ts and lib/forms.ts, which is why the counts and
@@ -86,6 +97,22 @@ const eslintConfig = defineConfig([
                 "The Prisma client lives behind lib/pages.ts and lib/forms.ts (ADR 0025). Sweep modules receive their client as a parameter.",
             },
           ],
+        },
+      ],
+    },
+  },
+  {
+    name: "wikioui/access-clauses",
+    // Deliberately without the exemptions above: the access layer is where
+    // this join is written, so it is the first place the rule has to reach.
+    files: ["**/*.ts", "**/*.tsx"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: accessClauseInsideOr,
+          message:
+            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish. Compose with anyClause() from lib/permissions.ts.",
         },
       ],
     },
