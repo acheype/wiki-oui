@@ -16,7 +16,9 @@ import {
   getForm,
   listForms,
   listFormChoices,
+  listRightsDirectory,
 } from "@/app/form-actions";
+import type { AclDirectory } from "@/lib/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -121,28 +123,37 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
                   le {formatDateTime(form.createdAt)}
                 </p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/fiches?nouvelle&formulaire=${form.slug}`}>
-                  <FilePlus2 />
-                  Nouvelle fiche
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpen(`?id=${form.slug}`)}
-              >
-                <Pencil />
-                Éditer
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Supprimer ${form.name}`}
-                onClick={() => setToDelete(form)}
-              >
-                <Trash2 />
-              </Button>
+              {/* An offer nobody can take up informs nobody: a row shows the
+                  gestures this actor has, and leaves the others out
+                  (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
+              {form.canCreateEntry && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/fiches?nouvelle&formulaire=${form.slug}`}>
+                    <FilePlus2 />
+                    Nouvelle fiche
+                  </Link>
+                </Button>
+              )}
+              {form.canEdit && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onOpen(`?id=${form.slug}`)}
+                  >
+                    <Pencil />
+                    Éditer
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Supprimer ${form.name}`}
+                    onClick={() => setToDelete(form)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -187,6 +198,10 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
   const router = useRouter();
   const [initial, setInitial] = useState<FormDetail | null>(null);
   const [forms, setForms] = useState<{ slug: string; name: string }[]>([]);
+  const [directory, setDirectory] = useState<AclDirectory>({
+    people: [],
+    groups: [],
+  });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -195,11 +210,13 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
     Promise.all([
       editSlug ? getForm(editSlug) : Promise.resolve(null),
       listFormChoices(),
-    ]).then(([form, choices]) => {
+      listRightsDirectory(editSlug),
+    ]).then(([form, choices, people]) => {
       if (!live) return;
       if (editSlug && !form) setNotFound(true);
       setInitial(form);
       setForms(choices);
+      setDirectory(people);
       setLoading(false);
     });
     return () => {
@@ -234,6 +251,7 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
       <FormBuilder
         initial={initial}
         forms={forms}
+        directory={directory}
         onSaved={() => router.push("/formulaires")}
         // replace, not push: the old ?id= no longer answers, going "back" to
         // it would only show « introuvable ». BuilderScreen refetches but the

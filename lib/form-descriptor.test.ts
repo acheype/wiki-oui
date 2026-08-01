@@ -209,6 +209,40 @@ describe("parseFormDescriptor", () => {
       ],
     });
   });
+
+  // The « Droits » tab writes into the same descriptor as the canvas
+  // (docs/permissions.md § Formulaire), so what it poses has to survive the
+  // round trip Zod puts every save through — an object stripped on the way in
+  // would look exactly like defaults that never got copied.
+  it("keeps the three rights the « Droits » tab poses", () => {
+    const descriptor = contactDescriptor();
+    descriptor.permissions = {
+      createEntry: { scope: "authenticated" },
+      defaultEntryRead: { scope: "everyone" },
+      defaultEntryWrite: { scope: "restricted", groupSlugs: ["bureau"] },
+    };
+    expect(parseFormDescriptor(descriptor).descriptor?.permissions).toEqual(
+      descriptor.permissions
+    );
+  });
+
+  it("reads back a form saved before the tab existed", () => {
+    const parsed = parseFormDescriptor(contactDescriptor());
+    expect(parsed.descriptor?.permissions).toBeUndefined();
+    expect(parsed.issues).toBeUndefined();
+  });
+
+  it("refuses a scope the vocabulary does not have", () => {
+    const descriptor = {
+      ...contactDescriptor(),
+      permissions: {
+        createEntry: { scope: "admins" },
+        defaultEntryRead: { scope: "everyone" },
+        defaultEntryWrite: { scope: "everyone" },
+      },
+    };
+    expect(parseFormDescriptor(descriptor).descriptor).toBeUndefined();
+  });
 });
 
 describe("extractFieldReferences", () => {

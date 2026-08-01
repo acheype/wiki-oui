@@ -14,6 +14,7 @@ import {
   computeAutomaticTitle,
   parseFormDescriptor,
 } from "../lib/form-descriptor";
+import { bornFormPermissions } from "../lib/form-rights";
 import { storedRights } from "../lib/permissions";
 import { specialSlugs, wikiConfig } from "../wiki.config";
 import { formSeeds } from "./seed/forms";
@@ -303,7 +304,12 @@ async function main() {
       data: {
         slug: form.slug,
         name: form.name,
-        schema: form.schema as unknown as Prisma.InputJsonValue,
+        // Born with the wiki's own three rules, copied and never linked (ADR
+        // 0026) — the same stamp saveForm puts on a form the builder creates.
+        schema: {
+          ...form.schema,
+          permissions: bornFormPermissions(),
+        } as unknown as Prisma.InputJsonValue,
       },
     });
     console.log(`+ formulaire ${form.slug}`);

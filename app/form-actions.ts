@@ -25,8 +25,18 @@ import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
 import { titleRecomputeNeeded } from "@/lib/entry-title";
 import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
 import {
+  type EntryRightsImpact,
+  type FormPermissions,
+  bornFormPermissions,
+  entryCreationRefusal,
+} from "@/lib/form-rights";
+import {
+  actorCanCreateEntry,
+  actorCanEditForm,
+  applyFormDefaults,
   countEntriesCarryingField,
   countEntryTitleRecompute,
+  countFormDefaults,
   countFormSlugReferences,
   createForm,
   deleteFormById,
@@ -34,9 +44,11 @@ import {
   listFormNames,
   listFormsBySlugs,
   listFormsWithEntryCount,
+  permissionsOf,
   renameFormSlug,
   updateForm,
 } from "@/lib/forms";
+import { groupDisplayNames, listDirectory } from "@/lib/groups-db";
 import {
   createEntryPage,
   getPage,
@@ -45,7 +57,12 @@ import {
   listEntryPages,
   writeEntryRevision,
 } from "@/lib/pages";
-import { refusalMessage } from "@/lib/permissions";
+import {
+  type AclDirectory,
+  FORM_EDIT_REFUSED,
+  refusalMessage,
+} from "@/lib/permissions";
+import { currentIdentity } from "@/lib/permissions-db";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -55,16 +72,27 @@ export interface FormSummary {
   name: string;
   entryCount: number;
   createdAt: Date;
+  /** Whether the row offers « Éditer » and « Supprimer » at all. */
+  canEdit: boolean;
+  /** And « Nouvelle fiche » — the form's own rule, not the wiki's. */
+  canCreateEntry: boolean;
 }
 
 export async function listForms(): Promise<FormSummary[]> {
   const forms = await listFormsWithEntryCount();
-  return forms.map((form) => ({
-    slug: form.slug,
-    name: form.name,
-    entryCount: form._count.entries,
-    createdAt: form.createdAt,
-  }));
+  // An offer nobody can take up informs nobody (docs/permissions.md § Ce que
+  // voit qui n'a pas le droit): the row shows the gestures it has, and leaves
+  // the others out rather than greying them.
+  return Promise.all(
+    forms.map(async (form) => ({
+      slug: form.slug,
+      name: form.name,
+      entryCount: form._count.entries,
+      createdAt: form.createdAt,
+      canEdit: await actorCanEditForm(form),
+      canCreateEntry: await actorCanCreateEntry(form),
+    }))
+  );
 }
 
 export interface FormDetail {
@@ -72,6 +100,10 @@ export interface FormDetail {
   name: string;
   schema: FormDescriptor;
   template: string | null;
+  /** The « Droits » tab's three settings, the wiki's own for an old form. */
+  permissions: FormPermissions;
+  /** Whether this actor may save what the builder shows (owner or admin). */
+  canEdit: boolean;
 }
 
 export async function getForm(slug: string): Promise<FormDetail | null> {
@@ -90,7 +122,64 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
     name: form.name,
     schema: parsed.descriptor,
     template: form.template,
+    permissions: permissionsOf(form),
+    canEdit: await actorCanEditForm(form),
   };
+}
+
+/**
+ * Who the « Droits » tab's lists may name. Read only once the actor is known
+ * to have business posing a right — the whole membership of the wiki is not a
+ * visitor's affair, and a form nobody may edit needs no picker at all. A null
+ * slug is a form being created, where being signed in is all there is to go on.
+ */
+export async function listRightsDirectory(
+  formSlug: string | null
+): Promise<AclDirectory> {
+  const form = formSlug ? await getFormBySlug(formSlug) : null;
+  const allowed = form
+    ? await actorCanEditForm(form)
+    : (await currentIdentity()) !== null;
+  return allowed ? listDirectory() : { people: [], groups: [] };
+}
+
+/**
+ * « Appliquer aux fiches existantes » (docs/permissions.md § Défauts), both
+ * halves. The rules counted against are the ones the tab shows, not the ones
+ * in base: the confirmation leads to a save, so what it announces is what the
+ * form is about to hold. Null when the form has gone, or when the actor may
+ * not edit it — the button was not on offer either way.
+ */
+export type EntryDefaultsCount =
+  | { error: string }
+  | { impact: EntryRightsImpact | null };
+
+export async function countEntryDefaults(
+  formSlug: string,
+  permissions: FormPermissions
+): Promise<EntryDefaultsCount> {
+  try {
+    return { impact: await countFormDefaults(formSlug, permissions) };
+  } catch (error) {
+    // The refusal travels as a value, and as itself: a right that went away
+    // between opening the builder and clicking must not be reported as a form
+    // that no longer exists — `impact: null` is that other ending.
+    return { error: refusalMessage(error) };
+  }
+}
+
+export async function applyEntryDefaults(
+  formSlug: string,
+  permissions: FormPermissions
+): Promise<{ error: string } | void> {
+  try {
+    await applyFormDefaults(formSlug, permissions);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
+  // A fiche whose read scope just closed has to leave the menus and the lists
+  // of whoever no longer sees it: the whole tree, like a save.
+  revalidatePath("/", "layout");
 }
 
 export interface SaveFormInput {
@@ -161,24 +250,38 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
   // No Form history (ADR 0014): saving overwrites, like page tags.
   const data = {
     name: input.name.trim(),
-    schema: parsed.descriptor,
+    // A form is born with the wiki's three rules, copied (ADR 0026). The tab
+    // sends them, and this stamps them for a descriptor that arrived without
+    // — a form created by anything but the builder — so that what is in base
+    // is a copy and not a silent reference to the configuration.
+    schema: {
+      ...parsed.descriptor,
+      permissions: parsed.descriptor.permissions ?? bornFormPermissions(),
+    },
     template: input.template === "" ? null : input.template,
   };
-  if (existing) {
-    // Schema overwrite, data-key retcon and title recompute in the same
-    // transaction (ADR 0017/0020): the staged renames apply to every
-    // revision of the form's entries, and the recomputed titles to their
-    // current one, or nothing does.
-    const before = parseFormDescriptor(existing.schema).descriptor;
-    await updateForm(existing.id, data, {
-      renames,
-      recomputeTitlesWith:
-        before && titleRecomputeNeeded(before, parsed.descriptor)
-          ? parsed.descriptor
-          : null,
-    });
-  } else {
-    await createForm(input.slug, data);
+  // The screens leave out what they cannot offer, so reaching the refusal
+  // means the right went away between opening the builder and saving it: an
+  // issue to report in the toast, not an error boundary to fall into.
+  try {
+    if (existing) {
+      // Schema overwrite, data-key retcon and title recompute in the same
+      // transaction (ADR 0017/0020): the staged renames apply to every
+      // revision of the form's entries, and the recomputed titles to their
+      // current one, or nothing does.
+      const before = parseFormDescriptor(existing.schema).descriptor;
+      await updateForm(existing.id, data, {
+        renames,
+        recomputeTitlesWith:
+          before && titleRecomputeNeeded(before, parsed.descriptor)
+            ? parsed.descriptor
+            : null,
+      });
+    } else {
+      await createForm(input.slug, data);
+    }
+  } catch (error) {
+    return { ok: false, issues: [{ message: refusalMessage(error) }] };
   }
 
   // Entry pages render through the form's schema/template: refresh the tree.
@@ -195,7 +298,11 @@ export async function deleteForm(slug: string): Promise<DeleteFormResult> {
   if (!form) {
     return { error: "Ce formulaire n'existe pas." };
   }
-  await deleteFormById(form.id);
+  try {
+    await deleteFormById(form.id);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -265,6 +372,12 @@ export async function renameForm(
   const form = await getFormBySlug(slug);
   if (!form) {
     return { error: "Ce formulaire n'existe pas." };
+  }
+  // Checked here rather than only at the door: the generic failure message
+  // below is for a unique-constraint race, and would turn a refusal into
+  // « réessayez dans un instant » — an invitation to keep trying.
+  if (!(await actorCanEditForm(form))) {
+    return { error: FORM_EDIT_REFUSED };
   }
   if (await getFormBySlug(newSlug)) {
     return {
@@ -378,6 +491,32 @@ export interface EntryFormData {
   values: EntryData | null;
   /** Existing entry slug when editing; null for a new entry. */
   slug: string | null;
+  /**
+   * Why adding a fiche is refused, null when it is not — creation only,
+   * editing being the fiche's own write right. The block says its motif
+   * rather than disappearing (docs/permissions.md § Ce que voit qui n'a pas
+   * le droit): a form that vanished reads as a page that failed to load.
+   */
+  creationRefusal: string | null;
+  /** Whether « Se connecter » is worth offering beside that motif. */
+  signedIn: boolean;
+}
+
+/**
+ * The refusal the entry form shows, with the groups it names resolved to
+ * their display names. Null once the actor may add a fiche — and for an edit,
+ * which this right has nothing to say about.
+ */
+async function creationRefusalOf(
+  form: { schema: unknown },
+  isEdit: boolean
+): Promise<string | null> {
+  if (isEdit || (await actorCanCreateEntry(form))) return null;
+  const rule = permissionsOf(form).createEntry;
+  return entryCreationRefusal(
+    rule,
+    await groupDisplayNames(rule.groupSlugs ?? [])
+  );
 }
 
 // Loads what the generated entry form needs. `entrySlug` set = edit mode
@@ -412,7 +551,15 @@ export async function getEntryForm(
     schema: parsed.descriptor,
     values,
     slug,
+    creationRefusal: await creationRefusalOf(form, entrySlug !== undefined),
+    signedIn: (await currentIdentity()) !== null,
   };
+}
+
+/** Whether a screen offers « Nouvelle fiche » for this form at all. */
+export async function canAddEntry(formSlug: string): Promise<boolean> {
+  const form = await getFormBySlug(formSlug);
+  return form !== null && actorCanCreateEntry(form);
 }
 
 export interface SaveEntryInput {
@@ -493,7 +640,16 @@ export async function saveEntry(
   if (clash) return { ok: false, slugCollision: true };
 
   try {
-    await createEntryPage({ slug, formId: form.id, data: stored, tags });
+    await createEntryPage({
+      slug,
+      formId: form.id,
+      data: stored,
+      tags,
+      // The form decides who may add a fiche, and what that fiche is born
+      // with (docs/permissions.md § Formulaire) — not the wiki's own rules,
+      // which govern pages.
+      permissions: permissionsOf(form),
+    });
   } catch (error) {
     return { ok: false, formError: refusalMessage(error) };
   }

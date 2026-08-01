@@ -5,6 +5,7 @@
 // the automatic title and the entry template.
 
 import { z } from "zod";
+import { SCOPES } from "./permissions";
 import { SLUG_PATTERN } from "./slug";
 
 /** Palette of the 14 entry field types (docs/forms.md). */
@@ -140,8 +141,36 @@ const formFieldSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
+// One right as the `acl` widget poses it and as the descriptor stores it:
+// usernames and group slugs, never ids (ADR 0024). Shape only, like the
+// fields above — a name that has since gone is dropped when the default is
+// copied (ADR 0026), not refused at read, or a deleted account would shut its
+// form out of the very screen where the mistake gets fixed.
+// Readonly, so that what the descriptor holds and what `AccessRule` describes
+// are one type: the wiki's own defaults are written `as const` in
+// wiki.config.ts, and a mutable array would refuse the very copy ADR 0026 is
+// about.
+const accessRuleSchema = z.object({
+  scope: z.enum(SCOPES),
+  usernames: z.array(z.string()).readonly().optional(),
+  groupSlugs: z.array(z.string()).readonly().optional(),
+});
+
 export const formDescriptorSchema = z.object({
   fields: z.array(formFieldSchema),
+  /**
+   * The « Droits » tab (docs/permissions.md § Formulaire : trois réglages,
+   * pas deux). Optional: a form saved before the tab existed carries none,
+   * and lib/form-rights.ts answers for it with the wiki's own defaults —
+   * exactly what would have been copied at its creation.
+   */
+  permissions: z
+    .object({
+      createEntry: accessRuleSchema,
+      defaultEntryRead: accessRuleSchema,
+      defaultEntryWrite: accessRuleSchema,
+    })
+    .optional(),
 });
 
 export type FormField = z.infer<typeof formFieldSchema>;

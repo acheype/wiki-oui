@@ -148,7 +148,33 @@ Droits par défaut d'une fiche
   Qui peut la modifier ?            → Seulement  (= son propriétaire et les admins)
 ```
 
-Ces réglages vivent dans un **troisième onglet « Droits »** du FormBuilder, à côté de « Champs » et « Gabarit » — pas en bas du canvas, qui est la cible du drag & drop.
+Ces réglages vivent dans un **troisième onglet « Droits »** du FormBuilder, à côté de « Champs » et « Gabarit » — pas en bas du canvas, qui est la cible du drag & drop. Ils sont stockés dans `Form.schema.permissions`, aux côtés des champs :
+
+```ts
+permissions: {
+  createEntry:       { scope: "authenticated" },
+  defaultEntryRead:  { scope: "everyone" },
+  defaultEntryWrite: { scope: "restricted" },
+}
+```
+
+Un formulaire écrit avant l'onglet n'en porte aucun : les défauts du wiki répondent pour lui — exactement ce qui aurait été recopié à sa création.
+
+**Créer une fiche ne consulte pas `createPage`.** Le droit du wiki commande les pages, celui du formulaire commande ses fiches : c'est ce qui permet à un wiki qui ne distribue aucune page d'accueillir quand même « chacun propose un événement ».
+
+**Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même cran que les gestes structurants d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que l'acteur n'a pas est **absent** de la liste des formulaires, jamais grisé.
+
+**« Appliquer aux fiches existantes »** est le seul chemin des défauts vers l'existant. Le bouton enregistre le formulaire, puis remplace les droits de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand le geste n'écrirait rien :
+
+```
+ⓘ 23 fiches recevront ces droits. Les leurs seront perdus.
+    7 fiches ont déjà ces droits — rien à changer.
+    2 fiches que vous ne gérez pas : leurs droits ne changent pas.
+```
+
+La dernière ligne est le cran des gestes structurants, tenu fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser le geste entier. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « que vous ne gérez pas » plutôt que « à quelqu'un d'autre », qui nommerait une personne inexistante.
+
+Le décompte comme l'écriture **laissent tomber un nom disparu** (ADR 0026) : un défaut qui nomme un compte ou un groupe effacé depuis n'accorde rien en douce — et les deux le font au même endroit, sinon la fiche resterait « à changer » pour toujours et l'écriture casserait sur la clé étrangère.
 
 ### Champ : la fusion, et deux fuites colmatées
 
@@ -213,6 +239,8 @@ Et une règle générale, qui suit la **nature** de l'élément plutôt qu'un pr
 | Bloc de contenu (`<EntryForm>`) | **affiché** avec son motif et une suite (« Réservé aux membres · Se connecter ») |
 | Champ d'un formulaire | **grisé** avec son motif — le faire disparaître ferait croire la fiche incomplète |
 | Double-clic pour éditer | ne fait **rien**, silencieusement |
+
+Le motif d'un `<EntryForm>` suit la portée posée : « Réservé aux personnes connectées », « Réservé à @Bureau », ou « Réservé aux personnes autorisées » quand la liste ne nomme que des personnes — les nommer publierait à un visiteur qui est sur le wiki, là où un groupe est déjà la façon dont le wiki se désigne en public. La suite est « Se connecter », offerte au seul visiteur : à qui l'est déjà, elle ne promettrait rien.
 
 ### Liens et boutons vers l'inaccessible
 

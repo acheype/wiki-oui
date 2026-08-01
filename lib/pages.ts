@@ -6,6 +6,16 @@ import {
   nothingToReplace,
 } from "@/lib/bulk-rights";
 import { type EntryData, readEntryData } from "@/lib/form-descriptor";
+import {
+  type EntryRightsImpact,
+  type FormPermissions,
+  canCreateEntry,
+  defaultsPrincipals,
+  entryRightsFrom,
+  entryRightsImpact,
+  entryRightsVerdict,
+  withKnownPrincipals,
+} from "@/lib/form-rights";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { refGroupSlug, refUsername } from "@/lib/groups";
 import { existingPrincipals, grantTarget } from "@/lib/groups-db";
@@ -17,6 +27,7 @@ import {
   type PageGestures,
   type PageRights,
   ADDRESS_REFUSED,
+  CREATE_ENTRY_REFUSED,
   CREATE_REFUSED,
   DELETE_REFUSED,
   PERM_KINDS,
@@ -209,25 +220,34 @@ async function structuredPage(slug: string, refusal: string) {
 }
 
 /**
- * The rights a page is born with: the wiki's defaults, copied — never linked
+ * The rights a page is born with: a pair of defaults, copied — never linked
  * (ADR 0026). Written as a nested create so the page and its list land in one
  * statement, and no page ever exists without the columns saying what it is.
  *
  * A default naming an account or a group that has since gone is dropped here
  * rather than granted on the quiet (ADR 0026) — and the query that decides
- * that runs only when the configuration names anyone at all, which the shape
- * a wiki ships with does not.
+ * that runs only when the defaults name anyone at all, which the shape a wiki
+ * ships with does not.
+ *
+ * One function for both storeys: a page copies the wiki's defaults, a fiche
+ * copies its form's (docs/permissions.md § Défauts). Same gesture, and the
+ * only difference is where the pair was read.
  */
-async function bornWithDefaultRights() {
-  const born = storedRights(
-    wikiConfig.permissions.defaultPageRead,
-    wikiConfig.permissions.defaultPageWrite
-  );
+async function bornWith(read: AccessRule, write: AccessRule) {
+  const born = storedRights(read, write);
   return {
     readScope: born.readScope,
     writeScope: born.writeScope,
     acls: { create: await keepKnownPrincipals(born.acls) },
   };
+}
+
+/** The wiki's own defaults, which every MDX page is born with. */
+async function bornWithDefaultRights() {
+  return bornWith(
+    wikiConfig.permissions.defaultPageRead,
+    wikiConfig.permissions.defaultPageWrite
+  );
 }
 
 // --- reads ------------------------------------------------------------------
@@ -811,6 +831,92 @@ export async function handPagesTo(
   );
 }
 
+// --- a form's defaults, over the fiches already there -------------------------
+
+// « Appliquer aux fiches existantes » (docs/permissions.md § Défauts): the one
+// path from a default to what already exists, since the copy made at creation
+// is never a link (ADR 0026). Both halves read the same pure function, so the
+// numbers the confirmation announced are the ones the write then produces.
+
+/** The fiches of one form, each with what deciding on its rights needs. */
+async function formEntries(formId: string) {
+  return prisma.page.findMany({ where: { formId }, include: WITH_RIGHTS });
+}
+
+/**
+ * The defaults as they can actually be written today: a name that has gone
+ * since the tab saved it is dropped (ADR 0026). Read once for the whole lot,
+ * and by the count as well as by the write — otherwise a row nothing can
+ * carry would leave its fiche « à changer » for good, and the write that
+ * tried it would break on the foreign key and take the whole gesture with it.
+ *
+ * Costs no query in the shape a wiki runs in, where the defaults name nobody.
+ */
+async function liveDefaults(
+  permissions: FormPermissions
+): Promise<FormPermissions> {
+  const named = defaultsPrincipals(permissions);
+  if (named.usernames.length === 0 && named.groupSlugs.length === 0) {
+    return permissions;
+  }
+  return withKnownPrincipals(permissions, await existingPrincipals(named));
+}
+
+export async function countEntryRightsImpact(
+  formId: string,
+  permissions: FormPermissions
+): Promise<EntryRightsImpact> {
+  return entryRightsImpact(
+    await currentActor(),
+    await formEntries(formId),
+    await liveDefaults(permissions)
+  );
+}
+
+/**
+ * Rewrites the rights of the form's fiches from its defaults. Only the fiches
+ * the actor may pose rights on are touched, and only those the defaults would
+ * actually move — the two counts the confirmation showed, reached from the
+ * other end.
+ *
+ * The list is rewritten rather than diffed, as the « Droits » modal rewrites
+ * one: this is a replacement, and the confirmation says so before the click.
+ */
+export async function applyFormDefaultsToEntries(
+  formId: string,
+  permissions: FormPermissions
+): Promise<void> {
+  const actor = await currentActor();
+  // The very defaults the count was taken against, names dropped and all.
+  const live = await liveDefaults(permissions);
+  const entries = (await formEntries(formId)).filter(
+    (entry) => entryRightsVerdict(actor, entry, live) === "changed"
+  );
+  if (entries.length === 0) return;
+
+  const ids = entries.map((entry) => entry.id);
+  const rows = entries.flatMap((entry) =>
+    entryRightsFrom(live, entry.ownerUsername).acls.map((acl) => ({
+      pageId: entry.id,
+      ...acl,
+    }))
+  );
+  // The scopes are the same for every fiche — only the floor differs from one
+  // to the next — so two statements answer for the lot rather than two each.
+  const posed = storedRights(live.defaultEntryRead, live.defaultEntryWrite);
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.pageAcl.deleteMany({ where: { pageId: { in: ids } } });
+      await tx.page.updateMany({
+        where: { id: { in: ids } },
+        data: { readScope: posed.readScope, writeScope: posed.writeScope },
+      });
+      await tx.pageAcl.createMany({ data: rows });
+    },
+    { timeout: COLD_ADMIN_TRANSACTION_TIMEOUT_MS }
+  );
+}
+
 /**
  * What deleting a group takes with it: « @Bureau apparaît dans les droits de
  * 23 pages. » Counted on the Page, so a group named in both senses of the
@@ -837,17 +943,33 @@ export async function canContributeSomewhere(): Promise<boolean> {
   return writable !== null;
 }
 
-/** An entry's first save (ADR 0014): the page, its snapshot, and the link. */
+/**
+ * An entry's first save (ADR 0014): the page, its snapshot, and the link.
+ * Both the right that lets it through and the rights it is born with come
+ * from the form, not from the wiki (docs/permissions.md § Formulaire) — that
+ * is what lets a wiki which hands out no page still say « chacun propose un
+ * événement ».
+ *
+ * The form's three rules travel in rather than being read here: `Form` is the
+ * other door's (ADR 0025), and lib/forms.ts has already read the descriptor
+ * they come from on the way to this call.
+ */
 export async function createEntryPage(input: {
   slug: string;
   formId: string;
   data: EntryData;
   tags: string[];
+  permissions: FormPermissions;
 }): Promise<void> {
-  const { slug, formId, data, tags } = input;
-  await assertCanCreatePage();
+  const { slug, formId, data, tags, permissions } = input;
+  if (!canCreateEntry(await currentActor(), permissions)) {
+    throw new Error(CREATE_ENTRY_REFUSED);
+  }
   const actor = await currentUsername();
-  const born = await bornWithDefaultRights();
+  const born = await bornWith(
+    permissions.defaultEntryRead,
+    permissions.defaultEntryWrite
+  );
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
       data: { slug, ownerUsername: actor, formId, tags, ...born },

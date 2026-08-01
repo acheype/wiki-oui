@@ -201,6 +201,23 @@ export async function existingPrincipals(names: {
   };
 }
 
+/**
+ * The display names of these groups, alphabetically. What a refusal names
+ * itself for — « Réservé à @Bureau » — where the rule holds a slug, which
+ * says nothing to whoever is being turned away.
+ */
+export async function groupDisplayNames(
+  slugs: readonly string[]
+): Promise<string[]> {
+  if (slugs.length === 0) return [];
+  const groups = await prisma.group.findMany({
+    where: { slug: { in: [...slugs] } },
+    orderBy: { name: "asc" },
+    select: { name: true },
+  });
+  return groups.map((group) => group.name);
+}
+
 /** A group's display name from its slug, for the paths screens print. */
 export function groupNames(groups: NamedGroup[]): Map<string, string> {
   return new Map(groups.map((group) => [group.slug, group.name]));

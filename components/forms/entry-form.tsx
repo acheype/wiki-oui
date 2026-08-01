@@ -6,8 +6,9 @@
 // the same schema validates server-side (form-actions.saveEntry).
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Save } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Loader2, Lock, Save } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -17,12 +18,14 @@ import { Field } from "@/components/fields/field-widget";
 import { SlugInlineEdit } from "@/components/slug/slug-input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { DESTINATION_PARAM } from "@/lib/destination";
 import {
   type EntryData,
   deriveEntrySchema,
   initialEntryValues,
 } from "@/lib/form-descriptor";
 import { slugify } from "@/lib/slug";
+import { authPagePath } from "@/wiki.config";
 import { formSourcedFields, toWidgetSpec } from "./field-adapter";
 
 export function EntryForm({
@@ -31,6 +34,54 @@ export function EntryForm({
 }: {
   form: EntryFormData;
   /** Called after a successful create; defaults to navigating to the entry. */
+  onCreated?: (slug: string) => void;
+}) {
+  // A form the actor may not add to is shown with its motif and a follow-up
+  // rather than hidden (docs/permissions.md § Ce que voit qui n'a pas le
+  // droit): a block of content that vanished would read as a page that failed
+  // to load, and leave the reader nothing to do about it. The three doors
+  // share this component, so all three refuse the same way.
+  if (form.slug === null && form.creationRefusal !== null) {
+    return (
+      <CreationRefused reason={form.creationRefusal} signedIn={form.signedIn} />
+    );
+  }
+  return <EntryFields form={form} onCreated={onCreated} />;
+}
+
+/** The motif, and the one thing a visitor can do about it. */
+function CreationRefused({
+  reason,
+  signedIn,
+}: {
+  reason: string;
+  signedIn: boolean;
+}) {
+  const pathname = usePathname();
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">
+      <Lock className="size-4 shrink-0" aria-hidden />
+      <span className="flex-1">{reason}</span>
+      {/* Offered only to a visitor: someone already signed in has nothing to
+          gain from signing in again, and the button would read as a promise. */}
+      {!signedIn && (
+        <Button asChild variant="outline" size="sm">
+          <Link
+            href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
+          >
+            Se connecter
+          </Link>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function EntryFields({
+  form,
+  onCreated,
+}: {
+  form: EntryFormData;
   onCreated?: (slug: string) => void;
 }) {
   const router = useRouter();

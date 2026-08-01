@@ -1,4 +1,11 @@
-import type { FormDescriptor } from "@/lib/form-descriptor";
+import { type FormDescriptor, parseFormDescriptor } from "@/lib/form-descriptor";
+import {
+  type EntryRightsImpact,
+  type FormPermissions,
+  bornFormPermissions,
+  canCreateEntry,
+  formPermissions,
+} from "@/lib/form-rights";
 import type { FieldRenameMapping } from "@/lib/field-rename";
 import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
 import {
@@ -9,9 +16,12 @@ import {
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   WITH_RIGHTS,
+  applyFormDefaultsToEntries,
+  countEntryRightsImpact,
   currentReadableWhere,
 } from "@/lib/pages";
-import { currentUsername } from "@/lib/permissions-db";
+import { FORM_EDIT_REFUSED, ownsSubject } from "@/lib/permissions";
+import { currentActor, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
@@ -25,8 +35,57 @@ import {
 // this layer will host cannot be bypassed by a caller that forgot them — the
 // risk being a silent read, which no test would ever catch.
 
+/** What deciding on a form's definition needs, and nothing more. */
+type OwnedForm = { ownerUsername: string | null };
+
+/**
+ * The rung the gestures on a form's definition stop at: its owner, or an
+ * administrator (docs/permissions.md § Droits au niveau du formulaire). The
+ * same rule as on a page, posed on the other subject — editing a form reaches
+ * every fiche ever written with it, so it never opens with the writing.
+ */
+async function assertFormStructuring(form: OwnedForm): Promise<void> {
+  if (ownsSubject(await currentActor(), form.ownerUsername)) return;
+  throw new Error(FORM_EDIT_REFUSED);
+}
+
+/** Whether the screens offer those gestures at all, or simply leave them out. */
+export async function actorCanEditForm(form: OwnedForm): Promise<boolean> {
+  return ownsSubject(await currentActor(), form.ownerUsername);
+}
+
+/** The same read, from the identifier a screen holds. */
+async function ownerOf(formId: string): Promise<OwnedForm> {
+  return prisma.form.findUniqueOrThrow({
+    where: { id: formId },
+    select: { ownerUsername: true },
+  });
+}
+
 export async function getFormBySlug(slug: string) {
   return prisma.form.findUnique({ where: { slug } });
+}
+
+/**
+ * The three rules a form poses today (docs/permissions.md § Formulaire). Read
+ * back through the descriptor engine, so a form saved before the « Droits »
+ * tab existed answers with the wiki's own defaults rather than with nothing.
+ */
+export function permissionsOf(form: { schema: unknown }): FormPermissions {
+  const parsed = parseFormDescriptor(form.schema);
+  // A descriptor this engine can no longer read is not a form without rights:
+  // it answers with what it would have been born with, rather than with
+  // nothing at all — which no scope could stand for.
+  return parsed.descriptor
+    ? formPermissions(parsed.descriptor)
+    : bornFormPermissions();
+}
+
+/** Whether the actor may add a fiche to this form — what the entry form asks. */
+export async function actorCanCreateEntry(form: {
+  schema: unknown;
+}): Promise<boolean> {
+  return canCreateEntry(await currentActor(), permissionsOf(form));
 }
 
 export async function getFormById(id: string) {
@@ -127,6 +186,7 @@ export async function updateForm(
   definition: FormDefinition,
   sweeps: FormSaveSweeps
 ): Promise<void> {
+  await assertFormStructuring(await ownerOf(formId));
   const actor = await currentUsername();
   await prisma.$transaction(
     async (tx) => {
@@ -166,9 +226,38 @@ export async function reassignOwnedForms(
   });
 }
 
-// Cascade (ADR 0014): deleting a form deletes its entry pages.
+// Cascade (ADR 0014): deleting a form deletes its entry pages — which is why
+// it stops at the same rung as editing the definition, and not at the writing.
 export async function deleteFormById(id: string): Promise<void> {
+  await assertFormStructuring(await ownerOf(id));
   await prisma.form.delete({ where: { id } });
+}
+
+// --- « Appliquer aux fiches existantes » -------------------------------------
+
+// The one path from a form's defaults to the fiches already written with it
+// (ADR 0026): the copy made at creation is never a link, so nothing else
+// reaches them. The rules travel in rather than being read back, because the
+// tab poses them and the save carries them in the same gesture.
+
+export async function countFormDefaults(
+  slug: string,
+  permissions: FormPermissions
+): Promise<EntryRightsImpact | null> {
+  const form = await getFormBySlug(slug);
+  if (!form) return null;
+  await assertFormStructuring(form);
+  return countEntryRightsImpact(form.id, permissions);
+}
+
+export async function applyFormDefaults(
+  slug: string,
+  permissions: FormPermissions
+): Promise<void> {
+  const form = await getFormBySlug(slug);
+  if (!form) throw new Error("Ce formulaire n'existe plus.");
+  await assertFormStructuring(form);
+  await applyFormDefaultsToEntries(form.id, permissions);
 }
 
 /**
@@ -182,6 +271,7 @@ export async function renameFormSlug(
   rename: SlugRename,
   referenceProps: ReadonlyMap<string, ReadonlySet<string>>
 ): Promise<void> {
+  await assertFormStructuring(await ownerOf(formId));
   await prisma.$transaction(
     async (tx) => {
       await tx.form.update({

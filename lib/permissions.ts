@@ -150,16 +150,26 @@ export function pageRule(page: PageRights, kind: PermKind): AccessRule {
 }
 
 /**
- * The floor under every right on a page. The null test is not a formality: a
- * visitor's `username` is null too, so comparing the two straight would hand
- * every unowned page — every seeded one — to anyone at all.
+ * « Son propriétaire ou un administrateur », wherever it is posed — under the
+ * rights of a page, and under the definition of a form. One function because
+ * it is one rule: what changes from one to the next is only what it is posed
+ * on, and two spellings of it would disagree the day one of them moved.
+ *
+ * The null test is not a formality: a visitor's `username` is null too, so
+ * comparing the two straight would hand every unowned subject — every seeded
+ * page — to anyone at all.
  */
+export function ownsSubject(actor: Actor, ownerUsername: string | null): boolean {
+  if (isAdmin(actor)) return true;
+  return ownerUsername !== null && actor.username === ownerUsername;
+}
+
+/** The floor under every right on a page. */
 export function ownsPage(
   actor: Actor,
   page: Pick<PageRights, "ownerUsername">
 ): boolean {
-  if (isAdmin(actor)) return true;
-  return page.ownerUsername !== null && actor.username === page.ownerUsername;
+  return ownsSubject(actor, page.ownerUsername);
 }
 
 /**
@@ -391,15 +401,22 @@ export function aclFloorLabels(floor: AclFloor): {
   };
 }
 
-/** The floor as a list names people: what it covers cannot be added to it. */
-export function aclFloorPrincipals(floor: AclFloor): {
-  usernames: string[];
-  groupSlugs: string[];
-} {
+/**
+ * What a floor covers, by the names a right stores. Takes the username rather
+ * than the floor, because that is all a row can be compared against: a fiche
+ * read by the formful carries an `ownerUsername` and no display name, and the
+ * comparison must not depend on one.
+ */
+export function coveredPrincipals(ownerUsername: string | null): PrincipalList {
   return {
-    usernames: floor.owner === null ? [] : [floor.owner.username],
+    usernames: ownerUsername === null ? [] : [ownerUsername],
     groupSlugs: [ADMINS_GROUP.slug],
   };
+}
+
+/** The floor as a list names people: what it covers cannot be added to it. */
+export function aclFloorPrincipals(floor: AclFloor): PrincipalList {
+  return coveredPrincipals(floor.owner?.username ?? null);
 }
 
 /**
@@ -413,7 +430,14 @@ export function withoutFloor(
   acls: readonly AclEntry[],
   floor: AclFloor
 ): AclEntry[] {
-  const covered = aclFloorPrincipals(floor);
+  return withoutCovered(acls, aclFloorPrincipals(floor));
+}
+
+/** The same drop, where the floor is known by its names alone. */
+export function withoutCovered(
+  acls: readonly AclEntry[],
+  covered: PrincipalList
+): AclEntry[] {
   return acls.filter(
     (acl) =>
       !(acl.username !== null && covered.usernames.includes(acl.username)) &&
@@ -481,6 +505,16 @@ export function ownerLine(ownerName: string | null): string {
  */
 export const WRITE_REFUSED = "Vous n'avez pas le droit de modifier cette page.";
 export const CREATE_REFUSED = "Vous n'avez pas le droit de créer une page sur ce wiki.";
+/**
+ * Creating a fiche reads the form's own rule and not the wiki's: a form
+ * decides who may add to it (docs/permissions.md § Formulaire), which is what
+ * makes « chacun propose un événement » possible on a wiki that does not hand
+ * out pages.
+ */
+export const CREATE_ENTRY_REFUSED =
+  "Vous n'avez pas le droit de créer une fiche avec ce formulaire.";
+export const FORM_EDIT_REFUSED =
+  "Seuls le propriétaire du formulaire et les administrateurs peuvent le modifier.";
 export const RIGHTS_REFUSED =
   "Seuls le propriétaire et les administrateurs peuvent modifier les droits d'une page.";
 export const DELETE_REFUSED =
