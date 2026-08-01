@@ -324,10 +324,11 @@ export function aclFloorPrincipals(floor: AclFloor): {
 }
 
 /**
- * Drops what the floor already covers. Such a row grants nothing — it is one
- * of the two the owner and the administrators hold whatever the scope says —
- * and it can appear without anyone asking: a right posed before the page
- * changed hands names its owner today (ADR 0024 keeps no id to notice with).
+ * Drops what the floor already covers: such a row grants nothing, the owner
+ * and the administrators holding their access whatever the scope says. It
+ * appears without anyone writing it — handing the page to someone the list
+ * already named turns their line into a duplicate of the floor, and so does a
+ * configured default naming @Admins.
  */
 export function withoutFloor(
   acls: readonly AclEntry[],
