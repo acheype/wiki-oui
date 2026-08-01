@@ -27,6 +27,7 @@ import { InviteDialog } from "@/components/users/invite-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useDirectKeyboard } from "@/components/ui/use-direct-keyboard";
 import {
   ACCOUNT_FILTERS,
   type AccountFilter,
@@ -57,24 +58,7 @@ export function UsersAdmin() {
     signedInUsername().then(setMe);
   }, []);
 
-  // Direct-keyboard filter (docs/forms.md): typing anywhere fills the filter
-  // without clicking it first.
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key.length !== 1) return;
-      const active = document.activeElement;
-      if (
-        active instanceof HTMLInputElement ||
-        active instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-      filterRef.current?.focus();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  useDirectKeyboard(filterRef);
 
   const searched = needle.trim().toLowerCase();
   const matches = (...fields: string[]) =>

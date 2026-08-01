@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useDirectKeyboard } from "@/components/ui/use-direct-keyboard";
 import { formatDateTime } from "@/lib/format";
 import { FormBuilder } from "./form-builder";
 
@@ -57,21 +58,7 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
     listForms().then(setForms);
   }, []);
 
-  // Direct-keyboard filter (docs/forms.md): typing anywhere fills the filter
-  // without clicking it first.
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key.length !== 1) return;
-      const active = document.activeElement;
-      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
-        return;
-      }
-      filterRef.current?.focus();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  useDirectKeyboard(filterRef);
 
   const visible = (forms ?? []).filter((form) =>
     form.name.toLowerCase().includes(filter.trim().toLowerCase())
