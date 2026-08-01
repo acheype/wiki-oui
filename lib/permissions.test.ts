@@ -19,6 +19,7 @@ import {
   withoutFloor,
   ownsPage,
   pageGestures,
+  listReadableWhere,
   readableWhere,
   ownerTransferNote,
   ownerTransferWarning,
@@ -387,7 +388,10 @@ describe("withoutFloor", () => {
 // check reads, by an interpreter of the handful of shapes they are built from
 // — anything else throws rather than passing by default.
 
-function whereMatches(where: Prisma.PageWhereInput, subject: PageRights): boolean {
+function whereMatches(
+  where: Prisma.PageWhereInput,
+  subject: PageRights & { slug?: string }
+): boolean {
   return Object.entries(where).every(([key, condition]) => {
     switch (key) {
       case "OR":
@@ -406,6 +410,10 @@ function whereMatches(where: Prisma.PageWhereInput, subject: PageRights): boolea
         const some = (condition as { some: Prisma.PageAclWhereInput }).some;
         return subject.acls.some((acl) => aclMatches(some, acl));
       }
+      case "slug":
+        // The account pages, named one by one: the only branch that speaks of
+        // a page rather than of a right.
+        return (condition as { in: string[] }).in.includes(subject.slug ?? "");
       default:
         throw new Error(`unknown clause key "${key}"`);
     }
@@ -485,4 +493,28 @@ describe("the filter clause and the unit decision", () => {
       });
     }
   }
+});
+
+describe("the read clause of a list", () => {
+  const ALWAYS = ["connexion", "inscription"];
+
+  // Prisma drops an empty branch from an OR, so wrapping an administrator's
+  // clause — which is empty, they read everything — would leave only the
+  // account pages, hiding the whole wiki from whoever has the most rights.
+  it("hands an administrator's clause back untouched, never inside an OR", () => {
+    expect(listReadableWhere(ADMIN, ALWAYS)).toEqual({});
+  });
+
+  it("opens the account pages to whoever the rights would refuse", () => {
+    const where = listReadableWhere(VISITOR, ALWAYS);
+    const closed = page({ ownerUsername: null, readScope: "restricted", writeScope: "restricted" });
+    expect(whereMatches(where, closed)).toBe(false);
+    expect(whereMatches(where, { ...closed, slug: "connexion" })).toBe(true);
+  });
+
+  it("still lets an administrator through every page", () => {
+    const where = listReadableWhere(ADMIN, ALWAYS);
+    const refused = everyPage().filter((subject) => !whereMatches(where, subject));
+    expect(refused).toEqual([]);
+  });
 });

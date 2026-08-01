@@ -43,6 +43,7 @@ import {
   ownsPage,
   pageGestures,
   pageRule,
+  listReadableWhere,
   readableWhere,
   ruleAllows,
   storedRights,
@@ -136,12 +137,7 @@ export function isRefused<T extends object>(
  * come out right mechanically, working on what actually arrived.
  */
 export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
-  return {
-    OR: [
-      readableWhere(await currentActor()),
-      { slug: { in: [...ALWAYS_READABLE] } },
-    ],
-  };
+  return listReadableWhere(await currentActor(), ALWAYS_READABLE);
 }
 
 /** A single page's read decision — the lists get a `where` instead. */

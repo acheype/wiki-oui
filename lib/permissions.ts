@@ -280,6 +280,26 @@ export function readableWhere(actor: Actor): Prisma.PageWhereInput {
   return { OR: [...writeBranches(actor), ...scopeBranches(actor, "READ")] };
 }
 
+/**
+ * What a list filters on: what the actor may read, plus the handful of pages
+ * that answer to everyone whatever is posed on them (the account screens —
+ * signing in has to work where the content refuses).
+ *
+ * An administrator's clause is empty, and is handed back as it is rather than
+ * joined to the rest: **Prisma drops an empty branch from an `OR`**, so the
+ * `OR` would keep the account pages alone — hiding the whole wiki from
+ * whoever has the most rights. It is the one composition where an empty
+ * clause means « everything » to us and « nothing » to the query builder.
+ */
+export function listReadableWhere(
+  actor: Actor,
+  alwaysReadable: readonly string[]
+): Prisma.PageWhereInput {
+  const readable = readableWhere(actor);
+  if (Object.keys(readable).length === 0) return readable;
+  return { OR: [readable, { slug: { in: [...alwaysReadable] } }] };
+}
+
 // --- what a page stores ------------------------------------------------------
 
 /** The columns and rows a page carries its rights in, ready to be written. */
