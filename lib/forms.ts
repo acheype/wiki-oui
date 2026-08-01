@@ -8,7 +8,7 @@ import {
 } from "@/lib/entry-title-db";
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
-  PUBLIC_IDENTITY,
+  WITH_RIGHTS,
   currentReadableWhere,
 } from "@/lib/pages";
 import { currentUsername } from "@/lib/permissions-db";
@@ -69,8 +69,10 @@ export async function listFormsWithEntries(slugs: string[]) {
       entries: {
         where: await currentReadableWhere(),
         // `owner` feeds the $owner pseudo-field of <EntriesView>: the display
-        // name, read live so a rename shows through (ADR 0024).
-        include: { current: true, owner: PUBLIC_IDENTITY },
+        // name, read live so a rename shows through (ADR 0024). The rights
+        // ride along because the Tableau offers a gesture on each row, and
+        // an offer nobody can take up informs nobody.
+        include: { current: true, ...WITH_RIGHTS },
         orderBy: { createdAt: "desc" },
       },
     },

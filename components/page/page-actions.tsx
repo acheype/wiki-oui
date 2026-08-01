@@ -63,8 +63,12 @@ export function PageActions({
             <TransferOwnershipButton slug={slug} />
           </>
         )}
-        {!special && gestures.address && <RenamePageButton slug={slug} />}
-        {!special && gestures.structuring && <DeletePageButton slug={slug} />}
+        {!special && (
+          <>
+            {gestures.address && <RenamePageButton slug={slug} />}
+            {gestures.structuring && <DeletePageButton slug={slug} />}
+          </>
+        )}
       </div>
     </div>
   );

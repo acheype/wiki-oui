@@ -182,16 +182,16 @@ export function canRead(actor: Actor, page: PageRights): boolean {
  * travels, not a hierarchy of people.
  */
 export interface PageGestures {
-  /** Éditer · restaurer une révision · poser des tags. */
+  /** Editing, restoring a revision, posing tags. */
   write: boolean;
   /**
-   * Supprimer · modifier les droits · transmettre la propriété. Whoever may
-   * write can blank a page anyway — but the history survives a blanking, not
-   * a deletion, and opening the writing must not let someone shut the owner
-   * out of their own page.
+   * Deleting, posing the rights, handing the page on — « les gestes
+   * structurants ». Whoever may write can blank a page anyway, but the
+   * history survives a blanking and not a deletion, and opening the writing
+   * must not let someone shut the owner out of their own page.
    */
   structuring: boolean;
-  /** Changer l'adresse (ADR 0016: retcons references across the whole wiki). */
+  /** Changing the address (ADR 0016: retcons references across the wiki). */
   address: boolean;
 }
 
@@ -406,6 +406,9 @@ export const TRANSFER_REFUSED =
   "Seuls le propriétaire et les administrateurs peuvent transmettre la propriété d'une page.";
 export const ADDRESS_REFUSED =
   "Seuls les administrateurs peuvent changer l'adresse d'une page.";
+/** The account named to receive a page has gone since the list was read. */
+export const UNKNOWN_RECIPIENT =
+  "Ce compte n'existe pas ou plus : la page n'a pas changé de propriétaire.";
 export const UPLOAD_REFUSED =
   "Vous n'avez pas le droit de déposer un fichier sur ce wiki.";
 

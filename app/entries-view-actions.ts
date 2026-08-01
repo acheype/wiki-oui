@@ -11,6 +11,8 @@ import type { EntryFieldChoice } from "@/lib/entry-fields";
 import type { ViewEntry } from "@/lib/entries-view";
 import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
 import { listFormsWithEntries } from "@/lib/forms";
+import { actorGestures } from "@/lib/pages";
+import type { PageGestures } from "@/lib/permissions";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
   sampleEntries,
@@ -39,6 +41,13 @@ export interface EntriesViewData {
   sample: boolean;
   /** slug → name of the chosen forms ($form labels). */
   formNames: Record<string, string>;
+  /**
+   * slug → what the actor may do to that entry, for the views that offer a
+   * gesture per row. Beside the entries rather than inside them: what a view
+   * searches, sorts and filters on is the entry's own values, and a right is
+   * not one of them.
+   */
+  gestures: Record<string, PageGestures>;
 }
 
 export async function getEntriesViewData(
@@ -54,6 +63,7 @@ export async function getEntriesViewData(
       entries: sampleEntries(FALLBACK_SAMPLE_DESCRIPTOR, today),
       sample: true,
       formNames: {},
+      gestures: {},
     };
   }
 
@@ -111,9 +121,20 @@ export async function getEntriesViewData(
         entries: sampleEntries(parsed.descriptor, today, ordered[0].slug),
         sample: true,
         formNames,
+        gestures: {},
       };
     }
   }
 
-  return { fields: kept, entries, sample: false, formNames };
+  // Decided here rather than in the row: the actor is resolved once for the
+  // request (lib/permissions-db), and the rules are pure — so a formful of
+  // entries costs the loop and nothing else.
+  const gestures: Record<string, PageGestures> = {};
+  for (const form of ordered) {
+    for (const page of form.entries) {
+      gestures[page.slug] = await actorGestures(page);
+    }
+  }
+
+  return { fields: kept, entries, sample: false, formNames, gestures };
 }

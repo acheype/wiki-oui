@@ -10,6 +10,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
 import {
+  actorGestures,
   countPageSlugReferences,
   deletePageById,
   getPage,
@@ -28,7 +29,6 @@ import {
   type Identity,
   refusalMessage,
 } from "@/lib/permissions";
-import { isCurrentAdmin } from "@/lib/permissions-db";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -116,9 +116,6 @@ export async function renamePage(
   slug: string,
   newSlug: string
 ): Promise<ActionError | void> {
-  // Asked here rather than read back from the catch below, which speaks for
-  // the rename's own failure — a unique-constraint race on the new slug.
-  if (!(await isCurrentAdmin())) return { error: ADDRESS_REFUSED };
   if (specialSlugs.includes(slug)) {
     return { error: "L'adresse d'une page spéciale ne peut pas être changée." };
   }
@@ -133,6 +130,13 @@ export async function renamePage(
   const page = await getPage(slug);
   if (!page) {
     return { error: "Cette page n'existe pas." };
+  }
+  // Read from the same ladder the bar draws itself from, and read here rather
+  // than from the catch below — which speaks for the rename's own failure, a
+  // unique-constraint race on the new slug. It comes before the clash test
+  // too, that being the one answer which says something about another page.
+  if (!(await actorGestures(page)).address) {
+    return { error: ADDRESS_REFUSED };
   }
   if (await getPage(newSlug)) {
     return { error: `L'adresse «\u00A0${newSlug}\u00A0» est déjà utilisée.` };
@@ -179,9 +183,20 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   redirect(`/${wikiConfig.homeSlug}`);
 }
 
-/** Who the « Transmettre la propriété » modal offers, once it is opened. */
-export async function loadOwnerCandidates(slug: string): Promise<Identity[]> {
-  return listOwnerCandidates(slug);
+/**
+ * Who the « Transmettre la propriété » modal offers, once it is opened. The
+ * refusal travels as a value rather than as a throw: it would otherwise cross
+ * the Server Action boundary as a render error, leaving the modal on
+ * « Chargement… » for good — the shape a right that went away takes.
+ */
+export async function loadOwnerCandidates(
+  slug: string
+): Promise<ActionError | { candidates: Identity[] }> {
+  try {
+    return { candidates: await listOwnerCandidates(slug) };
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
 }
 
 /**

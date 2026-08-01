@@ -14,6 +14,7 @@ import {
   DELETE_REFUSED,
   RIGHTS_REFUSED,
   TRANSFER_REFUSED,
+  UNKNOWN_RECIPIENT,
   WRITE_REFUSED,
   canRead,
   canWrite,
@@ -70,8 +71,12 @@ const ACL_ROWS = {
   select: { kind: true, username: true, groupSlug: true },
 } as const;
 
-/** What deciding on a page needs, plus the name a refusal would print. */
-const WITH_RIGHTS = {
+/**
+ * What deciding on a page needs, plus the name a refusal would print. Shared
+ * with lib/forms.ts, which loads entries by the formful: a screen that offers
+ * a gesture per row has to know the rights of every one of them.
+ */
+export const WITH_RIGHTS = {
   owner: PUBLIC_IDENTITY,
   acls: ACL_ROWS,
 } as const;
@@ -177,6 +182,21 @@ async function assertStructuring(
  */
 async function assertAddress(): Promise<void> {
   if (!isAdmin(await currentActor())) throw new Error(ADDRESS_REFUSED);
+}
+
+/**
+ * The page a structuring gesture is about to act on, read with what deciding
+ * needs and refused on the spot. Four gestures ask for it, and asking is the
+ * whole of what they share — hence one function rather than an assertion each
+ * of them has to remember to call after its own query.
+ */
+async function structuredPage(slug: string, refusal: string) {
+  const page = await prisma.page.findUniqueOrThrow({
+    where: { slug },
+    include: WITH_RIGHTS,
+  });
+  await assertStructuring(page, refusal);
+  return page;
 }
 
 /**
@@ -505,19 +525,15 @@ export async function deletePageById(id: string): Promise<void> {
  * business seeing it.
  */
 export async function listOwnerCandidates(slug: string): Promise<Identity[]> {
-  const page = await prisma.page.findUniqueOrThrow({
-    where: { slug },
-    include: WITH_RIGHTS,
-  });
-  await assertStructuring(page, TRANSFER_REFUSED);
+  const page = await structuredPage(slug, TRANSFER_REFUSED);
   const { people } = await listDirectory();
   return people.filter((person) => person.username !== page.ownerUsername);
 }
 
 /**
  * « Transmettre la propriété » (docs/permissions.md § Quel droit commande quel
- * geste): sans retour for whoever gives it away — nothing hands the page back,
- * and the confirmation says so before the click.
+ * geste): there is no way back for whoever gives it away — nothing hands the
+ * page over again, and the confirmation says so before the click.
  *
  * Only the ownership moves. The revisions keep their authors: rewriting who
  * wrote what would be a lie the history cannot carry.
@@ -526,11 +542,15 @@ export async function transferPageOwnership(
   slug: string,
   toUsername: string
 ): Promise<void> {
-  const page = await prisma.page.findUniqueOrThrow({
-    where: { slug },
-    include: WITH_RIGHTS,
+  const page = await structuredPage(slug, TRANSFER_REFUSED);
+  // Whom the client names is checked before it reaches the column: an unknown
+  // username would come back as a foreign-key failure, and the refusal a
+  // screen prints has to be one this wiki wrote.
+  const known = await existingPrincipals({
+    usernames: [toUsername],
+    groupSlugs: [],
   });
-  await assertStructuring(page, TRANSFER_REFUSED);
+  if (!known.usernames.has(toUsername)) throw new Error(UNKNOWN_RECIPIENT);
   await prisma.$transaction(async (tx) => {
     await tx.page.update({
       where: { id: page.id },
@@ -581,6 +601,9 @@ export interface PageRightsView {
 }
 
 export async function getPageRights(slug: string): Promise<PageRightsView | null> {
+  // The one caller that answers null rather than throwing: the modal opens on
+  // a page the bar was drawn from, and a page deleted in between is not a
+  // refusal to print.
   const page = await prisma.page.findUnique({
     where: { slug },
     include: WITH_RIGHTS,
@@ -606,11 +629,7 @@ export async function setPageRights(
   read: AccessRule,
   write: AccessRule
 ): Promise<void> {
-  const page = await prisma.page.findUniqueOrThrow({
-    where: { slug },
-    include: WITH_RIGHTS,
-  });
-  await assertStructuring(page, RIGHTS_REFUSED);
+  const page = await structuredPage(slug, RIGHTS_REFUSED);
   const rights = storedRights(read, write);
   const kept = withoutFloor(rights.acls, pageFloor(page));
   await prisma.$transaction(async (tx) => {

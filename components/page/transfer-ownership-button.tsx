@@ -38,7 +38,14 @@ export function TransferOwnershipButton({ slug }: { slug: string }) {
     setCandidates(null);
     setChosen(null);
     setQuery("");
-    loadOwnerCandidates(slug).then(setCandidates);
+    loadOwnerCandidates(slug).then((result) => {
+      if ("error" in result) {
+        setOpen(false);
+        toast.error(result.error);
+        return;
+      }
+      setCandidates(result.candidates);
+    });
   }
 
   function confirm() {
@@ -120,8 +127,10 @@ export function TransferOwnershipButton({ slug }: { slug: string }) {
           </div>
         )}
 
-        {/* Sans retour pour celui qui donne, et la confirmation le dit
-            (docs/permissions.md § Quel droit commande quel geste). */}
+        {/* Shown whoever is transferring, and shown before the choice is
+            made: there is no way back for the one who gives, and the
+            confirmation is where the spec says so (docs/permissions.md
+            § Quel droit commande quel geste). */}
         <p className="flex gap-2 text-sm text-muted-foreground">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>

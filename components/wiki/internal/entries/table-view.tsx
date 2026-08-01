@@ -24,6 +24,7 @@ import {
 import { entryValue } from "@/lib/entries-view";
 import type { ViewEntry } from "@/lib/entries-view";
 import { imageUrl } from "@/lib/image-url";
+import type { PageGestures } from "@/lib/permissions";
 import { SAMPLE_IMAGE } from "@/lib/sample-entries";
 import { cn } from "@/lib/utils";
 import type { ViewContext } from "./types";
@@ -165,7 +166,11 @@ function Row({
         </td>
       ))}
       {context.props.actionsColumn === true && (
-        <ActionsCell entry={entry} sample={context.data.sample} />
+        <ActionsCell
+          entry={entry}
+          sample={context.data.sample}
+          gestures={rowGestures(context, entry.slug)}
+        />
       )}
     </tr>
   );
@@ -207,65 +212,103 @@ function CellValue({
   return <>{context.textOf(entry, column.field)}</>;
 }
 
-function ActionsCell({ entry, sample }: { entry: ViewEntry; sample: boolean }) {
+/** A sample row previews the column: both buttons, neither doing anything. */
+const SAMPLE_ROW: PageGestures = {
+  write: true,
+  structuring: true,
+  address: false,
+};
+/** What a row nothing was decided for offers — the safe way round. */
+const NOTHING_OFFERED: PageGestures = {
+  write: false,
+  structuring: false,
+  address: false,
+};
+
+function rowGestures(context: ViewContext, slug: string): PageGestures {
+  if (context.data.sample) return SAMPLE_ROW;
+  return context.data.gestures[slug] ?? NOTHING_OFFERED;
+}
+
+// Modifier and Supprimer are actions, and an action nobody can take up is
+// absent rather than greyed out (docs/permissions.md § Ce que voit qui n'a pas
+// le droit) — the same rule that draws a page's own action bar, on the rows of
+// a Tableau. A cell can end up empty, which is what « rien à faire ici » looks
+// like.
+function ActionsCell({
+  entry,
+  sample,
+  gestures,
+}: {
+  entry: ViewEntry;
+  sample: boolean;
+  gestures: PageGestures;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [deleted, setDeleted] = useState(false);
   if (deleted) return <td />;
   return (
     <td className="px-2 py-1.5 text-right whitespace-nowrap">
-      <Button
-        asChild
-        variant="ghost"
-        size="icon"
-        className="size-7"
-        aria-label="Modifier la fiche"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <a href={sample ? undefined : `/${entry.slug}/edit`}>
-          <Pencil className="size-3.5" />
-        </a>
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="size-7 text-muted-foreground hover:text-destructive"
-        aria-label="Supprimer la fiche"
-        onClick={(event) => {
-          event.stopPropagation();
-          if (!sample) setConfirming(true);
-        }}
-      >
-        <Trash2 className="size-3.5" />
-      </Button>
-      <AlertDialog open={confirming} onOpenChange={setConfirming}>
-        <AlertDialogContent onClick={(event) => event.stopPropagation()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cette fiche ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              «&nbsp;{entry.title}&nbsp;» et son historique seront supprimés
-              définitivement.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction
-              // Deleting stops at the owner and the administrators
-              // (docs/permissions.md): a row that vanished on a refusal would
-              // report a deletion the wiki did not make.
-              onClick={async () => {
-                const result = await deletePage(entry.slug);
-                if (result?.error) {
-                  toast.error(result.error);
-                  return;
-                }
-                setDeleted(true);
-              }}
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {gestures.write && (
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="size-7"
+          aria-label="Modifier la fiche"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <a href={sample ? undefined : `/${entry.slug}/edit`}>
+            <Pencil className="size-3.5" />
+          </a>
+        </Button>
+      )}
+      {gestures.structuring && (
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-destructive"
+            aria-label="Supprimer la fiche"
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!sample) setConfirming(true);
+            }}
+          >
+            <Trash2 className="size-3.5" />
+          </Button>
+          <AlertDialog open={confirming} onOpenChange={setConfirming}>
+            <AlertDialogContent onClick={(event) => event.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Supprimer cette fiche ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  «&nbsp;{entry.title}&nbsp;» et son historique seront
+                  supprimés définitivement.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction
+                  // The row is only offered to whoever may delete it, so
+                  // reaching a refusal means the right went away in between —
+                  // and a row that vanished anyway would report a deletion
+                  // the wiki did not make.
+                  onClick={async () => {
+                    const result = await deletePage(entry.slug);
+                    if (result?.error) {
+                      toast.error(result.error);
+                      return;
+                    }
+                    setDeleted(true);
+                  }}
+                >
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
+      )}
     </td>
   );
 }
