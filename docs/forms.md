@@ -73,7 +73,7 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 - champ **`title` présent par défaut** dans tout nouveau formulaire, non supprimable (voir « Titre & slug ») ;
 - en-tête : bouton Enregistrer aligné sur la rangée du champ Nom ; dessous, la ligne Identifiant — chip éditable en place dérivé du nom à la création (règle commune des identités), chip + petit bouton « Changer » à l'édition (dialogue de renommage ADR 0016, sans avertissement : les URLs `?id=` sont des écrans d'admin, l'accès normal passe par les composants des pages wiki) ;
 - onglet/section **Gabarit** : éditeur CodeMirror existant (coloration MDX, barre d'outils, aide-mémoire) + **aperçu** rendu sur des valeurs d'exemple, via la mécanique d'aperçu existante ;
-- onglet **Droits** : qui peut créer une fiche, et les droits de lecture et d'écriture qu'une fiche reçoit à sa naissance — voir [`permissions.md`](permissions.md) § Formulaire. Éditer la définition d'un formulaire y est réservé à son propriétaire ou à un administrateur ;
+- onglet **Accès** : qui peut créer une fiche, et l'accès en lecture et en écriture qu'une fiche reçoit à sa naissance — voir [`permissions.md`](permissions.md) § Formulaire. Éditer la définition d'un formulaire y est réservé à son propriétaire ou à un administrateur ;
 - **Enregistrer** valide le descripteur par le méta-schéma Zod + les règles croisées, avec messages ciblés.
 
 ### Validation à l'enregistrement du formulaire

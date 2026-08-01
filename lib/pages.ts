@@ -632,7 +632,7 @@ export async function getPageRights(slug: string): Promise<PageRightsView | null
 }
 
 /**
- * What the « Droits » modal saves. The list is rewritten rather than diffed:
+ * What the « Accès » modal saves. The list is rewritten rather than diffed:
  * it is the whole of what the widget shows, and a page carries a handful of
  * lines at most. No revision is minted — rights live on the Page and are not
  * historized, like tags (ADR 0007).
@@ -829,7 +829,8 @@ export async function handPagesTo(
 
 // --- a form's defaults, over the fiches already there -------------------------
 
-// « Appliquer aux fiches existantes » (docs/permissions.md § Défauts): the one
+// Applying a form's defaults to the fiches already there (docs/permissions.md
+// § Défauts): the one
 // path from a default to what already exists, since the copy made at creation
 // is never a link (ADR 0026). Both halves read the same pure function, so the
 // numbers the confirmation announced are the ones the write then produces.
@@ -875,7 +876,7 @@ export async function countEntryRightsImpact(
  * actually move — the two counts the confirmation showed, reached from the
  * other end.
  *
- * The list is rewritten rather than diffed, as the « Droits » modal rewrites
+ * The list is rewritten rather than diffed, as the « Accès » modal rewrites
  * one: this is a replacement, and the confirmation says so before the click.
  */
 export async function applyFormDefaultsToEntries(

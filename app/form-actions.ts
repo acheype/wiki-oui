@@ -101,7 +101,7 @@ export interface FormDetail {
   name: string;
   schema: FormDescriptor;
   template: string | null;
-  /** The « Droits » tab's three settings, the wiki's own for an old form. */
+  /** The « Accès » tab's three settings, the wiki's own for an old form. */
   permissions: FormPermissions;
   /** Whether this actor may save what the builder shows (owner or admin). */
   canEdit: boolean;
@@ -129,10 +129,9 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
 }
 
 /**
- * Who the « Droits » tab's lists may name. Read only once the actor is known
+ * Who the « Accès » tab's lists may name. Read only once the actor is known
  * to have business posing a right — the whole membership of the wiki is not a
- * visitor's affair, and a form nobody may edit needs no picker at all. A null
- * slug is a form being created, where being signed in is all there is to go on.
+ * visitor's affair, and a form nobody may edit needs no picker at all.
  */
 export async function listRightsDirectory(
   formSlug: string | null
@@ -153,11 +152,11 @@ export async function canAddForm(): Promise<boolean> {
 }
 
 /**
- * « Appliquer aux fiches existantes » (docs/permissions.md § Défauts), both
- * halves. The rules counted against are the ones the tab shows, not the ones
- * in base: the confirmation leads to a save, so what it announces is what the
- * form is about to hold. Null when the form has gone, or when the actor may
- * not edit it — the button was not on offer either way.
+ * Applying a form's defaults to the fiches already there (docs/permissions.md
+ * § Défauts), both halves. The rules counted against are the ones the tab
+ * shows, not the ones in base: the confirmation leads to a save, so what it
+ * announces is what the form is about to hold. Null when the form has gone, or
+ * when the actor may not edit it — the button was not on offer either way.
  */
 export type EntryDefaultsCount =
   | { error: string }

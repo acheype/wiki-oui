@@ -117,8 +117,8 @@ const freshId = () => `field-${nextId++}`;
 /**
  * Which button asked for a save. The title-recompute confirmation sits
  * between the click and the write (ADR 0020), so what resumes on the other
- * side of it has to be remembered — « Appliquer aux fiches existantes » saves
- * too, and must not come back as a plain save.
+ * side of it has to be remembered — applying the defaults saves too, and must
+ * not come back as a plain save.
  */
 type SaveIntent = "save" | "apply";
 
@@ -178,7 +178,7 @@ export function FormBuilder({
   initial: FormDetail | null;
   /** Other forms, for the form-list and options-source pickers. */
   forms: { slug: string; name: string }[];
-  /** Who the « Droits » tab's lists may name. */
+  /** Who the « Accès » tab's lists may name. */
   directory: AclDirectory;
   onSaved: (slug: string) => void;
   /** Called after « Changer l'identifiant », so the parent fixes its URL. */
@@ -207,7 +207,7 @@ export function FormBuilder({
   );
   /** Which save that confirmation is holding up, so it resumes the right one. */
   const [titleIntent, setTitleIntent] = useState<SaveIntent>("save");
-  /** Pending « Appliquer aux fiches existantes » awaiting confirmation. */
+  /** Pending « Appliquer ces accès… » awaiting confirmation. */
   const [defaultsImpact, setDefaultsImpact] =
     useState<EntryRightsImpact | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -345,7 +345,7 @@ export function FormBuilder({
       toast.error(result.error);
       return;
     }
-    toast.success("Formulaire enregistré, droits appliqués aux fiches.");
+    toast.success("Formulaire enregistré, accès appliqués aux fiches.");
     onSaved(slug);
   }
 
@@ -390,10 +390,10 @@ export function FormBuilder({
   }
 
   /**
-   * « Appliquer aux fiches existantes » (docs/permissions.md § Défauts): the
-   * one path from the defaults to what already exists. It counts against the
-   * rules the tab shows rather than those in base — the action saves the
-   * form on its way, so what the confirmation announces is what the form is
+   * Applying the defaults to the fiches already there (docs/permissions.md §
+   * Défauts): the one path from the defaults to what already exists. It counts
+   * against the rules the tab shows rather than those in base — the action
+   * saves the form on its way, so what the confirmation announces is what it is
    * about to hold, and the two cannot disagree.
    */
   function askToApply() {
@@ -465,7 +465,7 @@ export function FormBuilder({
         <TabsList>
           <TabsTrigger value="fields">Champs</TabsTrigger>
           <TabsTrigger value="template">Gabarit</TabsTrigger>
-          <TabsTrigger value="rights">Droits</TabsTrigger>
+          <TabsTrigger value="rights">Accès</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fields">
@@ -587,7 +587,7 @@ export function FormBuilder({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Appliquer ces droits aux fiches existantes ?
+              Appliquer ces accès aux fiches existantes ?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {defaultsImpact && (
@@ -637,7 +637,7 @@ function ImpactSentences({
 }
 
 /**
- * The « Droits » tab (docs/permissions.md § Formulaire : trois réglages, pas
+ * The « Accès » tab (docs/permissions.md § Formulaire : trois réglages, pas
  * deux). Three settings and not two: creating a fiche and modifying one
  * already there are distinct rights, and confusing them would break « chacun
  * propose un événement, chacun ne modifie que le sien ».
@@ -676,12 +676,11 @@ function RightsEditor({
       <div className="grid gap-4 border-t pt-4">
         <div>
           <p className="text-sm font-medium">
-            Droits par défaut d&apos;une fiche
+            Accès par défaut d&apos;une fiche
           </p>
           <InfoNote className="mt-1">
-            Recopiés sur chaque fiche à sa création, jamais liés : les changer
-            ici ne touche aucune fiche existante. La personne qui crée une fiche
-            en reste propriétaire et y garde accès.
+            Appliqué uniquement à la création d&apos;une fiche. Les fiches
+            existantes ne sont pas modifiées.
           </InfoNote>
         </div>
         <Field
@@ -698,11 +697,16 @@ function RightsEditor({
           environment={{ directory, aclFloor: NO_FLOOR }}
           onChange={(value) => set({ defaultEntryWrite: value as AccessRule })}
         />
+        {/* No rule of its own above it: the action belongs to the two settings
+            it applies, and a separator here made it read as a third section —
+            leaving « Qui peut créer une fiche ? » in the running for what it
+            was about. The label names them rather than saying « ces accès ». */}
         {onApply && (
-          <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+          <div className="grid gap-1.5">
             <Button
               type="button"
               variant="outline"
+              className="w-fit"
               disabled={applying}
               onClick={onApply}
             >
@@ -711,11 +715,12 @@ function RightsEditor({
               ) : (
                 <ShieldCheck />
               )}
-              Appliquer aux fiches existantes
+              Appliquer ces accès par défaut aux fiches existantes
             </Button>
             <p className="text-xs text-muted-foreground">
-              Enregistre le formulaire, puis remplace les droits de ses fiches.
-              Le nombre est annoncé avant.
+              Remplace l&apos;accès des fiches déjà créées par les deux réglages
+              ci-dessus. Le formulaire est enregistré au passage, et le nombre
+              de fiches touchées annoncé avant.
             </p>
           </div>
         )}

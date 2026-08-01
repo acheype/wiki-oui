@@ -159,7 +159,7 @@ const accessRuleSchema = z.object({
 export const formDescriptorSchema = z.object({
   fields: z.array(formFieldSchema),
   /**
-   * The « Droits » tab (docs/permissions.md § Formulaire : trois réglages,
+   * The « Accès » tab (docs/permissions.md § Formulaire : trois réglages,
    * pas deux). Optional: a form saved before the tab existed carries none,
    * and lib/form-rights.ts answers for it with the wiki's own defaults —
    * exactly what would have been copied at its creation.

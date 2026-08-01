@@ -143,12 +143,12 @@ Qui peut voir cette page ?
 
 ```
 Qui peut créer une fiche ?          → Les personnes connectées
-Droits par défaut d'une fiche
+Accès par défaut d'une fiche
   Qui peut la voir ?                → Tout le monde
   Qui peut la modifier ?            → Seulement  (= son propriétaire et les admins)
 ```
 
-Ces réglages vivent dans un **troisième onglet « Droits »** du FormBuilder, à côté de « Champs » et « Gabarit » — pas en bas du canvas, qui est la cible du drag & drop. Ils sont stockés dans `Form.schema.permissions`, aux côtés des champs :
+Ces réglages vivent dans un **troisième onglet « Accès »** du FormBuilder, à côté de « Champs » et « Gabarit » — pas en bas du canvas, qui est la cible du drag & drop. Ils sont stockés dans `Form.schema.permissions`, aux côtés des champs :
 
 ```ts
 permissions: {
@@ -176,12 +176,12 @@ Le défaut est `{ scope: "restricted" }` **sans liste**. Sur une règle posée s
 
 Le bouton « Nouveau formulaire » **disparaît** pour qui n'a pas le droit, et `?nouveau` tapé à la main répond le même refus plutôt qu'un builder qui échouerait à l'enregistrement. La vérification tient à la porte (`lib/forms.ts`), pas dans le bouton qui la masque.
 
-**« Appliquer aux fiches existantes »** est le seul chemin des défauts vers l'existant. Le bouton enregistre le formulaire, puis remplace les droits de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand l'action n'écrirait rien :
+**« Appliquer ces accès par défaut aux fiches existantes »** est le seul chemin des défauts vers l'existant. Le bouton **nomme les deux réglages qu'il applique** plutôt que de dire « ces accès » : « Qui peut créer une fiche ? » le surplombe, et resterait sinon dans la course. Il enregistre le formulaire, puis remplace l'accès de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand l'action n'écrirait rien :
 
 ```
-ⓘ 23 fiches recevront ces droits. Les leurs seront perdus.
-    7 fiches ont déjà ces droits — rien à changer.
-    2 fiches que vous ne gérez pas : leurs droits ne changent pas.
+ⓘ 23 fiches recevront cet accès. Leur accès actuel sera remplacé.
+    7 fiches ont déjà cet accès — rien à changer.
+    2 fiches que vous ne gérez pas : leur accès ne change pas.
 ```
 
 La dernière ligne est le cran des actions structurantes, tenu fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser l'action entière. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « que vous ne gérez pas » plutôt que « à quelqu'un d'autre », qui nommerait une personne inexistante.
@@ -206,7 +206,7 @@ wiki.config.ts  ──copie à la création du formulaire──▶  Form
 Form            ──copie à la création de la fiche────▶  Page
 ```
 
-La même action aux deux étages (ADR 0026). Modifier un défaut ne touche rien de ce qui existe ; le seul chemin vers l'existant est un bouton explicite « Appliquer aux fiches existantes », à confirmation chiffrée — motif des recalculs de masse des ADR 0017 et 0020.
+La même action aux deux étages (ADR 0026). Modifier un défaut ne touche rien de ce qui existe ; le seul chemin vers l'existant est un bouton explicite « Appliquer ces accès par défaut aux fiches existantes », à confirmation chiffrée — motif des recalculs de masse des ADR 0017 et 0020.
 
 ```ts
 permissions: {

@@ -221,27 +221,26 @@ describe("what the confirmation announces", () => {
   it("counts in what changes, and warns that the rest is lost", () => {
     const note = entryRightsNote({ total: 30, changed: 23, unchanged: 7, refused: 0 });
     expect(note.headline).toBe(
-      "23 fiches recevront ces droits. Les leurs seront perdus."
+      "23 fiches recevront cet accès. Leur accès actuel sera remplacé."
     );
-    expect(note.lines).toEqual(["7 fiches ont déjà ces droits — rien à changer."]);
+    expect(note.lines).toEqual(["7 fiches ont déjà cet accès — rien à changer."]);
   });
 
-  // « Les leurs » at one fiche names a crowd of one: the possessive agrees
-  // with the count, exactly as the verb beside it does.
+  // The possessive agrees with the count, exactly as the verb beside it does.
   it("agrees with itself at one fiche, verb and possessive alike", () => {
     const note = entryRightsNote({ total: 2, changed: 1, unchanged: 1, refused: 0 });
     expect(note.headline).toBe(
-      "1 fiche recevra ces droits. Les siens seront perdus."
+      "1 fiche recevra cet accès. Son accès actuel sera remplacé."
     );
-    expect(note.lines).toEqual(["1 fiche a déjà ces droits — rien à changer."]);
+    expect(note.lines).toEqual(["1 fiche a déjà cet accès — rien à changer."]);
   });
 
   it("says outright when the action would change nothing", () => {
     const note = entryRightsNote({ total: 5, changed: 0, unchanged: 3, refused: 2 });
-    expect(note.headline).toBe("Aucune fiche ne change de droits.");
+    expect(note.headline).toBe("Aucune fiche ne change d'accès.");
     expect(note.lines).toEqual([
-      "3 fiches ont déjà ces droits — rien à changer.",
-      "2 fiches que vous ne gérez pas : leurs droits ne changent pas.",
+      "3 fiches ont déjà cet accès — rien à changer.",
+      "2 fiches que vous ne gérez pas : leur accès ne change pas.",
     ]);
   });
 
@@ -250,7 +249,7 @@ describe("what the confirmation announces", () => {
   it("says nothing about an owner an unowned fiche does not have", () => {
     const note = entryRightsNote({ total: 1, changed: 0, unchanged: 0, refused: 1 });
     expect(note.lines).toEqual([
-      "1 fiche que vous ne gérez pas : ses droits ne changent pas.",
+      "1 fiche que vous ne gérez pas : son accès ne change pas.",
     ]);
   });
 });

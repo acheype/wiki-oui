@@ -103,7 +103,7 @@ function joinNames(names: readonly string[]): string {
   return `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
 }
 
-// --- « Appliquer aux fiches existantes » -------------------------------------
+// --- applying the defaults to the fiches already there -----------------------
 
 // The only path from a default to what already exists (ADR 0026): an explicit
 // button, behind a confirmation that says the numbers — the motif of the mass
@@ -259,8 +259,8 @@ export function entryRightsNote(impact: EntryRightsImpact): {
     lines.push(
       plural(
         impact.unchanged,
-        "fiche a déjà ces droits — rien à changer.",
-        "fiches ont déjà ces droits — rien à changer."
+        "fiche a déjà cet accès — rien à changer.",
+        "fiches ont déjà cet accès — rien à changer."
       )
     );
   }
@@ -271,23 +271,27 @@ export function entryRightsNote(impact: EntryRightsImpact): {
     lines.push(
       plural(
         impact.refused,
-        "fiche que vous ne gérez pas : ses droits ne changent pas.",
-        "fiches que vous ne gérez pas : leurs droits ne changent pas."
+        "fiche que vous ne gérez pas : son accès ne change pas.",
+        "fiches que vous ne gérez pas : leur accès ne change pas."
       )
     );
   }
   if (impact.changed === 0) {
-    return { headline: "Aucune fiche ne change de droits.", lines };
+    return { headline: "Aucune fiche ne change d'accès.", lines };
   }
-  // The possessive agrees with the count, so it is written out both ways: at
-  // one fiche « les leurs » names a crowd of one.
-  const lost = impact.changed === 1 ? "Les siens" : "Les leurs";
+  // « Les leurs seront perdus » left the reader to work out whose, and what:
+  // naming the thing — leur accès actuel — and the verb that happens to it
+  // says the replacement outright, which is what the action does.
+  const replaced =
+    impact.changed === 1
+      ? "Son accès actuel sera remplacé."
+      : "Leur accès actuel sera remplacé.";
   return {
     headline: `${plural(
       impact.changed,
       "fiche recevra",
       "fiches recevront"
-    )} ces droits. ${lost} seront perdus.`,
+    )} cet accès. ${replaced}`,
     lines,
   };
 }

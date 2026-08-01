@@ -91,7 +91,7 @@ export async function getFormBySlug(slug: string) {
 
 /**
  * The three rules a form poses today (docs/permissions.md § Formulaire). Read
- * back through the descriptor engine, so a form saved before the « Droits »
+ * back through the descriptor engine, so a form saved before the « Accès »
  * tab existed answers with the wiki's own defaults rather than with nothing.
  */
 export function permissionsOf(form: { schema: unknown }): FormPermissions {
@@ -262,7 +262,7 @@ export async function deleteFormById(id: string): Promise<void> {
   await prisma.form.delete({ where: { id } });
 }
 
-// --- « Appliquer aux fiches existantes » -------------------------------------
+// --- applying the defaults to the fiches already there -----------------------
 
 // The one path from a form's defaults to the fiches already written with it
 // (ADR 0026): the copy made at creation is never a link, so nothing else
