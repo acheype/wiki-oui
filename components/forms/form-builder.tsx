@@ -670,7 +670,9 @@ function RightsEditor({
   // to more surely than what it sits next to, so each subject gets its own
   // frame and the action is inside the one whose title names what it applies.
   return (
-    <div className="grid max-w-2xl gap-4">
+    // Tighter between the frames than inside them: their padding already sets
+    // them apart, so an equal gap on top of it read as a hole.
+    <div className="grid max-w-2xl gap-2">
       <div className="rounded-lg border p-4">
         <Field
           id="form-create-acl"
