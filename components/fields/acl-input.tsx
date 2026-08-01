@@ -28,19 +28,20 @@ import {
 } from "@/lib/permissions";
 
 const EMPTY_DIRECTORY: AclDirectory = { people: [], groups: [] };
-const NO_OWNER: AclFloor = { ownerName: null };
+/** The floor of a subject with no owner to name — the wiki's own defaults. */
+export const NO_FLOOR: AclFloor = { ownerName: null };
 
 export function AclInput({
   id,
   value,
   directory = EMPTY_DIRECTORY,
-  floor = NO_OWNER,
+  floor,
   onChange,
 }: {
   id: string;
   value: AccessRule;
   directory?: AclDirectory;
-  floor?: AclFloor;
+  floor: AclFloor;
   onChange: (rule: AccessRule) => void;
 }) {
   const locked = aclFloorLabels(floor);

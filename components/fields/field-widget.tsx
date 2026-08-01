@@ -43,7 +43,7 @@ import type { AccessRule, AclDirectory, AclFloor } from "@/lib/permissions";
 import type { PseudoField } from "@/lib/pseudo-fields";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
-import { AclInput } from "./acl-input";
+import { NO_FLOOR, AclInput } from "./acl-input";
 import {
   ColorMappingInput,
   EntryFieldChips,
@@ -496,6 +496,7 @@ export function FieldWidget({
           id={id}
           value={asRule(value)}
           directory={environment.directory}
+          floor={environment.aclFloor ?? NO_FLOOR}
           onChange={onChange}
         />
       );
