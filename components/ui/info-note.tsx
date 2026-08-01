@@ -5,13 +5,16 @@ import { cn } from "@/lib/utils";
 // changed. It used to be the character, which every font places on its own
 // baseline — visibly below the sentence it introduces.
 //
-// An icon beside text is not centred on the line box: the eye reads the
-// baseline, where every letter stops, so anything hanging below it looks like
-// it has slipped. The disc is therefore sized to the height of a capital
-// (Inter's cap height is 0.73em, and the note is the only place this is worth
-// measuring) and set on the baseline itself — so it occupies exactly the band
-// the « L » of the sentence does. Both values follow the font size rather than
-// being nudges to keep in tune with it.
+// Where the disc sits is a matter of how it overhangs the capitals, not of
+// centring: the eye reads the top of the letters and the baseline they stop
+// on, and a disc bigger than a capital has to spill past both by the same
+// amount or it looks like it has slipped. So it is set on the baseline and
+// pushed back down by half of what it exceeds a capital by — 0.75em at this
+// size, Inter's cap height. The two terms follow the icon and the font, so
+// changing either keeps the balance rather than needing a new nudge.
+//
+// No other icon in the interface needs this: they sit beside a single line,
+// where centring is right because there is no second line to hang from.
 export function InfoNote({
   children,
   className,
@@ -26,7 +29,10 @@ export function InfoNote({
         className
       )}
     >
-      <Info className="size-[0.73em] shrink-0" aria-hidden />
+      <Info
+        className="size-3.5 shrink-0 translate-y-[calc((100%-0.75em)/2)]"
+        aria-hidden
+      />
       <span>{children}</span>
     </p>
   );
