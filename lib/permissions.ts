@@ -55,10 +55,6 @@ export const SCOPE_LABELS: Record<Scope, string> = {
   restricted: "Seulement",
 };
 
-/** The note that carries the invariant the missing scope would have hidden. */
-export const OWNER_AND_ADMINS_NOTE =
-  "Le propriétaire et les administrateurs ont toujours accès.";
-
 /** The two senses a right is posed in. Uppercase: it is a Postgres enum. */
 export const PERM_KINDS = ["READ", "WRITE"] as const;
 export type PermKind = (typeof PERM_KINDS)[number];
@@ -145,13 +141,9 @@ export function pageRule(page: PageRights, kind: PermKind): AccessRule {
 }
 
 /**
- * The floor under every right on a page: whoever looks after it, plus the
- * administrators. A page without an owner has nobody to be — the floor is
- * empty, and only the administrators are left standing on it.
- *
- * The null test is not a formality. A visitor's `username` is null too, so
- * comparing the two straight would make every unowned page — the shape the
- * seeded example pages take — answer to anyone at all.
+ * The floor under every right on a page. The null test is not a formality: a
+ * visitor's `username` is null too, so comparing the two straight would hand
+ * every unowned page — every seeded one — to anyone at all.
  */
 export function ownsPage(
   actor: Actor,
@@ -162,14 +154,10 @@ export function ownsPage(
 }
 
 /**
- * The owner and the administrators are always allowed and never appear in the
- * list: the owner is a floor, not a checkbox. Above the floor, the scope
- * decides and nothing else.
- *
- * A page without an owner is therefore modifiable by administrators only — a
- * mechanical consequence rather than a rule of its own: its floor is empty,
- * and the scope it is born with is « seulement » with nobody listed. Open that
- * scope and the page opens with it, which is what an open wiki means.
+ * Above the floor, the scope decides and nothing else. « Une page sans
+ * propriétaire n'est modifiable que par les administrateurs » is a
+ * consequence of an empty floor under the default scope, not a rule to add
+ * here: adding it would make an unowned page refuse an open write scope.
  */
 export function canWrite(actor: Actor, page: PageRights): boolean {
   if (ownsPage(actor, page)) return true;
@@ -225,9 +213,8 @@ function scopeBranches(actor: Actor, kind: PermKind): Prisma.PageWhereInput[] {
 /** The write predicates, which the read clause also carries — writing implies reading. */
 function writeBranches(actor: Actor): Prisma.PageWhereInput[] {
   const branches: Prisma.PageWhereInput[] = [];
-  // The floor: a visitor owns nothing, so they get no branch of their own —
-  // `ownerUsername = NULL` would match every unowned page, which is the same
-  // null coincidence ownsPage guards against.
+  // No branch for a visitor: `ownerUsername = NULL` would match every unowned
+  // page — the null coincidence ownsPage guards against.
   if (actor.username !== null) branches.push({ ownerUsername: actor.username });
   branches.push(...scopeBranches(actor, "WRITE"));
   return branches;
@@ -308,18 +295,12 @@ export interface AclDirectory {
   groups: { slug: string; name: string }[];
 }
 
-/**
- * The floor a « seulement » list stands on, spelled out so the widget can show
- * it. Nobody is ever added or removed here — it is what the scope cannot take
- * away — but a list that showed nothing would read as « personne », when what
- * it means is « eux seuls ».
- */
+/** What a « seulement » list always allows, over and above what it holds. */
 export interface AclFloor {
   /** The owner's display name, null when the subject has no owner. */
   ownerName: string | null;
 }
 
-/** The floor, chip by chip: what the widget shows locked, in reading order. */
 export function aclFloorLabels(floor: AclFloor): {
   people: string[];
   groups: string[];
@@ -330,12 +311,7 @@ export function aclFloorLabels(floor: AclFloor): {
   };
 }
 
-/**
- * The invariant the missing « Administrateurs » scope would have hidden, and
- * the reason nobody can take the floor's chips out. Adapted rather than fixed:
- * a page whose owner has gone has none to promise anything about, and naming
- * one would be a lie the screen has no way of making true.
- */
+/** The invariant the missing « Administrateurs » scope would have hidden. */
 export function alwaysAllowedNote(floor: AclFloor): string {
   return floor.ownerName === null
     ? "Les administrateurs ont toujours accès, et ne peuvent pas être retirés."
@@ -351,12 +327,6 @@ export function alwaysAllowedNote(floor: AclFloor): string {
  */
 export const ACCESS_DENIED = "Vous n'avez pas accès à cette page.";
 
-/**
- * Who looks after the page, on the refusal screen and at the head of the
- * rights modal. « Propriétaire » rather than « gérée par » — that is the word
- * the rights themselves use, and one word for one thing spares the reader the
- * work of noticing they are the same. Omitted when there is nobody to name.
- */
 export function ownerLine(ownerName: string | null): string | null {
   return ownerName === null ? null : `Propriétaire : ${ownerName}`;
 }

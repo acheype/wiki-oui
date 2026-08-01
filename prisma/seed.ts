@@ -175,15 +175,12 @@ Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<form>\`, \`<
 `,
 };
 
-// Seeded pages are readable by whoever the wiki's default says, and writable
-// by anyone signed in. That second half is not the configured default, and on
-// purpose: seeded pages have no owner (see below), so the default « seulement »
-// would leave the aide-mémoire and the sandbox to the administrators alone —
-// a wiki that arrives closed to the very people it was installed for.
+// Writing is `authenticated` rather than the configured default: seeded pages
+// have no owner, so a default of « seulement » would ship the aide-mémoire and
+// the sandbox closed to everyone but an administrator.
 //
-// The « seulement » list, wherever it would come from, is dropped: it can only
-// name accounts and groups, and at seed time none exists. Same rule the door
-// applies, on a database where every name is unknown.
+// No « seulement » list either: it can only name accounts and groups, and at
+// seed time none exists.
 const SEEDED_RIGHTS = {
   readScope: storedRights(
     wikiConfig.permissions.defaultPageRead,

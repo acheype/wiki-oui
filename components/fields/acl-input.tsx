@@ -84,9 +84,8 @@ export function AclInput({
 
       {value.scope === "restricted" && (
         <div className="ml-6 flex flex-wrap items-center gap-2 rounded-md border p-2">
-          {/* The floor comes first and cannot be taken out. Without it the box
-              stands empty on a fresh page, reading as « personne » where what
-              was chosen is « eux seuls ». */}
+          {/* Shown because an empty box reads as « personne », where what was
+              chosen is « eux seuls ». */}
           {locked.people.map((label) => (
             <LockedChip
               key={label}
@@ -135,7 +134,6 @@ export function AclInput({
   );
 }
 
-/** A floor chip: same shape as the others, visibly not yours to remove. */
 function LockedChip({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <span className="flex items-center gap-1.5 rounded-full border border-dashed bg-muted/50 py-1 pl-2.5 pr-2.5 text-sm text-muted-foreground">

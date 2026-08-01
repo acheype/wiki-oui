@@ -99,8 +99,6 @@ describe("canWrite", () => {
     expect(canWrite(JEAN, orphan("authenticated"))).toBe(true);
   });
 
-  // The consequence the spec calls mechanical: no owner and nobody listed
-  // leaves the administrators, without a rule saying so anywhere.
   it("leaves an unowned page at « seulement » to the administrators alone", () => {
     const orphan = page({ ownerUsername: null, writeScope: "restricted" });
     expect(canWrite(VISITOR, orphan)).toBe(false);
@@ -194,8 +192,6 @@ describe("knownEntries", () => {
 
 describe("ownerLine", () => {
   it("names the owner with the word the rights themselves use", () => {
-    // Escaped rather than typed: the no-break space before the colon is the
-    // French rule, and it has to be visible to whoever edits this line.
     expect(ownerLine("Marie Durand")).toBe("Propriétaire\u00A0: Marie Durand");
   });
 
