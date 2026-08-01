@@ -289,7 +289,7 @@ Supprimer un groupe annonce ses conséquences : « @Bureau apparaît dans les dr
 ```
 gerer-pages                                        247 pages
 ┌────────────────────────────────────────────────────────────┐
-│ 🔎 Rechercher par nom…                                     │
+│ ⌨ Tapez pour rechercher par nom…                           │
 │ Type  (•) Tout  ( ) Pages  ( ) Fiches                      │
 │ Formulaire  [ Tous ▾ ]                                     │
 └────────────────────────────────────────────────────────────┘
@@ -299,23 +299,26 @@ gerer-pages                                        247 pages
 ☐  assemblee-generale  ⌗AG  Jean Martin     🌍 Tous      🔒 @Bureau
 ☐  contact             ⌗Contact  —          🌍 Tous      🔒 Admins
 
-2 sélectionnées   [ Modifier les droits… ]  [ Changer le propriétaire… ]
+2 sélectionnées   [ Modifier les accès… ]  [ Changer le propriétaire… ]
 ```
 
-Le marqueur `⌗Formulaire` distingue une fiche d'une page sans colonne de plus.
+Le marqueur `⌗Formulaire` distingue une fiche d'une page sans colonne de plus. Nommer un formulaire dit **Fiches** tout seul, et revenir à *Tout* ou à *Pages* relâche le formulaire : les deux contrôles posent une seule question à deux niveaux de précision, et atteindre les fiches d'un formulaire reste à un clic. La sélection **se rétrécit avec les filtres** — agir sur une page qu'on a masquée est la surprise que cet écran existe pour éviter. Une seule liste ici, donc elle prend la **frappe directe** comme celle des formulaires ; la barre d'espace en est exclue, puisqu'elle appartient aux cases à cocher.
 
 **L'action par lot porte deux intentions**, dans une seule modale, chacune avec sa description visible même non sélectionnée :
 
-- **Remplacer les droits** — les pages auront exactement ce qui est choisi ; leurs réglages actuels sont perdus. Chaque sens a « Ne pas changer » par défaut, pour ne toucher qu'à la lecture si c'est tout ce qu'on veut.
-- **Donner accès** — ajoute des personnes et des groupes aux droits existants, **n'enlève l'accès à personne**. Présélectionné à l'ouverture : des deux, c'est celui qui ne détruit rien.
+- **Remplacer les accès** — remplace les accès actuels par ceux définis ici ; les réglages actuels seront perdus. Chaque sens a « Ne pas changer » par défaut, pour ne toucher qu'à la lecture si c'est tout ce qu'on veut.
+- **Donner accès** — ajoute des personnes et des groupes aux accès existants, **n'enlève l'accès à personne**. Présélectionné à l'ouverture : des deux, c'est celui qui ne détruit rien.
 
-Le décompte porte l'explication, et c'est lui qui rend l'action compréhensible :
+Le décompte porte l'explication, et c'est lui qui rend l'action compréhensible. Il annonce **ce qui change**, jamais la sélection entière — et quand il n'y a rien à changer, il le dit plutôt que de promettre un accès déjà détenu :
 
 ```
-ⓘ @Bureau pourra voir les 40 pages.
-    23 pages   ajouté à la liste
-    17 pages   y donnent déjà accès — rien à changer
+ⓘ @Bureau recevra l'accès en lecture à 23 pages.
+    17 pages lui donnent déjà accès — rien à changer.
+
+ⓘ Paul Riva a déjà accès en écriture à ces 3 pages : rien à changer.
 ```
+
+Ce qui s'ajoute est un **accès à des pages**, jamais une page à une liste : les lignes de `PageAcl` sont l'affaire du wiki, et les nommer laisse le lecteur compter la mauvaise chose. Le bouton *Appliquer* lit le même décompte : il reste hors d'atteinte tant que le geste n'écrirait rien, plutôt que d'annoncer un succès sur des pages qu'il n'a pas touchées.
 
 Sur une page ouverte à tout le monde ou aux personnes connectées, @Bureau **a déjà accès** : ne rien faire est le résultat correct, il suffit de le dire. Il n'y a pas d'action « Retirer l'accès » symétrique : sur une page publique, elle devrait restreindre l'accès de *tous* pour en priver un — un piège sous un nom rassurant. Révoquer largement se fait en supprimant le groupe, ou en remplaçant.
 
