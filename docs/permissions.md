@@ -176,11 +176,11 @@ Le défaut est `{ scope: "restricted" }` **sans liste**. Sur une règle posée s
 
 Le bouton « Nouveau formulaire » **disparaît** pour qui n'a pas le droit, et `?nouveau` tapé à la main répond le même refus plutôt qu'un builder qui échouerait à l'enregistrement. La vérification tient à la porte (`lib/forms.ts`), pas dans le bouton qui la masque.
 
-**« Appliquer ces accès par défaut aux fiches existantes »** est le seul chemin des défauts vers l'existant. Le bouton **nomme les deux réglages qu'il applique** plutôt que de dire « ces accès » : « Qui peut créer une fiche ? » le surplombe, et resterait sinon dans la course. Il enregistre le formulaire, puis remplace l'accès de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand l'action n'écrirait rien :
+**« Appliquer aux fiches existantes »** est le seul chemin des défauts vers l'existant. Il vit **sous un trait**, et non collé aux deux réglages : ceux-ci s'enregistrent par « Enregistrer » comme le reste, et une action soudée à eux laisserait croire qu'ils ne prennent effet que par elle. Ce sur quoi elle porte se dit dans la ligne en dessous plutôt que dans son libellé — « Qui peut créer une fiche ? » surplombe la section, alors la phrase nomme les deux réglages qu'elle vise, en les comptant. Le bouton enregistre le formulaire, puis remplace les accès de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand l'action n'écrirait rien :
 
 ```
-ⓘ 23 fiches recevront cet accès. Leur accès actuel sera remplacé.
-    7 fiches ont déjà cet accès — rien à changer.
+ⓘ 23 fiches recevront ces accès. Leurs réglages actuels seront remplacés.
+    7 fiches ont déjà ces accès — rien à changer.
     2 fiches que vous ne gérez pas : leur accès ne change pas.
 ```
 
@@ -206,7 +206,7 @@ wiki.config.ts  ──copie à la création du formulaire──▶  Form
 Form            ──copie à la création de la fiche────▶  Page
 ```
 
-La même action aux deux étages (ADR 0026). Modifier un défaut ne touche rien de ce qui existe ; le seul chemin vers l'existant est un bouton explicite « Appliquer ces accès par défaut aux fiches existantes », à confirmation chiffrée — motif des recalculs de masse des ADR 0017 et 0020.
+La même action aux deux étages (ADR 0026). Modifier un défaut ne touche rien de ce qui existe ; le seul chemin vers l'existant est un bouton explicite « Appliquer aux fiches existantes », à confirmation chiffrée — motif des recalculs de masse des ADR 0017 et 0020.
 
 ```ts
 permissions: {

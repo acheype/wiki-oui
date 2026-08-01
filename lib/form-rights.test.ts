@@ -221,25 +221,25 @@ describe("what the confirmation announces", () => {
   it("counts in what changes, and warns that the rest is lost", () => {
     const note = entryRightsNote({ total: 30, changed: 23, unchanged: 7, refused: 0 });
     expect(note.headline).toBe(
-      "23 fiches recevront cet accès. Leur accès actuel sera remplacé."
+      "23 fiches recevront ces accès. Leurs réglages actuels seront remplacés."
     );
-    expect(note.lines).toEqual(["7 fiches ont déjà cet accès — rien à changer."]);
+    expect(note.lines).toEqual(["7 fiches ont déjà ces accès — rien à changer."]);
   });
 
   // The possessive agrees with the count, exactly as the verb beside it does.
   it("agrees with itself at one fiche, verb and possessive alike", () => {
     const note = entryRightsNote({ total: 2, changed: 1, unchanged: 1, refused: 0 });
     expect(note.headline).toBe(
-      "1 fiche recevra cet accès. Son accès actuel sera remplacé."
+      "1 fiche recevra ces accès. Ses réglages actuels seront remplacés."
     );
-    expect(note.lines).toEqual(["1 fiche a déjà cet accès — rien à changer."]);
+    expect(note.lines).toEqual(["1 fiche a déjà ces accès — rien à changer."]);
   });
 
   it("says outright when the action would change nothing", () => {
     const note = entryRightsNote({ total: 5, changed: 0, unchanged: 3, refused: 2 });
     expect(note.headline).toBe("Aucune fiche ne change d'accès.");
     expect(note.lines).toEqual([
-      "3 fiches ont déjà cet accès — rien à changer.",
+      "3 fiches ont déjà ces accès — rien à changer.",
       "2 fiches que vous ne gérez pas : leur accès ne change pas.",
     ]);
   });

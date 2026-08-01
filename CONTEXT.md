@@ -181,7 +181,7 @@ Le droit de **créer** une fiche d'un formulaire, distinct du droit de la **modi
 _Avoid_: saisie (ambigu : désigne aussi bien la création que l'édition), dépôt, soumission
 
 **Droit par défaut**:
-Un gabarit de droits **recopié** au moment d'une création — jamais un lien vivant. `wiki.config.ts` fournit ceux d'une page nouvelle et ceux d'un formulaire nouveau ; un formulaire fournit ceux de ses fiches. Modifier un défaut ne touche donc rien de ce qui existe : le seul chemin vers l'existant est une action explicite (« Appliquer ces accès par défaut aux fiches existantes »), à confirmation chiffrée.
+Un gabarit de droits **recopié** au moment d'une création — jamais un lien vivant. `wiki.config.ts` fournit ceux d'une page nouvelle et ceux d'un formulaire nouveau ; un formulaire fournit ceux de ses fiches. Modifier un défaut ne touche donc rien de ce qui existe : le seul chemin vers l'existant est une action explicite (« Appliquer aux fiches existantes »), à confirmation chiffrée.
 _Avoid_: héritage, droit hérité, droit propagé (rien n'est lié)
 
 **Anonyme**:

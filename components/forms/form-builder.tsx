@@ -697,16 +697,17 @@ function RightsEditor({
           environment={{ directory, aclFloor: NO_FLOOR }}
           onChange={(value) => set({ defaultEntryWrite: value as AccessRule })}
         />
-        {/* No rule of its own above it: the action belongs to the two settings
-            it applies, and a separator here made it read as a third section —
-            leaving « Qui peut créer une fiche ? » in the running for what it
-            was about. The label names them rather than saying « ces accès ». */}
+        {/* Behind a separator, and deliberately: the two settings above are
+            saved by « Enregistrer » like anything else, and an action glued
+            to them would suggest they only take effect through it. What it
+            applies is said in the line under it rather than in its label —
+            « Qui peut créer une fiche ? » sits two settings higher, so the
+            sentence names the two it does mean, by counting them. */}
         {onApply && (
-          <div className="grid gap-1.5">
+          <div className="flex flex-wrap items-center gap-3 border-t pt-4">
             <Button
               type="button"
               variant="outline"
-              className="w-fit"
               disabled={applying}
               onClick={onApply}
             >
@@ -715,12 +716,12 @@ function RightsEditor({
               ) : (
                 <ShieldCheck />
               )}
-              Appliquer ces accès par défaut aux fiches existantes
+              Appliquer aux fiches existantes
             </Button>
             <p className="text-xs text-muted-foreground">
-              Remplace l&apos;accès des fiches déjà créées par les deux réglages
-              ci-dessus. Le formulaire est enregistré au passage, et le nombre
-              de fiches touchées annoncé avant.
+              Enregistre le formulaire, puis remplace les accès des fiches déjà
+              créées par les deux réglages ci-dessus. Le nombre est annoncé
+              avant.
             </p>
           </div>
         )}

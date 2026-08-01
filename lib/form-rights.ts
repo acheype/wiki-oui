@@ -259,8 +259,8 @@ export function entryRightsNote(impact: EntryRightsImpact): {
     lines.push(
       plural(
         impact.unchanged,
-        "fiche a déjà cet accès — rien à changer.",
-        "fiches ont déjà cet accès — rien à changer."
+        "fiche a déjà ces accès — rien à changer.",
+        "fiches ont déjà ces accès — rien à changer."
       )
     );
   }
@@ -280,18 +280,18 @@ export function entryRightsNote(impact: EntryRightsImpact): {
     return { headline: "Aucune fiche ne change d'accès.", lines };
   }
   // « Les leurs seront perdus » left the reader to work out whose, and what:
-  // naming the thing — leur accès actuel — and the verb that happens to it
-  // says the replacement outright, which is what the action does.
+  // naming the thing that goes — leurs réglages actuels — and the verb that
+  // happens to it says the replacement outright, which is what the action does.
   const replaced =
     impact.changed === 1
-      ? "Son accès actuel sera remplacé."
-      : "Leur accès actuel sera remplacé.";
+      ? "Ses réglages actuels seront remplacés."
+      : "Leurs réglages actuels seront remplacés.";
   return {
     headline: `${plural(
       impact.changed,
       "fiche recevra",
       "fiches recevront"
-    )} cet accès. ${replaced}`,
+    )} ces accès. ${replaced}`,
     lines,
   };
 }
