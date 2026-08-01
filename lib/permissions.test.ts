@@ -253,8 +253,11 @@ describe("ownerLine", () => {
     expect(ownerLine("Marie Durand")).toBe("Propriétaire\u00A0: Marie Durand");
   });
 
-  it("says nothing when the page no longer has an owner", () => {
-    expect(ownerLine(null)).toBeNull();
+  // Saying nothing would read as a line that failed to load, where the
+  // absence of an owner is itself worth knowing: it is what leaves the page
+  // to the administrators alone.
+  it("says « Anonyme » when the page has no owner, never nothing", () => {
+    expect(ownerLine(null)).toBe("Propriétaire\u00A0: Anonyme");
   });
 });
 

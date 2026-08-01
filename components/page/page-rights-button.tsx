@@ -1,25 +1,31 @@
 "use client";
 
-// « Droits » (docs/permissions.md § La modale de droits d'une page): the same
+// « Accès » (docs/permissions.md § La modale de droits d'une page): the same
 // modal for a page and for an entry, whose `edit` is already taken by the
 // generated form. Both senses are posed at once, by the shared `acl` widget —
-// so what a page's rights look like is what a form's and a field's will.
+// so what a page's rights look like is what a form's and a field's will. The
+// owner heads it, since they are the floor both senses stand on, and handing
+// the page over is done from there.
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { type PageRightsForm, loadPageRights, savePageRights } from "@/app/page-rights-actions";
+import {
+  type PageRightsForm,
+  loadPageRights,
+  savePageRights,
+} from "@/app/page-rights-actions";
 import { Field } from "@/components/fields/field-widget";
+import { OwnerTransfer } from "@/components/page/owner-transfer";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { type AccessRule, ownerLine } from "@/lib/permissions";
+import type { AccessRule } from "@/lib/permissions";
 
 export function PageRightsButton({
   slug,
@@ -41,10 +47,15 @@ export function PageRightsButton({
     // page, and this is a query nobody has asked for until they click.
     setRights(null);
     loadPageRights(slug).then((loaded) => {
-      if (!loaded) return;
-      setRights(loaded);
-      setRead(loaded.read);
-      setWrite(loaded.write);
+      if ("error" in loaded) {
+        setOpen(false);
+        toast.error(loaded.error);
+        return;
+      }
+      if (!loaded.rights) return;
+      setRights(loaded.rights);
+      setRead(loaded.rights.read);
+      setWrite(loaded.rights.write);
     });
   }
 
@@ -60,7 +71,6 @@ export function PageRightsButton({
     });
   }
 
-  const owner = rights ? ownerLine(rights.floor.owner?.name ?? null) : null;
   // The modal is the same for a fiche; only what it calls the thing changes.
   // Both nouns are feminine, so the second question needs no variant.
   const subject = rights?.isEntry ? "cette fiche" : "cette page";
@@ -74,14 +84,22 @@ export function PageRightsButton({
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Droits de {subject}</DialogTitle>
-          {owner && <DialogDescription>{owner}</DialogDescription>}
+          <DialogTitle>Accès à {subject}</DialogTitle>
         </DialogHeader>
 
         {!rights ? (
           <p className="text-sm text-muted-foreground">Chargement…</p>
         ) : (
           <div className="grid gap-5">
+            <OwnerTransfer
+              slug={slug}
+              owner={rights.floor.owner}
+              people={rights.directory.people}
+              // The floor of both senses just moved, and unsaved scopes would
+              // now be posed against another owner: the modal closes on the
+              // gesture it just carried out, and reopens on the new floor.
+              onTransferred={() => setOpen(false)}
+            />
             <Field
               id="page-read-acl"
               spec={{ type: "acl", label: `Qui peut voir ${subject} ?` }}

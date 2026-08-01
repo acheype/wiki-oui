@@ -8,6 +8,7 @@
 // (ADR 0023); and a right is a scope, optionally completed by a list.
 
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { ANONYMOUS } from "@/lib/username";
 
 /**
  * The administrators' group. Administration is a membership, never a `role`
@@ -387,8 +388,18 @@ export function alwaysAllowedNote(floor: AclFloor): string {
  */
 export const ACCESS_DENIED = "Vous n'avez pas accès à cette page.";
 
-export function ownerLine(ownerName: string | null): string | null {
-  return ownerName === null ? null : `Propriétaire : ${ownerName}`;
+/**
+ * Who looks after the page, as a screen states it. A page with no owner says
+ * « Anonyme » rather than saying nothing: the absence is itself the
+ * information — it is what leaves the page to the administrators alone — and
+ * a line that disappears reads as a screen that failed to load it.
+ *
+ * The widget's floor stays silent about them all the same: a locked
+ * « Anonyme » chip beside the administrators would promise access to
+ * somebody, where the whole point is that there is nobody.
+ */
+export function ownerLine(ownerName: string | null): string {
+  return `Propriétaire : ${ownerName ?? ANONYMOUS}`;
 }
 
 /**

@@ -39,6 +39,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { InfoNote } from "@/components/ui/info-note";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -203,7 +204,7 @@ export function GroupEditor({
           />
         </div>
         {group.protected && (
-          <p className="text-xs text-muted-foreground">ⓘ {PEOPLE_ONLY_NOTE}</p>
+          <InfoNote>{PEOPLE_ONLY_NOTE}</InfoNote>
         )}
       </section>
 
@@ -226,9 +227,9 @@ export function GroupEditor({
               </li>
             ))}
           </ul>
-          <p className="text-xs text-muted-foreground">
-            ⓘ Pour les retirer, modifiez le groupe auquel ils appartiennent.
-          </p>
+          <InfoNote>
+            Pour les retirer, modifiez le groupe auquel ils appartiennent.
+          </InfoNote>
         </section>
       )}
 
@@ -351,7 +352,7 @@ function AddMemberPopover({
           )}
         </div>
         {group.protected && (
-          <p className="text-xs text-muted-foreground">ⓘ {PEOPLE_ONLY_NOTE}</p>
+          <InfoNote>{PEOPLE_ONLY_NOTE}</InfoNote>
         )}
       </PopoverContent>
     </Popover>

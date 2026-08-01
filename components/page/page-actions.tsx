@@ -1,4 +1,4 @@
-import { History, Pencil, Shield } from "lucide-react";
+import { History, Pencil, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,6 @@ import { specialSlugs } from "@/wiki.config";
 import { DeletePageButton } from "./delete-page-button";
 import { PageRightsButton } from "./page-rights-button";
 import { RenamePageButton } from "./rename-page-button";
-import { TransferOwnershipButton } from "./transfer-ownership-button";
 
 // What is not on offer is absent, never greyed out (docs/permissions.md § Ce
 // que voit qui n'a pas le droit): an offer that cannot be taken up informs
@@ -52,16 +51,16 @@ export function PageActions({
             Historique
           </Link>
         </Button>
+        {/* Posing the rights is a mutation, so it opens a modal from here
+            rather than a /{slug}/droits handler (docs/permissions.md). It is
+            called « Accès » because that is what the reader is after — who
+            gets in — where « Droits » names the machinery. Handing the page
+            over is in there too: same rung, and the modal names the owner. */}
         {gestures.structuring && (
-          <>
-            {/* Posing the rights is a mutation, so it opens a modal from here
-                rather than a /{slug}/droits handler (docs/permissions.md). */}
-            <PageRightsButton slug={slug}>
-              <Shield />
-              Droits
-            </PageRightsButton>
-            <TransferOwnershipButton slug={slug} />
-          </>
+          <PageRightsButton slug={slug}>
+            <UsersRound />
+            Accès
+          </PageRightsButton>
         )}
         {!special && (
           <>

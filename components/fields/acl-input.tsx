@@ -8,6 +8,7 @@
 import { Lock, Plus, UserRound, UsersRound, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { InfoNote } from "@/components/ui/info-note";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -145,9 +146,7 @@ export function AclInput({
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        ⓘ {alwaysAllowedNote(floor)}
-      </p>
+      <InfoNote>{alwaysAllowedNote(floor)}</InfoNote>
     </div>
   );
 }

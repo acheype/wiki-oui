@@ -17,16 +17,13 @@ import {
   getRevisionToRestore,
   isRefused,
   listAllPageSlugs,
-  listOwnerCandidates,
   renamePageSlug,
-  transferPageOwnership,
   writePageContent,
   writeRestoredRevision,
 } from "@/lib/pages";
 import {
   ACCESS_DENIED,
   ADDRESS_REFUSED,
-  type Identity,
   refusalMessage,
 } from "@/lib/permissions";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
@@ -181,40 +178,6 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   // Server-action redirects bypass next.config redirects(): aim straight at
   // the home slug instead of "/".
   redirect(`/${wikiConfig.homeSlug}`);
-}
-
-/**
- * Who the « Transmettre la propriété » modal offers, once it is opened. The
- * refusal travels as a value rather than as a throw: it would otherwise cross
- * the Server Action boundary as a render error, leaving the modal on
- * « Chargement… » for good — the shape a right that went away takes.
- */
-export async function loadOwnerCandidates(
-  slug: string
-): Promise<ActionError | { candidates: Identity[] }> {
-  try {
-    return { candidates: await listOwnerCandidates(slug) };
-  } catch (error) {
-    return { error: refusalMessage(error) };
-  }
-}
-
-/**
- * « Transmettre la propriété » (docs/permissions.md): sans retour for whoever
- * gives it away, which is why the modal warns before the click. No redirect
- * afterwards — the giver may well have just lost the right to what they are
- * looking at, and the page they land back on says so on its own.
- */
-export async function transferOwnership(
-  slug: string,
-  toUsername: string
-): Promise<ActionError | void> {
-  try {
-    await transferPageOwnership(slug, toUsername);
-  } catch (error) {
-    return { error: refusalMessage(error) };
-  }
-  revalidatePath("/", "layout");
 }
 
 // Only door that removes an uploaded file: cancelling the component modal

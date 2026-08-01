@@ -1,12 +1,11 @@
 import { cache } from "react";
 import { type EntryData, readEntryData } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { existingPrincipals, listDirectory } from "@/lib/groups-db";
+import { existingPrincipals } from "@/lib/groups-db";
 import {
   type AccessRule,
   type AclEntry,
   type AclFloor,
-  type Identity,
   type PageGestures,
   type PageRights,
   ADDRESS_REFUSED,
@@ -186,9 +185,9 @@ async function assertAddress(): Promise<void> {
 
 /**
  * The page a structuring gesture is about to act on, read with what deciding
- * needs and refused on the spot. Four gestures ask for it, and asking is the
- * whole of what they share — hence one function rather than an assertion each
- * of them has to remember to call after its own query.
+ * needs and refused on the spot — so that reaching the write means the check
+ * has happened, rather than leaving each gesture to remember an assertion
+ * after its own query.
  */
 async function structuredPage(slug: string, refusal: string) {
   const page = await prisma.page.findUniqueOrThrow({
@@ -516,18 +515,6 @@ export async function deletePageById(id: string): Promise<void> {
   });
   await assertStructuring(page, DELETE_REFUSED);
   await prisma.page.delete({ where: { id } });
-}
-
-/**
- * Who the page may be handed to: everyone of the wiki but whoever holds it
- * today. Read behind the same check as the transfer itself — the list is the
- * whole membership, and only someone who may give the page away has any
- * business seeing it.
- */
-export async function listOwnerCandidates(slug: string): Promise<Identity[]> {
-  const page = await structuredPage(slug, TRANSFER_REFUSED);
-  const { people } = await listDirectory();
-  return people.filter((person) => person.username !== page.ownerUsername);
 }
 
 /**
