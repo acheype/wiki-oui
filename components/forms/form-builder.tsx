@@ -663,17 +663,25 @@ function RightsEditor({
     onChange({ ...permissions, ...patch });
   }
 
+  // Two boxes rather than one with two rules inside it. A rule separates
+  // peers, so a card holding the creation rule, the defaults and the action
+  // made three of them — and the action, sitting under the last rule, could
+  // be read as applying the first. What contains a thing says what it belongs
+  // to more surely than what it sits next to, so each subject gets its own
+  // frame and the action is inside the one whose title names what it applies.
   return (
-    <div className="grid max-w-2xl gap-5 rounded-lg border p-4">
-      <Field
-        id="form-create-acl"
-        spec={{ type: "acl", label: "Qui peut créer une fiche ?" }}
-        value={permissions.createEntry}
-        environment={{ directory, aclFloor: NO_FLOOR }}
-        onChange={(value) => set({ createEntry: value as AccessRule })}
-      />
+    <div className="grid max-w-2xl gap-4">
+      <div className="rounded-lg border p-4">
+        <Field
+          id="form-create-acl"
+          spec={{ type: "acl", label: "Qui peut créer une fiche ?" }}
+          value={permissions.createEntry}
+          environment={{ directory, aclFloor: NO_FLOOR }}
+          onChange={(value) => set({ createEntry: value as AccessRule })}
+        />
+      </div>
 
-      <div className="grid gap-4 border-t pt-4">
+      <div className="grid gap-4 rounded-lg border p-4">
         <div>
           <p className="text-sm font-medium">
             Accès par défaut d&apos;une fiche
@@ -699,10 +707,8 @@ function RightsEditor({
         />
         {/* Behind a separator, and deliberately: the two settings above are
             saved by « Enregistrer » like anything else, and an action glued
-            to them would suggest they only take effect through it. What it
-            applies is said in the line under it rather than in its label —
-            « Qui peut créer une fiche ? » sits two settings higher, so the
-            sentence names the two it does mean, by counting them. */}
+            to them would suggest they only take effect through it. Inside the
+            box now, so the rule separates without detaching. */}
         {onApply && (
           <div className="flex flex-wrap items-center gap-3 border-t pt-4">
             <Button
@@ -719,9 +725,8 @@ function RightsEditor({
               Appliquer aux fiches existantes
             </Button>
             <p className="text-xs text-muted-foreground">
-              Enregistre le formulaire, puis remplace les accès des fiches déjà
-              créées par les deux réglages ci-dessus. Le nombre est annoncé
-              avant.
+              Applique les accès par défaut à toutes les fiches existantes. Le
+              nombre de fiches concernées est affiché avant confirmation.
             </p>
           </div>
         )}
