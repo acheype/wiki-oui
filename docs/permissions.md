@@ -181,10 +181,11 @@ Le bouton « Nouveau formulaire » **disparaît** pour qui n'a pas le droit, et 
 ```
 ⓘ 23 fiches recevront ces accès. Leurs réglages actuels seront remplacés.
     7 fiches ont déjà ces accès — rien à changer.
-    2 fiches que vous ne gérez pas : leur accès ne change pas.
+    2 fiches ne vous appartiennent pas : seul leur propriétaire ou un
+      administrateur peut changer leur accès.
 ```
 
-La dernière ligne est le cran des actions structurantes, tenu fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser l'action entière. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « que vous ne gérez pas » plutôt que « à quelqu'un d'autre », qui nommerait une personne inexistante.
+La dernière ligne est le cran des actions structurantes, tenu fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser l'action entière. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « ne vous appartiennent pas » plutôt que « appartiennent à quelqu'un d'autre », qui inventerait un détenteur. Et elle énonce la règle plutôt que le seul effet — le lecteur ne peut rien y faire lui-même, alors la phrase utile est celle qui nomme qui le peut.
 
 Le décompte comme l'écriture **laissent tomber un nom disparu** (ADR 0026) : un défaut qui nomme un compte ou un groupe effacé depuis n'accorde rien en douce — et les deux le font au même endroit, sinon la fiche resterait « à changer » pour toujours et l'écriture casserait sur la clé étrangère.
 

@@ -265,14 +265,17 @@ export function entryRightsNote(impact: EntryRightsImpact): {
     );
   }
   if (impact.refused > 0) {
-    // « que vous ne gérez pas » rather than « à quelqu'un d'autre »: a fiche
-    // with no owner belongs to nobody, and telling its author it is someone
-    // else's would name a person who does not exist.
+    // Two things this line has to get right. « Ne vous appartiennent pas »
+    // rather than « appartiennent à quelqu'un d'autre »: a fiche with no owner
+    // belongs to nobody, and naming a holder would invent one. And the rule is
+    // spelled out rather than the effect alone — the reader can do nothing
+    // about this themselves, so the sentence that helps is the one naming who
+    // can.
     lines.push(
       plural(
         impact.refused,
-        "fiche que vous ne gérez pas : son accès ne change pas.",
-        "fiches que vous ne gérez pas : leur accès ne change pas."
+        "fiche ne vous appartient pas : seul son propriétaire ou un administrateur peut changer son accès.",
+        "fiches ne vous appartiennent pas : seul leur propriétaire ou un administrateur peut changer leur accès."
       )
     );
   }

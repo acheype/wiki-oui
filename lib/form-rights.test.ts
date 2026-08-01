@@ -240,7 +240,7 @@ describe("what the confirmation announces", () => {
     expect(note.headline).toBe("Aucune fiche ne change d'accès.");
     expect(note.lines).toEqual([
       "3 fiches ont déjà ces accès — rien à changer.",
-      "2 fiches que vous ne gérez pas : leur accès ne change pas.",
+      "2 fiches ne vous appartiennent pas : seul leur propriétaire ou un administrateur peut changer leur accès.",
     ]);
   });
 
@@ -249,7 +249,7 @@ describe("what the confirmation announces", () => {
   it("says nothing about an owner an unowned fiche does not have", () => {
     const note = entryRightsNote({ total: 1, changed: 0, unchanged: 0, refused: 1 });
     expect(note.lines).toEqual([
-      "1 fiche que vous ne gérez pas : son accès ne change pas.",
+      "1 fiche ne vous appartient pas : seul son propriétaire ou un administrateur peut changer son accès.",
     ]);
   });
 });
