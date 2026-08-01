@@ -111,16 +111,18 @@ Qui peut voir cette page ?
   ( ) Tout le monde
   ( ) Les personnes connectées
   (•) Seulement :
-      ┌────────────────────────────────┐
-      │ ● Marie Durand           ×     │
-      │ @ Rédacteurs             ×     │
-      │ + Ajouter une personne…        │
-      └────────────────────────────────┘
-  ⓘ Le propriétaire et les administrateurs ont toujours accès.
+      ┌──────────────────────────────────────────┐
+      │ 🔒 Marie Durand (propriétaire)  🔒 @Admins│
+      │ ● Paul Riva          ×                   │
+      │ @ Rédacteurs         ×                   │
+      │ + Ajouter…                               │
+      └──────────────────────────────────────────┘
+  ⓘ Le propriétaire et les administrateurs ont toujours accès,
+    et ne peuvent pas être retirés.
 ```
 
 - **Pas de portée « Administrateurs ».** La mettre au même rang laisserait croire que les autres les excluent. Leur accès est un invariant, énoncé par la note.
-- **Le propriétaire est un plancher**, pas une case à cocher. Une portée *seulement* à liste vide dit donc « le propriétaire et les administrateurs seulement ».
+- **Le propriétaire est un plancher**, pas une case à cocher. Il n'est donc jamais une **ligne** du droit — rien n'est stocké pour lui, rien n'est retirable — mais le widget l'**affiche verrouillé**, aux côtés des administrateurs : une portée *seulement* à liste vide veut dire « eux seuls », et une boîte vide se lirait « personne ». Sur une page sans propriétaire, seuls les administrateurs s'affichent.
 - **Écrire implique lire**, résolu à la vérification plutôt qu'interdit dans l'interface — ce qui évite les états bloqués.
 - Les droits vivent sur la Page et **ne sont pas historisés**, comme les tags (ADR 0007) : les changer ne crée pas de révision.
 

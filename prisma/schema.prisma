@@ -219,7 +219,7 @@ model Page {
 
   // SetNull, not Cascade: the same cascade would destroy pages when an
   // account is erased (ADR 0024). A page without an owner reads as
-  // "Anonyme", and only administrators can write it.
+  // "Anonyme"; its floor is empty, so its scope alone decides who writes it.
   ownerUsername String?
   owner         User?   @relation("PageOwner", fields: [ownerUsername], references: [username], onUpdate: Cascade, onDelete: SetNull)
 

@@ -163,13 +163,16 @@ export function ownsPage(
 
 /**
  * The owner and the administrators are always allowed and never appear in the
- * list: the owner is a floor, not a checkbox. A page without an owner is
- * therefore writable by administrators only — the floor is simply empty, and
- * nothing else can be read into an unowned page's write scope.
+ * list: the owner is a floor, not a checkbox. Above the floor, the scope
+ * decides and nothing else.
+ *
+ * A page without an owner is therefore modifiable by administrators only — a
+ * mechanical consequence rather than a rule of its own: its floor is empty,
+ * and the scope it is born with is « seulement » with nobody listed. Open that
+ * scope and the page opens with it, which is what an open wiki means.
  */
 export function canWrite(actor: Actor, page: PageRights): boolean {
   if (ownsPage(actor, page)) return true;
-  if (page.ownerUsername === null) return false;
   return ruleAllows(actor, pageRule(page, "WRITE"));
 }
 
@@ -222,12 +225,11 @@ function scopeBranches(actor: Actor, kind: PermKind): Prisma.PageWhereInput[] {
 /** The write predicates, which the read clause also carries — writing implies reading. */
 function writeBranches(actor: Actor): Prisma.PageWhereInput[] {
   const branches: Prisma.PageWhereInput[] = [];
+  // The floor: a visitor owns nothing, so they get no branch of their own —
+  // `ownerUsername = NULL` would match every unowned page, which is the same
+  // null coincidence ownsPage guards against.
   if (actor.username !== null) branches.push({ ownerUsername: actor.username });
-  // An unowned page answers to administrators only, and they never get here.
-  branches.push({
-    ownerUsername: { not: null },
-    OR: scopeBranches(actor, "WRITE"),
-  });
+  branches.push(...scopeBranches(actor, "WRITE"));
   return branches;
 }
 
@@ -306,6 +308,40 @@ export interface AclDirectory {
   groups: { slug: string; name: string }[];
 }
 
+/**
+ * The floor a « seulement » list stands on, spelled out so the widget can show
+ * it. Nobody is ever added or removed here — it is what the scope cannot take
+ * away — but a list that showed nothing would read as « personne », when what
+ * it means is « eux seuls ».
+ */
+export interface AclFloor {
+  /** The owner's display name, null when the subject has no owner. */
+  ownerName: string | null;
+}
+
+/** The floor, chip by chip: what the widget shows locked, in reading order. */
+export function aclFloorLabels(floor: AclFloor): {
+  people: string[];
+  groups: string[];
+} {
+  return {
+    people: floor.ownerName === null ? [] : [`${floor.ownerName} (propriétaire)`],
+    groups: [`@${ADMINS_GROUP.name}`],
+  };
+}
+
+/**
+ * The invariant the missing « Administrateurs » scope would have hidden, and
+ * the reason nobody can take the floor's chips out. Adapted rather than fixed:
+ * a page whose owner has gone has none to promise anything about, and naming
+ * one would be a lie the screen has no way of making true.
+ */
+export function alwaysAllowedNote(floor: AclFloor): string {
+  return floor.ownerName === null
+    ? "Les administrateurs ont toujours accès, et ne peuvent pas être retirés."
+    : "Le propriétaire et les administrateurs ont toujours accès, et ne peuvent pas être retirés.";
+}
+
 // --- what someone without the right is told ----------------------------------
 
 /**
@@ -315,9 +351,14 @@ export interface AclDirectory {
  */
 export const ACCESS_DENIED = "Vous n'avez pas accès à cette page.";
 
-/** Omitted when the page no longer has an owner: there is nobody to name. */
-export function managedByLine(ownerName: string | null): string | null {
-  return ownerName === null ? null : `Gérée par ${ownerName}.`;
+/**
+ * Who looks after the page, on the refusal screen and at the head of the
+ * rights modal. « Propriétaire » rather than « gérée par » — that is the word
+ * the rights themselves use, and one word for one thing spares the reader the
+ * work of noticing they are the same. Omitted when there is nobody to name.
+ */
+export function ownerLine(ownerName: string | null): string | null {
+  return ownerName === null ? null : `Propriétaire : ${ownerName}`;
 }
 
 /**

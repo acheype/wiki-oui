@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { type AccessRule, managedByLine } from "@/lib/permissions";
+import { type AccessRule, ownerLine } from "@/lib/permissions";
 
 export function PageRightsButton({
   slug,
@@ -60,7 +60,7 @@ export function PageRightsButton({
     });
   }
 
-  const managedBy = rights ? managedByLine(rights.ownerName) : null;
+  const owner = rights ? ownerLine(rights.ownerName) : null;
   // The modal is the same for a fiche; only what it calls the thing changes.
   // Both nouns are feminine, so the second question needs no variant.
   const subject = rights?.isEntry ? "cette fiche" : "cette page";
@@ -75,7 +75,7 @@ export function PageRightsButton({
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Droits de {subject}</DialogTitle>
-          {managedBy && <DialogDescription>{managedBy}</DialogDescription>}
+          {owner && <DialogDescription>{owner}</DialogDescription>}
         </DialogHeader>
 
         {!rights ? (
@@ -86,14 +86,14 @@ export function PageRightsButton({
               id="page-read-acl"
               spec={{ type: "acl", label: `Qui peut voir ${subject} ?` }}
               value={read}
-              environment={{ directory: rights.directory }}
+              environment={{ directory: rights.directory, aclFloor: { ownerName: rights.ownerName } }}
               onChange={(value) => setRead(value as AccessRule)}
             />
             <Field
               id="page-write-acl"
               spec={{ type: "acl", label: "Qui peut la modifier ?" }}
               value={write}
-              environment={{ directory: rights.directory }}
+              environment={{ directory: rights.directory, aclFloor: { ownerName: rights.ownerName } }}
               onChange={(value) => setWrite(value as AccessRule)}
             />
           </div>

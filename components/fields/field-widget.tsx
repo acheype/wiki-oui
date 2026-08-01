@@ -39,7 +39,7 @@ import {
   propKindFits,
 } from "@/lib/component-descriptor";
 import type { FormFieldType } from "@/lib/form-descriptor";
-import type { AccessRule, AclDirectory } from "@/lib/permissions";
+import type { AccessRule, AclDirectory, AclFloor } from "@/lib/permissions";
 import type { PseudoField } from "@/lib/pseudo-fields";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
@@ -149,6 +149,8 @@ export interface FieldEnvironment {
   siblingValues?: Record<string, unknown>;
   /** Who an `acl` list may name: the people and groups of the wiki. */
   directory?: AclDirectory;
+  /** Who an `acl` list always allows, whatever it holds: the subject's floor. */
+  aclFloor?: AclFloor;
 }
 
 const EMPTY_ENVIRONMENT: FieldEnvironment = {};

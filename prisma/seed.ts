@@ -175,18 +175,22 @@ Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<form>\`, \`<
 `,
 };
 
-// Seeded pages take the wiki's own defaults, copied by the same function
-// every other page's are (ADR 0026) — the seed writes without an actor, so it
-// calls the pure copy rather than going through lib/pages.ts.
+// Seeded pages are readable by whoever the wiki's default says, and writable
+// by anyone signed in. That second half is not the configured default, and on
+// purpose: seeded pages have no owner (see below), so the default « seulement »
+// would leave the aide-mémoire and the sandbox to the administrators alone —
+// a wiki that arrives closed to the very people it was installed for.
 //
-// The « seulement » list is deliberately dropped: it can only name accounts
-// and groups, and at seed time none exists. That is the same rule the door
+// The « seulement » list, wherever it would come from, is dropped: it can only
+// name accounts and groups, and at seed time none exists. Same rule the door
 // applies, on a database where every name is unknown.
-const { readScope, writeScope } = storedRights(
-  wikiConfig.permissions.defaultPageRead,
-  wikiConfig.permissions.defaultPageWrite
-);
-const SEEDED_RIGHTS = { readScope, writeScope } as const;
+const SEEDED_RIGHTS = {
+  readScope: storedRights(
+    wikiConfig.permissions.defaultPageRead,
+    wikiConfig.permissions.defaultPageWrite
+  ).readScope,
+  writeScope: "authenticated",
+} as const;
 
 // Shared two-step creation (docs/architecture.md): the current-revision
 // pointer can only be set once the revision row exists.

@@ -2,7 +2,7 @@ import { Lock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DESTINATION_PARAM } from "@/lib/destination";
-import { ACCESS_DENIED, managedByLine } from "@/lib/permissions";
+import { ACCESS_DENIED, ownerLine } from "@/lib/permissions";
 import { currentIdentity } from "@/lib/permissions-db";
 import { authPagePath } from "@/wiki.config";
 
@@ -22,15 +22,15 @@ export async function AccessRefused({
   message?: string;
 }) {
   const identity = await currentIdentity();
-  const managedBy = managedByLine(ownerName);
+  const owner = ownerLine(ownerName);
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-16 text-center">
       <Lock className="size-8 text-muted-foreground" aria-hidden />
       <div>
         <h1 className="text-lg font-semibold">{message}</h1>
-        {managedBy && (
-          <p className="mt-1 text-sm text-muted-foreground">{managedBy}</p>
+        {owner && (
+          <p className="mt-1 text-sm text-muted-foreground">{owner}</p>
         )}
       </div>
       {/* Offered only to a visitor: someone already signed in has nothing to

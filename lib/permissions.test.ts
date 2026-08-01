@@ -10,11 +10,13 @@ import {
   SCOPES,
   aclEntries,
   canRead,
+  aclFloorLabels,
+  alwaysAllowedNote,
   canWrite,
-  ownsPage,
-  managedByLine,
-  readableWhere,
   knownEntries,
+  ownerLine,
+  ownsPage,
+  readableWhere,
   ruleAllows,
   storedRights,
   writableWhere,
@@ -90,8 +92,17 @@ describe("canWrite", () => {
     expect(canWrite(ADMIN, page({ writeScope: "restricted" }))).toBe(true);
   });
 
-  it("leaves a page without an owner to the administrators alone", () => {
-    const orphan = page({ ownerUsername: null, writeScope: "everyone" });
+  it("reads the scope of a page without an owner, whose floor is just empty", () => {
+    const orphan = (writeScope: Scope) => page({ ownerUsername: null, writeScope });
+    expect(canWrite(VISITOR, orphan("everyone"))).toBe(true);
+    expect(canWrite(VISITOR, orphan("authenticated"))).toBe(false);
+    expect(canWrite(JEAN, orphan("authenticated"))).toBe(true);
+  });
+
+  // The consequence the spec calls mechanical: no owner and nobody listed
+  // leaves the administrators, without a rule saying so anywhere.
+  it("leaves an unowned page at « seulement » to the administrators alone", () => {
+    const orphan = page({ ownerUsername: null, writeScope: "restricted" });
     expect(canWrite(VISITOR, orphan)).toBe(false);
     expect(canWrite(JEAN, orphan)).toBe(false);
     expect(canWrite(ADMIN, orphan)).toBe(true);
@@ -181,10 +192,35 @@ describe("knownEntries", () => {
   });
 });
 
-describe("managedByLine", () => {
+describe("ownerLine", () => {
+  it("names the owner with the word the rights themselves use", () => {
+    // Escaped rather than typed: the no-break space before the colon is the
+    // French rule, and it has to be visible to whoever edits this line.
+    expect(ownerLine("Marie Durand")).toBe("Propriétaire\u00A0: Marie Durand");
+  });
+
   it("says nothing when the page no longer has an owner", () => {
-    expect(managedByLine(null)).toBeNull();
-    expect(managedByLine("Marie Durand")).toBe("Gérée par Marie Durand.");
+    expect(ownerLine(null)).toBeNull();
+  });
+});
+
+describe("the floor a « seulement » list stands on", () => {
+  it("shows the owner and the administrators, so the box is never empty", () => {
+    expect(aclFloorLabels({ ownerName: "Marie Durand" })).toEqual({
+      people: ["Marie Durand (propriétaire)"],
+      groups: ["@Admins"],
+    });
+  });
+
+  it("promises nothing about an owner the page no longer has", () => {
+    expect(aclFloorLabels({ ownerName: null })).toEqual({
+      people: [],
+      groups: ["@Admins"],
+    });
+    expect(alwaysAllowedNote({ ownerName: null })).not.toContain("propriétaire");
+    expect(alwaysAllowedNote({ ownerName: "Marie Durand" })).toContain(
+      "Le propriétaire et les administrateurs"
+    );
   });
 });
 

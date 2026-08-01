@@ -5,7 +5,7 @@
 // rights of a page, of a form and — once ADR 0015's settings panel reads it —
 // of a single field. Written once, it reads the same everywhere.
 
-import { Plus, UserRound, UsersRound, X } from "lucide-react";
+import { Lock, Plus, UserRound, UsersRound, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,25 +19,31 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   type AccessRule,
   type AclDirectory,
+  type AclFloor,
   type Scope,
-  OWNER_AND_ADMINS_NOTE,
   SCOPES,
   SCOPE_LABELS,
+  aclFloorLabels,
+  alwaysAllowedNote,
 } from "@/lib/permissions";
 
 const EMPTY_DIRECTORY: AclDirectory = { people: [], groups: [] };
+const NO_OWNER: AclFloor = { ownerName: null };
 
 export function AclInput({
   id,
   value,
   directory = EMPTY_DIRECTORY,
+  floor = NO_OWNER,
   onChange,
 }: {
   id: string;
   value: AccessRule;
   directory?: AclDirectory;
+  floor?: AclFloor;
   onChange: (rule: AccessRule) => void;
 }) {
+  const locked = aclFloorLabels(floor);
   const usernames = value.usernames ?? [];
   const groupSlugs = value.groupSlugs ?? [];
 
@@ -78,6 +84,23 @@ export function AclInput({
 
       {value.scope === "restricted" && (
         <div className="ml-6 flex flex-wrap items-center gap-2 rounded-md border p-2">
+          {/* The floor comes first and cannot be taken out. Without it the box
+              stands empty on a fresh page, reading as « personne » where what
+              was chosen is « eux seuls ». */}
+          {locked.people.map((label) => (
+            <LockedChip
+              key={label}
+              icon={<UserRound className="size-3.5" />}
+              label={label}
+            />
+          ))}
+          {locked.groups.map((label) => (
+            <LockedChip
+              key={label}
+              icon={<UsersRound className="size-3.5" />}
+              label={label}
+            />
+          ))}
           {usernames.map((username) => (
             <AclChip
               key={username}
@@ -107,10 +130,19 @@ export function AclInput({
         </div>
       )}
 
-      {/* The invariant the missing « Administrateurs » scope would have
-          hidden, and the reason the owner is nowhere in the list. */}
-      <p className="text-xs text-muted-foreground">ⓘ {OWNER_AND_ADMINS_NOTE}</p>
+      <p className="text-xs text-muted-foreground">ⓘ {alwaysAllowedNote(floor)}</p>
     </div>
+  );
+}
+
+/** A floor chip: same shape as the others, visibly not yours to remove. */
+function LockedChip({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <span className="flex items-center gap-1.5 rounded-full border border-dashed bg-muted/50 py-1 pl-2.5 pr-2.5 text-sm text-muted-foreground">
+      <span>{icon}</span>
+      {label}
+      <Lock className="size-3" aria-label="Accès permanent" />
+    </span>
   );
 }
 

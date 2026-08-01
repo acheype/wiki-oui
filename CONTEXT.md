@@ -165,11 +165,11 @@ Un ensemble nommé d'utilisateurs et/ou d'autres groupes, créé pour accorder d
 _Avoid_: Rôle, équipe, liste
 
 **Propriétaire**:
-L'utilisateur à qui appartient une page ou une fiche : celui qui l'a créée, jusqu'à réattribution éventuelle. Il peut toujours la voir et la modifier, quels que soient les droits posés dessus — c'est un plancher, pas une case à cocher, et il ne figure donc jamais dans une liste de droits. Une page peut n'avoir **aucun** propriétaire (compte supprimé) : seuls les administrateurs y touchent alors.
+L'utilisateur à qui appartient une page ou une fiche : celui qui l'a créée, jusqu'à réattribution éventuelle. Il peut toujours la voir et la modifier, quels que soient les droits posés dessus — c'est un plancher, pas une case à cocher, et il ne figure donc jamais dans une liste de droits. Une page peut n'avoir **aucun** propriétaire (compte supprimé, contenu seedé) : son plancher est alors vide, et sa portée décide seule — ce qui, sous une portée *seulement*, ne laisse que les administrateurs.
 _Avoid_: Auteur (l'auteur est celui d'une révision, et n'ouvre aucun droit), créateur
 
 **Droit**:
-L'autorisation de **lire** ou d'**écrire** une page, une fiche ou un champ. Chacun des deux s'exprime par une **portée** — *tout le monde* · *les personnes connectées* · *seulement* — la troisième ouvrant une liste d'utilisateurs et de groupes. Le propriétaire et les administrateurs sont toujours autorisés et n'apparaissent pas dans cette liste ; une portée *seulement* à liste vide dit donc « eux seuls ». Écrire implique lire.
+L'autorisation de **lire** ou d'**écrire** une page, une fiche ou un champ. Chacun des deux s'exprime par une **portée** — *tout le monde* · *les personnes connectées* · *seulement* — la troisième ouvrant une liste d'utilisateurs et de groupes. Le propriétaire et les administrateurs sont toujours autorisés : ils ne sont jamais une **ligne** du droit — rien n'est stocké pour eux, rien n'est retirable — mais le widget les affiche verrouillés, pour qu'une liste vide ne se lise pas « personne » ; une portée *seulement* à liste vide dit donc « eux seuls ». Écrire implique lire.
 _Avoid_: ACL (nom de code, à réserver au code), permission, rôle, « niveau » (réservé au niveau d'accès, qui décrit un acteur et non un réglage)
 
 **Création de fiche**:
