@@ -13,8 +13,10 @@ import {
   aclFloorLabels,
   alwaysAllowedNote,
   canWrite,
+  aclFloorPrincipals,
   knownEntries,
   ownerLine,
+  withoutFloor,
   ownsPage,
   readableWhere,
   ruleAllows,
@@ -200,23 +202,54 @@ describe("ownerLine", () => {
   });
 });
 
+const MARIE_FLOOR = { owner: { username: "marie-durand", name: "Marie Durand" } };
+const NO_OWNER_FLOOR = { owner: null };
+
 describe("the floor a « seulement » list stands on", () => {
   it("shows the owner and the administrators, so the box is never empty", () => {
-    expect(aclFloorLabels({ ownerName: "Marie Durand" })).toEqual({
+    expect(aclFloorLabels(MARIE_FLOOR)).toEqual({
       people: ["Marie Durand (propriétaire)"],
       groups: ["@Admins"],
     });
   });
 
   it("promises nothing about an owner the page no longer has", () => {
-    expect(aclFloorLabels({ ownerName: null })).toEqual({
+    expect(aclFloorLabels(NO_OWNER_FLOOR)).toEqual({
       people: [],
       groups: ["@Admins"],
     });
-    expect(alwaysAllowedNote({ ownerName: null })).not.toContain("propriétaire");
-    expect(alwaysAllowedNote({ ownerName: "Marie Durand" })).toContain(
+    expect(alwaysAllowedNote(NO_OWNER_FLOOR)).not.toContain("propriétaire");
+    expect(alwaysAllowedNote(MARIE_FLOOR)).toContain(
       "Le propriétaire et les administrateurs"
     );
+  });
+});
+
+describe("withoutFloor", () => {
+  const rows: AclEntry[] = [
+    { kind: "READ", username: "marie-durand", groupSlug: null },
+    { kind: "READ", username: "jean-martin", groupSlug: null },
+    { kind: "WRITE", username: null, groupSlug: ADMINS_GROUP.slug },
+    { kind: "WRITE", username: null, groupSlug: "bureau" },
+  ];
+
+  it("drops the rows the owner and the administrators already cover", () => {
+    expect(withoutFloor(rows, MARIE_FLOOR)).toEqual([rows[1], rows[3]]);
+  });
+
+  it("keeps the owner's row when the page has lost its owner", () => {
+    expect(withoutFloor(rows, NO_OWNER_FLOOR)).toEqual([
+      rows[0],
+      rows[1],
+      rows[3],
+    ]);
+  });
+
+  it("names the same principals the picker refuses to offer", () => {
+    expect(aclFloorPrincipals(MARIE_FLOOR)).toEqual({
+      usernames: ["marie-durand"],
+      groupSlugs: [ADMINS_GROUP.slug],
+    });
   });
 });
 

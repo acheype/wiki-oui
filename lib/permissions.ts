@@ -297,23 +297,53 @@ export interface AclDirectory {
 
 /** What a « seulement » list always allows, over and above what it holds. */
 export interface AclFloor {
-  /** The owner's display name, null when the subject has no owner. */
-  ownerName: string | null;
+  /** Null when the subject has no owner: the wiki's defaults, an erased account. */
+  owner: Identity | null;
 }
 
+/** The floor as the widget shows it, locked. */
 export function aclFloorLabels(floor: AclFloor): {
   people: string[];
   groups: string[];
 } {
   return {
-    people: floor.ownerName === null ? [] : [`${floor.ownerName} (propriétaire)`],
+    people: floor.owner === null ? [] : [`${floor.owner.name} (propriétaire)`],
     groups: [`@${ADMINS_GROUP.name}`],
   };
 }
 
+/** The floor as a list names people: what it covers cannot be added to it. */
+export function aclFloorPrincipals(floor: AclFloor): {
+  usernames: string[];
+  groupSlugs: string[];
+} {
+  return {
+    usernames: floor.owner === null ? [] : [floor.owner.username],
+    groupSlugs: [ADMINS_GROUP.slug],
+  };
+}
+
+/**
+ * Drops what the floor already covers. Such a row grants nothing — it is one
+ * of the two the owner and the administrators hold whatever the scope says —
+ * and it can appear without anyone asking: a right posed before the page
+ * changed hands names its owner today (ADR 0024 keeps no id to notice with).
+ */
+export function withoutFloor(
+  acls: readonly AclEntry[],
+  floor: AclFloor
+): AclEntry[] {
+  const covered = aclFloorPrincipals(floor);
+  return acls.filter(
+    (acl) =>
+      !(acl.username !== null && covered.usernames.includes(acl.username)) &&
+      !(acl.groupSlug !== null && covered.groupSlugs.includes(acl.groupSlug))
+  );
+}
+
 /** The invariant the missing « Administrateurs » scope would have hidden. */
 export function alwaysAllowedNote(floor: AclFloor): string {
-  return floor.ownerName === null
+  return floor.owner === null
     ? "Les administrateurs ont toujours accès, et ne peuvent pas être retirés."
     : "Le propriétaire et les administrateurs ont toujours accès, et ne peuvent pas être retirés.";
 }

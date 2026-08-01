@@ -24,12 +24,13 @@ import {
   SCOPES,
   SCOPE_LABELS,
   aclFloorLabels,
+  aclFloorPrincipals,
   alwaysAllowedNote,
 } from "@/lib/permissions";
 
 const EMPTY_DIRECTORY: AclDirectory = { people: [], groups: [] };
 /** The floor of a subject with no owner to name — the wiki's own defaults. */
-export const NO_FLOOR: AclFloor = { ownerName: null };
+export const NO_FLOOR: AclFloor = { owner: null };
 
 export function AclInput({
   id,
@@ -45,14 +46,15 @@ export function AclInput({
   onChange: (rule: AccessRule) => void;
 }) {
   const locked = aclFloorLabels(floor);
+  const covered = aclFloorPrincipals(floor);
   const usernames = value.usernames ?? [];
   const groupSlugs = value.groupSlugs ?? [];
 
   const nameOfPerson = new Map(
-    directory.people.map((person) => [person.username, person.name])
+    directory.people.map((person) => [person.username, person.name]),
   );
   const nameOfGroup = new Map(
-    directory.groups.map((group) => [group.slug, group.name])
+    directory.groups.map((group) => [group.slug, group.name]),
   );
 
   function set(next: Partial<AccessRule>) {
@@ -101,36 +103,51 @@ export function AclInput({
               label={label}
             />
           ))}
-          {usernames.map((username) => (
-            <AclChip
-              key={username}
-              icon={<UserRound className="size-3.5" />}
-              label={nameOfPerson.get(username) ?? username}
-              onRemove={() =>
-                set({ usernames: usernames.filter((one) => one !== username) })
-              }
-            />
-          ))}
-          {groupSlugs.map((slug) => (
-            <AclChip
-              key={slug}
-              icon={<UsersRound className="size-3.5" />}
-              label={`@${nameOfGroup.get(slug) ?? slug}`}
-              onRemove={() =>
-                set({ groupSlugs: groupSlugs.filter((one) => one !== slug) })
-              }
-            />
-          ))}
+          {usernames
+            .filter((username) => !covered.usernames.includes(username))
+            .map((username) => (
+              <AclChip
+                key={username}
+                icon={<UserRound className="size-3.5" />}
+                label={nameOfPerson.get(username) ?? username}
+                onRemove={() =>
+                  set({
+                    usernames: usernames.filter((one) => one !== username),
+                  })
+                }
+              />
+            ))}
+          {groupSlugs
+            .filter((slug) => !covered.groupSlugs.includes(slug))
+            .map((slug) => (
+              <AclChip
+                key={slug}
+                icon={<UsersRound className="size-3.5" />}
+                label={`@${nameOfGroup.get(slug) ?? slug}`}
+                onRemove={() =>
+                  set({ groupSlugs: groupSlugs.filter((one) => one !== slug) })
+                }
+              />
+            ))}
           <AddToListPopover
             directory={directory}
-            listed={{ usernames, groupSlugs }}
-            onAddPerson={(username) => set({ usernames: [...usernames, username] })}
+            // The floor joins what is already listed: adding either would
+            // write a row that grants nothing.
+            listed={{
+              usernames: [...usernames, ...covered.usernames],
+              groupSlugs: [...groupSlugs, ...covered.groupSlugs],
+            }}
+            onAddPerson={(username) =>
+              set({ usernames: [...usernames, username] })
+            }
             onAddGroup={(slug) => set({ groupSlugs: [...groupSlugs, slug] })}
           />
         </div>
       )}
 
-      <p className="text-xs text-muted-foreground">ⓘ {alwaysAllowedNote(floor)}</p>
+      <p className="text-xs text-muted-foreground">
+        ⓘ {alwaysAllowedNote(floor)}
+      </p>
     </div>
   );
 }
@@ -188,10 +205,10 @@ function AddToListPopover({
     label.toLowerCase().includes(query.trim().toLowerCase());
   const people = directory.people.filter(
     (person) =>
-      !listed.usernames.includes(person.username) && matching(person.name)
+      !listed.usernames.includes(person.username) && matching(person.name),
   );
   const groups = directory.groups.filter(
-    (group) => !listed.groupSlugs.includes(group.slug) && matching(group.name)
+    (group) => !listed.groupSlugs.includes(group.slug) && matching(group.name),
   );
 
   function pick(add: () => void) {

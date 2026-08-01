@@ -5,6 +5,7 @@ import { existingPrincipals } from "@/lib/groups-db";
 import {
   type AccessRule,
   type AclEntry,
+  type AclFloor,
   type PageRights,
   CREATE_REFUSED,
   RIGHTS_REFUSED,
@@ -18,6 +19,7 @@ import {
   readableWhere,
   ruleAllows,
   storedRights,
+  withoutFloor,
   writableWhere,
 } from "@/lib/permissions";
 import { currentActor, currentUsername } from "@/lib/permissions-db";
@@ -477,9 +479,18 @@ export async function actorOwns(page: PageRights): Promise<boolean> {
   return ownsPage(await currentActor(), page);
 }
 
+/** Whoever the page always allows, whatever its lists hold. */
+function pageFloor(page: { owner: { name: string; username: string | null } | null }): AclFloor {
+  const owner = page.owner;
+  return {
+    owner: owner?.username ? { username: owner.username, name: owner.name } : null,
+  };
+}
+
 /** A page's rights as the modal poses them, both senses at once. */
 export interface PageRightsView {
-  ownerName: string | null;
+  /** Doubles as the widget's floor: whoever is here is never in the list. */
+  floor: AclFloor;
   /** A fiche, so the modal names it as one — « Qui peut voir cette fiche ? ». */
   isEntry: boolean;
   read: AccessRule;
@@ -494,7 +505,7 @@ export async function getPageRights(slug: string): Promise<PageRightsView | null
   if (!page) return null;
   await assertOwnsPage(page);
   return {
-    ownerName: page.owner?.name ?? null,
+    floor: pageFloor(page),
     isEntry: page.formId !== null,
     read: pageRule(page, "READ"),
     write: pageRule(page, "WRITE"),
@@ -518,6 +529,7 @@ export async function setPageRights(
   });
   await assertOwnsPage(page);
   const rights = storedRights(read, write);
+  const kept = withoutFloor(rights.acls, pageFloor(page));
   await prisma.$transaction(async (tx) => {
     await tx.pageAcl.deleteMany({ where: { pageId: page.id } });
     await tx.page.update({
@@ -525,7 +537,7 @@ export async function setPageRights(
       data: {
         readScope: rights.readScope,
         writeScope: rights.writeScope,
-        acls: { create: rights.acls },
+        acls: { create: kept },
       },
     });
   });

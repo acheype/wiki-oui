@@ -60,7 +60,7 @@ export function PageRightsButton({
     });
   }
 
-  const owner = rights ? ownerLine(rights.ownerName) : null;
+  const owner = rights ? ownerLine(rights.floor.owner?.name ?? null) : null;
   // The modal is the same for a fiche; only what it calls the thing changes.
   // Both nouns are feminine, so the second question needs no variant.
   const subject = rights?.isEntry ? "cette fiche" : "cette page";
@@ -86,14 +86,14 @@ export function PageRightsButton({
               id="page-read-acl"
               spec={{ type: "acl", label: `Qui peut voir ${subject} ?` }}
               value={read}
-              environment={{ directory: rights.directory, aclFloor: { ownerName: rights.ownerName } }}
+              environment={{ directory: rights.directory, aclFloor: rights.floor }}
               onChange={(value) => setRead(value as AccessRule)}
             />
             <Field
               id="page-write-acl"
               spec={{ type: "acl", label: "Qui peut la modifier ?" }}
               value={write}
-              environment={{ directory: rights.directory, aclFloor: { ownerName: rights.ownerName } }}
+              environment={{ directory: rights.directory, aclFloor: rights.floor }}
               onChange={(value) => setWrite(value as AccessRule)}
             />
           </div>
