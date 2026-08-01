@@ -638,8 +638,8 @@ function ImpactSentences({
 
 /**
  * The « Droits » tab (docs/permissions.md § Formulaire : trois réglages, pas
- * deux). Three settings and not two: **créer** une fiche and **modifier** une
- * fiche déjà là are distinct rights, and confusing them would break « chacun
+ * deux). Three settings and not two: creating a fiche and modifying one
+ * already there are distinct rights, and confusing them would break « chacun
  * propose un événement, chacun ne modifie que le sien ».
  *
  * A tab rather than a strip at the foot of the canvas, which is the target of

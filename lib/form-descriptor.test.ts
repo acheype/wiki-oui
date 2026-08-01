@@ -214,7 +214,7 @@ describe("parseFormDescriptor", () => {
   // (docs/permissions.md § Formulaire), so what it poses has to survive the
   // round trip Zod puts every save through — an object stripped on the way in
   // would look exactly like defaults that never got copied.
-  it("keeps the three rights the « Droits » tab poses", () => {
+  it("keeps the three rights the « Droits » tab poses", () => {
     const descriptor = contactDescriptor();
     descriptor.permissions = {
       createEntry: { scope: "authenticated" },
