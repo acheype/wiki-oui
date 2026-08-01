@@ -29,7 +29,7 @@ L'administration est une **appartenance**, pas un champ `role` : il n'existe auc
 | Champ | Rôle | Modifiable |
 | --- | --- | --- |
 | `name` | Nom affiché, libre — un pseudonyme est accepté | oui, depuis le profil |
-| `username` | Identifiant public unique, au format d'un slug de page | par le geste de renommage |
+| `username` | Identifiant public unique, au format d'un slug de page | par l'action de renommage |
 | `email` | Privé. Visible seulement dans `gerer-utilisateurs` | oui |
 | `image` | Avatar, uploadé dans `files/` et servi par `/api/files/{nom}?w=…` | oui |
 
@@ -75,12 +75,12 @@ Les réglages d'envoi sont six variables d'environnement (`SMTP_HOST`, `SMTP_POR
 
 ### Fin d'un compte
 
-Deux gestes distincts, pour deux intentions qui n'ont rien à voir :
+Deux actions distinctes, pour deux intentions qui n'ont rien à voir :
 
 - **Désactiver** — le cas courant, « cette personne n'est plus des nôtres ». Connexion refusée, sessions révoquées, attribution intacte, réversible d'un clic. Filtre « Désactivés » dans la liste.
 - **Supprimer** — la demande d'effacement. La modale annonce les nombres et propose de **réattribuer** les pages du compte. Puis un simple `DELETE` : `onDelete: SetNull` vide `ownerUsername` et `authorUsername`, `onDelete: Cascade` emporte les lignes de `PageAcl` et de `GroupMember`.
 
-**L'effacement appartient à la personne** (RGPD, droit à l'effacement) : « Supprimer mon compte » vit dans le menu du compte, atteignable sans administrateur, et la modale dit les deux moitiés de ce qui arrive — les données personnelles (nom affiché, identifiant, adresse, mot de passe) sont effacées, plus rien ne porte le nom, et les pages et fiches écrites restent sur le wiki sous « Anonyme ». Rien n'y est réattribué : proposer un successeur nommé supposerait de montrer à qui s'en va la liste de tout le monde. Le seul refus est l'invariant du wiki — le dernier administrateur passe la main avant de partir. **Désactiver son propre compte, en revanche, n'est jamais offert** : le geste enfermerait dehors celui qui le pose, et ce qu'il cherchait est « se déconnecter ».
+**L'effacement appartient à la personne** (RGPD, droit à l'effacement) : « Supprimer mon compte » vit dans le menu du compte, atteignable sans administrateur, et la modale dit les deux moitiés de ce qui arrive — les données personnelles (nom affiché, identifiant, adresse, mot de passe) sont effacées, plus rien ne porte le nom, et les pages et fiches écrites restent sur le wiki sous « Anonyme ». Rien n'y est réattribué : proposer un successeur nommé supposerait de montrer à qui s'en va la liste de tout le monde. Le seul refus est l'invariant du wiki — le dernier administrateur passe la main avant de partir. **Désactiver son propre compte, en revanche, n'est jamais offert** : l'action enfermerait dehors celui qui le pose, et ce qu'il cherchait est « se déconnecter ».
 
 Un contenu sans propriétaire ni auteur identifié s'affiche **« Anonyme »**, quelle qu'en soit la raison — antérieur aux comptes, écrit par un visiteur sur un wiki ouvert, ou compte effacé. Le wiki ne distingue pas ces cas : il n'en ferait rien, et se taire sert mieux un effacement demandé que de signaler qu'il a eu lieu.
 
@@ -98,7 +98,7 @@ Un groupe contient des **utilisateurs et/ou d'autres groupes**, sans limite de p
 
 `@Admins` est protégé comme une page spéciale : ni supprimable, ni renommable, **jamais vide** (retirer le dernier administrateur est refusé), et il **n'accepte que des personnes** — son sélecteur ne propose pas de groupes, avec la note « ⓘ Ce groupe n'accepte que des personnes — on ne devient pas administrateur en étant membre d'un autre groupe. » Aucun message d'erreur : l'état est rendu impossible, pas rattrapé.
 
-Un groupe porte un **nom affiché** et un **slug** dérivé de lui à la création, personnalisable avant enregistrement puis figé — la règle d'identité commune du projet, et c'est le slug que retiennent les droits (ADR 0024). Renommer un groupe change son nom affiché ; déplacer son identifiant relèverait du geste de renommage de l'ADR 0016, hors périmètre v0.5.
+Un groupe porte un **nom affiché** et un **slug** dérivé de lui à la création, personnalisable avant enregistrement puis figé — la règle d'identité commune du projet, et c'est le slug que retiennent les droits (ADR 0024). Renommer un groupe change son nom affiché ; déplacer son identifiant relèverait de l'action de renommage de l'ADR 0016, hors périmètre v0.5.
 
 Créer et modifier un groupe est réservé aux administrateurs en v0.5.
 
@@ -162,9 +162,9 @@ Un formulaire écrit avant l'onglet n'en porte aucun : les défauts du wiki rép
 
 **Créer une fiche ne consulte pas `createPage`.** Le droit du wiki commande les pages, celui du formulaire commande ses fiches : c'est ce qui permet à un wiki qui ne distribue aucune page d'accueillir quand même « chacun propose un événement ».
 
-**Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même cran que les gestes structurants d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que l'acteur n'a pas est **absent** de la liste des formulaires, jamais grisé.
+**Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même cran que les actions structurantes d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que l'acteur n'a pas est **absent** de la liste des formulaires, jamais grisé.
 
-**« Appliquer aux fiches existantes »** est le seul chemin des défauts vers l'existant. Le bouton enregistre le formulaire, puis remplace les droits de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand le geste n'écrirait rien :
+**« Appliquer aux fiches existantes »** est le seul chemin des défauts vers l'existant. Le bouton enregistre le formulaire, puis remplace les droits de ses fiches — derrière une confirmation qui annonce les nombres, et dont l'*Appliquer* reste hors d'atteinte quand l'action n'écrirait rien :
 
 ```
 ⓘ 23 fiches recevront ces droits. Les leurs seront perdus.
@@ -172,7 +172,7 @@ Un formulaire écrit avant l'onglet n'en porte aucun : les défauts du wiki rép
     2 fiches que vous ne gérez pas : leurs droits ne changent pas.
 ```
 
-La dernière ligne est le cran des gestes structurants, tenu fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser le geste entier. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « que vous ne gérez pas » plutôt que « à quelqu'un d'autre », qui nommerait une personne inexistante.
+La dernière ligne est le cran des actions structurantes, tenu fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser l'action entière. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « que vous ne gérez pas » plutôt que « à quelqu'un d'autre », qui nommerait une personne inexistante.
 
 Le décompte comme l'écriture **laissent tomber un nom disparu** (ADR 0026) : un défaut qui nomme un compte ou un groupe effacé depuis n'accorde rien en douce — et les deux le font au même endroit, sinon la fiche resterait « à changer » pour toujours et l'écriture casserait sur la clé étrangère.
 
@@ -194,7 +194,7 @@ wiki.config.ts  ──copie à la création du formulaire──▶  Form
 Form            ──copie à la création de la fiche────▶  Page
 ```
 
-Le même geste aux deux étages (ADR 0026). Modifier un défaut ne touche rien de ce qui existe ; le seul chemin vers l'existant est un bouton explicite « Appliquer aux fiches existantes », à confirmation chiffrée — motif des recalculs de masse des ADR 0017 et 0020.
+La même action aux deux étages (ADR 0026). Modifier un défaut ne touche rien de ce qui existe ; le seul chemin vers l'existant est un bouton explicite « Appliquer aux fiches existantes », à confirmation chiffrée — motif des recalculs de masse des ADR 0017 et 0020.
 
 ```ts
 permissions: {
@@ -206,7 +206,7 @@ permissions: {
 
 Le fichier de configuration écrit des **usernames et des slugs de groupe** : c'est le seul endroit où un humain rédige des droits à la main, et le seul où aucune cascade ne peut jouer.
 
-## Quel droit commande quel geste
+## Quel droit commande quelle action
 
 | Cran | Gestes |
 | --- | --- |
@@ -346,7 +346,7 @@ Le décompte porte l'explication, et c'est lui qui rend l'action compréhensible
 ⓘ Paul Riva a déjà accès en écriture à ces 3 pages : rien à changer.
 ```
 
-Ce qui s'ajoute est un **accès à des pages**, jamais une page à une liste : les lignes de `PageAcl` sont l'affaire du wiki, et les nommer laisse le lecteur compter la mauvaise chose. Le bouton *Appliquer* lit le même décompte : il reste hors d'atteinte tant que le geste n'écrirait rien, plutôt que d'annoncer un succès sur des pages qu'il n'a pas touchées.
+Ce qui s'ajoute est un **accès à des pages**, jamais une page à une liste : les lignes de `PageAcl` sont l'affaire du wiki, et les nommer laisse le lecteur compter la mauvaise chose. Le bouton *Appliquer* lit le même décompte : il reste hors d'atteinte tant que l'action n'écrirait rien, plutôt que d'annoncer un succès sur des pages qu'il n'a pas touchées.
 
 Sur une page ouverte à tout le monde ou aux personnes connectées, @Bureau **a déjà accès** : ne rien faire est le résultat correct, il suffit de le dire. Il n'y a pas d'action « Retirer l'accès » symétrique : sur une page publique, elle devrait restreindre l'accès de *tous* pour en priver un — un piège sous un nom rassurant. Révoquer largement se fait en supprimant le groupe, ou en remplaçant.
 
@@ -459,7 +459,7 @@ Le wiki reste donc exactement aussi ouvert qu'avant la migration : ce sont les m
 
 - **Limitation de débit et anti-abus** (pages, fiches et fichiers ensemble) — la v0.5 ne crée pas ce risque, elle donne le moyen de le fermer par les droits ; un wiki laissé ouvert reste exposé.
 - **Droits sur les fichiers.** Le pool reste public : un fichier est accessible à qui connaît son adresse, quels que soient les droits de la page qui l'affiche. Les droits viendront avec la table des fichiers, qui naîtra pour la **galerie de gestion des fichiers** — le widget `acl` existera déjà.
-- **Changer l'identifiant d'un groupe**, le geste de renommage de l'ADR 0016 appliqué à un slug de groupe : la cascade SQL suit les appartenances, mais pas le JSON des formulaires — c'est le même balayage applicatif que la suppression, à étendre une fois celui-ci en place. En v0.5, seul le nom affiché d'un groupe change.
+- **Changer l'identifiant d'un groupe**, l'action de renommage de l'ADR 0016 appliqué à un slug de groupe : la cascade SQL suit les appartenances, mais pas le JSON des formulaires — c'est le même balayage applicatif que la suppression, à étendre une fois celui-ci en place. En v0.5, seul le nom affiché d'un groupe change.
 - **« Demander l'accès »** depuis l'écran de refus : suppose un canal de notification et une file de demandes.
 - **Commentaires**, avec leurs mentions `@username` dans du texte — celles-là relèveront de l'ADR 0016 et de sa réécriture de références, le texte ne se traitant pas comme une relation.
 - **SMTP et droits par défaut en base**, quand `Settings` s'étoffera ; l'écran d'installation les accueillera sans être réécrit.

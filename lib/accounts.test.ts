@@ -42,7 +42,7 @@ describe("disableRefusal", () => {
     expect(disableRefusal({ ...marie, lastAdmin: false })).toBeNull();
   });
 
-  it("refuses the gesture that would lock its own author out", () => {
+  it("refuses the action that would lock its own author out", () => {
     expect(
       disableRefusal({
         username: "jean-martin",

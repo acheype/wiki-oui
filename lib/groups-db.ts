@@ -20,7 +20,7 @@ import { prisma } from "@/lib/prisma";
 
 // The database side of the groups (docs/permissions.md § Groupes): it loads
 // the nesting, hands it to the pure module and writes the verdict back. Every
-// gesture that changes a group passes through here, and every one of them is
+// action that changes a group passes through here, and every one of them is
 // an administrator's — v0.5 gives group edition to nobody else, so the check
 // lives at the door rather than in each caller (ADR 0025).
 //

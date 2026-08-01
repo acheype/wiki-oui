@@ -18,7 +18,7 @@ import {
   ownerLine,
   withoutFloor,
   ownsPage,
-  pageGestures,
+  permissionsOn,
   listReadableWhere,
   readableWhere,
   ownerTransferNote,
@@ -149,8 +149,8 @@ describe("canRead", () => {
   });
 });
 
-describe("pageGestures", () => {
-  // The rungs of docs/permissions.md § Quel droit commande quel geste, on the
+describe("permissionsOn", () => {
+  // The rungs of docs/permissions.md § Quel droit commande quelle action, on the
   // page the whole file reads: Marie owns it, Jean may write it.
   const shared = page({
     writeScope: "restricted",
@@ -158,15 +158,15 @@ describe("pageGestures", () => {
   });
 
   it("stops an author at editing, whatever they may write", () => {
-    expect(pageGestures(JEAN, shared)).toEqual({
+    expect(permissionsOn(JEAN, shared)).toEqual({
       write: true,
       structuring: false,
       address: false,
     });
   });
 
-  it("opens the structuring gestures to the owner, the address to nobody", () => {
-    expect(pageGestures(MARIE, shared)).toEqual({
+  it("opens the structuring permissions to the owner, the address to nobody", () => {
+    expect(permissionsOn(MARIE, shared)).toEqual({
       write: true,
       structuring: true,
       address: false,
@@ -174,7 +174,7 @@ describe("pageGestures", () => {
   });
 
   it("opens every rung to an administrator", () => {
-    expect(pageGestures(ADMIN, shared)).toEqual({
+    expect(permissionsOn(ADMIN, shared)).toEqual({
       write: true,
       structuring: true,
       address: true,
@@ -182,7 +182,7 @@ describe("pageGestures", () => {
   });
 
   it("offers a visitor nothing on a page they can only read", () => {
-    expect(pageGestures(VISITOR, page())).toEqual({
+    expect(permissionsOn(VISITOR, page())).toEqual({
       write: false,
       structuring: false,
       address: false,
@@ -191,12 +191,12 @@ describe("pageGestures", () => {
 
   // An unowned page has an empty floor, so the structuring rung is the
   // administrators' alone — even for someone the write list names.
-  it("leaves the structuring gestures of an unowned page to the administrators", () => {
+  it("leaves the structuring permissions of an unowned page to the administrators", () => {
     const orphan = page({
       ownerUsername: null,
       writeScope: "everyone",
     });
-    expect(pageGestures(JEAN, orphan)).toEqual({
+    expect(permissionsOn(JEAN, orphan)).toEqual({
       write: true,
       structuring: false,
       address: false,

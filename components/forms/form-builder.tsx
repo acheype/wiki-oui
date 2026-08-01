@@ -392,7 +392,7 @@ export function FormBuilder({
   /**
    * « Appliquer aux fiches existantes » (docs/permissions.md § Défauts): the
    * one path from the defaults to what already exists. It counts against the
-   * rules the tab shows rather than those in base — the gesture saves the
+   * rules the tab shows rather than those in base — the action saves the
    * form on its way, so what the confirmation announces is what the form is
    * about to hold, and the two cannot disagree.
    */
@@ -411,7 +411,7 @@ export function FormBuilder({
     });
   }
 
-  // Accepted the numbers: the save the gesture drags along still passes the
+  // Accepted the numbers: the save the action drags along still passes the
   // checks a plain save does, so a gabarit changed in the same sitting cannot
   // rewrite every title on the quiet.
   function applyDefaults() {

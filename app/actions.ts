@@ -10,7 +10,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
 import {
-  actorGestures,
+  actorPermissions,
   countPageSlugReferences,
   deletePageById,
   getPage,
@@ -132,7 +132,7 @@ export async function renamePage(
   // than from the catch below — which speaks for the rename's own failure, a
   // unique-constraint race on the new slug. It comes before the clash test
   // too, that being the one answer which says something about another page.
-  if (!(await actorGestures(page)).address) {
+  if (!(await actorPermissions(page)).address) {
     return { error: ADDRESS_REFUSED };
   }
   if (await getPage(newSlug)) {
@@ -164,7 +164,7 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
     return { error: "Cette page n'existe pas." };
   }
 
-  // The bar leaves the gesture out for anyone but the owner and the
+  // The bar leaves the action out for anyone but the owner and the
   // administrators, so reaching this means the page changed hands — or a
   // direct call — and the refusal belongs in a toast, not on the error
   // boundary.
@@ -235,8 +235,8 @@ export async function restoreRevision(
   }
 
   const restored = restoredEntryData(source.page.form?.schema, source.data);
-  // Restoring is a write (docs/permissions.md § Quel droit commande quel
-  // geste): the history stays readable to whoever may read the page, and the
+  // Restoring is a write (docs/permissions.md § Quel droit commande quelle
+  // action): the history stays readable to whoever may read the page, and the
   // button that puts a revision back is offered to whoever may write it.
   try {
     await writeRestoredRevision({

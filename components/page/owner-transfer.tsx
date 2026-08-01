@@ -1,7 +1,7 @@
 "use client";
 
-// The owner, and the one gesture that moves them: « Transmettre la propriété »
-// (docs/permissions.md § Quel droit commande quel geste). It lives inside the
+// The owner, and the one action that moves them: « Transmettre la propriété »
+// (docs/permissions.md § Quel droit commande quelle action). It lives inside the
 // « Accès » modal rather than in a modal of its own — the owner is the floor
 // every right on the page stands on, so the place to hand the page over is
 // where the modal already names them.

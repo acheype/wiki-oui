@@ -1,7 +1,7 @@
 "use server";
 
 // Server Actions of the accounts screen (docs/permissions.md § Les écrans).
-// Reading them is an administrator's gesture — email addresses are shown here
+// Reading them is an administrator's action — email addresses are shown here
 // and nowhere else — and the check lives behind the door, in
 // lib/accounts-db.ts, so none of these can forget it.
 //
@@ -112,7 +112,7 @@ export async function deleteUser(
 /**
  * Whose session this is, so the accounts list can tell one line from the
  * others: on your own, disabling is not offered and erasing is the RGPD
- * gesture rather than an administrator's.
+ * action rather than an administrator's.
  */
 export async function signedInUsername(): Promise<string | null> {
   return currentUsername();

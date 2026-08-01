@@ -73,7 +73,7 @@ describe("tags that must never reach the reader", () => {
 });
 
 // Embedding another site is pasted, not typed: every provider hands out a
-// ready-made <iframe>. The tag is in the list so that gesture survives; what
+// ready-made <iframe>. The tag is in the list so that action survives; what
 // carries its risk — srcdoc, which inherits our origin — is refused by name.
 describe("a pasted embed snippet", () => {
   // Verbatim from YouTube's "Partager > Intégrer" button.

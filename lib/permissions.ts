@@ -21,7 +21,7 @@ import { ANONYMOUS } from "@/lib/username";
 export const ADMINS_GROUP = { slug: "admins", name: "Admins" } as const;
 
 /**
- * The floor every gesture on an account or a membership stops at: a wiki
+ * The floor every action on an account or a membership stops at: a wiki
  * whose administrators have all gone is one nobody can take back, since the
  * installation screen is a one-way door (ADR 0027). One sentence, because it
  * is one rule — removing the last member of @Admins, disabling them and
@@ -194,18 +194,18 @@ export function canRead(actor: Actor, page: PageRights): boolean {
 }
 
 /**
- * The three rungs the gestures on a page stop at (docs/permissions.md § Quel
- * droit commande quel geste), what the action bar reads to decide what it
+ * The three rungs the permissions on a page stop at (docs/permissions.md § Quel
+ * droit commande quelle action), what the action bar reads to decide what it
  * offers at all. Each rung is named after the reach of what it lets through,
  * not after who it lets in: the ladder is a matter of how far the effect
  * travels, not a hierarchy of people.
  */
-export interface PageGestures {
+export interface PagePermissions {
   /** Editing, restoring a revision, posing tags. */
   write: boolean;
   /**
-   * Deleting, posing the rights, handing the page on — « les gestes
-   * structurants ». Whoever may write can blank a page anyway, but the
+   * Deleting, posing the rights, handing the page on — « les actions
+   * structurantes ». Whoever may write can blank a page anyway, but the
    * history survives a blanking and not a deletion, and opening the writing
    * must not let someone shut the owner out of their own page.
    */
@@ -214,7 +214,7 @@ export interface PageGestures {
   address: boolean;
 }
 
-export function pageGestures(actor: Actor, page: PageRights): PageGestures {
+export function permissionsOn(actor: Actor, page: PageRights): PagePermissions {
   return {
     write: canWrite(actor, page),
     structuring: ownsPage(actor, page),
@@ -496,7 +496,7 @@ export function ownerTransferNote(total: number): string {
 
 /**
  * And what it means for whoever gives them: transmettre la propriété est sans
- * retour (docs/permissions.md § Quel droit commande quel geste), so the
+ * retour (docs/permissions.md § Quel droit commande quelle action), so the
  * confirmation says so before the click rather than after it.
  */
 export function ownerTransferWarning(total: number): string {

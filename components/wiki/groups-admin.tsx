@@ -4,7 +4,7 @@ import { GroupsAdmin as GroupsAdminScreen } from "@/components/users/groups-admi
 
 // Built-in component rendered by the `gerer-utilisateurs` special page
 // (docs/permissions.md § Les écrans), below <UsersAdmin />. Creating and
-// editing a group is an administrator's gesture in v0.5, so the whole screen
+// editing a group is an administrator's action in v0.5, so the whole screen
 // is behind the same gate as the users list.
 export function GroupsAdmin() {
   return (

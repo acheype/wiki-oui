@@ -2,7 +2,7 @@
 
 // Naming one person out of the whole wiki: a search field and the list under
 // it, the shape « Transmettre la propriété » takes on a page and on a lot
-// alike. Its own file because both gestures hand a page over, and they must
+// alike. Its own file because both permissions hand a page over, and they must
 // not name people two different ways.
 
 import { UserRound } from "lucide-react";

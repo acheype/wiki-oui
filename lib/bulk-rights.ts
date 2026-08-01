@@ -147,7 +147,7 @@ const ACCESS_SENSE: Record<PermKind, string> = {
  * everyone or to signed-in people the target already has access, so doing
  * nothing is the right outcome — it only has to be said.
  *
- * Two shapes, because two situations: the sentence counts in what the gesture
+ * Two shapes, because two situations: the sentence counts in what the action
  * changes and sets the rest aside, and when it changes nothing at all it says
  * so outright rather than promising an access that is already held. What is
  * added is an access to pages, never a page to a list — the rows are the
@@ -194,7 +194,7 @@ export function grantNote(
  */
 export type RightsReplacement = Partial<Record<PermKind, AccessRule>>;
 
-/** Who « Donner accès » names, sense by sense — the whole of one gesture. */
+/** Who « Donner accès » names, sense by sense — the whole of one action. */
 export type AccessGrant = Partial<Record<PermKind, readonly MemberRef[]>>;
 
 export function nothingToReplace(replacement: RightsReplacement): boolean {
@@ -202,7 +202,7 @@ export function nothingToReplace(replacement: RightsReplacement): boolean {
 }
 
 /**
- * Whether the whole gesture would write a single row. Nobody named answers it,
+ * Whether the whole action would write a single row. Nobody named answers it,
  * but so does naming only people the lot already lets in: the button that
  * would carry out nothing stays out of reach, rather than reporting a success
  * over pages it did not touch. Same reading as the notes above it — what they

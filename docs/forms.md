@@ -48,7 +48,7 @@ Trois identifiants suivent le même motif — **dérivé automatiquement, figé 
 
 En cas de **collision** du slug de fiche (avec une page ou une autre fiche) : message explicite invitant à personnaliser l'identifiant — jamais de suffixe automatique silencieux.
 
-Nuance depuis ADR 0016/0017 : « figé » signifie *plus jamais dérivé* — mais tout identifiant en base reste renommable par un geste explicite qui réécrit toutes les références, historique compris : « Changer l'adresse » (fiche), « Changer » sur l'identifiant du formulaire (immédiat) et sur celui d'un champ (différé à l'enregistrement, ADR 0017). Règle d'UI commune : un identifiant **pas encore en base** est un chip éditable en place (ci-dessus) ; un identifiant **en base** est un chip + bouton « Changer » ouvrant la modale de renommage. Seul le `name` du champ `title` est réellement immuable (littéral, cible des gabarits).
+Nuance depuis ADR 0016/0017 : « figé » signifie *plus jamais dérivé* — mais tout identifiant en base reste renommable par une action explicite qui réécrit toutes les références, historique compris : « Changer l'adresse » (fiche), « Changer » sur l'identifiant du formulaire (immédiat) et sur celui d'un champ (différé à l'enregistrement, ADR 0017). Règle d'UI commune : un identifiant **pas encore en base** est un chip éditable en place (ci-dessus) ; un identifiant **en base** est un chip + bouton « Changer » ouvrant la modale de renommage. Seul le `name` du champ `title` est réellement immuable (littéral, cible des gabarits).
 
 ## Écrans
 
@@ -98,7 +98,7 @@ Invariant garanti par le schéma Zod en mode manuel (`min(1)`), par l'injection 
 
 ### Recalcul de masse à l'enregistrement du formulaire
 
-Deux gestes admin invalident les titres stockés : **modifier le gabarit** et **activer** le mode automatique. À l'enregistrement du formulaire, derrière une confirmation qui annonce les nombres (motif du renommage de champ, ADR 0017), chaque fiche dont le titre change effectivement gagne une **nouvelle révision** — l'historique reste en ajout seul, aucun titre saisi à la main n'est détruit, et une fiche dont le titre est inchangé n'écrit rien. **Désactiver** le mode automatique ne déclenche rien : le dernier titre calculé devient simplement une valeur éditable, pré-remplie par `initialEntryValues`.
+Deux actions admin invalident les titres stockés : **modifier le gabarit** et **activer** le mode automatique. À l'enregistrement du formulaire, derrière une confirmation qui annonce les nombres (motif du renommage de champ, ADR 0017), chaque fiche dont le titre change effectivement gagne une **nouvelle révision** — l'historique reste en ajout seul, aucun titre saisi à la main n'est détruit, et une fiche dont le titre est inchangé n'écrit rien. **Désactiver** le mode automatique ne déclenche rien : le dernier titre calculé devient simplement une valeur éditable, pré-remplie par `initialEntryValues`.
 
 À ne pas confondre avec le balayage de l'ADR 0017 : un renommage de champ retouche la représentation et parcourt donc **tout l'historique en place** ; un recalcul de titre change ce que la fiche dit et ne touche donc que **l'état courant**, par une nouvelle révision.
 

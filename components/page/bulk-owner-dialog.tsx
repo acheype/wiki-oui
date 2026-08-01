@@ -1,7 +1,7 @@
 "use client";
 
 // « Changer le propriétaire », for a lot (docs/permissions.md § gerer-pages).
-// The same gesture the « Accès » modal carries on one page, and just as final
+// The same action the « Accès » modal carries on one page, and just as final
 // for whoever gives the pages away — which is why the count is in the sentence
 // and not only in the button.
 
@@ -80,7 +80,7 @@ export function BulkOwnerDialog({
         <DialogHeader>
           <DialogTitle>Changer le propriétaire</DialogTitle>
           {/* Both sentences are the ones the « Accès » modal shows on a single
-              page, which is why they live in lib/permissions.ts: one gesture,
+              page, which is why they live in lib/permissions.ts: one action,
               taken here on a lot, has to be described in one voice. */}
           <DialogDescription>{ownerTransferNote(pages.length)}</DialogDescription>
         </DialogHeader>

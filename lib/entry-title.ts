@@ -20,7 +20,7 @@ function titleMode(descriptor: FormDescriptor): TitleMode {
 }
 
 /**
- * Two admin gestures invalidate the stored titles: editing the template, and
+ * Two admin permissions invalidate the stored titles: editing the template, and
  * switching the title to automatic. Switching it back to manual does not —
  * the last computed title simply becomes an editable value, already
  * prefilled by initialEntryValues.

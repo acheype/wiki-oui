@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { APIError } from "better-auth/api";
 import {
-  type AccountGesture,
+  type AccountAction,
   deleteRefusal,
   disableRefusal,
 } from "@/lib/accounts";
@@ -33,7 +33,7 @@ import { absoluteUrl } from "@/lib/site-url";
 import { authPagePath } from "@/wiki.config";
 
 // The accounts half of `gerer-utilisateurs` (docs/permissions.md § Comptes):
-// how a person gets in, and the two ways they stop getting in. Every gesture
+// how a person gets in, and the two ways they stop getting in. Every action
 // here but three is an administrator's, and the check sits at the door rather
 // than in the callers (ADR 0025) — the three exceptions are the ones a
 // stranger holding a link performs, and each says so in its own comment.
@@ -43,7 +43,7 @@ import { authPagePath } from "@/wiki.config";
 // holds no account, a reset when it does. Which one it is, nobody stores —
 // the accounts table already knows.
 
-/** Why an account gesture was refused, or null once it went through. */
+/** Why an account action was refused, or null once it went through. */
 export type AccountRefusal = string | null;
 
 /**
@@ -220,7 +220,7 @@ export interface InvitationOutcome {
  * Invites a list of addresses at once (docs/permissions.md § Naissance d'un
  * compte). An address that already holds an account is reported and left
  * alone; so is one whose invitation is still live — resending that one is a
- * gesture of its own, on its own line. An expired link is not: it opens
+ * action of its own, on its own line. An expired link is not: it opens
  * nothing any more, so pasting the address again simply invites afresh.
  */
 export async function inviteAddresses(
@@ -507,7 +507,7 @@ async function isLastAdmin(username: string): Promise<boolean> {
   return stillThere === 0;
 }
 
-async function gestureOn(username: string): Promise<AccountGesture> {
+async function actionOn(username: string): Promise<AccountAction> {
   return {
     username,
     actorUsername: await currentUsername(),
@@ -516,7 +516,7 @@ async function gestureOn(username: string): Promise<AccountGesture> {
 }
 
 /**
- * « Cette personne n'est plus des nôtres » — the everyday gesture, and a
+ * « Cette personne n'est plus des nôtres » — the everyday action, and a
  * reversible one: sign-in refused and sessions revoked at once, ownership and
  * authorship untouched, one click back the other way.
  */
@@ -533,7 +533,7 @@ export async function setAccountDisabled(
     return null;
   }
 
-  const refusal = disableRefusal(await gestureOn(username));
+  const refusal = disableRefusal(await actionOn(username));
   if (refusal) return refusal;
   await prisma.user.update({
     where: { username },
@@ -575,16 +575,16 @@ export async function ownDeletionImpact(): Promise<AccountDeletionImpact | null>
 }
 
 async function countErasure(username: string): Promise<AccountDeletionImpact> {
-  const [owned, forms, gesture] = await Promise.all([
+  const [owned, forms, action] = await Promise.all([
     countOwnedByAccount(username),
     countFormsOwnedByAccount(username),
-    gestureOn(username),
+    actionOn(username),
   ]);
   return {
     pages: owned.pages,
     forms,
     revisions: owned.revisions,
-    refusal: deleteRefusal(gesture),
+    refusal: deleteRefusal(action),
   };
 }
 
@@ -597,7 +597,7 @@ export async function deleteAccount(
   reassignToUsername: string | null
 ): Promise<AccountRefusal> {
   await assertAdmin();
-  const refusal = deleteRefusal(await gestureOn(username));
+  const refusal = deleteRefusal(await actionOn(username));
   if (refusal) return refusal;
 
   if (reassignToUsername) {
@@ -618,7 +618,7 @@ export async function deleteAccount(
 export async function deleteOwnAccount(): Promise<AccountRefusal> {
   const username = await currentUsername();
   if (!username) return "Vous n'êtes pas connecté.";
-  const refusal = deleteRefusal(await gestureOn(username));
+  const refusal = deleteRefusal(await actionOn(username));
   if (refusal) return refusal;
   return erase(username);
 }

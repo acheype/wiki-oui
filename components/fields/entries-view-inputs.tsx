@@ -684,7 +684,7 @@ export function IconMappingInput({
 }
 
 /* ------------------------------------------------------------------ *
- * form-list multiple — one selector, then an add gesture per extra form
+ * form-list multiple — one selector, then an add action per extra form
  * ------------------------------------------------------------------ */
 
 export function MultiFormListInput({
@@ -700,9 +700,9 @@ export function MultiFormListInput({
 }) {
   const forms = useForms();
   const slugs = toFormSlugs(value);
-  // Empty selectors appended by the add gesture live here, not in the prop:
+  // Empty selectors appended by the add action live here, not in the prop:
   // the value only ever holds picked forms. The single-form case (95 %) sees
-  // one plain select — adding is a gesture, not a mode (docs/entries-view.md).
+  // one plain select — adding is a action, not a mode (docs/entries-view.md).
   const [pendingRows, setPendingRows] = useState(0);
   const shown = [...slugs, ...Array<string>(Math.max(pendingRows, slugs.length === 0 ? 1 : 0)).fill("")];
 

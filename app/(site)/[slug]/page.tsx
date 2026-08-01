@@ -12,7 +12,7 @@ import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
 import {
   actorCanCreatePage,
-  actorGestures,
+  actorPermissions,
   getPageWithCurrent,
   isRefused,
 } from "@/lib/pages";
@@ -53,13 +53,13 @@ export default async function ShowPage({ params }: Props) {
     return <AccessRefused slug={slug} ownerName={page.ownerName} />;
   }
 
-  const gestures = await actorGestures(page);
+  const permissions = await actorPermissions(page);
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageActions slug={slug} tags={page.tags} gestures={gestures} />
+      <PageActions slug={slug} tags={page.tags} permissions={permissions} />
       {/* flex-1: a short entry's blank area stays double-clickable. */}
-      <DoubleClickToEdit slug={slug} enabled={gestures.write} className="flex-1">
+      <DoubleClickToEdit slug={slug} enabled={permissions.write} className="flex-1">
         <article>
           {page.formId ? (
             <EntryContent formId={page.formId} rawData={page.current?.data} />

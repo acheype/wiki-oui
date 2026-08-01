@@ -248,9 +248,9 @@ describe("inheritedGroups", () => {
   });
 });
 
-// Refusing a gesture on the protected group names it: « ce groupe » leaves
+// Refusing a action on the protected group names it: « ce groupe » leaves
 // the reader to work out which one, on a screen that shows several.
-describe("the gestures @Admins refuses", () => {
+describe("the permissions @Admins refuses", () => {
   it("names the group it will not let be renamed", () => {
     expect(groupRenameRefusal(ADMINS_GROUP.slug)).toBe(
       "Le groupe @Admins ne peut pas être renommé."
@@ -263,7 +263,7 @@ describe("the gestures @Admins refuses", () => {
     );
   });
 
-  it("refuses neither gesture on any other group", () => {
+  it("refuses neither action on any other group", () => {
     expect(groupRenameRefusal("bureau")).toBeNull();
     expect(groupDeletionRefusal("bureau")).toBeNull();
   });

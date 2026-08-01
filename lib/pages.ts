@@ -24,7 +24,7 @@ import {
   type AclEntry,
   type AclFloor,
   type Identity,
-  type PageGestures,
+  type PagePermissions,
   type PageRights,
   ADDRESS_REFUSED,
   CREATE_ENTRY_REFUSED,
@@ -41,7 +41,7 @@ import {
   isAdmin,
   knownEntries,
   ownsPage,
-  pageGestures,
+  permissionsOn,
   pageRule,
   listReadableWhere,
   readableWhere,
@@ -95,7 +95,7 @@ const ACL_ROWS = {
 /**
  * What deciding on a page needs, plus the name a refusal would print. Shared
  * with lib/forms.ts, which loads entries by the formful: a screen that offers
- * a gesture per row has to know the rights of every one of them.
+ * a action per row has to know the rights of every one of them.
  */
 export const WITH_RIGHTS = {
   owner: PUBLIC_IDENTITY,
@@ -179,7 +179,7 @@ async function keepKnownPrincipals(acls: AclEntry[]): Promise<AclEntry[]> {
 
 /**
  * The rung deleting, posing the rights and handing the page on stop at. Each
- * caller names the refusal its own gesture would print: they all land in the
+ * caller names the refusal its own action would print: they all land in the
  * same toast, where « vous ne pouvez pas supprimer cette page » says something
  * and « vous n'êtes pas le propriétaire » leaves the reader to work it out.
  */
@@ -194,16 +194,16 @@ async function assertStructuring(
 /**
  * Changing an address is the administrators' alone: the rename retcons
  * references throughout the wiki (ADR 0016), so its effect leaves the page
- * the way no other gesture on it does.
+ * the way no other action on it does.
  */
 async function assertAddress(): Promise<void> {
   if (!isAdmin(await currentActor())) throw new Error(ADDRESS_REFUSED);
 }
 
 /**
- * The page a structuring gesture is about to act on, read with what deciding
+ * The page a structuring action is about to act on, read with what deciding
  * needs and refused on the spot — so that reaching the write means the check
- * has happened, rather than leaving each gesture to remember an assertion
+ * has happened, rather than leaving each action to remember an assertion
  * after its own query.
  */
 async function structuredPage(slug: string, refusal: string) {
@@ -226,7 +226,7 @@ async function structuredPage(slug: string, refusal: string) {
  * ships with does not.
  *
  * One function for both storeys: a page copies the wiki's defaults, a fiche
- * copies its form's (docs/permissions.md § Défauts). Same gesture, and the
+ * copies its form's (docs/permissions.md § Défauts). Same action, and the
  * only difference is where the pair was read.
  */
 async function bornWith(read: AccessRule, write: AccessRule) {
@@ -533,7 +533,7 @@ export async function reassignOwnedPages(
 
 // Hard delete (ADR 0008): revisions go with the page via onDelete: Cascade.
 // The rights are read here rather than taken from the caller: deleting is the
-// one gesture nothing undoes, and the door owes it its own look at the page.
+// one action nothing undoes, and the door owes it its own look at the page.
 export async function deletePageById(id: string): Promise<void> {
   const page = await prisma.page.findUniqueOrThrow({
     where: { id },
@@ -544,8 +544,8 @@ export async function deletePageById(id: string): Promise<void> {
 }
 
 /**
- * « Transmettre la propriété » (docs/permissions.md § Quel droit commande quel
- * geste): there is no way back for whoever gives it away — nothing hands the
+ * « Transmettre la propriété » (docs/permissions.md § Quel droit commande quelle
+ * action): there is no way back for whoever gives it away — nothing hands the
  * page over again, and the confirmation says so before the click.
  *
  * Only the ownership moves. The revisions keep their authors: rewriting who
@@ -580,7 +580,7 @@ export async function transferPageOwnership(
 
 // --- the rights of one page --------------------------------------------------
 
-/** Whether the screens offer a gesture or simply leave it out. */
+/** Whether the screens offer a action or simply leave it out. */
 export async function actorCanWrite(page: PageRights): Promise<boolean> {
   return canWrite(await currentActor(), page);
 }
@@ -591,8 +591,8 @@ export async function actorCanWrite(page: PageRights): Promise<boolean> {
  * is absent from the bar, never greyed out: an offer nobody can take up
  * informs nobody (docs/permissions.md § Ce que voit qui n'a pas le droit).
  */
-export async function actorGestures(page: PageRights): Promise<PageGestures> {
-  return pageGestures(await currentActor(), page);
+export async function actorPermissions(page: PageRights): Promise<PagePermissions> {
+  return permissionsOn(await currentActor(), page);
 }
 
 /** Whoever the page always allows, whatever its lists hold. */
@@ -663,7 +663,7 @@ export async function setPageRights(
 // `gerer-pages` (docs/permissions.md § Les écrans): the state of the rights of
 // every page on one screen, and a decision applied to dozens of them at once
 // without wondering what has just been broken. Reading it is an
-// administrator's gesture — it names the owner of everything and what each
+// administrator's action — it names the owner of everything and what each
 // page is open to — so the check is at the door, like the accounts screen.
 
 /** A line of the management screen: what it shows, and what it decides on. */
@@ -697,7 +697,7 @@ export async function listManagedPages(): Promise<ManagedPage[]> {
 /**
  * The pages an action by lot is about, each read with what deciding on it
  * needs. Every one of them passes the rung posing rights stops at: a lot is a
- * handful of single gestures, and one page refused refuses the lot — half an
+ * handful of single permissions, and one page refused refuses the lot — half an
  * action by lot would be worse than none.
  */
 async function lotPages(slugs: readonly string[], refusal: string) {
@@ -712,7 +712,7 @@ async function lotPages(slugs: readonly string[], refusal: string) {
 /**
  * « Donner accès » (docs/permissions.md § gerer-pages): adds people and groups
  * to the rights already posed, and takes access from nobody. No scope is
- * touched and no row is removed — the whole gesture is rows added, which is
+ * touched and no row is removed — the whole action is rows added, which is
  * what makes it the one that destroys nothing.
  *
  * A page that already gives the target access gets no row: the same
@@ -739,7 +739,7 @@ export async function grantPagesAccess(
       }
     }
   }
-  // Both senses in one statement: the two are one gesture, and a lot half
+  // Both senses in one statement: the two are one action, and a lot half
   // written is what refusing whole was meant to rule out. skipDuplicates for
   // the row another administrator may have added between the count and here.
   await prisma.pageAcl.createMany({ data: rows, skipDuplicates: true });
@@ -752,7 +752,7 @@ export async function grantPagesAccess(
  * alone stays possible.
  *
  * Four statements rather than four per page: this is a cold administration
- * gesture over hundreds of rows, and the floor is the only thing that differs
+ * action over hundreds of rows, and the floor is the only thing that differs
  * from one page to the next.
  */
 export async function replacePagesRights(
@@ -795,7 +795,7 @@ export async function replacePagesRights(
 }
 
 /**
- * « Changer le propriétaire », by lot. Same gesture as the modal's transfer,
+ * « Changer le propriétaire », by lot. Same action as the modal's transfer,
  * and just as final for whoever gives the pages away: only the ownership
  * moves, the revisions keeping their authors.
  */
@@ -844,7 +844,7 @@ async function formEntries(formId: string) {
  * since the tab saved it is dropped (ADR 0026). Read once for the whole lot,
  * and by the count as well as by the write — otherwise a row nothing can
  * carry would leave its fiche « à changer » for good, and the write that
- * tried it would break on the foreign key and take the whole gesture with it.
+ * tried it would break on the foreign key and take the whole action with it.
  *
  * Costs no query in the shape a wiki runs in, where the defaults name nobody.
  */
@@ -924,7 +924,7 @@ export async function countPagesGrantingGroup(groupSlug: string): Promise<number
 
 /**
  * « Cet acteur peut-il contribuer quelque part ? » — the only question the
- * upload asks (docs/permissions.md § Quel droit commande quel geste): there is
+ * upload asks (docs/permissions.md § Quel droit commande quelle action): there is
  * no right of its own on files. The two free tests come first and short-
  * circuit the third, which is the only one that touches the database.
  */

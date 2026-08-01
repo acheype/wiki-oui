@@ -38,5 +38,5 @@ Le composant `<Button>` (props `icon`/`text`/`link` ; les valeurs d'icônes rest
 
 - Les menus sont du contenu ordinaire : versionnés, éditables, restructurables sans code (les futures sections de configuration — Tableau de bord, Documentation, Gestion du site, Formulaire — s'ajouteront par édition de `page-rapide-haut`).
 - Le seed doit fournir des menus initiaux utiles (`page-menu-haut`, `page-rapide-haut`) : un wiki vierge n'a plus de menu « gratuit ».
-- Une nouvelle page n'apparaît plus automatiquement dans le menu : l'inscrire est un geste éditorial délibéré.
+- Une nouvelle page n'apparaît plus automatiquement dans le menu : l'inscrire est une action éditoriale délibérée.
 - `<Menu>` ne dépend plus de la base de données.

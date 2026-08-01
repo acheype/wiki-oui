@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
-// « Changer l'adresse » (ADR 0016): the admin gesture that renames a page
+// « Changer l'adresse » (ADR 0016): the admin action that renames a page
 // slug. On success renamePage redirects to the new address itself.
 export function RenamePageButton({ slug }: { slug: string }) {
   return (

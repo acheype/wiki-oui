@@ -39,7 +39,7 @@ import {
 type OwnedForm = { ownerUsername: string | null };
 
 /**
- * The rung the gestures on a form's definition stop at: its owner, or an
+ * The rung the permissions on a form's definition stop at: its owner, or an
  * administrator (docs/permissions.md § Droits au niveau du formulaire). The
  * same rule as on a page, posed on the other subject — editing a form reaches
  * every fiche ever written with it, so it never opens with the writing.
@@ -49,7 +49,7 @@ async function assertFormStructuring(form: OwnedForm): Promise<void> {
   throw new Error(FORM_EDIT_REFUSED);
 }
 
-/** Whether the screens offer those gestures at all, or simply leave them out. */
+/** Whether the screens offer those permissions at all, or simply leave them out. */
 export async function actorCanEditForm(form: OwnedForm): Promise<boolean> {
   return ownsSubject(await currentActor(), form.ownerUsername);
 }
@@ -129,7 +129,7 @@ export async function listFormsWithEntries(slugs: string[]) {
         where: await currentReadableWhere(),
         // `owner` feeds the $owner pseudo-field of <EntriesView>: the display
         // name, read live so a rename shows through (ADR 0024). The rights
-        // ride along because the Tableau offers a gesture on each row, and
+        // ride along because the Tableau offers a action on each row, and
         // an offer nobody can take up informs nobody.
         include: { current: true, ...WITH_RIGHTS },
         orderBy: { createdAt: "desc" },
@@ -238,7 +238,7 @@ export async function deleteFormById(id: string): Promise<void> {
 // The one path from a form's defaults to the fiches already written with it
 // (ADR 0026): the copy made at creation is never a link, so nothing else
 // reaches them. The rules travel in rather than being read back, because the
-// tab poses them and the save carries them in the same gesture.
+// tab poses them and the save carries them in the same action.
 
 export async function countFormDefaults(
   slug: string,

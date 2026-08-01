@@ -18,7 +18,7 @@ import {
 import { type AclDirectory, refusalMessage } from "@/lib/permissions";
 
 // Server Actions of `gerer-pages` (docs/permissions.md § Les écrans). Reading
-// the list and acting on a lot are both an administrator's gestures, and the
+// the list and acting on a lot are both an administrator's permissions, and the
 // check lives behind the door in lib/pages.ts, so none of these can forget it.
 //
 // Refusals travel as values rather than as throws: across the Server Action

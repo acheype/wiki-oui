@@ -175,7 +175,7 @@ describe("grantAddsNothing", () => {
   const open = page({ readScope: "everyone", writeScope: "everyone" });
   const closed = page();
 
-  it("holds the gesture back when nobody is named", () => {
+  it("holds the action back when nobody is named", () => {
     expect(grantAddsNothing([closed], {})).toBe(true);
     expect(grantAddsNothing([closed], { READ: [], WRITE: [] })).toBe(true);
   });

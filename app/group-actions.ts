@@ -3,7 +3,7 @@
 // Server Actions of the group screen (docs/permissions.md § Groupes): the
 // admin components are client-side and read their data through actions too,
 // the same transport as mutations (ADR 0014). Every one of them is an
-// administrator's gesture — the check lives behind the door, in
+// administrator's action — the check lives behind the door, in
 // lib/groups-db.ts, so none of these can forget it.
 
 import {

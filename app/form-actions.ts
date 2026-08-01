@@ -81,7 +81,7 @@ export interface FormSummary {
 export async function listForms(): Promise<FormSummary[]> {
   const forms = await listFormsWithEntryCount();
   // An offer nobody can take up informs nobody (docs/permissions.md § Ce que
-  // voit qui n'a pas le droit): the row shows the gestures it has, and leaves
+  // voit qui n'a pas le droit): the row shows the permissions it has, and leaves
   // the others out rather than greying them.
   return Promise.all(
     forms.map(async (form) => ({

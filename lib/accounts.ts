@@ -1,5 +1,5 @@
 // The end of an account (docs/permissions.md § Fin d'un compte): the two
-// gestures an administrator has, and what the screen says about them. Pure
+// permissions an administrator has, and what the screen says about them. Pure
 // and client-safe, like lib/groups.ts beside it — lib/accounts-db.ts loads
 // what these functions need and writes their verdict back.
 
@@ -43,8 +43,8 @@ export function matchesAccountFilter(
   return filter === "all" || filter === status;
 }
 
-/** An administrator's gesture on one account, as the refusals read it. */
-export interface AccountGesture {
+/** An administrator's action on one account, as the refusals read it. */
+export interface AccountAction {
   username: string;
   /** Who is acting: an administrator, since nobody else reaches this screen. */
   actorUsername: string | null;
@@ -54,14 +54,14 @@ export interface AccountGesture {
 
 /**
  * Why this account cannot be disabled, or null when it can. Disabling one's
- * own is refused outright: it locks the author of the gesture out on the
+ * own is refused outright: it locks the author of the action out on the
  * spot, and « se déconnecter » is what they were looking for.
  */
-export function disableRefusal(gesture: AccountGesture): string | null {
-  if (gesture.username === gesture.actorUsername) {
+export function disableRefusal(action: AccountAction): string | null {
+  if (action.username === action.actorUsername) {
     return "Vous ne pouvez pas désactiver votre propre compte. Déconnectez-vous plutôt.";
   }
-  return lastAdminRefusal(gesture);
+  return lastAdminRefusal(action);
 }
 
 /**
@@ -71,12 +71,12 @@ export function disableRefusal(gesture: AccountGesture): string | null {
  * hand the wiki on before they go, since the installation screen will not
  * give it back (ADR 0027).
  */
-export function deleteRefusal(gesture: AccountGesture): string | null {
-  return lastAdminRefusal(gesture);
+export function deleteRefusal(action: AccountAction): string | null {
+  return lastAdminRefusal(action);
 }
 
-function lastAdminRefusal(gesture: AccountGesture): string | null {
-  return gesture.lastAdmin ? LAST_ADMIN_REFUSAL : null;
+function lastAdminRefusal(action: AccountAction): string | null {
+  return action.lastAdmin ? LAST_ADMIN_REFUSAL : null;
 }
 
 /** What an erasure would leave behind, counted before it is decided. */

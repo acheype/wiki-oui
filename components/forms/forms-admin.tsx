@@ -124,7 +124,7 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
                 </p>
               </div>
               {/* An offer nobody can take up informs nobody: a row shows the
-                  gestures this actor has, and leaves the others out
+                  permissions this actor has, and leaves the others out
                   (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
               {form.canCreateEntry && (
                 <Button asChild variant="ghost" size="sm">

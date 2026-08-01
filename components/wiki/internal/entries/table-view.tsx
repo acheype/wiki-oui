@@ -24,7 +24,7 @@ import {
 import { entryValue } from "@/lib/entries-view";
 import type { ViewEntry } from "@/lib/entries-view";
 import { imageUrl } from "@/lib/image-url";
-import type { PageGestures } from "@/lib/permissions";
+import type { PagePermissions } from "@/lib/permissions";
 import { SAMPLE_IMAGE } from "@/lib/sample-entries";
 import { cn } from "@/lib/utils";
 import type { ViewContext } from "./types";
@@ -169,7 +169,7 @@ function Row({
         <ActionsCell
           entry={entry}
           sample={context.data.sample}
-          gestures={rowGestures(context, entry.slug)}
+          permissions={rowPermissions(context, entry.slug)}
         />
       )}
     </tr>
@@ -213,21 +213,21 @@ function CellValue({
 }
 
 /** A sample row previews the column: both buttons, neither doing anything. */
-const SAMPLE_ROW: PageGestures = {
+const SAMPLE_ROW: PagePermissions = {
   write: true,
   structuring: true,
   address: false,
 };
 /** What a row nothing was decided for offers — the safe way round. */
-const NOTHING_OFFERED: PageGestures = {
+const NOTHING_OFFERED: PagePermissions = {
   write: false,
   structuring: false,
   address: false,
 };
 
-function rowGestures(context: ViewContext, slug: string): PageGestures {
+function rowPermissions(context: ViewContext, slug: string): PagePermissions {
   if (context.data.sample) return SAMPLE_ROW;
-  return context.data.gestures[slug] ?? NOTHING_OFFERED;
+  return context.data.permissions[slug] ?? NOTHING_OFFERED;
 }
 
 // Modifier and Supprimer are actions, and an action nobody can take up is
@@ -238,18 +238,18 @@ function rowGestures(context: ViewContext, slug: string): PageGestures {
 function ActionsCell({
   entry,
   sample,
-  gestures,
+  permissions,
 }: {
   entry: ViewEntry;
   sample: boolean;
-  gestures: PageGestures;
+  permissions: PagePermissions;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [deleted, setDeleted] = useState(false);
   if (deleted) return <td />;
   return (
     <td className="px-2 py-1.5 text-right whitespace-nowrap">
-      {gestures.write && (
+      {permissions.write && (
         <Button
           asChild
           variant="ghost"
@@ -263,7 +263,7 @@ function ActionsCell({
           </a>
         </Button>
       )}
-      {gestures.structuring && (
+      {permissions.structuring && (
         <>
           <Button
             variant="ghost"

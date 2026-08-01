@@ -17,7 +17,7 @@ Le MVP avait figé les slugs : un lien wiki stocke le slug de sa cible (ADR 0006
 - **Pas de redirection** : `/ancien-slug` redevient une page inexistante (l'invitation à créer s'affiche). Le dialogue l'annonce avant confirmation.
 - **Pages spéciales non renommables** : elles sont adressées par slug depuis la config (`specialSlugs`, `wiki.config.ts`) — même garde que pour la suppression.
 - Nouvelle adresse soumise aux **mêmes règles qu'à la création** : motif slug, unicité (message explicite en cas de collision, comme pour les fiches).
-- La **fenêtre de concurrence** (un buffer d'éditeur ouvert pendant le renommage peut resauvegarder l'ancien slug) est amortie par l'extension du lint d'enregistrement (`lib/page-lint.ts`) : tout lien wiki ou valeur `entry-list` vers une cible inexistante est signalé — avertissement non bloquant, car lier vers une page à créer reste un geste wiki légitime.
+- La **fenêtre de concurrence** (un buffer d'éditeur ouvert pendant le renommage peut resauvegarder l'ancien slug) est amortie par l'extension du lint d'enregistrement (`lib/page-lint.ts`) : tout lien wiki ou valeur `entry-list` vers une cible inexistante est signalé — avertissement non bloquant, car lier vers une page à créer reste une action wiki légitime.
 - Le mécanisme s'étendra aux **identifiants de formulaires** (prop `id` d'`<EntryForm>`, URLs `?id=`/`?formulaire=`) dans un second temps, puis aux **fichiers** quand ils auront des tables (backlog).
 
 ## Conséquences

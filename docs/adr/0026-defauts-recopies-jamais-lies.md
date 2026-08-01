@@ -18,6 +18,6 @@ Deux concepts se ressemblent et n'ont pas les mêmes besoins. Un **droit par dé
 ## Consequences
 
 - Rien à expliquer à l'utilisateur : il n'y a **pas de valeur héritée**, seulement des valeurs, préremplies à la naissance.
-- Le seul chemin vers l'existant est un geste explicite — **« Appliquer aux fiches existantes »**, à confirmation chiffrée, sur le motif des recalculs de masse des ADR 0017 et 0020.
+- Le seul chemin vers l'existant est une action explicite — **« Appliquer aux fiches existantes »**, à confirmation chiffrée, sur le motif des recalculs de masse des ADR 0017 et 0020.
 - Aucune clé de configuration propre aux fiches : un formulaire naît avec les défauts du wiki recopiés, et la vraie décision se prend de toute façon formulaire par formulaire.
 - Un défaut qui référence un compte ou un groupe disparu ne peut pas **accorder** un droit en douce : les principaux inexistants sont écartés au moment de la copie.

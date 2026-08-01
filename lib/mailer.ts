@@ -10,7 +10,7 @@ import {
 // is a delivery mode, never a dependency: with it the wiki sends the link,
 // without it the administrator copies it and hands it over as they wish —
 // and what the person then goes through is the same screen either way. So
-// nothing here ever decides whether a gesture succeeded; it only says what
+// nothing here ever decides whether a action succeeded; it only says what
 // became of the delivery.
 
 // Configured by environment (see .env.example), one setting per line rather

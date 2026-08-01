@@ -1,7 +1,7 @@
 "use client";
 
 // What an administrator can do to one account (docs/permissions.md § Fin d'un
-// compte). Three gestures, and the distance between them is deliberate: a
+// compte). Three permissions, and the distance between them is deliberate: a
 // reset link is offered outright, disabling sits one menu away and says what
 // it does not touch, and erasing opens a modal that counts what is at stake
 // before it will go through.
@@ -116,7 +116,7 @@ export function AccountActions({
             </DropdownMenuItem>
           )}
           {/* One's own account is not disabled from here: it would lock the
-              author of the gesture out on the spot, and « se déconnecter » is
+              author of the action out on the spot, and « se déconnecter » is
               what they were after. */}
           {!own && (
             <DropdownMenuItem onSelect={toggleDisabled}>
@@ -293,7 +293,7 @@ function DeleteAccountDialog({
   );
 }
 
-/** A pending invitation has two gestures: send it again, or take it back. */
+/** A pending invitation has two permissions: send it again, or take it back. */
 export function InvitationActions({
   invitation,
   onChanged,

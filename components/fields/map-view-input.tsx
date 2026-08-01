@@ -29,7 +29,7 @@ export function MapViewInput({
   onChange: (value: MapViewValue | undefined) => void;
 }) {
   // Raised while FollowValue resets the view programmatically, so the
-  // tracker only records the author's own gestures.
+  // tracker only records the author's own permissions.
   const programmaticRef = useRef(false);
   return (
     <div className="grid gap-1.5">

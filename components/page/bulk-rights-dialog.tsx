@@ -96,7 +96,7 @@ export function BulkRightsDialog({
   const targets = useGrantTargets(grant);
 
   const subject = lotSubject(pages.length);
-  // Out of reach until the gesture would write something: naming only people
+  // Out of reach until the action would write something: naming only people
   // the lot already lets in is a click that would report a success over pages
   // it never touched. The button reads what the notes above it announce.
   const nothingChosen =
@@ -115,7 +115,7 @@ export function BulkRightsDialog({
   function apply() {
     startApplying(async () => {
       const slugs = pages.map((page) => page.slug);
-      // One call for the two senses: they are one gesture, and the door
+      // One call for the two senses: they are one action, and the door
       // refuses the lot whole rather than leaving half of it written.
       const refused =
         intent === "grant"
@@ -142,7 +142,7 @@ export function BulkRightsDialog({
     <Dialog open={open} onOpenChange={reset}>
       <DialogTrigger asChild>
         {/* Named and dressed like the « Accès » of the action bar: it is the
-            same gesture, taken on dozens of pages instead of one, and a
+            same action, taken on dozens of pages instead of one, and a
             reader who learnt it on a page must recognise it here. */}
         <Button type="button" variant="outline" size="sm">
           <UsersRound />

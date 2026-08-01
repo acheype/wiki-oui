@@ -43,7 +43,7 @@ export function UsersAdmin() {
   const [invitations, setInvitations] = useState<PendingInvitation[]>([]);
   const [filter, setFilter] = useState<AccountFilter>("all");
   const [needle, setNeedle] = useState("");
-  /** Whose session this is: their own line offers other gestures. */
+  /** Whose session this is: their own line offers other permissions. */
   const [me, setMe] = useState<string | null>(null);
   const filterRef = useRef<HTMLInputElement>(null);
 

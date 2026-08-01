@@ -10,7 +10,7 @@ import { wikiConfig } from "@/wiki.config";
 // — a Server Action hides its transport. Limits are checked before any write.
 export async function POST(request: Request) {
   // No setting of its own: the question is « cet acteur peut-il contribuer
-  // quelque part ? » (docs/permissions.md § Quel droit commande quel geste).
+  // quelque part ? » (docs/permissions.md § Quel droit commande quelle action).
   // A wiki configured open therefore accepts anonymous uploads — that is
   // intended, and rate limiting is another job (backlog).
   if (!(await canContributeSomewhere())) {

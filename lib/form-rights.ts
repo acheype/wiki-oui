@@ -38,7 +38,7 @@ export interface FormPermissions {
 
 /**
  * The three rules a new form is born with: the wiki's own, copied (ADR 0026).
- * The same gesture one storey down — the form copies from the configuration,
+ * The same action one storey down — the form copies from the configuration,
  * the fiche copies from the form — and neither copy is ever a link.
  */
 export function bornFormPermissions(): FormPermissions {
@@ -189,15 +189,15 @@ export interface EntryRightsImpact {
   /** Fiches already holding exactly these rights. */
   unchanged: number;
   /**
-   * Fiches the actor does not look after, which the gesture leaves alone —
+   * Fiches the actor does not look after, which the action leaves alone —
    * somebody else's, and the ownerless ones too, which are the
    * administrators' alone. Posing rights stops at the owner or an
-   * administrator (docs/permissions.md § Quel droit commande quel geste), and
+   * administrator (docs/permissions.md § Quel droit commande quelle action), and
    * that rung holds here too: a form's owner opening the form must not
    * thereby shut a contributor out of their own fiche. Unlike the lot of
    * `gerer-pages` — where the administrator ticked each line — nobody chose
    * these fiches one by one, so the refusal is counted and said rather than
-   * turning down the whole gesture.
+   * turning down the whole action.
    */
   refused: number;
 }
@@ -232,7 +232,7 @@ export function entryRightsImpact(
 }
 
 /**
- * Whether the whole gesture would write anything at all. The button reads the
+ * Whether the whole action would write anything at all. The button reads the
  * same count the confirmation shows — it stays out of reach rather than
  * reporting a success over fiches it did not touch, the rule `gerer-pages`
  * already applies to « Appliquer ».
@@ -243,7 +243,7 @@ export function appliesNothing(impact: EntryRightsImpact): boolean {
 
 /**
  * What the confirmation announces. Two shapes, because two situations: the
- * sentence counts in what the gesture changes and sets the rest aside, and
+ * sentence counts in what the action changes and sets the rest aside, and
  * when it changes nothing at all it says so outright rather than promising a
  * rewrite that would not happen.
  */

@@ -18,7 +18,7 @@ export const INSTALLATION_PATH = `/${API_SEGMENT}/installation`;
  * WikiOui installation looks alike, so support can say "sign in as
  * wiki-admin" without asking anything first (ADR 0027). Nothing is frozen
  * for good: the name changes from the profile, the identifier by the rename
- * gesture, and the account can be deleted once another administrator exists.
+ * action, and the account can be deleted once another administrator exists.
  */
 export const INSTALLER = { name: "Wiki Admin", username: "wiki-admin" } as const;
 

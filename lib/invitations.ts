@@ -26,7 +26,7 @@ export const RESET_LIFETIME_DAYS = 1;
 
 /**
  * Why a mail did not leave, or null when it did — the delivery, never the
- * gesture: an invitation whose mail failed is an invitation all the same, and
+ * action: an invitation whose mail failed is an invitation all the same, and
  * the screen falls back on the link it can always show. Declared here rather
  * than in lib/mailer.ts so the screens can name it without pulling an SMTP
  * client into the browser.

@@ -11,7 +11,7 @@ Une balise, neuf vues : `<EntriesView form="associations" view="grid" … />` ch
 Entrée « **Fiches** » du menu Composants (description : « Affiche les fiches d'un formulaire : liste, grille, tableau, carte, calendrier… »). L'ordre des sections va du *quoi* vers le *comment* :
 
 1. **En tête, hors section** — le·s formulaire·s, puis la vue :
-   - « **Formulaire** » : le `form-list` existant. Dessous, un bouton fantôme « **+ Ajouter les fiches d'un autre formulaire** » fait apparaître un second sélecteur (retirable par ×), et ainsi de suite — le cas mono-formulaire (95 %) voit l'UI simple, le multi est un geste d'ajout, pas un mode. Dès 2 formulaires, le libellé passe au pluriel et le pseudo-champ `$form` s'active.
+   - « **Formulaire** » : le `form-list` existant. Dessous, un bouton fantôme « **+ Ajouter les fiches d'un autre formulaire** » fait apparaître un second sélecteur (retirable par ×), et ainsi de suite — le cas mono-formulaire (95 %) voit l'UI simple, le multi est une action d'ajout, pas un mode. Dès 2 formulaires, le libellé passe au pluriel et le pseudo-champ `$form` s'active.
    - « **Vue** » : un **sélecteur en tuiles** (3×3, icône + nom, tuile active surlignée), l'aperçu au-dessus basculant en direct. Défaut : **Liste** (la seule vue sans prérequis de champ).
 2. **Affichage** — les paramètres propres à la vue choisie (`showif` sur `view`) + « Lors du clic, afficher la fiche » quand la vue le porte.
 3. **Recherche et filtres** — barre de recherche, puis **Filtres disponibles**.

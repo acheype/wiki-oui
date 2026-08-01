@@ -19,5 +19,5 @@ Une **liste blanche d'utilitaires auteurs**, safelistée par familles avec expan
 ## Conséquences
 
 - Ce que voit l'auteur est garanti : une classe documentée dans l'aide-mémoire fonctionne, une classe hors liste ne fait rien — au lieu de « tout Tailwind, mais en réalité seulement ce qui traîne dans les sources ».
-- Ajouter une famille = éditer `globals.css` (geste d'opérateur, pas de contributeur).
+- Ajouter une famille = éditer `globals.css` (action d'opérateur, pas de contributeur).
 - Les valeurs arbitraires Tailwind (`w-[137px]`) restent hors de portée des auteurs ; les besoins dimensionnels passent par des props de composants (ex. largeur d'une image uploadée).

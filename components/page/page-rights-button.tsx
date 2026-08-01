@@ -97,7 +97,7 @@ export function PageRightsButton({
               people={rights.directory.people}
               // The floor of both senses just moved, and unsaved scopes would
               // now be posed against another owner: the modal closes on the
-              // gesture it just carried out, and reopens on the new floor.
+              // action it just carried out, and reopens on the new floor.
               onTransferred={() => setOpen(false)}
             />
             <Field

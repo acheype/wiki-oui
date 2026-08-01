@@ -236,7 +236,7 @@ describe("what the confirmation announces", () => {
     expect(note.lines).toEqual(["1 fiche a déjà ces droits — rien à changer."]);
   });
 
-  it("says outright when the gesture would change nothing", () => {
+  it("says outright when the action would change nothing", () => {
     const note = entryRightsNote({ total: 5, changed: 0, unchanged: 3, refused: 2 });
     expect(note.headline).toBe("Aucune fiche ne change de droits.");
     expect(note.lines).toEqual([
