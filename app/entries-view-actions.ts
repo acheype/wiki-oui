@@ -10,9 +10,11 @@ import { listEntryFieldChoices } from "@/app/form-actions";
 import type { EntryFieldChoice } from "@/lib/entry-fields";
 import type { ViewEntry } from "@/lib/entries-view";
 import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
+import { readableDescriptor } from "@/lib/field-rights";
 import { listFormsWithEntries } from "@/lib/forms";
 import { actorPermissions } from "@/lib/pages";
-import type { PagePermissions } from "@/lib/permissions";
+import type { Actor, PagePermissions } from "@/lib/permissions";
+import { currentActor } from "@/lib/permissions-db";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
   sampleEntries,
@@ -48,6 +50,27 @@ export interface EntriesViewData {
    * not one of them.
    */
   permissions: Record<string, PagePermissions>;
+}
+
+/**
+ * Which of a form's field names this actor may read. A descriptor this engine
+ * can no longer parse answers « none »: the union the payload announces was
+ * built from the schemas it could read, so a form whose own is unreadable has
+ * no field in there to serve values for either.
+ */
+function readableFieldNames(
+  actor: Actor,
+  schema: unknown
+): (name: string) => boolean {
+  const parsed = parseFormDescriptor(schema);
+  const names = new Set(
+    parsed.descriptor
+      ? readableDescriptor(actor, parsed.descriptor).fields.map(
+          (field) => field.name
+        )
+      : []
+  );
+  return (name) => names.has(name);
 }
 
 export async function getEntriesViewData(
@@ -87,17 +110,24 @@ export async function getEntriesViewData(
     ordered.map((form) => [form.slug, form.name])
   );
 
-  const entries: ViewEntry[] = ordered.flatMap((form) =>
-    form.entries.map((page) => {
+  // Read once for the whole payload, and applied form by form: `kept` is the
+  // union over the chosen forms, where a name readable on one is not thereby
+  // readable on the next (docs/permissions.md § Champ).
+  const actor = await currentActor();
+  const entries: ViewEntry[] = ordered.flatMap((form) => {
+    const readable = readableFieldNames(actor, form.schema);
+    return form.entries.map((page) => {
       const data = readEntryData(page.current?.data);
       const values: Record<string, unknown> = {};
       for (const [name, value] of Object.entries(data)) {
-        if (keptNames.has(name)) values[name] = value;
+        if (keptNames.has(name) && readable(name)) values[name] = value;
       }
       // The Page's tags mirror the tags field but the Page is the source of
       // truth (docs/forms.md): serve them under the form's tags field name.
       const tagsField = kept.find((choice) => choice.type === "tags");
-      if (tagsField) values[tagsField.name] = page.tags;
+      if (tagsField && readable(tagsField.name)) {
+        values[tagsField.name] = page.tags;
+      }
       values.$form = form.slug;
       values.$owner = displayName(page.owner);
       values.$createdAt = page.createdAt.toISOString();
@@ -108,8 +138,8 @@ export async function getEntriesViewData(
         title: typeof title === "string" ? title : page.slug,
         values,
       };
-    })
-  );
+    });
+  });
 
   // Forms chosen but still empty: samples over the first form's real schema,
   // so the preview matches the fields the author configured.

@@ -201,6 +201,16 @@ Deux fuites sont **refusées à l'enregistrement du formulaire**, pas rattrapée
 
 À la saisie, un champ non lisible est **absent** ; un champ lisible mais non modifiable est **affiché grisé avec son motif** (« 🔒 Réservé à @Bureau »).
 
+Cinq points que l'écriture de ce chantier a tranchés :
+
+- **Sur un champ, la lecture commande la lecture *et* l'écriture** — là où, sur une page, écrire implique lire. Les deux règles n'y sont pas posées au même titre : une page porte les siennes, un champ n'en porte aucune tant qu'un auteur n'en écrit pas une, et une règle non posée veut dire « rien de plus que ce que la fiche demande déjà ». Prise dans l'autre sens, une écriture non posée répondrait « tout le monde » et rendrait, par « écrire implique lire », le champ dont la lecture venait d'être fermée. C'est la restriction posée qui doit décider : on ne remplit pas ce qu'on ne voit pas.
+- **La fusion appartient à la porte** (`lib/pages.ts`), et repart de la révision que la porte vient elle-même de lire : une fusion préparée par l'appelant travaillerait sur un snapshot qui a pu bouger depuis, et ce décalage est exactement le salaire que quelqu'un écrase en enregistrant la fiche.
+- **Une fiche qui naît n'a rien à protéger** : la fusion ne concerne que la modification. Ce que son auteur n'a pas le droit d'écrire est simplement absent du schéma qui valide sa saisie, donc jamais enregistré.
+- **Restaurer une révision passe par la même fusion.** C'est une écriture, et la plus silencieuse de toutes : le restaurateur n'a pas vu à l'écran ce qu'il remet. Sans quoi l'historique serait le contournement de la règle.
+- **Les mots-clés vivent sur la Page**, pas dans le snapshot (ADR 0007) : la fusion ne les atteint pas, et la règle de leur champ s'applique à côté d'elle.
+
+Le champ `title`, enfin, **n'offre aucun des deux réglages** : son accès ne se paramètre pas, l'état étant rendu impossible plutôt que rattrapé — le motif de `@Admins`, qui n'accepte que des personnes. Le refus à l'enregistrement reste le garde-fou d'un descripteur écrit à la main.
+
 ### Défauts : ils se recopient, jamais ne se lient
 
 ```

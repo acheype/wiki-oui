@@ -10,6 +10,7 @@ import {
   type EntryData,
   type FormDescriptor,
   type FormDescriptorIssue,
+  type FormField,
   computeAutomaticTitle,
   deriveEntrySchema,
   emptyTitleMessage,
@@ -19,6 +20,14 @@ import {
   readEntryData,
   unknownFieldReferences,
 } from "@/lib/form-descriptor";
+import {
+  fieldWriteRule,
+  mergedEntryData,
+  readOnlyFields,
+  readableDescriptor,
+  readableEntryData,
+  writableDescriptor,
+} from "@/lib/field-rights";
 import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
@@ -28,7 +37,6 @@ import {
   type EntryRightsImpact,
   type FormPermissions,
   bornFormPermissions,
-  entryCreationRefusal,
 } from "@/lib/form-rights";
 import {
   actorCanCreateEntry,
@@ -49,7 +57,11 @@ import {
   renameFormSlug,
   updateForm,
 } from "@/lib/forms";
-import { groupDisplayNames, listDirectory } from "@/lib/groups-db";
+import {
+  groupDisplayNames,
+  groupNamesBySlug,
+  listDirectory,
+} from "@/lib/groups-db";
 import {
   createEntryPage,
   getPage,
@@ -60,10 +72,12 @@ import {
 } from "@/lib/pages";
 import {
   type AclDirectory,
+  type Actor,
   FORM_EDIT_REFUSED,
   refusalMessage,
+  scopeRefusal,
 } from "@/lib/permissions";
-import { currentIdentity } from "@/lib/permissions-db";
+import { currentActor, currentIdentity } from "@/lib/permissions-db";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -434,12 +448,18 @@ export async function listEntryFieldChoices(
 ): Promise<EntryFieldChoice[]> {
   const forms = await listFormsBySlugs(formSlugs);
   const bySlug = new Map(forms.map((form) => [form.slug, form]));
+  // Cut to what this actor may read, and so are the zones, the filters and
+  // the sorts built from it: a field they cannot see is not one they can be
+  // offered to sort on (docs/permissions.md § Champ). The values are cut
+  // again, form by form, where the payload is assembled — a name readable on
+  // one of the chosen forms is not thereby readable on the next.
+  const actor = await currentActor();
   const ordered = formSlugs.flatMap((slug) => {
     const form = bySlug.get(slug);
     if (!form) return []; // a slug typed by hand may not exist (yet)
     const parsed = parseFormDescriptor(form.schema);
     return parsed.descriptor
-      ? [{ name: form.name, descriptor: parsed.descriptor }]
+      ? [{ name: form.name, descriptor: readableDescriptor(actor, parsed.descriptor) }]
       : [];
   });
   const choices = unionEntryFields(ordered);
@@ -487,8 +507,36 @@ function sourcedFormSlug(
 // The field whose value drives Page.tags (docs/forms.md): tags are not
 // historized, so the snapshot mirrors them but Page.tags is the source of
 // truth on prefill.
-function tagsFieldName(descriptor: FormDescriptor): string | undefined {
-  return descriptor.fields.find((field) => field.type === "tags")?.name;
+function tagsField(descriptor: FormDescriptor): FormField | undefined {
+  return descriptor.fields.find((field) => field.type === "tags");
+}
+
+/** The tags a save poses, which live on the Page and not in the snapshot. */
+function entryTags(descriptor: FormDescriptor, data: EntryData): string[] {
+  const field = tagsField(descriptor);
+  if (!field) return [];
+  const value = data[field.name];
+  return Array.isArray(value) ? (value as string[]) : [];
+}
+
+/**
+ * The title stored like any other field value (ADR 0020): every reader reads
+ * `data.title`, none recomputes it. In automatic mode the client never submits
+ * it — deriveEntrySchema strips it — so it is injected here, from the values
+ * the save is about to write.
+ */
+function withTitle(descriptor: FormDescriptor, data: EntryData): EntryData {
+  return { ...data, title: computeAutomaticTitle(descriptor, data) };
+}
+
+/** Why a save is refused when the title comes out empty, null when it does not. */
+function titleRefusal(
+  descriptor: FormDescriptor,
+  data: EntryData
+): string | null {
+  return computeAutomaticTitle(descriptor, data).trim() === ""
+    ? emptyTitleMessage(descriptor)
+    : null;
 }
 
 export interface EntryFormData {
@@ -506,6 +554,12 @@ export interface EntryFormData {
    * le droit): a form that vanished reads as a page that failed to load.
    */
   creationRefusal: string | null;
+  /**
+   * Field name → why it is shown greyed, for the fields this actor may see but
+   * not fill (docs/permissions.md § Champ). A field they may not even see is
+   * not in here: it is absent from `schema` altogether.
+   */
+  readOnly: Record<string, string>;
   /** Whether « Se connecter » is worth offering beside that motif. */
   signedIn: boolean;
 }
@@ -521,9 +575,32 @@ async function creationRefusalOf(
 ): Promise<string | null> {
   if (isEdit || (await actorCanCreateEntry(form))) return null;
   const rule = permissionsOf(form).createEntry;
-  return entryCreationRefusal(
-    rule,
-    await groupDisplayNames(rule.groupSlugs ?? [])
+  return scopeRefusal(rule, await groupDisplayNames(rule.groupSlugs ?? []));
+}
+
+/**
+ * The motif under each greyed field, in the words its own rule was posed in.
+ * The group names are resolved once for the whole form: a form reserving a
+ * dozen fields to the same group would otherwise ask as many times.
+ */
+async function readOnlyMotifs(
+  actor: Actor,
+  descriptor: FormDescriptor
+): Promise<Record<string, string>> {
+  const fields = readOnlyFields(actor, descriptor);
+  if (fields.length === 0) return {};
+  const named = await groupNamesBySlug(
+    fields.flatMap((field) => [...(fieldWriteRule(field).groupSlugs ?? [])])
+  );
+  return Object.fromEntries(
+    fields.flatMap((field) => {
+      const rule = fieldWriteRule(field);
+      const motif = scopeRefusal(
+        rule,
+        (rule.groupSlugs ?? []).flatMap((slug) => named.get(slug) ?? [])
+      );
+      return motif ? [[field.name, motif]] : [];
+    })
   );
 }
 
@@ -540,6 +617,11 @@ export async function getEntryForm(
     throw new Error(`Descripteur invalide en base : «\u00A0${formSlug}\u00A0»`);
   }
 
+  // What this actor may not read never reaches the browser — neither the
+  // field nor the value it holds (docs/permissions.md § Champ).
+  const actor = await currentActor();
+  const readable = readableDescriptor(actor, parsed.descriptor);
+
   let values: EntryData | null = null;
   let slug: string | null = null;
   if (entrySlug) {
@@ -547,19 +629,24 @@ export async function getEntryForm(
     // A refused read reads as « no such entry » here: the caller is the entry
     // form, and the refusal screen has already answered on the way in.
     if (!page || isRefused(page) || page.formId !== form.id) return null;
-    values = readEntryData(page.current?.data);
-    const tagsField = tagsFieldName(parsed.descriptor);
-    if (tagsField) values = { ...values, [tagsField]: page.tags };
+    values = readableEntryData(
+      actor,
+      parsed.descriptor,
+      readEntryData(page.current?.data)
+    );
+    const tags = tagsField(readable);
+    if (tags) values = { ...values, [tags.name]: page.tags };
     slug = page.slug;
   }
 
   return {
     formSlug: form.slug,
     formName: form.name,
-    schema: parsed.descriptor,
+    schema: readable,
     values,
     slug,
     creationRefusal: await creationRefusalOf(form, entrySlug !== undefined),
+    readOnly: await readOnlyMotifs(actor, readable),
     signedIn: (await currentIdentity()) !== null,
   };
 }
@@ -594,46 +681,60 @@ export async function saveEntry(
   }
   const descriptor = parsed.descriptor;
 
-  // Same schema as the client resolver (ADR 0015): one source of truth.
-  const validation = deriveEntrySchema(descriptor).safeParse(input.data);
+  // Same schema as the client resolver (ADR 0015): one source of truth. Cut
+  // to the fields this actor may write, so that what they send on the others
+  // is stripped rather than refused (docs/permissions.md § Champ) — a mere
+  // difference of rights must never be what makes a save fail. A required
+  // field they may not fill is not asked of them either, for the same reason.
+  const actor = await currentActor();
+  const writable = writableDescriptor(actor, descriptor);
+  const validation = deriveEntrySchema(writable).safeParse(input.data);
   if (!validation.success) {
     return { ok: false, formError: "Des champs sont invalides." };
   }
   const data = validation.data as EntryData;
 
-  const title = computeAutomaticTitle(descriptor, data);
-  if (title.trim() === "") {
-    return { ok: false, formError: emptyTitleMessage(descriptor) };
-  }
-  // The title is stored like any other field value (ADR 0020): every reader
-  // reads `data.title`, none recomputes it. In automatic mode the client
-  // never submits it — deriveEntrySchema strips it — so it is injected here,
-  // after validation.
-  const stored: EntryData = { ...data, title };
-
-  const tagsField = tagsFieldName(descriptor);
-  const tags = tagsField && Array.isArray(data[tagsField])
-    ? (data[tagsField] as string[])
-    : [];
-
   // Editing keeps the frozen slug; a new entry derives it from the title
   // (revealable, personalizable) and freezes it on this first save.
   if (input.entrySlug) {
-    const page = await getPage(input.entrySlug);
-    if (!page || page.formId !== form.id) {
+    const page = await getPageWithCurrent(input.entrySlug);
+    if (!page || isRefused(page) || page.formId !== form.id) {
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
+    // The title is computed against the merge, not against what arrived: a
+    // gabarit naming a field its author may not write must go on reading the
+    // value the fiche holds, rather than losing it (ADR 0020). The door
+    // merges again on its own, from the revision it reads there — this one
+    // is what the title is worked out from.
+    const merged = mergedEntryData(
+      actor,
+      descriptor,
+      readEntryData(page.current?.data),
+      data
+    );
+    const refusal = titleRefusal(descriptor, merged);
+    if (refusal) return { ok: false, formError: refusal };
     // The form refuses long before this, so reaching it means the right went
     // away between opening the fiche and saving it: a refusal to report, not
     // an error boundary to fall into.
     try {
-      await writeEntryRevision({ pageId: page.id, data: stored, tags });
+      await writeEntryRevision({
+        pageId: page.id,
+        data: withTitle(descriptor, merged),
+        tags: entryTags(descriptor, data),
+        descriptor,
+      });
     } catch (error) {
       return { ok: false, formError: refusalMessage(error) };
     }
     revalidatePath("/", "layout");
     return { ok: true, slug: page.slug };
   }
+
+  const refusal = titleRefusal(descriptor, data);
+  if (refusal) return { ok: false, formError: refusal };
+  const stored = withTitle(descriptor, data);
+  const title = String(stored.title);
 
   const slug = input.slug && input.slug.trim() !== ""
     ? input.slug
@@ -652,7 +753,7 @@ export async function saveEntry(
       slug,
       formId: form.id,
       data: stored,
-      tags,
+      tags: entryTags(descriptor, data),
       // The form decides who may add a fiche, and what that fiche is born
       // with (docs/permissions.md § Formulaire) — not the wiki's own rules,
       // which govern pages.

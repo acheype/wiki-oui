@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FormDescriptor } from "@/lib/form-descriptor";
 import {
   ADDRESS_REFUSED,
   DELETE_REFUSED,
@@ -56,6 +57,7 @@ const {
   renamePageSlug,
   setPageRights,
   transferPageOwnership,
+  writeEntryRevision,
   writePageContent,
   writeRestoredRevision,
 } = await import("@/lib/pages");
@@ -125,6 +127,7 @@ const guarded: [string, string, () => Promise<unknown>][] = [
         content: "# Ancien",
         data: undefined,
         restoredFromId: "rev-1",
+        descriptor: null,
       }),
   ],
 ];
@@ -148,6 +151,92 @@ describe("the door refuses what the bar would not offer", () => {
     expect(db.page.create).not.toHaveBeenCalled();
     expect(db.pageAcl.deleteMany).not.toHaveBeenCalled();
     expect(db.revision.create).not.toHaveBeenCalled();
+  });
+});
+
+// The merge is the door's, not its caller's (docs/permissions.md § Champ): a
+// revision holds a complete snapshot, so a save that replaced it would let
+// whoever cannot see a salary destroy it just by saving the fiche.
+describe("what a save may move, field by field", () => {
+  const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;
+  const PAYROLL: FormDescriptor = {
+    fields: [
+      { type: "title", name: "title", label: "Titre" },
+      { type: "text", name: "nom", label: "Nom" },
+      { type: "text", name: "salaire", label: "Salaire", readAcl: BUREAU, writeAcl: BUREAU },
+      { type: "tags", name: "mots-cles", label: "Mots-clés", writeAcl: BUREAU },
+    ],
+  };
+  /** A fiche Jean may write, holding a salary that is not his to move. */
+  const JEANS_ENTRY = {
+    ...MARIES_PAGE,
+    ownerUsername: "jean-martin",
+    owner: { name: "Jean Martin", username: "jean-martin" },
+    tags: ["paie"],
+    current: { data: { title: "Paie", nom: "Marie", salaire: 42000 } },
+  };
+  const save = (data: Record<string, unknown>, tags: string[] = ["paie"]) =>
+    writeEntryRevision({ pageId: "page-1", data, tags, descriptor: PAYROLL });
+  const written = () =>
+    db.revision.create.mock.calls.at(-1)?.[0].data.data as unknown;
+
+  beforeEach(() => {
+    db.page.findUniqueOrThrow.mockResolvedValue(JEANS_ENTRY);
+    db.revision.create.mockResolvedValue({ id: "rev-2" });
+  });
+
+  it("lays what the actor may write over the revision it starts from", async () => {
+    await save({ title: "Paie", nom: "Marie Durand", salaire: 0 });
+    expect(written()).toEqual({
+      title: "Paie",
+      nom: "Marie Durand",
+      salaire: 42000,
+    });
+  });
+
+  // Ignored, not refused: a difference of rights must never be what makes a
+  // save fail — and a save with nothing left to record records nothing.
+  it("mints no revision when all that moved was refused", async () => {
+    await save({ title: "Paie", nom: "Marie", salaire: 0 });
+    expect(db.revision.create).not.toHaveBeenCalled();
+  });
+
+  it("lets the rule's own group move it", async () => {
+    signedInAs("jean-martin", ["bureau"]);
+    await save({ title: "Paie", nom: "Marie", salaire: 45000 });
+    expect(written()).toEqual({ title: "Paie", nom: "Marie", salaire: 45000 });
+  });
+
+  // Tags live on the Page and not in the snapshot (ADR 0007), so the merge
+  // cannot reach them: their field's own rule is applied beside it.
+  it("keeps the tags of whoever may not move them", async () => {
+    await save({ title: "Paie", nom: "Marie Durand" }, []);
+    expect(db.page.update).toHaveBeenCalledWith({
+      where: { id: "page-1" },
+      data: { tags: ["paie"] },
+    });
+  });
+
+  it("moves them for whoever may", async () => {
+    signedInAs("jean-martin", ["bureau"]);
+    await save({ title: "Paie", nom: "Marie Durand" }, []);
+    expect(db.page.update).toHaveBeenCalledWith({
+      where: { id: "page-1" },
+      data: { tags: [] },
+    });
+  });
+
+  // A restore is a write like any other, and a silent one: the restorer never
+  // saw on screen what they would be putting back.
+  it("merges a restored snapshot too", async () => {
+    await writeRestoredRevision({
+      pageId: "page-1",
+      content: null,
+      data: { title: "Paie", nom: "Marie", salaire: 1 },
+      restoredFromId: "rev-1",
+      descriptor: PAYROLL,
+    });
+    expect(written()).toEqual({ title: "Paie", nom: "Marie", salaire: 42000 });
   });
 });
 

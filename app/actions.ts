@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { deleteFile } from "@/lib/files";
 import { restoredEntryValues } from "@/lib/entry-title";
-import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
+import {
+  type FormDescriptor,
+  parseFormDescriptor,
+  readEntryData,
+} from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
@@ -201,16 +205,27 @@ export async function discardUploadedFile(name: string): Promise<void> {
 function restoredEntryData(
   schema: unknown,
   data: Prisma.JsonValue | null
-): { data: Prisma.InputJsonValue | undefined; titleKept: boolean } {
-  if (data === null) return { data: undefined, titleKept: false }; // MDX page
-  const descriptor = schema ? parseFormDescriptor(schema).descriptor : null;
+): {
+  data: Prisma.InputJsonValue | undefined;
+  titleKept: boolean;
+  descriptor: FormDescriptor | null;
+} {
+  if (data === null) {
+    return { data: undefined, titleKept: false, descriptor: null }; // MDX page
+  }
+  const descriptor = schema ? parseFormDescriptor(schema).descriptor ?? null : null;
   if (!descriptor) {
-    return { data: data as Prisma.InputJsonValue, titleKept: false };
+    return {
+      data: data as Prisma.InputJsonValue,
+      titleKept: false,
+      descriptor: null,
+    };
   }
   const restored = restoredEntryValues(descriptor, readEntryData(data));
   return {
     data: restored.values as Prisma.InputJsonValue,
     titleKept: restored.titleKept,
+    descriptor,
   };
 }
 
@@ -244,6 +259,7 @@ export async function restoreRevision(
       content: source.content,
       data: restored.data ?? undefined,
       restoredFromId: source.id,
+      descriptor: restored.descriptor,
     });
   } catch (error) {
     return { error: refusalMessage(error) };

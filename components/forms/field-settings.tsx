@@ -7,11 +7,15 @@
 // in it, then — once the form is saved — a chip whose « Changer » stages a
 // rename applied at the next save.
 
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { countFieldReferences } from "@/app/form-actions";
+import { NO_FLOOR } from "@/components/fields/acl-input";
+import { Field } from "@/components/fields/field-widget";
 import { RenameSlugDialog } from "@/components/slug/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InfoNote } from "@/components/ui/info-note";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,12 +28,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SlugInlineEdit } from "@/components/slug/slug-input";
 import type { FieldReferenceCounts } from "@/lib/field-rename";
+import { fieldReadRule, fieldWriteRule } from "@/lib/field-rights";
 import {
   type FormField,
   type RequiredSetting,
   requiredSettings,
 } from "@/lib/form-descriptor";
+import type { AccessRule, AclDirectory } from "@/lib/permissions";
 import { slugify } from "@/lib/slug";
+import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import type { CanvasField } from "./form-builder";
 
@@ -38,6 +45,7 @@ export function FieldSettings({
   otherFields,
   forms,
   formSlug,
+  directory,
   referenceCounts,
   onChange,
   onRenameStaged,
@@ -48,6 +56,8 @@ export function FieldSettings({
   forms: { slug: string; name: string }[];
   /** The edited form's slug; null while the form has never been saved. */
   formSlug: string | null;
+  /** Who the field's two rules may name: the people and groups of the wiki. */
+  directory: AclDirectory;
   /** Local references to the field's name, for the rename dialog's impact. */
   referenceCounts: FieldReferenceCounts;
   onChange: (patch: Partial<FormField>) => void;
@@ -127,6 +137,91 @@ export function FieldSettings({
         forms={forms}
         onChange={onChange}
       />
+
+      <FieldRights field={field} directory={directory} onChange={onChange} />
+    </div>
+  );
+}
+
+/**
+ * The two rights a field poses on itself (docs/permissions.md § Champ), folded
+ * under « Paramètres avancés » — the ComponentBuilder's own fold, and for the
+ * same reason: a wiki restricts a salary or an internal note on a handful of
+ * fields, and the rest of the palette should not have to step around the
+ * settings that serve them.
+ *
+ * The same `acl` widget as everywhere else (ADR 0015), on a floor that names
+ * nobody: a field has no owner — only the administrators stand under it,
+ * whatever a « seulement » holds.
+ */
+function FieldRights({
+  field,
+  directory,
+  onChange,
+}: {
+  field: CanvasField;
+  directory: AclDirectory;
+  onChange: (patch: Partial<FormField>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  // Nothing to pose on the title: its reading is what names the fiche in the
+  // URL, the menus and every list, so restricting it is refused at the save
+  // (ADR 0020) — and the state is made impossible here rather than caught
+  // there, the way @Admins refuses to hold a group.
+  if (field.type === "title") {
+    return (
+      <InfoNote>
+        Le titre nomme la fiche partout dans le wiki : son accès ne se
+        restreint pas.
+      </InfoNote>
+    );
+  }
+
+  // Stored only once posed: « tout le monde » is what an absent rule already
+  // means, and writing it down would leave every field of every form carrying
+  // two rules nobody asked for.
+  const set = (key: "readAcl" | "writeAcl") => (value: unknown) => {
+    const rule = value as AccessRule;
+    onChange({ [key]: rule.scope === "everyone" ? undefined : rule });
+  };
+
+  return (
+    <div className="grid gap-3 border-t pt-3">
+      <button
+        type="button"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+      >
+        <ChevronRight
+          className={cn("size-4 transition-transform", open && "rotate-90")}
+          aria-hidden
+        />
+        Paramètres avancés
+      </button>
+      {open && (
+        <div className="grid gap-4">
+          <Field
+            id="setting-read-acl"
+            spec={{ type: "acl", label: "Qui peut voir ce champ ?" }}
+            value={fieldReadRule(field)}
+            environment={{ directory, aclFloor: NO_FLOOR }}
+            onChange={set("readAcl")}
+          />
+          {/* A customContent field displays what its author wrote and holds no
+              value of its own: there is nothing in it to fill in. */}
+          {field.type !== "customContent" && (
+            <Field
+              id="setting-write-acl"
+              spec={{ type: "acl", label: "Qui peut le remplir ?" }}
+              value={fieldWriteRule(field)}
+              environment={{ directory, aclFloor: NO_FLOOR }}
+              onChange={set("writeAcl")}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

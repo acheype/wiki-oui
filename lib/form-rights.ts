@@ -69,40 +69,6 @@ export function canCreateEntry(
   return isAdmin(actor) || ruleAllows(actor, permissions.createEntry);
 }
 
-/**
- * Why the entry form refuses, in the words the scope was posed in. The block
- * is shown with its motif and a follow-up rather than hidden (docs/
- * permissions.md § Ce que voit qui n'a pas le droit): a form that vanished
- * would read as a page that failed to load, where a refusal that names who it
- * is for tells the reader what to do next.
- *
- * The named groups arrive resolved to their display names — « @Bureau », not
- * `bureau`, since a slug says nothing to whoever reads the refusal. The
- * people a « seulement » names stay unsaid: naming them would publish who is
- * on the wiki to a visitor, where a group is already how the wiki talks about
- * itself in public.
- */
-export function entryCreationRefusal(
-  rule: AccessRule,
-  groupNames: readonly string[]
-): string | null {
-  switch (rule.scope) {
-    case "everyone":
-      return null; // refuses nobody, so there is nothing to word
-    case "authenticated":
-      return "Réservé aux personnes connectées.";
-    case "restricted":
-      return groupNames.length === 0
-        ? "Réservé aux personnes autorisées."
-        : `Réservé à ${joinNames(groupNames.map((name) => `@${name}`))}.`;
-  }
-}
-
-function joinNames(names: readonly string[]): string {
-  if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
-}
-
 // --- applying the defaults to the fiches already there -----------------------
 
 // The only path from a default to what already exists (ADR 0026): an explicit

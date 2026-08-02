@@ -6,7 +6,6 @@ import {
   bornFormPermissions,
   canCreateEntry,
   defaultsPrincipals,
-  entryCreationRefusal,
   entryRightsFrom,
   entryRightsImpact,
   entryRightsNote,
@@ -81,33 +80,6 @@ describe("canCreateEntry", () => {
     };
     expect(canCreateEntry(JEAN, forBureau)).toBe(true);
     expect(canCreateEntry(MARIE, forBureau)).toBe(false);
-  });
-});
-
-describe("what the refused entry form says", () => {
-  it("words nothing for a form open to everyone", () => {
-    expect(entryCreationRefusal({ scope: "everyone" }, [])).toBeNull();
-  });
-
-  it("names the level, not the person", () => {
-    expect(entryCreationRefusal({ scope: "authenticated" }, [])).toBe(
-      "Réservé aux personnes connectées."
-    );
-  });
-
-  it("names the groups a « seulement » is posed for", () => {
-    const rule = { scope: "restricted", groupSlugs: ["bureau"] } as const;
-    expect(entryCreationRefusal(rule, ["Bureau"])).toBe("Réservé à @Bureau.");
-    expect(entryCreationRefusal(rule, ["Bureau", "Trésorerie"])).toBe(
-      "Réservé à @Bureau et @Trésorerie."
-    );
-  });
-
-  it("stays vague when only people are named, who are nobody's business", () => {
-    const rule = { scope: "restricted", usernames: ["marie-durand"] } as const;
-    expect(entryCreationRefusal(rule, [])).toBe(
-      "Réservé aux personnes autorisées."
-    );
   });
 });
 

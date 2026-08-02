@@ -190,6 +190,7 @@ function EntryFields({
             />
           );
         }
+        const refusal = form.readOnly[field.name];
         const controller = (
           <Controller
             name={field.name}
@@ -213,16 +214,21 @@ function EntryFields({
             )}
           />
         );
+        const widget = refusal ? (
+          <ReadOnlyField reason={refusal}>{controller}</ReadOnlyField>
+        ) : (
+          controller
+        );
         // The identifier row sits right under the (manual) title field.
         if (field.type === "title" && identity) {
           return (
             <Fragment key={field.name}>
-              {controller}
+              {widget}
               {identity}
             </Fragment>
           );
         }
-        return <Fragment key={field.name}>{controller}</Fragment>;
+        return <Fragment key={field.name}>{widget}</Fragment>;
       })}
 
       {/* No title widget when it is automatic: the row closes the form. */}
@@ -235,6 +241,32 @@ function EntryFields({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * A field this actor may see but not fill (docs/permissions.md § Champ):
+ * shown greyed, with the motif its rule was posed in. Made unreachable by a
+ * `fieldset`, which disables every control it holds — the keyboard included,
+ * where a dimmed-looking widget would still take a caret. Hiding it instead
+ * would leave the fiche looking incomplete, and the value is on screen: what
+ * is missing is the right to move it.
+ */
+function ReadOnlyField({
+  reason,
+  children,
+}: {
+  reason: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset disabled className="grid min-w-0 gap-1.5 opacity-70">
+      {children}
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Lock className="size-3.5 shrink-0" aria-hidden />
+        {reason}
+      </p>
+    </fieldset>
   );
 }
 

@@ -46,8 +46,26 @@ export const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   title: "Titre de la fiche",
 };
 
+// One right as the `acl` widget poses it and as the descriptor stores it:
+// usernames and group slugs, never ids (ADR 0024). Shape only, like the
+// fields below — a name that has since gone is dropped when the default is
+// copied (ADR 0026), not refused at read, or a deleted account would shut its
+// form out of the very screen where the mistake gets fixed.
+// Readonly, so that what the descriptor holds and what `AccessRule` describes
+// are one type: the wiki's own defaults are written `as const` in
+// wiki.config.ts, and a mutable array would refuse the very copy ADR 0026 is
+// about.
+const accessRuleSchema = z.object({
+  scope: z.enum(SCOPES),
+  usernames: z.array(z.string()).readonly().optional(),
+  groupSlugs: z.array(z.string()).readonly().optional(),
+});
+
 // Common trunk (docs/forms.md): label · name (fixed identity, ADR 0014) ·
-// required · hint; placeholder on text-like types only.
+// required · hint; placeholder on text-like types only. Plus the two rights
+// a field poses on itself (docs/permissions.md § Champ), on every type
+// alike: a salary is a text field, an internal note a long one — what makes
+// them worth restricting is never their type.
 const fieldBase = z.object({
   label: z.string(),
   // Shape only: the slug format is an authoring rule (formAuthoringIssues),
@@ -58,6 +76,9 @@ const fieldBase = z.object({
   name: z.string(),
   required: z.boolean().optional(),
   hint: z.string().optional(),
+  /** Absent means unrestricted: a field is open until a rule says otherwise. */
+  readAcl: accessRuleSchema.optional(),
+  writeAcl: accessRuleSchema.optional(),
 });
 
 const textLikeBase = fieldBase.extend({
@@ -140,21 +161,6 @@ const formFieldSchema = z.discriminatedUnion("type", [
     template: z.string().optional(),
   }),
 ]);
-
-// One right as the `acl` widget poses it and as the descriptor stores it:
-// usernames and group slugs, never ids (ADR 0024). Shape only, like the
-// fields above — a name that has since gone is dropped when the default is
-// copied (ADR 0026), not refused at read, or a deleted account would shut its
-// form out of the very screen where the mistake gets fixed.
-// Readonly, so that what the descriptor holds and what `AccessRule` describes
-// are one type: the wiki's own defaults are written `as const` in
-// wiki.config.ts, and a mutable array would refuse the very copy ADR 0026 is
-// about.
-const accessRuleSchema = z.object({
-  scope: z.enum(SCOPES),
-  usernames: z.array(z.string()).readonly().optional(),
-  groupSlugs: z.array(z.string()).readonly().optional(),
-});
 
 export const formDescriptorSchema = z.object({
   fields: z.array(formFieldSchema),
@@ -531,7 +537,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
 export function formAuthoringIssues(
   descriptor: FormDescriptor
 ): FormDescriptorIssue[] {
-  const issues: FormDescriptorIssue[] = [];
+  const issues: FormDescriptorIssue[] = [...restrictedFieldLeaks(descriptor)];
   descriptor.fields.forEach((field, fieldIndex) => {
     for (const setting of requiredSettings(field)) {
       const value = settingValue(field, setting.key);
@@ -548,6 +554,51 @@ export function formAuthoringIssues(
       }
     }
   });
+  return issues;
+}
+
+/** Whether a field's reading is narrower than « tout le monde ». */
+function restrictsReading(field: FormField): boolean {
+  return field.readAcl !== undefined && field.readAcl.scope !== "everyone";
+}
+
+/**
+ * The two leaks a read-restricted field opens (docs/permissions.md § Champ),
+ * refused when the form is saved rather than patched at render. Both are
+ * about the title, and for one reason: a title is read where no right is ever
+ * consulted — the URL, the slug, the menus, every list — so a value that
+ * reached it would be published to everyone whatever the field says.
+ */
+function restrictedFieldLeaks(
+  descriptor: FormDescriptor
+): FormDescriptorIssue[] {
+  const fieldIndex = descriptor.fields.findIndex(
+    (field) => field.type === "title"
+  );
+  const title = descriptor.fields[fieldIndex];
+  if (title?.type !== "title") return [];
+  const issues: FormDescriptorIssue[] = [];
+  if (restrictsReading(title)) {
+    // Not merely a leak: an entry whose title nobody may read has no title at
+    // all (ADR 0020), and neither its slug nor its display survives that.
+    issues.push({
+      fieldIndex,
+      message:
+        "Le titre de la fiche ne peut pas être restreint en lecture : il nomme la fiche partout dans le wiki.",
+    });
+  }
+  if (title.automatic && title.template) {
+    const restricted = new Set(
+      descriptor.fields.filter(restrictsReading).map((field) => field.name)
+    );
+    for (const name of extractFieldReferences(title.template)) {
+      if (!restricted.has(name)) continue;
+      issues.push({
+        fieldIndex,
+        message: `Le titre automatique référence un champ à lecture restreinte : «\u00A0${name}\u00A0».`,
+      });
+    }
+  }
   return issues;
 }
 

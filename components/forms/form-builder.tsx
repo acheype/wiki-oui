@@ -510,6 +510,7 @@ export function FormBuilder({
                   otherFields={fields.filter((f) => f._id !== selected._id)}
                   forms={otherForms}
                   formSlug={initial?.slug ?? null}
+                  directory={directory}
                   referenceCounts={countFieldReferenceUses(
                     fields,
                     template,

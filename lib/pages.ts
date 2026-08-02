@@ -5,7 +5,12 @@ import {
   alreadyGrants,
   nothingToReplace,
 } from "@/lib/bulk-rights";
-import { type EntryData, readEntryData } from "@/lib/form-descriptor";
+import { canWriteField, mergedEntryData } from "@/lib/field-rights";
+import {
+  type EntryData,
+  type FormDescriptor,
+  readEntryData,
+} from "@/lib/form-descriptor";
 import {
   type EntryRightsImpact,
   type FormPermissions,
@@ -23,6 +28,7 @@ import {
   type AccessRule,
   type AclEntry,
   type AclFloor,
+  type Actor,
   type Identity,
   type PagePermissions,
   type PageRights,
@@ -962,19 +968,23 @@ export async function createEntryPage(input: {
   if (!canCreateEntry(await currentActor(), permissions)) {
     throw new Error(CREATE_ENTRY_REFUSED);
   }
-  const actor = await currentUsername();
+  // No merge here, where an edit has one: the merge protects the values a
+  // revision already holds (docs/permissions.md § Champ), and a fiche being
+  // born holds none. Its author owns it, and the fields they may not fill are
+  // absent from their screen.
+  const author = await currentUsername();
   const born = await bornWith(
     permissions.defaultEntryRead,
     permissions.defaultEntryWrite
   );
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, ownerUsername: actor, formId, tags, ...born },
+      data: { slug, ownerUsername: author, formId, tags, ...born },
     });
     await mintRevision(tx, {
       pageId: page.id,
       data: data as Prisma.InputJsonValue,
-      authorUsername: actor,
+      authorUsername: author,
     });
   });
 }
@@ -983,30 +993,54 @@ export async function createEntryPage(input: {
  * A new snapshot for an existing entry, unless the data is unchanged
  * (revisions are the content's history, ADR 0003). Tags live on the Page and
  * update without a revision (ADR 0007).
+ *
+ * A revision stores a **complete** snapshot, so the write merges rather than
+ * replaces (docs/permissions.md § Champ): it starts from the current revision
+ * and lays over it only the fields this actor may write. Done here, at the
+ * door, and from the revision the door itself just read — a caller could hand
+ * over a merge made against a snapshot that has moved since, and that stale
+ * base is exactly the salary somebody wipes by saving the fiche.
+ *
+ * The descriptor travels in rather than being read here: `Form` is the other
+ * door's (ADR 0025), and lib/forms.ts has already read it on the way to this
+ * call.
  */
 export async function writeEntryRevision(input: {
   pageId: string;
   data: EntryData;
   tags: string[];
+  descriptor: FormDescriptor;
 }): Promise<void> {
-  const { pageId, data, tags } = input;
+  const { pageId, data, tags, descriptor } = input;
   const page = await prisma.page.findUniqueOrThrow({
     where: { id: pageId },
     include: { current: true, ...WITH_RIGHTS },
   });
   await assertCanWrite(page);
-  const unchanged =
-    JSON.stringify(readEntryData(page.current?.data)) === JSON.stringify(data);
-  const actor = await currentUsername();
+  const actor = await currentActor();
+  const current = readEntryData(page.current?.data);
+  const written = mergedEntryData(actor, descriptor, current, data);
+  // Tags live on the Page and not in the snapshot (ADR 0007), so the merge
+  // above never reaches them: their own field's right is applied here, and
+  // what the fiche already carries answers for whoever may not move them.
+  const posedTags = canWriteTags(actor, descriptor) ? tags : page.tags;
+  const unchanged = JSON.stringify(current) === JSON.stringify(written);
+  const author = await currentUsername();
   await prisma.$transaction(async (tx) => {
-    await tx.page.update({ where: { id: pageId }, data: { tags } });
+    await tx.page.update({ where: { id: pageId }, data: { tags: posedTags } });
     if (unchanged) return;
     await mintRevision(tx, {
       pageId,
-      data: data as Prisma.InputJsonValue,
-      authorUsername: actor,
+      data: written as Prisma.InputJsonValue,
+      authorUsername: author,
     });
   });
+}
+
+/** Whether the form's tags field, if it has one, is this actor's to fill. */
+function canWriteTags(actor: Actor, descriptor: FormDescriptor): boolean {
+  const field = descriptor.fields.find((candidate) => candidate.type === "tags");
+  return field === undefined || canWriteField(actor, field);
 }
 
 /**
@@ -1014,24 +1048,43 @@ export async function writeEntryRevision(input: {
  * history stays append-only, nothing is rewound. Both snapshot columns are
  * carried over, which preserves the content-xor-data invariant (ADR 0014) for
  * MDX pages and entries alike.
+ *
+ * An entry's snapshot goes through the same merge a save does: putting an old
+ * revision back is a write like any other, and the fields this actor may not
+ * write keep the values they hold today. Without it, restoring would be the
+ * way round the merge — and a silent one, the restorer never having seen on
+ * screen what they were putting back (docs/permissions.md § Champ).
  */
 export async function writeRestoredRevision(input: {
   pageId: string;
   content: string | null;
   data: Prisma.InputJsonValue | undefined;
   restoredFromId: string;
+  /** The form's fields for an entry; null for an MDX page, which has none. */
+  descriptor: FormDescriptor | null;
 }): Promise<void> {
-  const { pageId, content, data, restoredFromId } = input;
-  await assertCanWrite(
-    await prisma.page.findUniqueOrThrow({ where: { id: pageId }, include: WITH_RIGHTS })
-  );
-  const actor = await currentUsername();
+  const { pageId, content, data, restoredFromId, descriptor } = input;
+  const page = await prisma.page.findUniqueOrThrow({
+    where: { id: pageId },
+    include: { current: true, ...WITH_RIGHTS },
+  });
+  await assertCanWrite(page);
+  const restored =
+    descriptor && data !== undefined
+      ? (mergedEntryData(
+          await currentActor(),
+          descriptor,
+          readEntryData(page.current?.data),
+          data as EntryData
+        ) as Prisma.InputJsonValue)
+      : data;
+  const author = await currentUsername();
   await prisma.$transaction(async (tx) => {
     await mintRevision(tx, {
       pageId,
       content,
-      data,
-      authorUsername: actor,
+      data: restored,
+      authorUsername: author,
       restoredFromId,
     });
   });

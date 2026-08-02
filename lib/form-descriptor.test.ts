@@ -671,6 +671,64 @@ describe("formAuthoringIssues", () => {
       2
     );
   });
+
+  // The two leaks a field's rights open, refused at the form's save rather
+  // than patched at render (docs/permissions.md § Champ) — a title is read
+  // where no right is ever consulted: the URL, the menus, every list.
+  describe("the two leaks of a restricted field", () => {
+    const restricted = { scope: "restricted", groupSlugs: ["bureau"] } as const;
+
+    it("refuses an automatic title referencing a read-restricted field", () => {
+      const descriptor = withField({ readAcl: restricted });
+      descriptor.fields[0] = {
+        ...descriptor.fields[0],
+        automatic: true,
+        template: "{prenom}",
+      } as FormDescriptor["fields"][number];
+      expect(formAuthoringIssues(descriptor)).toEqual([
+        {
+          fieldIndex: 0,
+          message:
+            "Le titre automatique référence un champ à lecture restreinte : «\u00A0prenom\u00A0».",
+        },
+      ]);
+    });
+
+    it("accepts an automatic title referencing an open field", () => {
+      expect(
+        formAuthoringIssues(withTitle({ automatic: true, template: "{prenom}" }))
+      ).toEqual([]);
+    });
+
+    // A restricted writing is another matter: the title stays visible, which
+    // is the whole of what the invariant asks.
+    it("accepts an automatic title referencing a write-restricted field", () => {
+      const descriptor = withField({ writeAcl: restricted });
+      descriptor.fields[0] = {
+        ...descriptor.fields[0],
+        automatic: true,
+        template: "{prenom}",
+      } as FormDescriptor["fields"][number];
+      expect(formAuthoringIssues(descriptor)).toEqual([]);
+    });
+
+    it.each([
+      ["authenticated" as const, {}],
+      ["restricted" as const, { groupSlugs: ["bureau"] }],
+    ])("refuses a title field restricted to %s readers", (scope, list) => {
+      expect(formAuthoringIssues(withTitle({ readAcl: { scope, ...list } }))).toEqual([
+        {
+          fieldIndex: 0,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en lecture : il nomme la fiche partout dans le wiki.",
+        },
+      ]);
+    });
+
+    it("accepts a title field whose writing is restricted", () => {
+      expect(formAuthoringIssues(withTitle({ writeAcl: restricted }))).toEqual([]);
+    });
+  });
 });
 
 describe("emptyTitleMessage", () => {

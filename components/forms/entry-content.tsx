@@ -1,5 +1,6 @@
 import { EntryView } from "@/components/forms/entry-view";
 import { Prose } from "@/components/page/prose";
+import { readableDescriptor, readableEntryData } from "@/lib/field-rights";
 import { renderTemplateSource } from "@/lib/entry-render";
 import {
   formSourcedValues,
@@ -9,6 +10,7 @@ import {
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
 import { listPagesWithCurrent } from "@/lib/pages";
+import { currentActor } from "@/lib/permissions-db";
 
 // The entry "show" rendering (ADR 0014), shared by the page at /[slug] and
 // the chrome-free popup service (docs/entries-view.md): the form's MDX
@@ -32,9 +34,22 @@ export async function EntryContent({
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) return null;
-  const data = readEntryData(rawData);
+  // The second of the two moments (docs/permissions.md § Deux temps): which
+  // fiches was a `where`, which fields inside them is settled here, in memory
+  // — the rights of a field living in JSON no clause reaches.
+  const actor = await currentActor();
+  const descriptor = readableDescriptor(actor, parsed.descriptor);
+  const data = readableEntryData(
+    actor,
+    parsed.descriptor,
+    readEntryData(rawData)
+  );
 
   if (form.template && form.template.trim() !== "") {
+    // The whole descriptor, over the cut data: a `{salaire}` the template
+    // names then renders as the empty string — the domain's silent rule for a
+    // value that is not there (docs/forms.md) — where dropping the field would
+    // leave the reference itself on the page.
     return (
       <Prose>
         {await renderMdx(
@@ -46,7 +61,7 @@ export async function EntryContent({
 
   // Resolve form-sourced option values (entry slugs) to their current titles
   // for the default view's wiki links; a deleted target keeps its raw slug.
-  const referenced = formSourcedValues(parsed.descriptor, data);
+  const referenced = formSourcedValues(descriptor, data);
   const targets = referenced.length
     ? await listPagesWithCurrent(referenced)
     : [];
@@ -58,7 +73,7 @@ export async function EntryContent({
 
   return (
     <EntryView
-      descriptor={parsed.descriptor}
+      descriptor={descriptor}
       data={data}
       linkTitles={linkTitles}
       hideTitle={hideTitle}

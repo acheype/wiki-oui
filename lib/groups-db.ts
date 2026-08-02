@@ -218,6 +218,23 @@ export async function groupDisplayNames(
   return groups.map((group) => group.name);
 }
 
+/**
+ * The same names, kept beside the slugs that asked for them: a screen wording
+ * several rules at once — the fields of a form, each with its own — has to put
+ * each name back where it came from, which an alphabetical list cannot do.
+ */
+export async function groupNamesBySlug(
+  slugs: readonly string[]
+): Promise<Map<string, string>> {
+  if (slugs.length === 0) return new Map();
+  return groupNames(
+    await prisma.group.findMany({
+      where: { slug: { in: [...new Set(slugs)] } },
+      select: { slug: true, name: true },
+    })
+  );
+}
+
 /** A group's display name from its slug, for the paths screens print. */
 export function groupNames(groups: NamedGroup[]): Map<string, string> {
   return new Map(groups.map((group) => [group.slug, group.name]));
