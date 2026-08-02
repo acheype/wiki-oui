@@ -216,6 +216,15 @@ export function unknownFieldReferences(
   return extractFieldReferences(text).filter((name) => !names.has(name));
 }
 
+/**
+ * The field whose value drives Page.tags (docs/forms.md), at most one per form
+ * — the Page being the source of truth, both sides of the door have to find
+ * the same one.
+ */
+export function tagsField(descriptor: FormDescriptor): FormField | undefined {
+  return descriptor.fields.find((field) => field.type === "tags");
+}
+
 export function isOptionsField(field: FormField): field is OptionsField {
   return field.type === "list" || field.type === "radio" || field.type === "multiChoice";
 }

@@ -10,7 +10,6 @@ import {
   type EntryData,
   type FormDescriptor,
   type FormDescriptorIssue,
-  type FormField,
   computeAutomaticTitle,
   deriveEntrySchema,
   emptyTitleMessage,
@@ -18,6 +17,7 @@ import {
   isOptionsField,
   parseFormDescriptor,
   readEntryData,
+  tagsField,
   unknownFieldReferences,
 } from "@/lib/form-descriptor";
 import {
@@ -504,13 +504,6 @@ function sourcedFormSlug(
   return undefined;
 }
 
-// The field whose value drives Page.tags (docs/forms.md): tags are not
-// historized, so the snapshot mirrors them but Page.tags is the source of
-// truth on prefill.
-function tagsField(descriptor: FormDescriptor): FormField | undefined {
-  return descriptor.fields.find((field) => field.type === "tags");
-}
-
 /** The tags a save poses, which live on the Page and not in the snapshot. */
 function entryTags(descriptor: FormDescriptor, data: EntryData): string[] {
   const field = tagsField(descriptor);
@@ -520,23 +513,22 @@ function entryTags(descriptor: FormDescriptor, data: EntryData): string[] {
 }
 
 /**
- * The title stored like any other field value (ADR 0020): every reader reads
- * `data.title`, none recomputes it. In automatic mode the client never submits
- * it — deriveEntrySchema strips it — so it is injected here, from the values
- * the save is about to write.
+ * The values a save writes, their title among them (ADR 0020): every reader
+ * reads `data.title`, none recomputes it. In automatic mode the client never
+ * submits it — deriveEntrySchema strips it — so it is worked out here, from
+ * the very values the save is about to write, and the refusal an empty one
+ * earns travels with it rather than being computed a second time.
  */
-function withTitle(descriptor: FormDescriptor, data: EntryData): EntryData {
-  return { ...data, title: computeAutomaticTitle(descriptor, data) };
-}
-
-/** Why a save is refused when the title comes out empty, null when it does not. */
-function titleRefusal(
+function titledEntry(
   descriptor: FormDescriptor,
   data: EntryData
-): string | null {
-  return computeAutomaticTitle(descriptor, data).trim() === ""
-    ? emptyTitleMessage(descriptor)
-    : null;
+): { stored: EntryData; title: string; refusal: string | null } {
+  const title = computeAutomaticTitle(descriptor, data);
+  return {
+    stored: { ...data, title },
+    title,
+    refusal: title.trim() === "" ? emptyTitleMessage(descriptor) : null,
+  };
 }
 
 export interface EntryFormData {
@@ -712,15 +704,15 @@ export async function saveEntry(
       readEntryData(page.current?.data),
       data
     );
-    const refusal = titleRefusal(descriptor, merged);
-    if (refusal) return { ok: false, formError: refusal };
+    const titled = titledEntry(descriptor, merged);
+    if (titled.refusal) return { ok: false, formError: titled.refusal };
     // The form refuses long before this, so reaching it means the right went
     // away between opening the fiche and saving it: a refusal to report, not
     // an error boundary to fall into.
     try {
       await writeEntryRevision({
         pageId: page.id,
-        data: withTitle(descriptor, merged),
+        data: titled.stored,
         tags: entryTags(descriptor, data),
         descriptor,
       });
@@ -731,10 +723,8 @@ export async function saveEntry(
     return { ok: true, slug: page.slug };
   }
 
-  const refusal = titleRefusal(descriptor, data);
+  const { stored, title, refusal } = titledEntry(descriptor, data);
   if (refusal) return { ok: false, formError: refusal };
-  const stored = withTitle(descriptor, data);
-  const title = String(stored.title);
 
   const slug = input.slug && input.slug.trim() !== ""
     ? input.slug

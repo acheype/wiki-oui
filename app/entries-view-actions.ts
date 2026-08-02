@@ -58,7 +58,7 @@ export interface EntriesViewData {
  * built from the schemas it could read, so a form whose own is unreadable has
  * no field in there to serve values for either.
  */
-function readableFieldNames(
+function isFieldReadable(
   actor: Actor,
   schema: unknown
 ): (name: string) => boolean {
@@ -115,7 +115,7 @@ export async function getEntriesViewData(
   // readable on the next (docs/permissions.md § Champ).
   const actor = await currentActor();
   const entries: ViewEntry[] = ordered.flatMap((form) => {
-    const readable = readableFieldNames(actor, form.schema);
+    const readable = isFieldReadable(actor, form.schema);
     return form.entries.map((page) => {
       const data = readEntryData(page.current?.data);
       const values: Record<string, unknown> = {};
@@ -142,13 +142,18 @@ export async function getEntriesViewData(
   });
 
   // Forms chosen but still empty: samples over the first form's real schema,
-  // so the preview matches the fields the author configured.
+  // so the preview matches the fields the author configured — cut like the
+  // rest, so that a restricted field is not even named by an invented value.
   if (entries.length === 0 && ordered.length > 0) {
     const parsed = parseFormDescriptor(ordered[0].schema);
     if (parsed.descriptor) {
       return {
         fields: kept,
-        entries: sampleEntries(parsed.descriptor, today, ordered[0].slug),
+        entries: sampleEntries(
+          readableDescriptor(actor, parsed.descriptor),
+          today,
+          ordered[0].slug
+        ),
         sample: true,
         formNames,
         permissions: {},

@@ -85,7 +85,21 @@ function EntryFields({
   onCreated?: (slug: string) => void;
 }) {
   const router = useRouter();
-  const schema = useMemo(() => deriveEntrySchema(form.schema), [form.schema]);
+  // Derived from what this actor may *fill*, which is the schema the server
+  // validates against too — one source of truth (ADR 0015). The greyed fields
+  // are left out: they are on screen and disabled, so asking them for a value
+  // would refuse a save over a field whose emptiness is not the author's to
+  // fix, and the server ignores what comes back on them anyway.
+  const schema = useMemo(
+    () =>
+      deriveEntrySchema({
+        ...form.schema,
+        fields: form.schema.fields.filter(
+          (field) => !(field.name in form.readOnly)
+        ),
+      }),
+    [form.schema, form.readOnly]
+  );
   const isEdit = form.slug !== null;
 
   const {

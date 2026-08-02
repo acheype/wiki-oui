@@ -41,7 +41,7 @@ export function canReadField(actor: Actor, field: FormField): boolean {
  * « tout le monde », and that answer — through « écrire implique lire » —
  * would hand back every field whose reading had just been closed. The
  * restriction that was posed has to be the one that decides, so writing is
- * what reading opens: on ne remplit pas ce qu'on ne voit pas.
+ * what reading opens: « on ne remplit pas ce qu'on ne voit pas ».
  */
 export function canWriteField(actor: Actor, field: FormField): boolean {
   if (isAdmin(actor)) return true;

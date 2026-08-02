@@ -238,6 +238,31 @@ describe("what a save may move, field by field", () => {
     });
     expect(written()).toEqual({ title: "Paie", nom: "Marie", salaire: 42000 });
   });
+
+  // The archived title names the archived values; the merge keeps some of
+  // today's. Recomputed after it, the title names what the fiche now holds —
+  // and a stored title is never worked out again at read (ADR 0020).
+  it("names what the merge kept, not what the archive said", async () => {
+    const automatic: FormDescriptor = {
+      fields: [
+        { type: "title", name: "title", label: "Titre", automatic: true, template: "{nom} — {salaire}" },
+        { type: "text", name: "nom", label: "Nom" },
+        { type: "text", name: "salaire", label: "Salaire", readAcl: BUREAU, writeAcl: BUREAU },
+      ],
+    };
+    await writeRestoredRevision({
+      pageId: "page-1",
+      content: null,
+      data: { title: "Marie — 1", nom: "Marie", salaire: 1 },
+      restoredFromId: "rev-1",
+      descriptor: automatic,
+    });
+    expect(written()).toEqual({
+      title: "Marie — 42000",
+      nom: "Marie",
+      salaire: 42000,
+    });
+  });
 });
 
 describe("the same writes, to whoever they answer to", () => {

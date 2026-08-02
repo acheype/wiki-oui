@@ -5,11 +5,13 @@ import {
   alreadyGrants,
   nothingToReplace,
 } from "@/lib/bulk-rights";
+import { restoredEntryValues } from "@/lib/entry-title";
 import { canWriteField, mergedEntryData } from "@/lib/field-rights";
 import {
   type EntryData,
   type FormDescriptor,
   readEntryData,
+  tagsField,
 } from "@/lib/form-descriptor";
 import {
   type EntryRightsImpact,
@@ -1039,7 +1041,7 @@ export async function writeEntryRevision(input: {
 
 /** Whether the form's tags field, if it has one, is this actor's to fill. */
 function canWriteTags(actor: Actor, descriptor: FormDescriptor): boolean {
-  const field = descriptor.fields.find((candidate) => candidate.type === "tags");
+  const field = tagsField(descriptor);
   return field === undefined || canWriteField(actor, field);
 }
 
@@ -1071,12 +1073,21 @@ export async function writeRestoredRevision(input: {
   await assertCanWrite(page);
   const restored =
     descriptor && data !== undefined
-      ? (mergedEntryData(
-          await currentActor(),
+      ? (restoredEntryValues(
           descriptor,
-          readEntryData(page.current?.data),
-          data as EntryData
-        ) as Prisma.InputJsonValue)
+          mergedEntryData(
+            await currentActor(),
+            descriptor,
+            readEntryData(page.current?.data),
+            data as EntryData
+          )
+          // The title is worked out again, after the merge and not before it:
+          // the caller computed one from the archived snapshot, and a field
+          // the restorer may not write is not going back to what that title
+          // names. Stored titles are never recomputed at read (ADR 0020), so
+          // a title left naming values the fiche does not hold would stay
+          // wrong for good.
+        ).values as Prisma.InputJsonValue)
       : data;
   const author = await currentUsername();
   await prisma.$transaction(async (tx) => {
