@@ -725,8 +725,48 @@ describe("formAuthoringIssues", () => {
       ]);
     });
 
-    it("accepts a title field whose writing is restricted", () => {
-      expect(formAuthoringIssues(withTitle({ writeAcl: restricted }))).toEqual([]);
+    // The panel offers neither setting on the title, so a descriptor carrying
+    // one was written by hand — and this is what stands between it and a form
+    // whose fiches nobody but @Bureau could ever create.
+    it("refuses a title field restricted to some writers", () => {
+      expect(formAuthoringIssues(withTitle({ writeAcl: restricted }))).toEqual([
+        {
+          fieldIndex: 0,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en écriture : sans lui, personne d'autre ne pourrait créer de fiche.",
+        },
+      ]);
+    });
+
+    // Tags live on the Page, not in the snapshot (ADR 0007), and the wiki
+    // lists them wherever it lists pages: a restriction on their reading is a
+    // promise it could not keep.
+    it("refuses a read-restricted tags field", () => {
+      const descriptor = contactDescriptor();
+      descriptor.fields.push({
+        type: "tags",
+        name: "mots-cles",
+        label: "Mots-clés",
+        readAcl: restricted,
+      });
+      expect(formAuthoringIssues(descriptor)).toEqual([
+        {
+          fieldIndex: 2,
+          message:
+            "Les mots-clés ne peuvent pas être restreints en lecture : ils vivent sur la page, et le wiki les liste partout où il liste des pages.",
+        },
+      ]);
+    });
+
+    it("accepts a tags field whose writing alone is restricted", () => {
+      const descriptor = contactDescriptor();
+      descriptor.fields.push({
+        type: "tags",
+        name: "mots-cles",
+        label: "Mots-clés",
+        writeAcl: restricted,
+      });
+      expect(formAuthoringIssues(descriptor)).toEqual([]);
     });
   });
 });

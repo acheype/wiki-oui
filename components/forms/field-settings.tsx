@@ -181,10 +181,15 @@ function FieldRights({
   // Stored only once posed: « tout le monde » is what an absent rule already
   // means, and writing it down would leave every field of every form carrying
   // two rules nobody asked for.
-  const set = (key: "readAcl" | "writeAcl") => (value: unknown) => {
+  const poseRule = (key: "readAcl" | "writeAcl") => (value: unknown) => {
     const rule = value as AccessRule;
     onChange({ [key]: rule.scope === "everyone" ? undefined : rule });
   };
+
+  // Tags are the Page's, not the snapshot's (ADR 0007), and the wiki lists
+  // them wherever it lists pages: hiding the field would hide nothing. Who
+  // may pose them is still a question worth answering.
+  const posesReading = field.type !== "tags";
 
   return (
     <div className="grid gap-3 border-t pt-3">
@@ -202,13 +207,20 @@ function FieldRights({
       </button>
       {open && (
         <div className="grid gap-4">
-          <Field
-            id="setting-read-acl"
-            spec={{ type: "acl", label: "Qui peut voir ce champ ?" }}
-            value={fieldReadRule(field)}
-            environment={{ directory, aclFloor: NO_FLOOR }}
-            onChange={set("readAcl")}
-          />
+          {posesReading ? (
+            <Field
+              id="setting-read-acl"
+              spec={{ type: "acl", label: "Qui peut voir ce champ ?" }}
+              value={fieldReadRule(field)}
+              environment={{ directory, aclFloor: NO_FLOOR }}
+              onChange={poseRule("readAcl")}
+            />
+          ) : (
+            <InfoNote>
+              Les mots-clés vivent sur la page : le wiki les liste partout où
+              il liste des pages, leur lecture ne se restreint donc pas.
+            </InfoNote>
+          )}
           {/* A customContent field displays what its author wrote and holds no
               value of its own: there is nothing in it to fill in. */}
           {field.type !== "customContent" && (
@@ -217,7 +229,7 @@ function FieldRights({
               spec={{ type: "acl", label: "Qui peut le remplir ?" }}
               value={fieldWriteRule(field)}
               environment={{ directory, aclFloor: NO_FLOOR }}
-              onChange={set("writeAcl")}
+              onChange={poseRule("writeAcl")}
             />
           )}
         </div>

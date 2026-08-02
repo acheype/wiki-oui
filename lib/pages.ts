@@ -1039,7 +1039,8 @@ export async function writeEntryRevision(input: {
   });
 }
 
-/** Whether the form's tags field, if it has one, is this actor's to fill. */
+// A form without a tags field poses none: its entries carry whatever the
+// wiki's own tag editor put there, which no field's rule has a say over.
 function canWriteTags(actor: Actor, descriptor: FormDescriptor): boolean {
   const field = tagsField(descriptor);
   return field === undefined || canWriteField(actor, field);

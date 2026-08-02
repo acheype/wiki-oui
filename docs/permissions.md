@@ -199,18 +199,22 @@ Deux fuites sont **refusées à l'enregistrement du formulaire**, pas rattrapée
 - le **titre automatique** ne peut pas référencer un champ à lecture restreinte : `{prenom} {salaire}` publierait le salaire dans le titre, l'URL et toutes les listes. Même contrôle que le `{champ}` inconnu, déjà refusé ;
 - le champ **`title`** ne peut pas être restreint en lecture : une fiche sans titre visible casse son invariant de titre non vide (ADR 0020), son slug et son affichage partout.
 
+Deux restrictions les rejoignent, non parce qu'elles fuiraient mais parce que le wiki ne saurait pas les tenir :
+
+- le champ **`title`** ne se restreint pas non plus **en écriture** : une fiche est refusée sans titre, donc qui ne peut pas l'écrire ne peut créer aucune fiche — un formulaire fermé par un réglage qui n'en dit rien ;
+- le champ **`tags`** ne se restreint pas **en lecture** : les mots-clés vivent sur la Page et pas dans le snapshot (ADR 0007), et le wiki les liste partout où il liste des pages. Les cacher du formulaire et de la fiche laisserait la promesse à moitié tenue. Leur **écriture**, elle, se restreint : elle s'applique à côté de la fusion, sur la Page.
+
+Aucun des trois réglages n'est offert par le panneau : l'état est rendu impossible plutôt que rattrapé — le motif de `@Admins`, qui n'accepte que des personnes. Le refus à l'enregistrement reste le garde-fou d'un descripteur écrit à la main.
+
 À la saisie, un champ non lisible est **absent** ; un champ lisible mais non modifiable est **affiché grisé avec son motif** (« 🔒 Réservé à @Bureau »).
 
-Six points que l'écriture de ce chantier a tranchés :
+Cinq points que l'écriture de ce chantier a tranchés :
 
 - **Sur un champ, la lecture commande la lecture *et* l'écriture** — là où, sur une page, écrire implique lire. Les deux règles n'y sont pas posées au même titre : une page porte les siennes, un champ n'en porte aucune tant qu'un auteur n'en écrit pas une, et une règle non posée veut dire « rien de plus que ce que la fiche demande déjà ». Prise dans l'autre sens, une écriture non posée répondrait « tout le monde » et rendrait, par « écrire implique lire », le champ dont la lecture venait d'être fermée. C'est la restriction posée qui doit décider : on ne remplit pas ce qu'on ne voit pas.
 - **C'est la fusion de la porte qui décide** (`lib/pages.ts`), et elle repart de la révision que la porte vient elle-même de lire : celle qu'un appelant aurait préparée travaillerait sur un snapshot qui a pu bouger depuis, et ce décalage est exactement le salaire que quelqu'un écrase en enregistrant la fiche. L'enregistrement fusionne bien une fois de son côté, mais pour une seule raison — calculer le titre automatique sur les valeurs qui seront réellement écrites ; la porte refait la sienne, et c'est la sienne qui est enregistrée.
 - **Une fiche qui naît n'a rien à protéger** : la fusion ne concerne que la modification. Ce que son auteur n'a pas le droit d'écrire est simplement absent du schéma qui valide sa saisie, donc jamais enregistré.
 - **Restaurer une révision passe par la même fusion**, et le titre s'y recalcule *après* elle. C'est une écriture, et la plus silencieuse de toutes : le restaurateur n'a pas vu à l'écran ce qu'il remet. Sans quoi l'historique serait le contournement de la règle — et le titre archivé nommerait des valeurs que la fiche ne porte plus, pour toujours (ADR 0020).
 - **L'historique est une autre façon de lire une fiche** : les champs retirés de son rendu le sont aussi de chaque révision — de l'aperçu comme du JSON et des diffs. Le gabarit, lui, garde le descripteur entier au-dessus des valeurs coupées : un `{salaire}` qu'il nomme rend alors la chaîne vide, là où retirer le champ laisserait la référence elle-même sur la page.
-- **Les mots-clés vivent sur la Page**, pas dans le snapshot (ADR 0007) : la fusion ne les atteint pas, et la règle de leur champ s'applique à côté d'elle.
-
-Le champ `title`, enfin, **n'offre aucun des deux réglages** : son accès ne se paramètre pas, l'état étant rendu impossible plutôt que rattrapé — le motif de `@Admins`, qui n'accepte que des personnes. Le refus à l'enregistrement reste le garde-fou d'un descripteur écrit à la main.
 
 ### Défauts : ils se recopient, jamais ne se lient
 

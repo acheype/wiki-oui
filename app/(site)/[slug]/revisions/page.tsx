@@ -74,18 +74,18 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   // work on a pretty-printed JSON of the values, the preview renders the
   // entry's default view (below).
   const form = page.formId ? await getFormById(page.formId) : null;
-  const stored = form ? parseFormDescriptor(form.schema).descriptor ?? null : null;
+  const wholeForm = form ? parseFormDescriptor(form.schema).descriptor ?? null : null;
   // The history is another way of reading a fiche, so the fields cut from its
   // rendering are cut from every revision of it too (docs/permissions.md §
   // Champ) — the JSON of a snapshot would otherwise hand over what the fiche
   // itself withholds.
   const actor = await currentActor();
-  const entryDescriptor = stored ? readableDescriptor(actor, stored) : null;
-  const valuesOf = (data: unknown) =>
-    stored ? readableEntryData(actor, stored, readEntryData(data)) : {};
+  const entryDescriptor = wholeForm ? readableDescriptor(actor, wholeForm) : null;
+  const readableValuesOf = (data: unknown) =>
+    wholeForm ? readableEntryData(actor, wholeForm, readEntryData(data)) : {};
   const sourceOf = (revision: { content: string | null; data: unknown }) =>
     entryDescriptor
-      ? JSON.stringify(valuesOf(revision.data), null, 2)
+      ? JSON.stringify(readableValuesOf(revision.data), null, 2)
       : revision.content ?? "";
   const current =
     revisions.find((revision) => revision.id === page.currentRevisionId) ??
@@ -186,7 +186,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
               {entryDescriptor ? (
                 <EntryView
                   descriptor={entryDescriptor}
-                  data={valuesOf(selected.data)}
+                  data={readableValuesOf(selected.data)}
                   linkTitles={{}}
                 />
               ) : (

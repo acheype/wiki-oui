@@ -58,19 +58,18 @@ export interface EntriesViewData {
  * built from the schemas it could read, so a form whose own is unreadable has
  * no field in there to serve values for either.
  */
-function isFieldReadable(
+function readableFieldNames(
   actor: Actor,
   schema: unknown
-): (name: string) => boolean {
+): ReadonlySet<string> {
   const parsed = parseFormDescriptor(schema);
-  const names = new Set(
+  return new Set(
     parsed.descriptor
       ? readableDescriptor(actor, parsed.descriptor).fields.map(
           (field) => field.name
         )
       : []
   );
-  return (name) => names.has(name);
 }
 
 export async function getEntriesViewData(
@@ -115,17 +114,17 @@ export async function getEntriesViewData(
   // readable on the next (docs/permissions.md § Champ).
   const actor = await currentActor();
   const entries: ViewEntry[] = ordered.flatMap((form) => {
-    const readable = isFieldReadable(actor, form.schema);
+    const readable = readableFieldNames(actor, form.schema);
     return form.entries.map((page) => {
       const data = readEntryData(page.current?.data);
       const values: Record<string, unknown> = {};
       for (const [name, value] of Object.entries(data)) {
-        if (keptNames.has(name) && readable(name)) values[name] = value;
+        if (keptNames.has(name) && readable.has(name)) values[name] = value;
       }
       // The Page's tags mirror the tags field but the Page is the source of
       // truth (docs/forms.md): serve them under the form's tags field name.
       const tagsField = kept.find((choice) => choice.type === "tags");
-      if (tagsField && readable(tagsField.name)) {
+      if (tagsField && readable.has(tagsField.name)) {
         values[tagsField.name] = page.tags;
       }
       values.$form = form.slug;

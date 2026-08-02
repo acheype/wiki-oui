@@ -69,8 +69,8 @@ describe("a restricted field", () => {
 
   // The direction that closed a hole a browser run found: an unposed writing
   // must not answer « tout le monde » and hand back, through « écrire implique
-  // lire », the very field the reading had just closed. Reading is the base —
-  // on ne remplit pas ce qu'on ne voit pas.
+  // lire », the very field the reading had just closed. Reading is the base:
+  // nobody fills in what they cannot see.
   it("stays closed to a reader the writing alone would have let in", () => {
     const [, , salary] = payroll({ writeAcl: undefined }).fields;
     expect(canReadField(VISITOR, salary)).toBe(false);

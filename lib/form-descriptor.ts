@@ -566,49 +566,80 @@ export function formAuthoringIssues(
   return issues;
 }
 
-/** Whether a field's reading is narrower than « tout le monde ». */
 function restrictsReading(field: FormField): boolean {
   return field.readAcl !== undefined && field.readAcl.scope !== "everyone";
 }
 
+function restrictsWriting(field: FormField): boolean {
+  return field.writeAcl !== undefined && field.writeAcl.scope !== "everyone";
+}
+
 /**
- * The two leaks a read-restricted field opens (docs/permissions.md § Champ),
- * refused when the form is saved rather than patched at render. Both are
- * about the title, and for one reason: a title is read where no right is ever
- * consulted — the URL, the slug, the menus, every list — so a value that
- * reached it would be published to everyone whatever the field says.
+ * The restrictions the wiki could not keep, refused when the form is saved
+ * rather than patched at render (docs/permissions.md § Champ). Two are about
+ * the title, and for one reason: a title is read — and written — where no
+ * right is ever consulted, so a restriction posed on it would be honoured
+ * nowhere. The third is about the mots-clés, which live on the Page and not
+ * in the snapshot (ADR 0007), and which the wiki lists wherever it lists
+ * pages.
+ *
+ * The settings panel offers none of the three, so a descriptor carrying one
+ * came in by hand: this is the guard rail behind the state made impossible.
  */
 function restrictedFieldLeaks(
   descriptor: FormDescriptor
 ): FormDescriptorIssue[] {
-  const fieldIndex = descriptor.fields.findIndex(
-    (field) => field.type === "title"
-  );
-  const title = descriptor.fields[fieldIndex];
-  if (title?.type !== "title") return [];
   const issues: FormDescriptorIssue[] = [];
-  if (restrictsReading(title)) {
-    // Not merely a leak: an entry whose title nobody may read has no title at
-    // all (ADR 0020), and neither its slug nor its display survives that.
-    issues.push({
-      fieldIndex,
-      message:
-        "Le titre de la fiche ne peut pas être restreint en lecture : il nomme la fiche partout dans le wiki.",
-    });
-  }
-  if (title.automatic && title.template) {
-    const restricted = new Set(
-      descriptor.fields.filter(restrictsReading).map((field) => field.name)
-    );
-    for (const name of extractFieldReferences(title.template)) {
-      if (!restricted.has(name)) continue;
+  descriptor.fields.forEach((field, fieldIndex) => {
+    if (field.type === "title") {
+      // Not merely a leak: an entry whose title nobody may read has no title
+      // at all (ADR 0020), and neither its slug nor its display survives that.
+      if (restrictsReading(field)) {
+        issues.push({
+          fieldIndex,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en lecture : il nomme la fiche partout dans le wiki.",
+        });
+      }
+      // A fiche is refused without a title, so whoever may not write one may
+      // not create a fiche at all — a form closed by a setting saying nothing
+      // of the sort.
+      if (restrictsWriting(field)) {
+        issues.push({
+          fieldIndex,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en écriture : sans lui, personne d'autre ne pourrait créer de fiche.",
+        });
+      }
+      issues.push(...automaticTitleLeaks(descriptor, field, fieldIndex));
+    }
+    if (field.type === "tags" && restrictsReading(field)) {
       issues.push({
         fieldIndex,
-        message: `Le titre automatique référence un champ à lecture restreinte : «\u00A0${name}\u00A0».`,
+        message:
+          "Les mots-clés ne peuvent pas être restreints en lecture : ils vivent sur la page, et le wiki les liste partout où il liste des pages.",
       });
     }
-  }
+  });
   return issues;
+}
+
+/** `{prenom} {salaire}` would publish the salary in the title, and in the URL. */
+function automaticTitleLeaks(
+  descriptor: FormDescriptor,
+  title: Extract<FormField, { type: "title" }>,
+  fieldIndex: number
+): FormDescriptorIssue[] {
+  if (!title.automatic || !title.template) return [];
+  const restricted = new Set(
+    descriptor.fields.filter(restrictsReading).map((field) => field.name)
+  );
+  return extractFieldReferences(title.template)
+    .filter((name) => restricted.has(name))
+    .map((name) => ({
+      fieldIndex,
+      message: `Le titre automatique référence un champ à lecture restreinte : «\u00A0${name}\u00A0».`,
+    }));
 }
 
 /**
