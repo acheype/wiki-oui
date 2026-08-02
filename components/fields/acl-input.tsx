@@ -36,17 +36,20 @@ export const NO_FLOOR: AclFloor = { owner: null };
 /** Nobody locked in, nobody covered: the shape a lot's list takes. */
 const NO_PRINCIPALS: PrincipalList = { usernames: [], groupSlugs: [] };
 /**
- * What « Ne pas changer » stands in for in the radio group. Never a Scope: a
- * sense left alone poses no right at all, and stores nothing.
+ * What the radio above the scopes stands in for: a rule that is not posed at
+ * all. Never a Scope — nothing is stored for it, and what it means is read off
+ * the subject: a sense the lot leaves alone, a field that adds no restriction
+ * of its own to the fiche's.
  */
-const KEEP = "keep";
+const UNPOSED = "unposed";
 
 export function AclInput({
   id,
   value,
   directory = EMPTY_DIRECTORY,
   floor,
-  keep,
+  scopes = SCOPES,
+  unposed,
   onChange,
 }: {
   id: string;
@@ -54,12 +57,20 @@ export function AclInput({
   directory?: AclDirectory;
   floor: AclFloor;
   /**
-   * The « Ne pas changer » an action by lot offers above the three scopes, so
-   * that touching the reading alone is one click away (docs/permissions.md §
-   * gerer-pages). Absent wherever a right is posed on a single subject, where
-   * both senses are being answered.
+   * The scopes this right may take, when it stands under another (a field's,
+   * under the fiche's — docs/permissions.md § Champ). All three wherever a
+   * right answers for itself, which is everywhere else.
    */
-  keep?: { label: string; selected: boolean; onSelect: () => void };
+  scopes?: readonly Scope[];
+  /**
+   * The choice offered above the three scopes wherever posing no rule at all
+   * is one of the answers: « Ne pas changer » for an action by lot, which
+   * leaves a sense alone (docs/permissions.md § gerer-pages), « Aucune
+   * restriction » for a field, which then says nothing the fiche has not said
+   * already. Absent wherever a right answers for a single subject, and for
+   * both senses.
+   */
+  unposed?: { label: string; selected: boolean; onSelect: () => void };
   onChange: (rule: AccessRule) => void;
 }) {
   const usernames = value.usernames ?? [];
@@ -72,26 +83,26 @@ export function AclInput({
   return (
     <div className="grid gap-2">
       <RadioGroup
-        value={keep?.selected ? KEEP : value.scope}
+        value={unposed?.selected ? UNPOSED : value.scope}
         // The list keeps what it holds while another scope is selected: a
         // change of mind costs nothing, and « seulement » comes back with the
         // people already named. Only what is saved is read (aclEntries drops
         // the list for the other two scopes).
         onValueChange={(scope) =>
-          scope === KEEP ? keep?.onSelect() : set({ scope: scope as Scope })
+          scope === UNPOSED ? unposed?.onSelect() : set({ scope: scope as Scope })
         }
         className="gap-1.5"
       >
-        {keep && (
+        {unposed && (
           <Label
-            htmlFor={`${id}-${KEEP}`}
+            htmlFor={`${id}-${UNPOSED}`}
             className="flex items-center gap-2 font-normal"
           >
-            <RadioGroupItem id={`${id}-${KEEP}`} value={KEEP} />
-            {keep.label}
+            <RadioGroupItem id={`${id}-${UNPOSED}`} value={UNPOSED} />
+            {unposed.label}
           </Label>
         )}
-        {SCOPES.map((scope) => (
+        {scopes.map((scope) => (
           <Label
             key={scope}
             htmlFor={`${id}-${scope}`}
@@ -104,7 +115,7 @@ export function AclInput({
         ))}
       </RadioGroup>
 
-      {value.scope === "restricted" && !keep?.selected && (
+      {value.scope === "restricted" && !unposed?.selected && (
         <div className="ml-6">
           <PrincipalBox
             value={{ usernames, groupSlugs }}
@@ -118,7 +129,7 @@ export function AclInput({
         </div>
       )}
 
-      {!keep?.selected && <InfoNote>{alwaysAllowedNote(floor)}</InfoNote>}
+      {!unposed?.selected && <InfoNote>{alwaysAllowedNote(floor)}</InfoNote>}
     </div>
   );
 }

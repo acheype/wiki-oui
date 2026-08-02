@@ -225,7 +225,7 @@ export function BulkRightsDialog({
                   // no owner can be shown locked; what the note says of the
                   // administrators holds for every page of it all the same.
                   floor={NO_FLOOR}
-                  keep={{
+                  unposed={{
                     label: "Ne pas changer",
                     selected: replacement[kind] === undefined,
                     onSelect: () => setReplacement((current) => ({ ...current, [kind]: undefined })),

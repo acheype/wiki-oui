@@ -208,6 +208,10 @@ Aucun des trois réglages n'est offert par le panneau : l'état est rendu imposs
 
 À la saisie, un champ non lisible est **absent** ; un champ lisible mais non modifiable est **affiché grisé avec son motif** (« 🔒 Réservé à @Bureau »).
 
+**Le panneau ne propose jamais plus large que la fiche.** Les deux réglages d'un champ vivent sous « Paramètres avancés », derrière un trait titré « Accès au champ » — pas dans un cadre : le panneau est une colonne étroite, et une bordure dépenserait en marges la largeur dont les listes ont besoin. Le premier choix y est **« Aucune restriction »**, qui ne stocke rien ; les portées offertes ensuite sont **strictement plus étroites** que celle que l'onglet « Accès » pose sur les fiches — inutile d'offrir « tout le monde » sur un formulaire dont les fiches ne se voient que connecté, et « Aucune restriction » le dit déjà. « Seulement » survit à tous les plafonds : une liste en resserre une autre.
+
+Le plafond ne commande que ce qui est **offert**. Une règle posée avant que l'onglet ne soit resserré garde sa portée et reste affichée — sinon le bouton radio n'aurait plus rien de coché — et elle n'accorde rien de plus pour autant : le droit de la fiche répond en premier, et qui ne peut pas ouvrir la fiche n'atteint jamais le champ. Rien n'est donc à rattraper en base ; c'est « Appliquer aux fiches existantes » qui porte les défauts jusqu'à l'existant, comme pour le reste.
+
 Cinq points que l'écriture de ce chantier a tranchés :
 
 - **Sur un champ, la lecture commande la lecture *et* l'écriture** — là où, sur une page, écrire implique lire. Les deux règles n'y sont pas posées au même titre : une page porte les siennes, un champ n'en porte aucune tant qu'un auteur n'en écrit pas une, et une règle non posée veut dire « rien de plus que ce que la fiche demande déjà ». Prise dans l'autre sens, une écriture non posée répondrait « tout le monde » et rendrait, par « écrire implique lire », le champ dont la lecture venait d'être fermée. C'est la restriction posée qui doit décider : on ne remplit pas ce qu'on ne voit pas.

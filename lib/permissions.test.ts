@@ -27,6 +27,7 @@ import {
   ruleAllows,
   scopeRefusal,
   ruleSummary,
+  scopesUnder,
   storedRights,
   writableWhere,
 } from "./permissions";
@@ -332,6 +333,42 @@ describe("the floor a « seulement » list stands on", () => {
     expect(alwaysAllowedNote(MARIE_FLOOR)).toContain(
       "Le propriétaire et les administrateurs"
     );
+  });
+});
+
+describe("the scopes a rule may take under another", () => {
+  // « Aucune restriction » already stands for the cap itself, so the widest
+  // scope offered is the first one that says something the fiche has not.
+  it("stops short of the cap, which is what posing nothing means", () => {
+    expect(scopesUnder("everyone")).toEqual(["authenticated", "restricted"]);
+  });
+
+  // A field of a form whose fiches only signed-in people see: opening it to
+  // everyone would promise an audience the fiche itself refuses.
+  it("drops what is wider than the cap", () => {
+    expect(scopesUnder("authenticated")).toEqual(["restricted"]);
+  });
+
+  // « Seulement » stays offered under a « seulement »: one list narrows
+  // another — @Bureau inside a fiche opened to @Bureau and @Trésorerie.
+  it("keeps « seulement » under a « seulement »", () => {
+    expect(scopesUnder("restricted")).toEqual(["restricted"]);
+  });
+
+  // A form whose defaults were narrowed after the fact leaves fields holding
+  // a scope the cap no longer offers. Dropping it from the radio group would
+  // show a rule with nothing selected, and steal the choice from whoever came
+  // to change it.
+  it("keeps a scope already posed, wider than the cap or not", () => {
+    expect(scopesUnder("restricted", "everyone")).toEqual([
+      "everyone",
+      "restricted",
+    ]);
+    expect(scopesUnder("everyone", "everyone")).toEqual([
+      "everyone",
+      "authenticated",
+      "restricted",
+    ]);
   });
 });
 

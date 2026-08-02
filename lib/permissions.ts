@@ -57,6 +57,27 @@ export const SCOPE_LABELS: Record<Scope, string> = {
   restricted: "Seulement",
 };
 
+/**
+ * The scopes a rule may take when it stands under another — a field's, under
+ * the fiche's (docs/permissions.md § Champ). Strictly narrower than the cap:
+ * the cap itself is what « aucune restriction » already stands for, and
+ * offering it twice would be asking the same question in two words.
+ *
+ * « Seulement » survives every cap, its own included: one list narrows
+ * another, where the two wider scopes name an audience outright. And a scope
+ * already posed is kept whatever the cap says — a form whose defaults were
+ * narrowed afterwards would otherwise show a rule with nothing selected,
+ * which is no way to hand the choice back to whoever came to change it.
+ */
+export function scopesUnder(cap: Scope, posed?: Scope): Scope[] {
+  return SCOPES.filter(
+    (scope) =>
+      SCOPES.indexOf(scope) > SCOPES.indexOf(cap) ||
+      scope === "restricted" ||
+      scope === posed
+  );
+}
+
 /** The two senses a right is posed in. Uppercase: it is a Postgres enum. */
 export const PERM_KINDS = ["READ", "WRITE"] as const;
 export type PermKind = (typeof PERM_KINDS)[number];

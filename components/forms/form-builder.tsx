@@ -511,6 +511,13 @@ export function FormBuilder({
                   forms={otherForms}
                   formSlug={initial?.slug ?? null}
                   directory={directory}
+                  // Live, from the « Accès » tab: narrowing what a fiche
+                  // shows narrows what its fields may be opened to, in the
+                  // same sitting and without a save in between.
+                  entryDefaults={{
+                    read: permissions.defaultEntryRead,
+                    write: permissions.defaultEntryWrite,
+                  }}
                   referenceCounts={countFieldReferenceUses(
                     fields,
                     template,

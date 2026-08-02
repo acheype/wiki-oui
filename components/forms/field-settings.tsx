@@ -10,7 +10,7 @@
 import { ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { countFieldReferences } from "@/app/form-actions";
-import { NO_FLOOR } from "@/components/fields/acl-input";
+import { AclInput, NO_FLOOR } from "@/components/fields/acl-input";
 import { Field } from "@/components/fields/field-widget";
 import { RenameSlugDialog } from "@/components/slug/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
@@ -28,13 +28,17 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { SlugInlineEdit } from "@/components/slug/slug-input";
 import type { FieldReferenceCounts } from "@/lib/field-rename";
-import { fieldReadRule, fieldWriteRule } from "@/lib/field-rights";
 import {
   type FormField,
   type RequiredSetting,
   requiredSettings,
 } from "@/lib/form-descriptor";
-import type { AccessRule, AclDirectory } from "@/lib/permissions";
+import {
+  type AccessRule,
+  type AclDirectory,
+  type Scope,
+  scopesUnder,
+} from "@/lib/permissions";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -46,6 +50,7 @@ export function FieldSettings({
   forms,
   formSlug,
   directory,
+  entryDefaults,
   referenceCounts,
   onChange,
   onRenameStaged,
@@ -58,6 +63,8 @@ export function FieldSettings({
   formSlug: string | null;
   /** Who the field's two rules may name: the people and groups of the wiki. */
   directory: AclDirectory;
+  /** What the « Accès » tab poses on a fiche: the ceiling of a field's own. */
+  entryDefaults: { read: AccessRule; write: AccessRule };
   /** Local references to the field's name, for the rename dialog's impact. */
   referenceCounts: FieldReferenceCounts;
   onChange: (patch: Partial<FormField>) => void;
@@ -138,7 +145,12 @@ export function FieldSettings({
         onChange={onChange}
       />
 
-      <FieldRights field={field} directory={directory} onChange={onChange} />
+      <FieldRights
+        field={field}
+        directory={directory}
+        entryDefaults={entryDefaults}
+        onChange={onChange}
+      />
     </div>
   );
 }
@@ -157,10 +169,12 @@ export function FieldSettings({
 function FieldRights({
   field,
   directory,
+  entryDefaults,
   onChange,
 }: {
   field: CanvasField;
   directory: AclDirectory;
+  entryDefaults: { read: AccessRule; write: AccessRule };
   onChange: (patch: Partial<FormField>) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -178,21 +192,38 @@ function FieldRights({
     );
   }
 
-  // Stored only once posed: « tout le monde » is what an absent rule already
-  // means, and writing it down would leave every field of every form carrying
-  // two rules nobody asked for.
-  const poseRule = (key: "readAcl" | "writeAcl") => (value: unknown) => {
-    const rule = value as AccessRule;
-    onChange({ [key]: rule.scope === "everyone" ? undefined : rule });
-  };
-
-  // Tags are the Page's, not the snapshot's (ADR 0007), and the wiki lists
-  // them wherever it lists pages: hiding the field would hide nothing. Who
-  // may pose them is still a question worth answering.
-  const posesReading = field.type !== "tags";
+  // A field's rule stands under the fiche's, so what it may say is capped by
+  // what the « Accès » tab poses — offering « tout le monde » on a form whose
+  // fiches only signed-in people see would promise an audience the fiche
+  // itself refuses. The cap only decides what is *offered*: a rule posed
+  // before the tab was narrowed keeps its scope, and grants nothing extra
+  // anyway, the fiche's own right answering first.
+  const rules = [
+    {
+      key: "readAcl",
+      id: "setting-read-acl",
+      label: "Qui peut voir ce champ ?",
+      posed: field.readAcl,
+      under: entryDefaults.read,
+      // Tags are the Page's, not the snapshot's (ADR 0007), and the wiki
+      // lists them wherever it lists pages: hiding the field would hide
+      // nothing. Who may pose them is still a question worth answering.
+      shown: field.type !== "tags",
+    },
+    {
+      key: "writeAcl",
+      id: "setting-write-acl",
+      label: "Qui peut le remplir ?",
+      posed: field.writeAcl,
+      under: entryDefaults.write,
+      // A customContent field displays what its author wrote and holds no
+      // value of its own: there is nothing in it to fill in.
+      shown: field.type !== "customContent",
+    },
+  ] as const;
 
   return (
-    <div className="grid gap-3 border-t pt-3">
+    <div className="grid gap-3">
       <button
         type="button"
         className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -207,36 +238,83 @@ function FieldRights({
       </button>
       {open && (
         <div className="grid gap-4">
-          {posesReading ? (
-            <Field
-              id="setting-read-acl"
-              spec={{ type: "acl", label: "Qui peut voir ce champ ?" }}
-              value={fieldReadRule(field)}
-              environment={{ directory, aclFloor: NO_FLOOR }}
-              onChange={poseRule("readAcl")}
-            />
-          ) : (
+          {/* A titled rule rather than a frame: the panel is a narrow column,
+              and a box would spend on padding the width the lists need. The
+              two rights sit last, so the rule marks where the settings of the
+              field end and those of its access begin — the divider of the
+              shared renderer, the same one the ComponentBuilder groups with. */}
+          <Field
+            id="setting-rights-divider"
+            spec={{ type: "divider", label: "Accès au champ" }}
+            value=""
+            onChange={() => {}}
+          />
+          {rules.map((rule) =>
+            rule.shown ? (
+              <div key={rule.key} className="grid gap-2">
+                <Label htmlFor={rule.id}>{rule.label}</Label>
+                <AclInput
+                  id={rule.id}
+                  value={rule.posed ?? rule.under}
+                  directory={directory}
+                  // A field has no owner: only the administrators stand under
+                  // it, whatever a « seulement » holds.
+                  floor={NO_FLOOR}
+                  scopes={scopesUnder(rule.under.scope, rule.posed?.scope)}
+                  unposed={{
+                    label: "Aucune restriction",
+                    selected: rule.posed === undefined,
+                    onSelect: () => onChange({ [rule.key]: undefined }),
+                  }}
+                  onChange={(posed: AccessRule) => onChange({ [rule.key]: posed })}
+                />
+              </div>
+            ) : null
+          )}
+          {!rules[0].shown && (
             <InfoNote>
               Les mots-clés vivent sur la page : le wiki les liste partout où
               il liste des pages, leur lecture ne se restreint donc pas.
             </InfoNote>
           )}
-          {/* A customContent field displays what its author wrote and holds no
-              value of its own: there is nothing in it to fill in. */}
-          {field.type !== "customContent" && (
-            <Field
-              id="setting-write-acl"
-              spec={{ type: "acl", label: "Qui peut le remplir ?" }}
-              value={fieldWriteRule(field)}
-              environment={{ directory, aclFloor: NO_FLOOR }}
-              onChange={poseRule("writeAcl")}
-            />
-          )}
+          <FicheCeiling defaults={entryDefaults} />
         </div>
       )}
     </div>
   );
 }
+
+/**
+ * Why the widest scopes are missing, said once for both rights rather than
+ * under each: the ceiling is the fiche's, not the field's, and naming it twice
+ * would read as two different rules.
+ */
+function FicheCeiling({
+  defaults,
+}: {
+  defaults: { read: AccessRule; write: AccessRule };
+}) {
+  const capped = [
+    defaults.read.scope === "everyone"
+      ? null
+      : `visibles par ${SCOPE_CEILING[defaults.read.scope]}`,
+    defaults.write.scope === "everyone"
+      ? null
+      : `modifiables par ${SCOPE_CEILING[defaults.write.scope]}`,
+  ].filter((part): part is string => part !== null);
+  if (capped.length === 0) return null;
+  return (
+    <InfoNote>
+      {`Les fiches de ce formulaire sont ${capped.join(" et ")}\u00A0: un champ ne s'ouvre pas plus large qu'elles.`}
+    </InfoNote>
+  );
+}
+
+/** How each scope reads inside that sentence, where the radio label would not. */
+const SCOPE_CEILING: Record<Exclude<Scope, "everyone">, string> = {
+  authenticated: "les personnes connectées",
+  restricted: "les seules personnes que l'onglet « Accès » nomme",
+};
 
 // The field's identifier (docs/forms.md « Identités », ADR 0017). Persisted:
 // a chip and « Changer », staging the rename locally — the impact headcount
