@@ -41,10 +41,10 @@ vi.mock("@/lib/forms", async (importOriginal) => ({
 const { readableForm } = vi.hoisted(() => ({ readableForm: vi.fn() }));
 vi.mock("@/lib/field-rights-db", () => ({ readableForm }));
 
-const { listEntryPages } = vi.hoisted(() => ({ listEntryPages: vi.fn() }));
+const { listEntrySnapshots } = vi.hoisted(() => ({ listEntrySnapshots: vi.fn() }));
 vi.mock("@/lib/pages", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/pages")>()),
-  listEntryPages,
+  listEntrySnapshots,
 }));
 
 const { listUsedFieldValues } = await import("@/app/form-actions");
@@ -54,26 +54,26 @@ const TAGS_FIELD = { type: "tags", name: "mots-cles", label: "Mots-clés" };
 beforeEach(() => {
   vi.clearAllMocks();
   getFormBySlug.mockResolvedValue({ id: "form-1", schema: {} });
-  listEntryPages.mockResolvedValue([]);
+  listEntrySnapshots.mockResolvedValue([]);
 });
 
 describe("listUsedFieldValues", () => {
   it("answers nothing for a form that does not exist", async () => {
     getFormBySlug.mockResolvedValue(null);
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
-    expect(listEntryPages).not.toHaveBeenCalled();
+    expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("answers nothing when the descriptor cannot be read at all", async () => {
     readableForm.mockResolvedValue(null);
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
-    expect(listEntryPages).not.toHaveBeenCalled();
+    expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("answers nothing for a field this person may not read", async () => {
     readableForm.mockResolvedValue({ readable: { fields: [] } });
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
-    expect(listEntryPages).not.toHaveBeenCalled();
+    expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("answers nothing for a field that is readable but not a tags field", async () => {
@@ -81,20 +81,20 @@ describe("listUsedFieldValues", () => {
       readable: { fields: [{ type: "text", name: "mots-cles", label: "Mots-clés" }] },
     });
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
-    expect(listEntryPages).not.toHaveBeenCalled();
+    expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("ranks the values already carried by the field's readable entries", async () => {
     readableForm.mockResolvedValue({ readable: { fields: [TAGS_FIELD] } });
-    listEntryPages.mockResolvedValue([
-      { current: { data: { "mots-cles": ["rh", " rh ", "paie"] } } },
-      { current: { data: { "mots-cles": ["rh"] } } },
-      { current: { data: {} } },
+    listEntrySnapshots.mockResolvedValue([
+      { "mots-cles": ["rh", " rh ", "paie"] },
+      { "mots-cles": ["rh"] },
+      {},
     ]);
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([
       "rh",
       "paie",
     ]);
-    expect(listEntryPages).toHaveBeenCalledWith("associations");
+    expect(listEntrySnapshots).toHaveBeenCalledWith("associations");
   });
 });

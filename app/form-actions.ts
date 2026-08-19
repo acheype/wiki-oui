@@ -65,6 +65,7 @@ import {
   getPageWithCurrent,
   isRefused,
   listEntryPages,
+  listEntrySnapshots,
   writeEntryRevision,
 } from "@/lib/pages";
 import {
@@ -443,11 +444,11 @@ export async function listUsedFieldValues(
   if (!field || field.type !== "tags") return [];
 
   // Already cut to what this person may read (currentReadableWhere) and to
-  // the current revision (lib/pages.ts listEntryPages) — nothing left to
+  // the current revision (lib/pages.ts listEntrySnapshots) — nothing left to
   // check for rights here.
-  const pages = await listEntryPages(formSlug);
-  const values = pages.flatMap((page) => {
-    const value = readEntryData(page.current?.data)[fieldName];
+  const snapshots = await listEntrySnapshots(formSlug);
+  const values = snapshots.flatMap((snapshot) => {
+    const value = readEntryData(snapshot)[fieldName];
     return Array.isArray(value)
       ? value.filter((item): item is string => typeof item === "string")
       : [];

@@ -367,6 +367,21 @@ export async function listEntryPages(formSlug?: string) {
 }
 
 /**
+ * The current snapshots of one form's entries, and nothing else: what
+ * counting a field's used values needs (issue #15). listEntryPages would
+ * drag the form, the owner and an ordering along for rows nobody displays.
+ */
+export async function listEntrySnapshots(formSlug: string): Promise<unknown[]> {
+  const pages = await prisma.page.findMany({
+    where: {
+      AND: [{ form: { slug: formSlug } }, await currentReadableWhere()],
+    },
+    select: { current: { select: { data: true } } },
+  });
+  return pages.map((page) => page.current?.data);
+}
+
+/**
  * The rename dialog's headcount (ADR 0016): how many pages, entries and form
  * definitions reference this page slug today. A read of everyone's content,
  * hence a read through the door rather than beside it.
