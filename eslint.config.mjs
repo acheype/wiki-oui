@@ -124,6 +124,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Upstream YesWiki code, copied as migration reference. It stays
+    // identical to its source: we read it, we do not style it.
+    "docs/reference/**",
   ]),
 ]);
 
