@@ -421,16 +421,12 @@ export async function renameForm(
 
 /**
  * The values a « Mots-clés » field already carries, most used first (issue
- * #15): what its widget offers at focus, before anyone has typed anything.
+ * #15).
  *
  * A Server Action is a public entry point, reachable with any
- * `(formSlug, fieldName)` pair whatever widget is or isn't on screen — so the
- * field's own read right is re-checked here, not only where the entry form
- * built its schema. Looking the name up in `seen.readable.fields` answers
- * both the illegible field and the field that isn't a « Mots-clés » field at
- * once: absent from that list either way. Without this guard, a caller could
- * read any field's values through this action regardless of its type or its
- * rights — a filter left to the widget would be a UI mask, not a right.
+ * `(formSlug, fieldName)` pair whatever is on screen: the field's own read
+ * right is re-checked here, not only where the entry form built its schema.
+ * A filter left to the widget would be a UI mask, not a right.
  */
 export async function listUsedFieldValues(
   formSlug: string,

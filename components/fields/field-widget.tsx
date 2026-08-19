@@ -789,16 +789,11 @@ function FileListInput({
   );
 }
 
-const NO_USED_VALUES: string[] = [];
-
 /**
- * A « Mots-clés » field's TagsInput, wired to its already-used values (issue
- * #15): fetched once, at the first focus, so a fiche nobody edits never pays
- * the scan. Not injected up front like a page's tags (allTags) — <EntryForm>
- * slots into any page, and every render would sweep the form's entries
- * whether or not anyone was about to type. `formSlug`/`fieldName` missing
- * (the ComponentBuilder envelope, which has neither) leaves the widget
- * exactly as it was: no candidates asked, none offered.
+ * A « Mots-clés » field's TagsInput, fetching its already-used values at the
+ * first focus (issue #15). Not injected up front the way a page's tags are:
+ * <EntryForm> slots into any page, and every render would sweep the form's
+ * entries whether or not anyone was about to type.
  */
 function EntryTagsInput({
   tags,
@@ -811,7 +806,7 @@ function EntryTagsInput({
   fieldName?: string;
   onChange: (value: FieldValue) => void;
 }) {
-  const [candidates, setCandidates] = useState<string[]>(NO_USED_VALUES);
+  const [candidates, setCandidates] = useState<string[]>([]);
   const [asked, setAsked] = useState(false);
 
   useEffect(() => {
