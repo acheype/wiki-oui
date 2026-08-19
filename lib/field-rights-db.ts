@@ -5,9 +5,9 @@
 //
 // Five screens read a form to show it: the fiche, its history, the entry form,
 // the entry views and their field pickers. Each of them wants the same thing
-// said once — the descriptor as this actor may see it — so it is said here,
-// with the actor resolved rather than passed in (ADR 0025): an argument can be
-// forgotten, and a forgotten actor reads as a visitor, which is the one
+// said once — the descriptor as this person may see it — so it is said here,
+// with the person resolved rather than passed in (ADR 0025): an argument can be
+// forgotten, and a forgotten person reads as a visitor, which is the one
 // mistake that fails open.
 
 import {
@@ -22,10 +22,10 @@ import {
   parseFormDescriptor,
   readEntryData,
 } from "@/lib/form-descriptor";
-import { currentActor } from "@/lib/permissions-db";
+import { currentPerson } from "@/lib/permissions-db";
 
 /**
- * A form's definition as the current actor may see it. The whole descriptor
+ * A form's definition as the current person may see it. The whole descriptor
  * rides along because two readers need the fields that were cut: a gabarit,
  * which must go on knowing a `{salaire}` it will render as the empty string,
  * and the write, which decides on fields it never showed.
@@ -33,7 +33,7 @@ import { currentActor } from "@/lib/permissions-db";
 export interface ReadableForm {
   /** Every field, as the form was saved. */
   whole: FormDescriptor;
-  /** The same, minus the fields this actor may not read. */
+  /** The same, minus the fields this person may not read. */
   readable: FormDescriptor;
   /** Their names, for a payload assembled value by value. */
   readableNames: ReadonlySet<string>;
@@ -55,13 +55,13 @@ export async function readableForm(
   const parsed = parseFormDescriptor(schema);
   if (!parsed.descriptor) return null;
   const whole = parsed.descriptor;
-  const actor = await currentActor();
-  const readable = readableDescriptor(actor, whole);
+  const person = await currentPerson();
+  const readable = readableDescriptor(person, whole);
   return {
     whole,
     readable,
     readableNames: new Set(readable.fields.map((field) => field.name)),
-    readOnly: readOnlyFields(actor, readable),
-    readableValues: (data) => readableEntryData(actor, whole, readEntryData(data)),
+    readOnly: readOnlyFields(person, readable),
+    readableValues: (data) => readableEntryData(person, whole, readEntryData(data)),
   };
 }

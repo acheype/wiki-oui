@@ -2,13 +2,13 @@ import { headers } from "next/headers";
 import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { currentGroupSlugs } from "@/lib/groups-db";
-import { type Actor, type Identity, isAdmin } from "@/lib/permissions";
+import { type Person, type Identity, isAdmin } from "@/lib/permissions";
 
 // The database side of the rules (docs/permissions.md): who is acting, and
 // which access level that puts them at. The rules themselves — and the `where`
 // clauses that carry them into SQL — are pure, and live in permissions.ts.
 //
-// The groups that actor ends up in are resolved next door, in lib/groups-db.ts,
+// The groups a person ends up in are resolved next door, in lib/groups-db.ts,
 // which reads back the session from here: the two modules name each other, and
 // only ever inside a function body, once a request is being served.
 
@@ -44,11 +44,11 @@ export async function currentIdentity(): Promise<Identity | null> {
  * value every rule of permissions.ts reads. Memoized for the request like
  * everything derived from the session, and resolved by the access layer
  * itself rather than passed in by a caller (ADR 0025): an argument can be
- * forgotten, and a forgotten actor reads as a visitor, which is the one
+ * forgotten, and a forgotten person reads as a visitor, which is the one
  * mistake that fails open.
  */
-export const currentActor = cache(
-  async (): Promise<Actor> => ({
+export const currentPerson = cache(
+  async (): Promise<Person> => ({
     username: await currentUsername(),
     groupSlugs: await currentGroupSlugs(),
   })
@@ -56,7 +56,7 @@ export const currentActor = cache(
 
 /** The administrator access level: a membership of @Admins (ADR 0023). */
 export async function isCurrentAdmin(): Promise<boolean> {
-  return isAdmin(await currentActor());
+  return isAdmin(await currentPerson());
 }
 
 const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";

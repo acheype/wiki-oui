@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
 import {
-  actorCanCreatePage,
-  actorPermissions,
+  personCanCreatePage,
+  personPermissions,
   getPageWithCurrent,
   isRefused,
 } from "@/lib/pages";
@@ -43,7 +43,7 @@ export default async function ShowPage({ params }: Props) {
 
   const page = await getPageWithCurrent(slug);
   if (!page) {
-    return (await actorCanCreatePage()) ? (
+    return (await personCanCreatePage()) ? (
       <PageNotYetCreated slug={slug} />
     ) : (
       <PageNotFound slug={slug} />
@@ -53,7 +53,7 @@ export default async function ShowPage({ params }: Props) {
     return <AccessRefused slug={slug} ownerName={page.ownerName} />;
   }
 
-  const permissions = await actorPermissions(page);
+  const permissions = await personPermissions(page);
 
   return (
     <div className="flex flex-1 flex-col">

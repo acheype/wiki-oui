@@ -14,7 +14,7 @@ import {
   refGroupSlug,
   refUsername,
 } from "@/lib/groups";
-import { type AclDirectory, ADMINS_GROUP } from "@/lib/permissions";
+import { type AclDirectory, type Identity, ADMINS_GROUP } from "@/lib/permissions";
 import { assertAdmin, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 
@@ -25,17 +25,17 @@ import { prisma } from "@/lib/prisma";
 // lives at the door rather than in each caller (ADR 0025).
 //
 // The nesting is resolved in memory, not by a recursive query: the same edges
-// answer the actor's effective groups, the cycle refusal and the « via
+// answer the person's effective groups, the cycle refusal and the « via
 // @Bureau › @Trésorerie » of the screens. Group-to-group edges are few — one
 // per nesting in the whole wiki — where user memberships are many.
 
 /** What a person's line and a group's chip need to name someone. */
 const PERSON = { select: { username: true, name: true } } as const;
 
-// --- the actor's groups ------------------------------------------------------
+// --- the person's groups ------------------------------------------------------
 
 /**
- * Every group the current actor counts as a member of, memoized for the
+ * Every group the current person counts as a member of, memoized for the
  * duration of the request with React's cache() — the pattern lib/pages.ts
  * already uses. Deliberately never carried in the session: removing someone
  * from a group has to take effect at once, not when their session renews.
@@ -57,7 +57,7 @@ export const currentGroupSlugs = cache(async (): Promise<string[]> => {
 });
 
 /**
- * The same question asked about someone other than the actor: which groups
+ * The same question asked about someone other than the person: which groups
  * reach a person or a group named in a rights list. Nesting runs upwards, so
  * a group's own answer holds the groups that contain it — whoever is granted
  * @Rédacteurs is already granting @Bureau, nested inside it.
@@ -131,18 +131,13 @@ async function listMemberships() {
   }));
 }
 
-export interface Person {
-  username: string;
-  name: string;
-}
-
 export interface NamedGroup {
   slug: string;
   name: string;
 }
 
 /** Every person of the wiki, as a screen names them. */
-async function listPeople(): Promise<Person[]> {
+async function listPeople(): Promise<Identity[]> {
   const users = await prisma.user.findMany({
     ...PERSON,
     orderBy: { name: "asc" },
@@ -157,7 +152,7 @@ async function listPeople(): Promise<Person[]> {
 /**
  * Who a rights list may name: everyone of the wiki, people and groups alike.
  * Unguarded on purpose, unlike the rest of this module — its callers check
- * first that the actor may pose rights on something. A page's owner is not an
+ * first that the person may pose rights on something. A page's owner is not an
  * administrator and still has to be able to name whoever they open it to.
  */
 export async function listDirectory(): Promise<AclDirectory> {
@@ -272,7 +267,7 @@ export async function listGroupSummaries(): Promise<GroupSummary[]> {
 }
 
 /** Someone the group holds through its nesting, and the way they come in by. */
-export interface InheritedPerson extends Person {
+export interface InheritedPerson extends Identity {
   path: NamedGroup[];
 }
 
@@ -281,7 +276,7 @@ export interface GroupDetail {
   name: string;
   protected: boolean;
   /** Removable: they were put there by hand. */
-  people: Person[];
+  people: Identity[];
   /** Nested groups, also removable — never any for @Admins. */
   groups: NamedGroup[];
   /** Observed, not editable: to remove them, edit the group they are in. */
@@ -291,7 +286,7 @@ export interface GroupDetail {
   /** Groups this one may still take in: itself excluded, members excluded. */
   addableGroups: NamedGroup[];
   /** People it may still take in. */
-  addablePeople: Person[];
+  addablePeople: Identity[];
 }
 
 export async function getGroupDetail(
@@ -367,7 +362,7 @@ export async function getGroupDetail(
 /** Turns the slug paths of the pure module into what a screen can print. */
 function namePeople(
   members: InheritedMember[],
-  people: Person[],
+  people: Identity[],
   nameOf: Map<string, string>
 ): InheritedPerson[] {
   const displayName = new Map(
@@ -385,7 +380,7 @@ function namePeople(
 /**
  * Creates @Admins around its first member, the account the installation
  * screen just made (ADR 0027). Idempotent, so a retried installation
- * converges instead of failing halfway — and actor-free, since it runs
+ * converges instead of failing halfway — and person-free, since it runs
  * before anyone can be an administrator.
  */
 export async function createAdminsGroupWith(username: string): Promise<void> {

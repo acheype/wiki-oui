@@ -9,12 +9,12 @@ import {
   writableDescriptor,
 } from "./field-rights";
 import type { FormDescriptor, FormField } from "./form-descriptor";
-import { type Actor, ADMINS_GROUP } from "./permissions";
+import { type Person, ADMINS_GROUP } from "./permissions";
 
-const VISITOR: Actor = { username: null, groupSlugs: [] };
-const MARIE: Actor = { username: "marie-durand", groupSlugs: [] };
-const JEAN: Actor = { username: "jean-martin", groupSlugs: ["bureau"] };
-const ADMIN: Actor = { username: "wiki-admin", groupSlugs: [ADMINS_GROUP.slug] };
+const VISITOR: Person = { username: null, groupSlugs: [] };
+const MARIE: Person = { username: "marie-durand", groupSlugs: [] };
+const JEAN: Person = { username: "jean-martin", groupSlugs: ["bureau"] };
+const ADMIN: Person = { username: "wiki-admin", groupSlugs: [ADMINS_GROUP.slug] };
 
 const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;
 

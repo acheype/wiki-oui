@@ -122,37 +122,37 @@ export interface PageRights {
  * is not configured, it is observed: no session is a visitor, a session is a
  * user, and a membership of @Admins is an administrator.
  */
-export interface Actor {
+export interface Person {
   username: string | null;
   /** Effective groups, nesting already resolved by lib/groups.ts. */
   groupSlugs: readonly string[];
 }
 
 /** Nobody in particular — the level every wiki always has someone at. */
-export const VISITOR: Actor = { username: null, groupSlugs: [] };
+export const VISITOR: Person = { username: null, groupSlugs: [] };
 
-export function isSignedIn(actor: Actor): boolean {
-  return actor.username !== null;
+export function isSignedIn(person: Person): boolean {
+  return person.username !== null;
 }
 
-export function isAdmin(actor: Actor): boolean {
-  return actor.groupSlugs.includes(ADMINS_GROUP.slug);
+export function isAdmin(person: Person): boolean {
+  return person.groupSlugs.includes(ADMINS_GROUP.slug);
 }
 
 // --- the decisions -----------------------------------------------------------
 
-/** Does this actor fall inside the scope, and the list it may open? */
-export function ruleAllows(actor: Actor, rule: AccessRule): boolean {
+/** Does this person fall inside the scope, and the list it may open? */
+export function ruleAllows(person: Person, rule: AccessRule): boolean {
   switch (rule.scope) {
     case "everyone":
       return true;
     case "authenticated":
-      return isSignedIn(actor);
+      return isSignedIn(person);
     case "restricted":
       return (
-        (actor.username !== null &&
-          (rule.usernames ?? []).includes(actor.username)) ||
-        (rule.groupSlugs ?? []).some((slug) => actor.groupSlugs.includes(slug))
+        (person.username !== null &&
+          (rule.usernames ?? []).includes(person.username)) ||
+        (rule.groupSlugs ?? []).some((slug) => person.groupSlugs.includes(slug))
       );
   }
 }
@@ -180,17 +180,17 @@ export function pageRule(page: PageRights, kind: PermKind): AccessRule {
  * comparing the two straight would hand every unowned subject — every seeded
  * page — to anyone at all.
  */
-export function ownsSubject(actor: Actor, ownerUsername: string | null): boolean {
-  if (isAdmin(actor)) return true;
-  return ownerUsername !== null && actor.username === ownerUsername;
+export function ownsSubject(person: Person, ownerUsername: string | null): boolean {
+  if (isAdmin(person)) return true;
+  return ownerUsername !== null && person.username === ownerUsername;
 }
 
 /** The floor under every right on a page. */
 export function ownsPage(
-  actor: Actor,
+  person: Person,
   page: Pick<PageRights, "ownerUsername">
 ): boolean {
-  return ownsSubject(actor, page.ownerUsername);
+  return ownsSubject(person, page.ownerUsername);
 }
 
 /**
@@ -199,9 +199,9 @@ export function ownsPage(
  * consequence of an empty floor under the default scope, not a rule to add
  * here: adding it would make an unowned page refuse an open write scope.
  */
-export function canWrite(actor: Actor, page: PageRights): boolean {
-  if (ownsPage(actor, page)) return true;
-  return ruleAllows(actor, pageRule(page, "WRITE"));
+export function canWrite(person: Person, page: PageRights): boolean {
+  if (ownsPage(person, page)) return true;
+  return ruleAllows(person, pageRule(page, "WRITE"));
 }
 
 /**
@@ -209,9 +209,9 @@ export function canWrite(actor: Actor, page: PageRights): boolean {
  * an interface refusing the combination would leave an author stuck between
  * two saves, where the check simply never disagrees with itself.
  */
-export function canRead(actor: Actor, page: PageRights): boolean {
-  if (canWrite(actor, page)) return true;
-  return ruleAllows(actor, pageRule(page, "READ"));
+export function canRead(person: Person, page: PageRights): boolean {
+  if (canWrite(person, page)) return true;
+  return ruleAllows(person, pageRule(page, "READ"));
 }
 
 /**
@@ -235,11 +235,11 @@ export interface PagePermissions {
   address: boolean;
 }
 
-export function permissionsOn(actor: Actor, page: PageRights): PagePermissions {
+export function permissionsOn(person: Person, page: PageRights): PagePermissions {
   return {
-    write: canWrite(actor, page),
-    structuring: ownsPage(actor, page),
-    address: isAdmin(actor),
+    write: canWrite(person, page),
+    structuring: ownsPage(person, page),
+    address: isAdmin(person),
   };
 }
 
@@ -255,21 +255,21 @@ export function permissionsOn(actor: Actor, page: PageRights): PagePermissions {
 // clause it returns is a plain object until a query is handed it.
 
 /** The listed-in-the-ACL predicates, empty for a visitor — who is in none. */
-function aclBranches(actor: Actor): Prisma.PageAclWhereInput[] {
+function aclBranches(person: Person): Prisma.PageAclWhereInput[] {
   const branches: Prisma.PageAclWhereInput[] = [];
-  if (actor.username !== null) branches.push({ username: actor.username });
-  if (actor.groupSlugs.length > 0) {
-    branches.push({ groupSlug: { in: [...actor.groupSlugs] } });
+  if (person.username !== null) branches.push({ username: person.username });
+  if (person.groupSlugs.length > 0) {
+    branches.push({ groupSlug: { in: [...person.groupSlugs] } });
   }
   return branches;
 }
 
-/** What the scope of one sense lets this actor through by. */
-function scopeBranches(actor: Actor, kind: PermKind): Prisma.PageWhereInput[] {
+/** What the scope of one sense lets this person through by. */
+function scopeBranches(person: Person, kind: PermKind): Prisma.PageWhereInput[] {
   const scope = SCOPE_COLUMN[kind];
   const branches: Prisma.PageWhereInput[] = [{ [scope]: "everyone" }];
-  if (isSignedIn(actor)) branches.push({ [scope]: "authenticated" });
-  const listed = aclBranches(actor);
+  if (isSignedIn(person)) branches.push({ [scope]: "authenticated" });
+  const listed = aclBranches(person);
   if (listed.length > 0) {
     // On a public page the first predicate answers and the EXISTS is never
     // run; the scope is repeated here so a row left over from an earlier
@@ -280,31 +280,31 @@ function scopeBranches(actor: Actor, kind: PermKind): Prisma.PageWhereInput[] {
 }
 
 /** The write predicates, which the read clause also carries — writing implies reading. */
-function writeBranches(actor: Actor): Prisma.PageWhereInput[] {
+function writeBranches(person: Person): Prisma.PageWhereInput[] {
   const branches: Prisma.PageWhereInput[] = [];
   // No branch for a visitor: `ownerUsername = NULL` would match every unowned
   // page — the null coincidence ownsPage guards against.
-  if (actor.username !== null) branches.push({ ownerUsername: actor.username });
-  branches.push(...scopeBranches(actor, "WRITE"));
+  if (person.username !== null) branches.push({ ownerUsername: person.username });
+  branches.push(...scopeBranches(person, "WRITE"));
   return branches;
 }
 
-/** Which pages this actor may write — `{}` for an administrator: all of them. */
-export function writableWhere(actor: Actor): Prisma.PageWhereInput {
-  if (isAdmin(actor)) return {};
-  return { OR: writeBranches(actor) };
+/** Which pages this person may write — `{}` for an administrator: all of them. */
+export function writableWhere(person: Person): Prisma.PageWhereInput {
+  if (isAdmin(person)) return {};
+  return { OR: writeBranches(person) };
 }
 
-/** Which pages this actor may read, the counterpart of canRead. */
-export function readableWhere(actor: Actor): Prisma.PageWhereInput {
-  if (isAdmin(actor)) return {};
-  return { OR: [...writeBranches(actor), ...scopeBranches(actor, "READ")] };
+/** Which pages this person may read, the counterpart of canRead. */
+export function readableWhere(person: Person): Prisma.PageWhereInput {
+  if (isAdmin(person)) return {};
+  return { OR: [...writeBranches(person), ...scopeBranches(person, "READ")] };
 }
 
 /**
  * « This clause, or that one » — the only way these clauses are ever joined.
  *
- * Written by hand, that join is a trap: an actor who may read everything gets
+ * Written by hand, that join is a trap: a person who may read everything gets
  * the empty clause `{}`, and **Prisma drops an empty branch from an `OR`**.
  * The branch that meant « everything » disappears, leaving the others to
  * narrow what should not have been narrowed — silently, and only for whoever
@@ -327,16 +327,16 @@ function isEverything(clause: Prisma.PageWhereInput): boolean {
 }
 
 /**
- * What a list filters on: what the actor may read, plus the handful of pages
+ * What a list filters on: what the person may read, plus the handful of pages
  * that answer to everyone whatever is posed on them (the account screens —
  * signing in has to work where the content refuses).
  */
 export function listReadableWhere(
-  actor: Actor,
+  person: Person,
   alwaysReadable: readonly string[]
 ): Prisma.PageWhereInput {
   return anyClause([
-    readableWhere(actor),
+    readableWhere(person),
     { slug: { in: [...alwaysReadable] } },
   ]);
 }
@@ -526,7 +526,7 @@ export const ACCESS_DENIED = "Vous n'avez pas accès à cette page.";
  * Why a rule refuses, in the words the scope was posed in. Two things read it,
  * and they are the two the general rule (docs/permissions.md § Ce que voit qui
  * n'a pas le droit) leaves on screen rather than hiding: the `<EntryForm>` an
- * actor may not add to, and a field they may see but not fill. Both are shown
+ * person may not add to, and a field they may see but not fill. Both are shown
  * with their motif — a block that vanished would read as a page that failed to
  * load, and a field that vanished as a fiche someone forgot to fill in.
  *

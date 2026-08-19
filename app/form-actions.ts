@@ -37,9 +37,9 @@ import {
   bornFormPermissions,
 } from "@/lib/form-rights";
 import {
-  actorCanCreateEntry,
-  actorCanCreateForm,
-  actorCanEditForm,
+  personCanCreateEntry,
+  personCanCreateForm,
+  personCanEditForm,
   applyFormDefaults,
   countEntriesCarryingField,
   countEntryTitleRecompute,
@@ -74,7 +74,7 @@ import {
   refusalMessage,
   scopeRefusal,
 } from "@/lib/permissions";
-import { currentActor, currentIdentity } from "@/lib/permissions-db";
+import { currentPerson, currentIdentity } from "@/lib/permissions-db";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -101,8 +101,8 @@ export async function listForms(): Promise<FormSummary[]> {
       name: form.name,
       entryCount: form._count.entries,
       createdAt: form.createdAt,
-      canEdit: await actorCanEditForm(form),
-      canCreateEntry: await actorCanCreateEntry(form),
+      canEdit: await personCanEditForm(form),
+      canCreateEntry: await personCanCreateEntry(form),
     }))
   );
 }
@@ -114,7 +114,7 @@ export interface FormDetail {
   template: string | null;
   /** The « Accès » tab's three settings, the wiki's own for an old form. */
   permissions: FormPermissions;
-  /** Whether this actor may save what the builder shows (owner or admin). */
+  /** Whether this person may save what the builder shows (owner or admin). */
   canEdit: boolean;
 }
 
@@ -135,12 +135,12 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
     schema: parsed.descriptor,
     template: form.template,
     permissions: permissionsOf(form),
-    canEdit: await actorCanEditForm(form),
+    canEdit: await personCanEditForm(form),
   };
 }
 
 /**
- * Who the « Accès » tab's lists may name. Read only once the actor is known
+ * Who the « Accès » tab's lists may name. Read only once the person is known
  * to have business posing a right — the whole membership of the wiki is not a
  * visitor's affair, and a form nobody may edit needs no picker at all.
  */
@@ -152,14 +152,14 @@ export async function listRightsDirectory(
   // rung the act itself stops at answers for it: whoever may not create a form
   // has no business reading the wiki's membership either.
   const allowed = form
-    ? await actorCanEditForm(form)
-    : await actorCanCreateForm();
+    ? await personCanEditForm(form)
+    : await personCanCreateForm();
   return allowed ? listDirectory() : { people: [], groups: [] };
 }
 
 /** Whether the screens offer « Nouveau formulaire » at all. */
 export async function canAddForm(): Promise<boolean> {
-  return actorCanCreateForm();
+  return personCanCreateForm();
 }
 
 /**
@@ -167,7 +167,7 @@ export async function canAddForm(): Promise<boolean> {
  * § Défauts), both halves. The rules counted against are the ones the tab
  * shows, not the ones in base: the confirmation leads to a save, so what it
  * announces is what the form is about to hold. Null when the form has gone, or
- * when the actor may not edit it — the button was not on offer either way.
+ * when the person may not edit it — the button was not on offer either way.
  */
 export type EntryDefaultsCount =
   | { error: string }
@@ -395,7 +395,7 @@ export async function renameForm(
   // Checked here rather than only at the door: the generic failure message
   // below is for a unique-constraint race, and would turn a refusal into
   // « réessayez dans un instant » — an invitation to keep trying.
-  if (!(await actorCanEditForm(form))) {
+  if (!(await personCanEditForm(form))) {
     return { error: FORM_EDIT_REFUSED };
   }
   if (await getFormBySlug(newSlug)) {
@@ -445,7 +445,7 @@ export async function listEntryFieldChoices(
 ): Promise<EntryFieldChoice[]> {
   const forms = await listFormsBySlugs(formSlugs);
   const bySlug = new Map(forms.map((form) => [form.slug, form]));
-  // Cut to what this actor may read, and so are the zones, the filters and
+  // Cut to what this person may read, and so are the zones, the filters and
   // the sorts built from it: a field they cannot see is not one they can be
   // offered to sort on (docs/permissions.md § Champ). The values are cut
   // again, form by form, where the payload is assembled — a name readable on
@@ -537,7 +537,7 @@ export interface EntryFormData {
    */
   creationRefusal: string | null;
   /**
-   * Field name → why it is shown greyed, for the fields this actor may see but
+   * Field name → why it is shown greyed, for the fields this person may see but
    * not fill (docs/permissions.md § Champ). A field they may not even see is
    * not in here: it is absent from `schema` altogether.
    */
@@ -548,14 +548,14 @@ export interface EntryFormData {
 
 /**
  * The refusal the entry form shows, with the groups it names resolved to
- * their display names. Null once the actor may add a fiche — and for an edit,
+ * their display names. Null once the person may add a fiche — and for an edit,
  * which this right has nothing to say about.
  */
 async function creationRefusalOf(
   form: { schema: unknown },
   isEdit: boolean
 ): Promise<string | null> {
-  if (isEdit || (await actorCanCreateEntry(form))) return null;
+  if (isEdit || (await personCanCreateEntry(form))) return null;
   const rule = permissionsOf(form).createEntry;
   return scopeRefusal(rule, await groupDisplayNames(rule.groupSlugs ?? []));
 }
@@ -592,7 +592,7 @@ export async function getEntryForm(
 ): Promise<EntryFormData | null> {
   const form = await getFormBySlug(formSlug);
   if (!form) return null;
-  // What this actor may not read never reaches the browser — neither the
+  // What this person may not read never reaches the browser — neither the
   // field nor the value it holds (docs/permissions.md § Champ).
   const seen = await readableForm(form.schema);
   if (!seen) {
@@ -625,7 +625,7 @@ export async function getEntryForm(
 /** Whether a screen offers « Nouvelle fiche » for this form at all. */
 export async function canAddEntry(formSlug: string): Promise<boolean> {
   const form = await getFormBySlug(formSlug);
-  return form !== null && actorCanCreateEntry(form);
+  return form !== null && personCanCreateEntry(form);
 }
 
 export interface SaveEntryInput {
@@ -653,12 +653,12 @@ export async function saveEntry(
   const descriptor = parsed.descriptor;
 
   // Same schema as the client resolver (ADR 0015): one source of truth. Cut
-  // to the fields this actor may write, so that what they send on the others
+  // to the fields this person may write, so that what they send on the others
   // is stripped rather than refused (docs/permissions.md § Champ) — a mere
   // difference of rights must never be what makes a save fail. A required
   // field they may not fill is not asked of them either, for the same reason.
-  const actor = await currentActor();
-  const writable = writableDescriptor(actor, descriptor);
+  const person = await currentPerson();
+  const writable = writableDescriptor(person, descriptor);
   const validation = deriveEntrySchema(writable).safeParse(input.data);
   if (!validation.success) {
     return { ok: false, formError: "Des champs sont invalides." };
@@ -678,7 +678,7 @@ export async function saveEntry(
     // merges again on its own, from the revision it reads there — this one
     // is what the title is worked out from.
     const merged = mergedEntryData(
-      actor,
+      person,
       descriptor,
       readEntryData(page.current?.data),
       data

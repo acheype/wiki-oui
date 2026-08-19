@@ -10,9 +10,9 @@ ADR [0023](adr/0023-betterauth-authentifie-wikioui-autorise.md) (frontière auth
 
 *Un droit est une portée, éventuellement complétée d'une liste* : trois portées exclusives — **tout le monde** · **les personnes connectées** · **seulement** — la troisième ouvrant une liste de personnes et de groupes. Le propriétaire et les administrateurs sont toujours autorisés et ne figurent jamais dans cette liste.
 
-## Acteur et niveaux d'accès
+## La personne et ses niveaux d'accès
 
-L'**acteur** est la personne qui agit à un instant donné, connectée ou non. Elle se situe à l'un des trois **niveaux d'accès**, qui ne se paramètrent pas — ils se constatent :
+La **personne** est celle qui agit à un instant donné, connectée ou non. Elle se situe à l'un des trois **niveaux d'accès**, qui ne se paramètrent pas — ils se constatent :
 
 | Niveau | Condition | Obtient |
 | --- | --- | --- |
@@ -103,7 +103,7 @@ Un groupe porte un **nom affiché** et un **slug** dérivé de lui à la créati
 
 Créer et modifier un groupe est réservé aux administrateurs en v0.5.
 
-Les **groupes effectifs** d'un acteur (imbrication résolue) sont résolus **en mémoire**, une fois par requête HTTP, mémoïsés par le `cache()` de React — le motif déjà employé par `lib/pages.ts`. Deux requêtes suffisent : les appartenances directes de l'acteur, et les arêtes groupe→groupe, peu nombreuses par nature. La clôture est alors une fonction pure (`lib/groups.ts`), et ce sont les mêmes arêtes qui répondent au refus de cycle et au « via @Bureau › @Trésorerie » des écrans — là où une requête récursive n'aurait donné que la liste. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
+Les **groupes effectifs** d'une personne (imbrication résolue) sont résolus **en mémoire**, une fois par requête HTTP, mémoïsés par le `cache()` de React — le motif déjà employé par `lib/pages.ts`. Deux requêtes suffisent : les appartenances directes de la personne, et les arêtes groupe→groupe, peu nombreuses par nature. La clôture est alors une fonction pure (`lib/groups.ts`), et ce sont les mêmes arêtes qui répondent au refus de cycle et au « via @Bureau › @Trésorerie » des écrans — là où une requête récursive n'aurait donné que la liste. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
 
 ## Le droit
 
@@ -163,7 +163,7 @@ Un formulaire écrit avant l'onglet n'en porte aucun : les défauts du wiki rép
 
 **Créer une fiche ne consulte pas `createPage`.** Le droit du wiki commande les pages, celui du formulaire commande ses fiches : c'est ce qui permet à un wiki qui ne distribue aucune page d'accueillir quand même « chacun propose un événement ».
 
-**Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même cran que les actions structurantes d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que l'acteur n'a pas est **absent** de la liste des formulaires, jamais grisé.
+**Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même cran que les actions structurantes d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que la personne n'a pas est **absent** de la liste des formulaires, jamais grisé.
 
 ### Qui peut créer un formulaire
 
@@ -192,7 +192,7 @@ Le décompte comme l'écriture **laissent tomber un nom disparu** (ADR 0026) : u
 
 ### Champ : la fusion, et deux fuites colmatées
 
-Une révision stocke un snapshot **complet** de `data`. Le serveur **fusionne, il ne remplace pas** : il repart de la révision courante et n'y superpose que les champs que l'acteur avait le droit d'écrire. Ce que le client envoie sur les autres est ignoré — pas refusé, sans quoi une simple différence de droits ferait échouer l'enregistrement.
+Une révision stocke un snapshot **complet** de `data`. Le serveur **fusionne, il ne remplace pas** : il repart de la révision courante et n'y superpose que les champs que la personne avait le droit d'écrire. Ce que le client envoie sur les autres est ignoré — pas refusé, sans quoi une simple différence de droits ferait échouer l'enregistrement.
 
 Deux fuites sont **refusées à l'enregistrement du formulaire**, pas rattrapées au rendu :
 
@@ -213,7 +213,7 @@ Le plafond se dit dans le **libellé de la question**, pas dans une note sous le
 
 Le plafond ne commande que ce qui est **offert**. Une règle posée avant que l'onglet ne soit resserré garde sa portée et reste affichée — sinon le bouton radio n'aurait plus rien de coché — et elle n'accorde rien de plus pour autant : le droit de la fiche répond en premier, et qui ne peut pas ouvrir la fiche n'atteint jamais le champ. Rien n'est donc à rattraper en base ; c'est « Appliquer aux fiches existantes » qui porte les défauts jusqu'à l'existant, comme pour le reste.
 
-**Une seule porte pour la coupe en lecture.** Cinq écrans montrent un formulaire — la fiche, son historique, le formulaire de saisie, les vues de fiches et leurs sélecteurs de champs. Ils passent tous par `readableForm()` (`lib/field-rights-db.ts`), qui résout l'acteur lui-même plutôt que de le recevoir (ADR 0025) et rend d'un coup ce dont ils ont besoin : le descripteur coupé, ses noms, les champs grisés, de quoi couper un snapshot — et le descripteur entier, que le gabarit doit garder pour rendre en chaîne vide un `{salaire}` qu'il nomme. La coupe en **écriture**, elle, reste à la porte de la Page (`writeEntryRevision`), là où elle garde.
+**Une seule porte pour la coupe en lecture.** Cinq écrans montrent un formulaire — la fiche, son historique, le formulaire de saisie, les vues de fiches et leurs sélecteurs de champs. Ils passent tous par `readableForm()` (`lib/field-rights-db.ts`), qui résout la personne elle-même plutôt que de la recevoir (ADR 0025) et rend d'un coup ce dont ils ont besoin : le descripteur coupé, ses noms, les champs grisés, de quoi couper un snapshot — et le descripteur entier, que le gabarit doit garder pour rendre en chaîne vide un `{salaire}` qu'il nomme. La coupe en **écriture**, elle, reste à la porte de la Page (`writeEntryRevision`), là où elle garde.
 
 Cinq points que l'écriture de ce chantier a tranchés :
 
@@ -256,7 +256,7 @@ La ligne se justifie par la **portée de l'effet**, pas par une hiérarchie. Qui
 
 Transmettre la propriété est **sans retour** pour celui qui donne : la confirmation le dit.
 
-**Uploader** ne consulte aucun réglage dédié : la garde répond à « cet acteur peut-il contribuer quelque part ? » — administrateur, ou `createPage` l'autorise, ou il existe une page qu'il peut écrire (`EXISTS` indexé, court-circuité par les deux tests gratuits, exécuté seulement à l'upload). Un wiki configuré ouvert accepte donc les dépôts anonymes : c'est voulu, et la limitation de débit est un autre chantier (backlog).
+**Uploader** ne consulte aucun réglage dédié : la garde répond à « cette personne peut-elle contribuer quelque part ? » — administrateur, ou `createPage` l'autorise, ou il existe une page qu'il peut écrire (`EXISTS` indexé, court-circuité par les deux tests gratuits, exécuté seulement à l'upload). Un wiki configuré ouvert accepte donc les dépôts anonymes : c'est voulu, et la limitation de débit est un autre chantier (backlog).
 
 ## Ce que voit qui n'a pas le droit
 
@@ -265,7 +265,7 @@ Transmettre la propriété est **sans retour** pour celui qui donne : la confirm
 ```
 🔒 Vous n'avez pas accès à cette page.
    Gérée par Marie Durand.          ← omis si la page n'a plus de propriétaire
-   [ Se connecter ]                 ← seulement si l'acteur ne l'est pas
+   [ Se connecter ]                 ← seulement si la personne ne l'est pas
 ```
 
 Et une règle générale, qui suit la **nature** de l'élément plutôt qu'un principe unique :
@@ -397,9 +397,9 @@ Le widget portée + liste devient un **type de champ du vocabulaire de descripte
 
 ## Application des droits
 
-**Une seule porte** (ADR 0025). `lib/pages.ts` et `lib/forms.ts` deviennent le seul chemin vers `Page` et `Form`, et résolvent eux-mêmes l'acteur courant ; une règle ESLint interdit `prisma.page` et `prisma.form` ailleurs, avec des exceptions listées (seed, balayage). Même esprit que la vérification de descripteurs au `prebuild` (ADR 0013) : l'invariant est tenu par un outil, pas par la vigilance. Environ 33 appels directs, répartis dans six fichiers, sont à rapatrier — `app/form-actions.ts` en concentre les deux tiers.
+**Une seule porte** (ADR 0025). `lib/pages.ts` et `lib/forms.ts` deviennent le seul chemin vers `Page` et `Form`, et résolvent eux-mêmes la personne qui agit ; une règle ESLint interdit `prisma.page` et `prisma.form` ailleurs, avec des exceptions listées (seed, balayage). Même esprit que la vérification de descripteurs au `prebuild` (ADR 0013) : l'invariant est tenu par un outil, pas par la vigilance. Environ 33 appels directs, répartis dans six fichiers, sont à rapatrier — `app/form-actions.ts` en concentre les deux tiers.
 
-Deux chemins **échappent** au contrôle, délibérément : `getLayoutContents()`, qui lit les cinq pages de layout à chaque rendu (c'est du chrome, pas du contenu — le soumettre aux droits ferait disparaître le menu pour les uns et pas pour les autres), et le seed, qui écrit sans acteur.
+Deux chemins **échappent** au contrôle, délibérément : `getLayoutContents()`, qui lit les cinq pages de layout à chaque rendu (c'est du chrome, pas du contenu — le soumettre aux droits ferait disparaître le menu pour les uns et pas pour les autres), et le seed, qui écrit sans personne.
 
 ### Deux temps, jamais un chargement suivi d'un tri
 

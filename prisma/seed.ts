@@ -200,9 +200,10 @@ const SEEDED_RIGHTS = {
 // pointer can only be set once the revision row exists.
 //
 // Seeded content is born without an owner — the seed writes before anyone can
-// be an actor, and it stays free of BetterAuth (ADR 0023). The installation
-// screen then takes the special pages under its account (ADR 0027); the
-// example pages keep none, so demonstration content has no false owner.
+// be a person acting, and it stays free of BetterAuth (ADR 0023). The
+// installation screen then takes the special pages under its account (ADR
+// 0027); the example pages keep none, so demonstration content has no false
+// owner.
 async function createMdxPage(
   prisma: PrismaClient,
   slug: string,

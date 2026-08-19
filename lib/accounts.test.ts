@@ -36,7 +36,7 @@ describe("matchesAccountFilter", () => {
 });
 
 describe("disableRefusal", () => {
-  const marie = { username: "marie-durand", actorUsername: "jean-martin" };
+  const marie = { username: "marie-durand", personUsername: "jean-martin" };
 
   it("lets an administrator cut someone else's access", () => {
     expect(disableRefusal({ ...marie, lastAdmin: false })).toBeNull();
@@ -46,7 +46,7 @@ describe("disableRefusal", () => {
     expect(
       disableRefusal({
         username: "jean-martin",
-        actorUsername: "jean-martin",
+        personUsername: "jean-martin",
         lastAdmin: false,
       })
     ).toBe(
@@ -66,7 +66,7 @@ describe("deleteRefusal", () => {
     expect(
       deleteRefusal({
         username: "jean-martin",
-        actorUsername: "jean-martin",
+        personUsername: "jean-martin",
         lastAdmin: false,
       })
     ).toBeNull();
@@ -76,7 +76,7 @@ describe("deleteRefusal", () => {
     expect(
       deleteRefusal({
         username: "marie-durand",
-        actorUsername: "jean-martin",
+        personUsername: "jean-martin",
         lastAdmin: true,
       })
     ).toBe(LAST_ADMIN_REFUSAL);
@@ -86,7 +86,7 @@ describe("deleteRefusal", () => {
     expect(
       deleteRefusal({
         username: "jean-martin",
-        actorUsername: "jean-martin",
+        personUsername: "jean-martin",
         lastAdmin: true,
       })
     ).toBe(LAST_ADMIN_REFUSAL);

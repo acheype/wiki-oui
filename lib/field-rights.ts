@@ -15,7 +15,7 @@ import type {
   FormDescriptor,
   FormField,
 } from "@/lib/form-descriptor";
-import { type AccessRule, type Actor, isAdmin, ruleAllows } from "@/lib/permissions";
+import { type AccessRule, type Person, isAdmin, ruleAllows } from "@/lib/permissions";
 
 /** What an unposed rule stands for: a field is open until one says otherwise. */
 const UNRESTRICTED: AccessRule = { scope: "everyone" };
@@ -28,8 +28,8 @@ export function fieldWriteRule(field: FormField): AccessRule {
   return field.writeAcl ?? UNRESTRICTED;
 }
 
-export function canReadField(actor: Actor, field: FormField): boolean {
-  return isAdmin(actor) || ruleAllows(actor, fieldReadRule(field));
+export function canReadField(person: Person, field: FormField): boolean {
+  return isAdmin(person) || ruleAllows(person, fieldReadRule(field));
 }
 
 /**
@@ -43,37 +43,37 @@ export function canReadField(actor: Actor, field: FormField): boolean {
  * restriction that was posed has to be the one that decides, so writing is
  * what reading opens: « on ne remplit pas ce qu'on ne voit pas ».
  */
-export function canWriteField(actor: Actor, field: FormField): boolean {
-  if (isAdmin(actor)) return true;
+export function canWriteField(person: Person, field: FormField): boolean {
+  if (isAdmin(person)) return true;
   return (
-    canReadField(actor, field) && ruleAllows(actor, fieldWriteRule(field))
+    canReadField(person, field) && ruleAllows(person, fieldWriteRule(field))
   );
 }
 
 /**
- * The form as this actor may see it. A field they cannot read is **absent** —
+ * The form as this person may see it. A field they cannot read is **absent** —
  * from the entry form, from the rendered fiche, and from the zones, filters
  * and sorts of the entry views — rather than shown empty, which would read as
  * a fiche someone forgot to fill in.
  */
 export function readableDescriptor(
-  actor: Actor,
+  person: Person,
   descriptor: FormDescriptor
 ): FormDescriptor {
   return {
     ...descriptor,
-    fields: descriptor.fields.filter((field) => canReadField(actor, field)),
+    fields: descriptor.fields.filter((field) => canReadField(person, field)),
   };
 }
 
 /** The same cut, for deriving the schema a save is allowed to move. */
 export function writableDescriptor(
-  actor: Actor,
+  person: Person,
   descriptor: FormDescriptor
 ): FormDescriptor {
   return {
     ...descriptor,
-    fields: descriptor.fields.filter((field) => canWriteField(actor, field)),
+    fields: descriptor.fields.filter((field) => canWriteField(person, field)),
   };
 }
 
@@ -84,28 +84,28 @@ export function writableDescriptor(
  * field says both that there is something there and that it is not yours.
  */
 export function readOnlyFields(
-  actor: Actor,
+  person: Person,
   descriptor: FormDescriptor
 ): FormField[] {
   return descriptor.fields.filter(
-    (field) => canReadField(actor, field) && !canWriteField(actor, field)
+    (field) => canReadField(person, field) && !canWriteField(person, field)
   );
 }
 
 /**
- * A snapshot as this actor may read it. A value whose field has gone from the
+ * A snapshot as this person may read it. A value whose field has gone from the
  * descriptor is kept: no rule was ever posed on it, and the old snapshots
  * carry such values by design (docs/forms.md) — deciding against it here would
  * be inventing a verdict.
  */
 export function readableEntryData(
-  actor: Actor,
+  person: Person,
   descriptor: FormDescriptor,
   data: EntryData
 ): EntryData {
   const hidden = new Set(
     descriptor.fields
-      .filter((field) => !canReadField(actor, field))
+      .filter((field) => !canReadField(person, field))
       .map((field) => field.name)
   );
   return Object.fromEntries(
@@ -114,7 +114,7 @@ export function readableEntryData(
 }
 
 /**
- * What a save writes: the current revision, with only the fields this actor
+ * What a save writes: the current revision, with only the fields this person
  * may write laid over it (docs/permissions.md § Champ). A revision stores a
  * **complete** snapshot, so a client that never received a field would erase
  * it by sending back what it holds — the merge is what keeps someone who
@@ -127,14 +127,14 @@ export function readableEntryData(
  * payload said.
  */
 export function mergedEntryData(
-  actor: Actor,
+  person: Person,
   descriptor: FormDescriptor,
   current: EntryData,
   submitted: EntryData
 ): EntryData {
   const merged: EntryData = { ...current };
   for (const field of descriptor.fields) {
-    if (!canWriteField(actor, field)) continue;
+    if (!canWriteField(person, field)) continue;
     if (!(field.name in submitted)) continue;
     merged[field.name] = submitted[field.name];
   }

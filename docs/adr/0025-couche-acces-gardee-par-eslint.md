@@ -1,6 +1,6 @@
 # Le contrôle des droits passe par une couche d'accès unique, gardée par ESLint
 
-`lib/pages.ts` et `lib/forms.ts` deviennent la **seule porte** vers `Page` et `Form`, et résolvent eux-mêmes l'acteur courant. Une règle ESLint interdit `prisma.page` et `prisma.form` partout ailleurs, avec une liste d'exceptions explicite (le seed, le balayage). Ni Row-Level Security, ni extension Prisma.
+`lib/pages.ts` et `lib/forms.ts` deviennent la **seule porte** vers `Page` et `Form`, et résolvent eux-mêmes la personne qui agit. Une règle ESLint interdit `prisma.page` et `prisma.form` partout ailleurs, avec une liste d'exceptions explicite (le seed, le balayage). Ni Row-Level Security, ni extension Prisma.
 
 ## Contexte
 
@@ -16,9 +16,9 @@ Le risque n'est pas d'écrire la mauvaise règle, c'est d'**oublier de l'appeler
 
 ## Consequences
 
-- L'acteur est **résolu par la couche**, pas reçu en paramètre : la couche a été rapatriée « à vide » avant toute notion de droit, et les appelants ne changeront pas une seconde fois quand les droits arriveront. Le lieu de cette résolution est `lib/permissions-db.ts`, mémoïsé par requête HTTP.
+- La personne est **résolue par la couche**, pas reçue en paramètre : la couche a été rapatriée « à vide » avant toute notion de droit, et les appelants ne changeront pas une seconde fois quand les droits arriveront. Le lieu de cette résolution est `lib/permissions-db.ts`, mémoïsé par requête HTTP.
 - La règle a **deux volets**, parce qu'une règle syntaxique ne lit que des noms : elle refuse `prisma.page` et `prisma.form` (le `tx.` d'une transaction compris), et elle refuse l'**import du client** hors des deux portes — ce second volet ferme ce que le premier ne voit pas, une `Page` atteinte par une relation (`include`) ou du SQL brut. Les modules de balayage reçoivent leur client en paramètre, donc ne l'importent pas.
 - Un oubli devient une **erreur de lint au build**, pas une fuite en production. C'est la culture déjà installée par l'ADR 0013, qui vérifie la cohérence descripteur/composant en parsant la source au `prebuild` et bloque.
 - La règle se contourne par une exception — mais une exception est **visible en revue**, ce qui est précisément son intérêt.
-- Deux chemins y échappent délibérément : `getLayoutContents()`, qui lit les cinq pages de layout à chaque rendu de n'importe quelle page (c'est du chrome, pas du contenu — le soumettre aux droits de l'acteur ferait disparaître le menu pour les uns et pas pour les autres), et le seed, qui écrit sans acteur.
+- Deux chemins y échappent délibérément : `getLayoutContents()`, qui lit les cinq pages de layout à chaque rendu de n'importe quelle page (c'est du chrome, pas du contenu — le soumettre aux droits de la personne ferait disparaître le menu pour les uns et pas pour les autres), et le seed, qui écrit sans personne.
 - Le handler `/{slug}/raw` naît **dans** la couche, et non à côté : c'est le genre d'accès au contenu qui, ajouté plus tard et branché en direct, aurait court-circuité tout le dispositif.

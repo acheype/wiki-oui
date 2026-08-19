@@ -36,7 +36,7 @@ export function EntryForm({
   /** Called after a successful create; defaults to navigating to the entry. */
   onCreated?: (slug: string) => void;
 }) {
-  // A form the actor may not add to is shown with its motif and a follow-up
+  // A form the person may not add to is shown with its motif and a follow-up
   // rather than hidden (docs/permissions.md § Ce que voit qui n'a pas le
   // droit): a block of content that vanished would read as a page that failed
   // to load, and leave the reader nothing to do about it. The three doors
@@ -85,7 +85,7 @@ function EntryFields({
   onCreated?: (slug: string) => void;
 }) {
   const router = useRouter();
-  // Derived from what this actor may *fill*, which is the schema the server
+  // Derived from what this person may *fill*, which is the schema the server
   // validates against too — one source of truth (ADR 0015). The greyed fields
   // are left out: they are on screen and disabled, so asking them for a value
   // would refuse a save over a field whose emptiness is not the author's to
@@ -259,7 +259,7 @@ function EntryFields({
 }
 
 /**
- * A field this actor may see but not fill (docs/permissions.md § Champ):
+ * A field this person may see but not fill (docs/permissions.md § Champ):
  * shown greyed, with the motif its rule was posed in. Made unreachable by a
  * `fieldset`, which disables every control it holds — the keyboard included,
  * where a dimmed-looking widget would still take a caret. Hiding it instead

@@ -9,15 +9,15 @@ import {
 } from "@/lib/permissions";
 
 // The door's own test (ADR 0025). Everything else in this suite is pure, so
-// the checks that stand between an actor and a write had nothing holding them:
+// the checks that stand between a person and a write had nothing holding them:
 // the rules were proved, their being *called* was not. Deleting an `await
 // assertStructuring(…)` line reddened nothing until here.
 //
-// Prisma and the actor are the only things stubbed. What is asserted is what
+// Prisma and the person are the only things stubbed. What is asserted is what
 // a missing check would change — the refusal comes back, and the write never
 // reaches the database.
 
-const { db, actor } = vi.hoisted(() => ({
+const { db, person } = vi.hoisted(() => ({
   db: {
     page: {
       findUnique: vi.fn(),
@@ -37,13 +37,13 @@ const { db, actor } = vi.hoisted(() => ({
     $queryRaw: vi.fn(),
     $executeRaw: vi.fn(),
   },
-  actor: { current: { username: null as string | null, groupSlugs: [] as string[] } },
+  person: { current: { username: null as string | null, groupSlugs: [] as string[] } },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 vi.mock("@/lib/permissions-db", () => ({
-  currentActor: async () => actor.current,
-  currentUsername: async () => actor.current.username,
+  currentPerson: async () => person.current,
+  currentUsername: async () => person.current.username,
   assertAdmin: async () => {},
 }));
 vi.mock("@/lib/groups-db", () => ({
@@ -77,7 +77,7 @@ const MARIES_PAGE = {
 };
 
 function signedInAs(username: string | null, groupSlugs: string[] = []) {
-  actor.current = { username, groupSlugs };
+  person.current = { username, groupSlugs };
 }
 
 beforeEach(() => {
@@ -185,7 +185,7 @@ describe("what a save may move, field by field", () => {
     db.revision.create.mockResolvedValue({ id: "rev-2" });
   });
 
-  it("lays what the actor may write over the revision it starts from", async () => {
+  it("lays what the person may write over the revision it starts from", async () => {
     await save({ title: "Paie", nom: "Marie Durand", salaire: 0 });
     expect(written()).toEqual({
       title: "Paie",

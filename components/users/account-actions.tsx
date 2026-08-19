@@ -61,7 +61,7 @@ export function AccountActions({
   user: UserRow;
   /** Everyone else, as candidates to take over what this account owns. */
   users: UserRow[];
-  /** This line is the actor's own: what they may do to it is not the same. */
+  /** This line is the person's own: what they may do to it is not the same. */
   own: boolean;
   onChanged: () => void;
 }) {

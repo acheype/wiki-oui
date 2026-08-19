@@ -9,7 +9,7 @@ import type { FormDescriptor } from "@/lib/form-descriptor";
 import {
   type AccessRule,
   type AclEntry,
-  type Actor,
+  type Person,
   type PageRights,
   type StoredRights,
   coveredPrincipals,
@@ -61,12 +61,12 @@ export function formPermissions(descriptor: FormDescriptor): FormPermissions {
   return descriptor.permissions ?? bornFormPermissions();
 }
 
-/** Whether this actor may add a fiche to the form. */
+/** Whether this person may add a fiche to the form. */
 export function canCreateEntry(
-  actor: Actor,
+  person: Person,
   permissions: FormPermissions
 ): boolean {
-  return isAdmin(actor) || ruleAllows(actor, permissions.createEntry);
+  return isAdmin(person) || ruleAllows(person, permissions.createEntry);
 }
 
 // --- applying the defaults to the fiches already there -----------------------
@@ -155,7 +155,7 @@ export interface EntryRightsImpact {
   /** Fiches already holding exactly these rights. */
   unchanged: number;
   /**
-   * Fiches the actor does not look after, which the action leaves alone —
+   * Fiches the person does not look after, which the action leaves alone —
    * somebody else's, and the ownerless ones too, which are the
    * administrators' alone. Posing rights stops at the owner or an
    * administrator (docs/permissions.md § Quel droit commande quelle action), and
@@ -175,24 +175,24 @@ export interface EntryRightsImpact {
  * the wiki would announce a number and write another.
  */
 export function entryRightsVerdict(
-  actor: Actor,
+  person: Person,
   entry: PageRights,
   permissions: FormPermissions
 ): "changed" | "unchanged" | "refused" {
-  if (!ownsPage(actor, entry)) return "refused";
+  if (!ownsPage(person, entry)) return "refused";
   return holdsRights(entry, entryRightsFrom(permissions, entry.ownerUsername))
     ? "unchanged"
     : "changed";
 }
 
 export function entryRightsImpact(
-  actor: Actor,
+  person: Person,
   entries: readonly PageRights[],
   permissions: FormPermissions
 ): EntryRightsImpact {
   const impact = { total: entries.length, changed: 0, unchanged: 0, refused: 0 };
   for (const entry of entries) {
-    impact[entryRightsVerdict(actor, entry, permissions)] += 1;
+    impact[entryRightsVerdict(person, entry, permissions)] += 1;
   }
   return impact;
 }

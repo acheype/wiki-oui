@@ -1,16 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The five screens that show a form read it through one door now. What holds
-// here is that the door resolves the actor itself: passing one is what a
-// caller can forget, and a forgotten actor reads as a visitor — the one
+// here is that the door resolves the person itself: passing one is what a
+// caller can forget, and a forgotten person reads as a visitor — the one
 // mistake that fails open.
 
-const { actor } = vi.hoisted(() => ({
-  actor: { current: { username: null as string | null, groupSlugs: [] as string[] } },
+const { person } = vi.hoisted(() => ({
+  person: { current: { username: null as string | null, groupSlugs: [] as string[] } },
 }));
 
 vi.mock("@/lib/permissions-db", () => ({
-  currentActor: async () => actor.current,
+  currentPerson: async () => person.current,
 }));
 
 const { readableForm } = await import("@/lib/field-rights-db");
@@ -35,10 +35,10 @@ const payroll = {
 const SNAPSHOT = { title: "Paie", nom: "Marie", salaire: 42000 };
 
 beforeEach(() => {
-  actor.current = { username: null, groupSlugs: [] };
+  person.current = { username: null, groupSlugs: [] };
 });
 
-describe("a form as the actor may see it", () => {
+describe("a form as the person may see it", () => {
   it("cuts the fields, their names and their values at once", async () => {
     const seen = await readableForm(payroll);
     expect(seen?.readable.fields.map((field) => field.name)).toEqual([
@@ -60,14 +60,14 @@ describe("a form as the actor may see it", () => {
   });
 
   it("opens to whoever the rule names", async () => {
-    actor.current = { username: "jean-martin", groupSlugs: ["bureau"] };
+    person.current = { username: "jean-martin", groupSlugs: ["bureau"] };
     const seen = await readableForm(payroll);
     expect(seen?.readableNames.has("salaire")).toBe(true);
     expect(seen?.readableValues(SNAPSHOT)).toEqual(SNAPSHOT);
   });
 
   it("names the fields shown greyed", async () => {
-    actor.current = { username: "marie-durand", groupSlugs: [] };
+    person.current = { username: "marie-durand", groupSlugs: [] };
     const open = {
       fields: [
         { type: "title", name: "title", label: "Titre" },

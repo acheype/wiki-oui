@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import {
   type AclEntry,
-  type Actor,
+  type Person,
   type PageRights,
   type PermKind,
   type Scope,
@@ -32,12 +32,12 @@ import {
   writableWhere,
 } from "./permissions";
 
-const VISITOR: Actor = { username: null, groupSlugs: [] };
-const MARIE: Actor = { username: "marie-durand", groupSlugs: [] };
+const VISITOR: Person = { username: null, groupSlugs: [] };
+const MARIE: Person = { username: "marie-durand", groupSlugs: [] };
 // Bureau is nested in Rédacteurs, so both slugs are already in the effective
 // list lib/groups.ts hands over.
-const JEAN: Actor = { username: "jean-martin", groupSlugs: ["bureau", "redacteurs"] };
-const ADMIN: Actor = { username: "wiki-admin", groupSlugs: [ADMINS_GROUP.slug] };
+const JEAN: Person = { username: "jean-martin", groupSlugs: ["bureau", "redacteurs"] };
+const ADMIN: Person = { username: "wiki-admin", groupSlugs: [ADMINS_GROUP.slug] };
 
 function page(rights: Partial<PageRights> = {}): PageRights {
   return {
@@ -65,13 +65,13 @@ describe("ruleAllows", () => {
     expect(ruleAllows(JEAN, listed)).toBe(false);
   });
 
-  it("counts a group the actor reaches by nesting", () => {
+  it("counts a group the person reaches by nesting", () => {
     expect(ruleAllows(JEAN, { scope: "restricted", groupSlugs: ["redacteurs"] })).toBe(true);
   });
 
   it("lets nobody through an empty « seulement » list", () => {
-    for (const actor of [VISITOR, MARIE, JEAN]) {
-      expect(ruleAllows(actor, { scope: "restricted" })).toBe(false);
+    for (const person of [VISITOR, MARIE, JEAN]) {
+      expect(ruleAllows(person, { scope: "restricted" })).toBe(false);
     }
   });
 });
@@ -536,7 +536,7 @@ function everyPage(): PageRights[] {
 }
 
 describe("the filter clause and the unit decision", () => {
-  const actors: [string, Actor][] = [
+  const people: [string, Person][] = [
     ["a visitor", VISITOR],
     ["someone with no group", MARIE],
     ["someone in two groups", JEAN],
@@ -548,12 +548,12 @@ describe("the filter clause and the unit decision", () => {
     ["WRITE", canWrite, writableWhere],
   ];
 
-  for (const [who, actor] of actors) {
+  for (const [who, person] of people) {
     for (const [kind, decide, clause] of senses) {
       it(`give the same verdict on ${kind} for ${who}`, () => {
-        const where = clause(actor);
+        const where = clause(person);
         const disagreements = everyPage().filter(
-          (subject) => decide(actor, subject) !== whereMatches(where, subject)
+          (subject) => decide(person, subject) !== whereMatches(where, subject)
         );
         expect(disagreements).toEqual([]);
       });

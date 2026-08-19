@@ -24,7 +24,7 @@ const REDACTEURS_NESTING = [
 ];
 
 describe("effectiveGroups", () => {
-  it("adds every group holding one of the actor's own, at any depth", () => {
+  it("adds every group holding one of the person's own, at any depth", () => {
     expect(effectiveGroups(REDACTEURS_NESTING, ["tresorerie"])).toEqual([
       "bureau",
       "redacteurs",
@@ -32,7 +32,7 @@ describe("effectiveGroups", () => {
     ]);
   });
 
-  it("leaves an actor whose groups contain no other where they are", () => {
+  it("leaves a person whose groups contain no other where they are", () => {
     expect(effectiveGroups(REDACTEURS_NESTING, ["redacteurs"])).toEqual([
       "redacteurs",
     ]);

@@ -54,7 +54,7 @@ export interface GrantTarget {
 
 /**
  * Whether a rule already lets this target through. Deliberately not
- * ruleAllows: that one answers for an actor, who may be a visitor, where a
+ * ruleAllows: that one answers for a person, who may be a visitor, where a
  * target is an account or a group of accounts — either way, whoever it names
  * is signed in, so « les personnes connectées » covers them.
  */

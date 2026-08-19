@@ -14,7 +14,7 @@ import { readableForm } from "@/lib/field-rights-db";
 import { formatDateTime } from "@/lib/format";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import { actorCanWrite, getPageWithRevisions, isRefused } from "@/lib/pages";
+import { personCanWrite, getPageWithRevisions, isRefused } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { displayName } from "@/lib/username";
@@ -66,7 +66,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   // Reading the history is a read action, putting a revision back is a write
   // (docs/permissions.md § Quel droit commande quelle action): whoever may only
   // read gets the whole screen, minus the button.
-  const writable = await actorCanWrite(page);
+  const writable = await personCanWrite(page);
 
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the

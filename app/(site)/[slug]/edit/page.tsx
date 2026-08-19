@@ -6,8 +6,8 @@ import { EntryEdit } from "@/components/forms/entry-edit";
 import { AccessRefused } from "@/components/page/access-refused";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import {
-  actorCanCreatePage,
-  actorCanWrite,
+  personCanCreatePage,
+  personCanWrite,
   getPageWithForm,
   isRefused,
   listPageSlugs,
@@ -43,7 +43,7 @@ export default async function EditPage({ params }: Props) {
   // The editor is reached by its address as well as by the hidden « Modifier »
   // button, so the write right is checked here too — with its own wording,
   // since « vous n'avez pas accès » would be untrue of a page one can read.
-  if (existing && !(await actorCanWrite(existing))) {
+  if (existing && !(await personCanWrite(existing))) {
     return (
       <AccessRefused
         slug={slug}
@@ -52,7 +52,7 @@ export default async function EditPage({ params }: Props) {
       />
     );
   }
-  if (!existing && !(await actorCanCreatePage())) {
+  if (!existing && !(await personCanCreatePage())) {
     return (
       <AccessRefused slug={slug} ownerName={null} message={CREATE_REFUSED} />
     );

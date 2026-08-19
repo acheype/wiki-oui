@@ -9,24 +9,24 @@ import { CREATE_FORM_REFUSED } from "@/lib/permissions";
 //
 // So the two are asked here for their clause, and held to the same one.
 
-const { db, actor } = vi.hoisted(() => ({
+const { db, person } = vi.hoisted(() => ({
   db: {
     form: { findMany: vi.fn(), create: vi.fn() },
     page: { findMany: vi.fn() },
     $transaction: vi.fn(),
   },
-  actor: { current: { username: null as string | null, groupSlugs: [] as string[] } },
+  person: { current: { username: null as string | null, groupSlugs: [] as string[] } },
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 vi.mock("@/lib/permissions-db", () => ({
-  currentActor: async () => actor.current,
-  currentUsername: async () => actor.current.username,
+  currentPerson: async () => person.current,
+  currentUsername: async () => person.current.username,
   assertAdmin: async () => {},
 }));
 
 const {
-  actorCanCreateForm,
+  personCanCreateForm,
   createForm,
   listFormsWithEntries,
   listFormsWithEntryCount,
@@ -49,16 +49,16 @@ beforeEach(() => {
 });
 
 describe("the count of a screen and the list it heads", () => {
-  const actors: [string, { username: string | null; groupSlugs: string[] }][] = [
+  const people: [string, { username: string | null; groupSlugs: string[] }][] = [
     ["a visitor", { username: null, groupSlugs: [] }],
     ["an ordinary user", { username: "jean-martin", groupSlugs: ["bureau"] }],
     // The one whose clause comes out empty, and the one nobody doubts.
     ["an administrator", { username: "wiki-admin", groupSlugs: ["admins"] }],
   ];
 
-  for (const [who, current] of actors) {
+  for (const [who, current] of people) {
     it(`filter on one and the same clause for ${who}`, async () => {
-      actor.current = current;
+      person.current = current;
       await listFormsWithEntryCount();
       const announced = countClause();
       await listFormsWithEntries(["annuaire"]);
@@ -70,13 +70,13 @@ describe("the count of a screen and the list it heads", () => {
   // is: wrapped in an OR, Prisma would drop it and the count would answer on
   // the account pages alone.
   it("hands an administrator a clause that filters nothing out", async () => {
-    actor.current = { username: "wiki-admin", groupSlugs: ["admins"] };
+    person.current = { username: "wiki-admin", groupSlugs: ["admins"] };
     await listFormsWithEntryCount();
     expect(countClause()).toEqual({});
   });
 
   it("still narrows what a visitor is counted, so nothing is opened", async () => {
-    actor.current = { username: null, groupSlugs: [] };
+    person.current = { username: null, groupSlugs: [] };
     await listFormsWithEntryCount();
     expect(countClause()).not.toEqual({});
   });
@@ -95,8 +95,8 @@ describe("the door on creating a form", () => {
   };
 
   it("refuses a visitor, and writes nothing", async () => {
-    actor.current = { username: null, groupSlugs: [] };
-    expect(await actorCanCreateForm()).toBe(false);
+    person.current = { username: null, groupSlugs: [] };
+    expect(await personCanCreateForm()).toBe(false);
     await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
       CREATE_FORM_REFUSED
     );
@@ -107,8 +107,8 @@ describe("the door on creating a form", () => {
   // a rule posed on the wiki there is no owner under it: an ordinary member
   // is refused, where the same shape on a page would let its owner through.
   it("refuses an ordinary member under the shipped configuration", async () => {
-    actor.current = { username: "jean-martin", groupSlugs: ["bureau"] };
-    expect(await actorCanCreateForm()).toBe(false);
+    person.current = { username: "jean-martin", groupSlugs: ["bureau"] };
+    expect(await personCanCreateForm()).toBe(false);
     await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
       CREATE_FORM_REFUSED
     );
@@ -116,8 +116,8 @@ describe("the door on creating a form", () => {
   });
 
   it("lets an administrator through, and hands them what they made", async () => {
-    actor.current = { username: "wiki-admin", groupSlugs: ["admins"] };
-    expect(await actorCanCreateForm()).toBe(true);
+    person.current = { username: "wiki-admin", groupSlugs: ["admins"] };
+    expect(await personCanCreateForm()).toBe(true);
     await createForm("agenda", DEFINITION);
     expect(db.form.create).toHaveBeenCalledWith({
       data: { ...DEFINITION, slug: "agenda", ownerUsername: "wiki-admin" },

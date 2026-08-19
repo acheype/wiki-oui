@@ -128,16 +128,16 @@ _Avoid_: Facette (jargon YesWiki)
 Un champ synthétique proposé par EntriesView aux côtés des champs du formulaire : `$form` (le formulaire de la fiche, en multi-formulaires), `$owner`, `$createdAt`, `$editedAt`. Le préfixe `$` interdit toute collision avec un `name` de champ.
 _Avoid_: extraFields (jargon YesWiki), champ système
 
-**Acteur**:
-La personne qui agit sur le wiki à un instant donné, **connectée ou non** — donc l'un des trois niveaux d'accès, selon qui frappe. C'est le sujet de toute question de droit (« cet acteur peut-il modifier cette page ? ») et le premier paramètre de la couche d'accès. En code : `Actor`, résolu par `currentActor()`.
-_Avoid_: Demandeur, visiteur (il n'en est qu'un cas), lecteur (boite dès qu'il s'agit d'écrire), utilisateur courant
+**Personne**:
+Celle qui agit sur le wiki à un instant donné, **connectée ou non** — donc à l'un des trois niveaux d'accès, selon qui frappe. C'est le sujet de toute question de droit (« cette personne peut-elle modifier cette page ? ») et le premier paramètre de la couche d'accès. En code : `Person`, résolue par `currentPerson()`.
+_Avoid_: Acteur (abandonné en v0.5), demandeur, visiteur (il n'en est qu'un cas), lecteur (boite dès qu'il s'agit d'écrire), utilisateur (celui-là a un compte, la personne pas forcément)
 
 **Niveau d'accès**:
-L'un des trois états possibles d'un acteur, du plus étroit au plus large : **visiteur** (non identifié), **utilisateur** (a un compte), **administrateur** (membre du groupe Admins). Un niveau ne se paramètre pas, il se constate — il découle de la session et de l'appartenance aux groupes. À ne pas confondre avec la **portée** d'un droit, qui est le réglage posé sur une page.
+L'un des trois états possibles d'une personne, du plus étroit au plus large : **visiteur** (non identifié), **utilisateur** (a un compte), **administrateur** (membre du groupe Admins). Un niveau ne se paramètre pas, il se constate — il découle de la session et de l'appartenance aux groupes. À ne pas confondre avec la **portée** d'un droit, qui est le réglage posé sur une page.
 _Avoid_: Rôle (il n'y a pas de champ rôle), profil, statut, permission
 
 **Visiteur**:
-Le niveau d'accès d'un acteur non identifié : sans compte, ou non connecté. N'obtient que ce qui est ouvert à « tout le monde ». Terme **étroit** : pour désigner qui que ce soit qui agit, le mot est *acteur*.
+Le niveau d'accès d'une personne non identifiée : sans compte, ou non connectée. N'obtient que ce qui est ouvert à « tout le monde ». Terme **étroit** : pour désigner qui que ce soit qui agit, le mot est *personne*.
 _Avoid_: Anonyme (réservé au libellé d'un contenu sans auteur identifié), invité, utilisateur non connecté
 
 **Utilisateur**:
@@ -170,10 +170,10 @@ _Avoid_: Auteur (l'auteur est celui d'une révision, et n'ouvre aucun droit), cr
 
 **Droit**:
 L'autorisation de **lire** ou d'**écrire** une page, une fiche ou un champ. Chacun des deux s'exprime par une **portée** — *tout le monde* · *les personnes connectées* · *seulement* — la troisième ouvrant une liste d'utilisateurs et de groupes. Le propriétaire et les administrateurs sont toujours autorisés : ils ne sont jamais une **ligne** du droit — rien n'est stocké pour eux, rien n'est retirable — mais le widget les affiche verrouillés, pour qu'une liste vide ne se lise pas « personne » ; une portée *seulement* à liste vide dit donc « eux seuls ». Écrire implique lire.
-_Avoid_: ACL (nom de code, à réserver au code), permission, rôle, « niveau » (réservé au niveau d'accès, qui décrit un acteur et non un réglage)
+_Avoid_: ACL (nom de code, à réserver au code), permission, rôle, « niveau » (réservé au niveau d'accès, qui décrit une personne et non un réglage)
 
 **Action**:
-Ce qu'un acteur déclenche sur une page ou une fiche : éditer, poser des tags, restaurer une révision, supprimer, modifier les droits, transmettre la propriété, changer l'adresse. Chacune s'arrête à un **cran** — le droit d'écriture, le propriétaire ou administrateur (les **actions structurantes**), l'administrateur seul (l'adresse) — et le cran suit la **portée de l'effet**, pas une hiérarchie de personnes : qui peut écrire peut de toute façon vider une page, mais l'historique survit à un blanchiment, pas à une suppression. Une action indisponible est **absente** de la barre, jamais grisée : une offre impossible n'informe personne. En code, l'ensemble des crans ouverts à un acteur sur une page est un `PagePermissions` — jamais un « type Action », que Next réserve aux Server Actions.
+Ce qu'une personne déclenche sur une page ou une fiche : éditer, poser des tags, restaurer une révision, supprimer, modifier les droits, transmettre la propriété, changer l'adresse. Chacune s'arrête à un **cran** — le droit d'écriture, le propriétaire ou administrateur (les **actions structurantes**), l'administrateur seul (l'adresse) — et le cran suit la **portée de l'effet**, pas une hiérarchie de personnes : qui peut écrire peut de toute façon vider une page, mais l'historique survit à un blanchiment, pas à une suppression. Une action indisponible est **absente** de la barre, jamais grisée : une offre impossible n'informe personne. En code, l'ensemble des crans ouverts à une personne sur une page est un `PagePermissions` — jamais un « type Action », que Next réserve aux Server Actions.
 _Avoid_: Geste (abandonné en v0.5), opération, commande ; « action » pour désigner un handler de page, un composant ou une Server Action
 
 **Création de fiche**:

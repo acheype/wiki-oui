@@ -12,7 +12,7 @@ import type { ViewEntry } from "@/lib/entries-view";
 import { readEntryData } from "@/lib/form-descriptor";
 import { readableForm } from "@/lib/field-rights-db";
 import { listFormsWithEntries } from "@/lib/forms";
-import { actorPermissions } from "@/lib/pages";
+import { personPermissions } from "@/lib/pages";
 import type { PagePermissions } from "@/lib/permissions";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
@@ -43,7 +43,7 @@ export interface EntriesViewData {
   /** slug → name of the chosen forms ($form labels). */
   formNames: Record<string, string>;
   /**
-   * slug → what the actor may do to that entry, for the views that offer a
+   * slug → what the person may do to that entry, for the views that offer a
    * action per row. Beside the entries rather than inside them: what a view
    * searches, sorts and filters on is the entry's own values, and a right is
    * not one of them.
@@ -132,13 +132,13 @@ export async function getEntriesViewData(
     }
   }
 
-  // Decided here rather than in the row: the actor is resolved once for the
+  // Decided here rather than in the row: the person is resolved once for the
   // request (lib/permissions-db), and the rules are pure — so a formful of
   // entries costs the loop and nothing else.
   const permissions: Record<string, PagePermissions> = {};
   for (const form of ordered) {
     for (const page of form.entries) {
-      permissions[page.slug] = await actorPermissions(page);
+      permissions[page.slug] = await personPermissions(page);
     }
   }
 

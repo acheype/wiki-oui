@@ -32,7 +32,7 @@ export function EntriesAdmin() {
 function EntriesList({ formSlug }: { formSlug?: string }) {
   const [entries, setEntries] = useState<EntrySummary[] | null>(null);
   // The form decides who may add to it (docs/permissions.md § Formulaire),
-  // and an action the actor does not have is left out rather than greyed.
+  // and an action the person does not have is left out rather than greyed.
   const [canAdd, setCanAdd] = useState(false);
 
   useEffect(() => {

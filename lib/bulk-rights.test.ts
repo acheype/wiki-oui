@@ -40,7 +40,7 @@ describe("alreadyGrants", () => {
     );
   });
 
-  it("counts a group in as a signed-in person, where an actor may be a visitor", () => {
+  it("counts a group in as a signed-in person, where a person may be a visitor", () => {
     expect(
       alreadyGrants(page({ readScope: "authenticated" }), "READ", BUREAU)
     ).toBe(true);

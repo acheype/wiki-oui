@@ -47,7 +47,7 @@ export function matchesAccountFilter(
 export interface AccountAction {
   username: string;
   /** Who is acting: an administrator, since nobody else reaches this screen. */
-  actorUsername: string | null;
+  personUsername: string | null;
   /** The target is the last administrator who could still sign in. */
   lastAdmin: boolean;
 }
@@ -58,7 +58,7 @@ export interface AccountAction {
  * spot, and « se déconnecter » is what they were looking for.
  */
 export function disableRefusal(action: AccountAction): string | null {
-  if (action.username === action.actorUsername) {
+  if (action.username === action.personUsername) {
     return "Vous ne pouvez pas désactiver votre propre compte. Déconnectez-vous plutôt.";
   }
   return lastAdminRefusal(action);

@@ -14,13 +14,13 @@ import {
   holdsRights,
   withKnownPrincipals,
 } from "./form-rights";
-import { type Actor, type PageRights, ADMINS_GROUP } from "./permissions";
+import { type Person, type PageRights, ADMINS_GROUP } from "./permissions";
 import { wikiConfig } from "@/wiki.config";
 
-const VISITOR: Actor = { username: null, groupSlugs: [] };
-const MARIE: Actor = { username: "marie-durand", groupSlugs: [] };
-const JEAN: Actor = { username: "jean-martin", groupSlugs: ["bureau"] };
-const ADMIN: Actor = { username: "wiki-admin", groupSlugs: [ADMINS_GROUP.slug] };
+const VISITOR: Person = { username: null, groupSlugs: [] };
+const MARIE: Person = { username: "marie-durand", groupSlugs: [] };
+const JEAN: Person = { username: "jean-martin", groupSlugs: ["bureau"] };
+const ADMIN: Person = { username: "wiki-admin", groupSlugs: [ADMINS_GROUP.slug] };
 
 const OPEN: FormPermissions = {
   createEntry: { scope: "authenticated" },
@@ -73,7 +73,7 @@ describe("canCreateEntry", () => {
     expect(canCreateEntry(JEAN, closed)).toBe(false);
   });
 
-  it("counts a group the actor reaches by nesting", () => {
+  it("counts a group the person reaches by nesting", () => {
     const forBureau: FormPermissions = {
       ...OPEN,
       createEntry: { scope: "restricted", groupSlugs: ["bureau"] },

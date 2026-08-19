@@ -10,7 +10,6 @@ import { countFormsOwnedByAccount, reassignOwnedForms } from "@/lib/forms";
 import { inheritedGroups } from "@/lib/groups";
 import {
   type NamedGroup,
-  type Person,
   groupNames,
   joinGroupOnInvitation,
   listAdminUsernames,
@@ -27,6 +26,7 @@ import {
 } from "@/lib/invitations";
 import { probeMailer, sendAccountLink } from "@/lib/mailer";
 import { countOwnedByAccount, reassignOwnedPages } from "@/lib/pages";
+import type { Identity } from "@/lib/permissions";
 import { assertAdmin, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/site-url";
@@ -111,7 +111,7 @@ async function deliver(
 
 // --- reads --------------------------------------------------------------------
 
-export interface UserRow extends Person {
+export interface UserRow extends Identity {
   /** Shown here and nowhere else in the wiki (docs/permissions.md). */
   email: string;
   /** Access cut: sign-in refused, everything they own left as it was. */
@@ -317,7 +317,7 @@ export async function createResetLink(
 }
 
 /**
- * « Mot de passe oublié », asked by whoever is at the keyboard — no actor, so
+ * « Mot de passe oublié », asked by whoever is at the keyboard — no person, so
  * no check, and deliberately no answer about the address either: the link
  * goes to it or nowhere, and the screen says the same thing in both cases.
  * Returning it would let anyone harvest a reset link for an address they
@@ -356,7 +356,7 @@ export interface AccountLinkTarget {
 
 /**
  * Reads a link without spending it: whoever holds it is a stranger to the
- * wiki, so there is no actor to check — the token is the whole credential,
+ * wiki, so there is no person to check — the token is the whole credential,
  * and an expired or unknown one is simply nothing.
  */
 export async function readAccountLink(
@@ -389,7 +389,7 @@ export async function readAccountLink(
  * goes right after the account is created, and its disappearance is what
  * closes the link.
  *
- * No actor: the token is the credential. What it authorizes is exactly one
+ * No person: the token is the credential. What it authorizes is exactly one
  * account, on exactly the address the invitation named.
  */
 export async function acceptInvitation(input: {
@@ -510,7 +510,7 @@ async function isLastAdmin(username: string): Promise<boolean> {
 async function actionOn(username: string): Promise<AccountAction> {
   return {
     username,
-    actorUsername: await currentUsername(),
+    personUsername: await currentUsername(),
     lastAdmin: await isLastAdmin(username),
   };
 }

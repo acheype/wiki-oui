@@ -55,7 +55,7 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
   const [filter, setFilter] = useState("");
   const [toDelete, setToDelete] = useState<FormSummary | null>(null);
   // Creating a form is the wiki's own rule (docs/permissions.md § Où
-  // s'appliquent les droits): the button is absent when the actor has not got
+  // s'appliquent les droits): the button is absent when the person has not got
   // it, never greyed out.
   const [canCreate, setCanCreate] = useState(false);
   const filterRef = useRef<HTMLInputElement>(null);
@@ -132,7 +132,7 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
                 </p>
               </div>
               {/* An offer nobody can take up informs nobody: a row shows the
-                  permissions this actor has, and leaves the others out
+                  permissions this person has, and leaves the others out
                   (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
               {form.canCreateEntry && (
                 <Button asChild variant="ghost" size="sm">

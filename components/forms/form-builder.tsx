@@ -440,7 +440,7 @@ export function FormBuilder({
             />
           </div>
           {/* Editing a form's definition is its owner's or an administrator's
-              (docs/permissions.md): what the actor cannot do is left out of
+              (docs/permissions.md): what the person cannot do is left out of
               the header rather than greyed out, and the note says why. */}
           {canEdit ? (
             <Button onClick={save} disabled={isPending}>
@@ -662,7 +662,7 @@ function RightsEditor({
 }: {
   permissions: FormPermissions;
   directory: AclDirectory;
-  /** Absent on a new form, and on one the actor may not save. */
+  /** Absent on a new form, and on one the person may not save. */
   onApply?: () => void;
   applying: boolean;
   onChange: (permissions: FormPermissions) => void;

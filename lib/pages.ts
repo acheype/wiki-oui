@@ -55,7 +55,7 @@ import {
   withoutFloor,
   writableWhere,
 } from "@/lib/permissions";
-import { assertAdmin, currentActor, currentUsername } from "@/lib/permissions-db";
+import { assertAdmin, currentPerson, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
@@ -142,7 +142,7 @@ export function isRefused<T extends object>(
  * come out right mechanically, working on what actually arrived.
  */
 export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
-  return listReadableWhere(await currentActor(), ALWAYS_READABLE);
+  return listReadableWhere(await currentPerson(), ALWAYS_READABLE);
 }
 
 /** A single page's read decision — the lists get a `where` instead. */
@@ -150,26 +150,26 @@ async function ifReadable<T extends Decidable>(
   page: T
 ): Promise<T | AccessRefusal> {
   if (ALWAYS_READABLE.includes(page.slug)) return page;
-  if (canRead(await currentActor(), page)) return page;
+  if (canRead(await currentPerson(), page)) return page;
   return { refused: true, ownerName: page.owner?.name ?? null };
 }
 
 /** The backstop of every content write; the screens refuse long before it. */
 async function assertCanWrite(page: PageRights): Promise<void> {
-  if (!canWrite(await currentActor(), page)) throw new Error(WRITE_REFUSED);
+  if (!canWrite(await currentPerson(), page)) throw new Error(WRITE_REFUSED);
 }
 
 /**
  * Creating a page reads the wiki's own rule (docs/permissions.md § Où
  * s'appliquent les droits), the only right no page carries.
  */
-export async function actorCanCreatePage(): Promise<boolean> {
-  const actor = await currentActor();
-  return isAdmin(actor) || ruleAllows(actor, wikiConfig.permissions.createPage);
+export async function personCanCreatePage(): Promise<boolean> {
+  const person = await currentPerson();
+  return isAdmin(person) || ruleAllows(person, wikiConfig.permissions.createPage);
 }
 
 async function assertCanCreatePage(): Promise<void> {
-  if (!(await actorCanCreatePage())) throw new Error(CREATE_REFUSED);
+  if (!(await personCanCreatePage())) throw new Error(CREATE_REFUSED);
 }
 
 /** The configured principals that still exist, as the pure filter reads them. */
@@ -192,7 +192,7 @@ async function assertStructuring(
   page: PageRights,
   refusal: string
 ): Promise<void> {
-  if (ownsPage(await currentActor(), page)) return;
+  if (ownsPage(await currentPerson(), page)) return;
   throw new Error(refusal);
 }
 
@@ -202,7 +202,7 @@ async function assertStructuring(
  * the way no other action on it does.
  */
 async function assertAddress(): Promise<void> {
-  if (!isAdmin(await currentActor())) throw new Error(ADDRESS_REFUSED);
+  if (!isAdmin(await currentPerson())) throw new Error(ADDRESS_REFUSED);
 }
 
 /**
@@ -300,7 +300,7 @@ export async function getPageWithRevisions(slug: string) {
   return page && ifReadable(page);
 }
 
-/** The slugs a link may be suggested from: what the actor can actually read. */
+/** The slugs a link may be suggested from: what the person can actually read. */
 export async function listPageSlugs(): Promise<string[]> {
   return slugsMatching(await currentReadableWhere());
 }
@@ -448,17 +448,17 @@ export async function writePageContent(input: {
     return { unchanged: false };
   }
 
-  const actor = await currentUsername();
+  const person = await currentUsername();
   await prisma.$transaction(async (tx) => {
     const page =
       existing ??
       (await tx.page.create({
-        data: { slug, ownerUsername: actor, ...(await bornWithDefaultRights()) },
+        data: { slug, ownerUsername: person, ...(await bornWithDefaultRights()) },
       }));
 
     await mintRevision(
       tx,
-      { pageId: page.id, content, authorUsername: actor },
+      { pageId: page.id, content, authorUsername: person },
       { tags }
     );
   });
@@ -586,8 +586,8 @@ export async function transferPageOwnership(
 // --- the rights of one page --------------------------------------------------
 
 /** Whether the screens offer a action or simply leave it out. */
-export async function actorCanWrite(page: PageRights): Promise<boolean> {
-  return canWrite(await currentActor(), page);
+export async function personCanWrite(page: PageRights): Promise<boolean> {
+  return canWrite(await currentPerson(), page);
 }
 
 /**
@@ -596,8 +596,8 @@ export async function actorCanWrite(page: PageRights): Promise<boolean> {
  * is absent from the bar, never greyed out: an offer nobody can take up
  * informs nobody (docs/permissions.md § Ce que voit qui n'a pas le droit).
  */
-export async function actorPermissions(page: PageRights): Promise<PagePermissions> {
-  return permissionsOn(await currentActor(), page);
+export async function personPermissions(page: PageRights): Promise<PagePermissions> {
+  return permissionsOn(await currentPerson(), page);
 }
 
 /** Whoever the page always allows, whatever its lists hold. */
@@ -869,7 +869,7 @@ export async function countEntryRightsImpact(
   permissions: FormPermissions
 ): Promise<EntryRightsImpact> {
   return entryRightsImpact(
-    await currentActor(),
+    await currentPerson(),
     await formEntries(formId),
     await liveDefaults(permissions)
   );
@@ -877,7 +877,7 @@ export async function countEntryRightsImpact(
 
 /**
  * Rewrites the rights of the form's fiches from its defaults. Only the fiches
- * the actor may pose rights on are touched, and only those the defaults would
+ * the person may pose rights on are touched, and only those the defaults would
  * actually move — the two counts the confirmation showed, reached from the
  * other end.
  *
@@ -888,11 +888,11 @@ export async function applyFormDefaultsToEntries(
   formId: string,
   permissions: FormPermissions
 ): Promise<void> {
-  const actor = await currentActor();
+  const person = await currentPerson();
   // The very defaults the count was taken against, names dropped and all.
   const live = await liveDefaults(permissions);
   const entries = (await formEntries(formId)).filter(
-    (entry) => entryRightsVerdict(actor, entry, live) === "changed"
+    (entry) => entryRightsVerdict(person, entry, live) === "changed"
   );
   if (entries.length === 0) return;
 
@@ -929,17 +929,17 @@ export async function countPagesGrantingGroup(groupSlug: string): Promise<number
 }
 
 /**
- * « Cet acteur peut-il contribuer quelque part ? » — the only question the
+ * « Cette personne peut-elle contribuer quelque part ? » — the only question the
  * upload asks (docs/permissions.md § Quel droit commande quelle action): there is
  * no right of its own on files. The two free tests come first and short-
  * circuit the third, which is the only one that touches the database.
  */
 export async function canContributeSomewhere(): Promise<boolean> {
-  const actor = await currentActor();
-  if (isAdmin(actor)) return true;
-  if (ruleAllows(actor, wikiConfig.permissions.createPage)) return true;
+  const person = await currentPerson();
+  if (isAdmin(person)) return true;
+  if (ruleAllows(person, wikiConfig.permissions.createPage)) return true;
   const writable = await prisma.page.findFirst({
-    where: writableWhere(actor),
+    where: writableWhere(person),
     select: { id: true },
   });
   return writable !== null;
@@ -963,7 +963,7 @@ export async function createEntryPage(input: {
   permissions: FormPermissions;
 }): Promise<void> {
   const { slug, formId, data, permissions } = input;
-  if (!canCreateEntry(await currentActor(), permissions)) {
+  if (!canCreateEntry(await currentPerson(), permissions)) {
     throw new Error(CREATE_ENTRY_REFUSED);
   }
   // No merge here, where an edit has one: the merge protects the values a
@@ -993,7 +993,7 @@ export async function createEntryPage(input: {
  *
  * A revision stores a **complete** snapshot, so the write merges rather than
  * replaces (docs/permissions.md § Champ): it starts from the current revision
- * and lays over it only the fields this actor may write. Done here, at the
+ * and lays over it only the fields this person may write. Done here, at the
  * door, and from the revision the door itself just read — a caller could hand
  * over a merge made against a snapshot that has moved since, and that stale
  * base is exactly the salary somebody wipes by saving the fiche.
@@ -1013,9 +1013,9 @@ export async function writeEntryRevision(input: {
     include: { current: true, ...WITH_RIGHTS },
   });
   await assertCanWrite(page);
-  const actor = await currentActor();
+  const person = await currentPerson();
   const current = readEntryData(page.current?.data);
-  const written = mergedEntryData(actor, descriptor, current, data);
+  const written = mergedEntryData(person, descriptor, current, data);
   const unchanged = JSON.stringify(current) === JSON.stringify(written);
   const author = await currentUsername();
   if (unchanged) return;
@@ -1037,7 +1037,7 @@ export async function writeEntryRevision(input: {
  * MDX pages and entries alike.
  *
  * An entry's snapshot goes through the same merge a save does: putting an old
- * revision back is a write like any other, and the fields this actor may not
+ * revision back is a write like any other, and the fields this person may not
  * write keep the values they hold today. Without it, restoring would be the
  * way round the merge — and a silent one, the restorer never having seen on
  * screen what they were putting back (docs/permissions.md § Champ).
@@ -1061,7 +1061,7 @@ export async function writeRestoredRevision(input: {
       ? (restoredEntryValues(
           descriptor,
           mergedEntryData(
-            await currentActor(),
+            await currentPerson(),
             descriptor,
             readEntryData(page.current?.data),
             data as EntryData

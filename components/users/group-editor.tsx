@@ -54,7 +54,8 @@ import {
   groupDeletionImpact,
   stillMemberMessage,
 } from "@/lib/groups";
-import type { NamedGroup, Person } from "@/lib/groups-db";
+import type { NamedGroup } from "@/lib/groups-db";
+import type { Identity } from "@/lib/permissions";
 
 export function GroupEditor({
   slug,
@@ -111,7 +112,7 @@ export function GroupEditor({
     });
   }
 
-  function removePerson(person: Person) {
+  function removePerson(person: Identity) {
     change(
       () => removeMember(group!.slug, { username: person.username }),
       (detail) => {

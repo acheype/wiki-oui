@@ -9,7 +9,7 @@ import { wikiConfig } from "@/wiki.config";
 // showing upload progress requires holding the request (xhr.upload.onprogress)
 // — a Server Action hides its transport. Limits are checked before any write.
 export async function POST(request: Request) {
-  // No setting of its own: the question is « cet acteur peut-il contribuer
+  // No setting of its own: the question is « cette personne peut-elle contribuer
   // quelque part ? » (docs/permissions.md § Quel droit commande quelle action).
   // A wiki configured open therefore accepts anonymous uploads — that is
   // intended, and rate limiting is another job (backlog).

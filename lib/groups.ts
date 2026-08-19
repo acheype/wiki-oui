@@ -4,7 +4,7 @@
 // entry-title).
 //
 // A group holds people and/or other groups with no depth limit, so three
-// questions follow from one graph: which groups an actor ends up in, which
+// questions follow from one graph: which groups a person ends up in, which
 // membership would close a cycle, and by which path someone lands in a group
 // they were never added to.
 
@@ -59,7 +59,7 @@ export function refGroupSlug(ref: MemberRef): string | null {
 }
 
 /**
- * Every group the actor counts as a member of: the ones they were added to,
+ * Every group the person counts as a member of: the ones they were added to,
  * plus every group holding those, at any depth. Sorted, so a caller comparing
  * two resolutions never sees a difference that traversal order invented.
  */

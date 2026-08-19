@@ -27,7 +27,7 @@ import {
   ownsSubject,
   ruleAllows,
 } from "@/lib/permissions";
-import { currentActor, currentUsername } from "@/lib/permissions-db";
+import { currentPerson, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
@@ -52,17 +52,17 @@ type OwnedForm = { ownerUsername: string | null };
  * every fiche ever written with it, so it never opens with the writing.
  */
 async function assertFormStructuring(form: OwnedForm): Promise<void> {
-  if (ownsSubject(await currentActor(), form.ownerUsername)) return;
+  if (ownsSubject(await currentPerson(), form.ownerUsername)) return;
   throw new Error(FORM_EDIT_REFUSED);
 }
 
 /** Whether the screens offer those permissions at all, or simply leave them out. */
-export async function actorCanEditForm(form: OwnedForm): Promise<boolean> {
-  return ownsSubject(await currentActor(), form.ownerUsername);
+export async function personCanEditForm(form: OwnedForm): Promise<boolean> {
+  return ownsSubject(await currentPerson(), form.ownerUsername);
 }
 
 /**
- * Creating a form reads the wiki's own rule, the twin of actorCanCreatePage
+ * Creating a form reads the wiki's own rule, the twin of personCanCreatePage
  * on the other side of the door (docs/permissions.md § Où s'appliquent les
  * droits). Distinct from createPage because the two acts differ in reach: a
  * page engages a page, a form shapes every fiche written with it and takes
@@ -72,9 +72,9 @@ export async function actorCanEditForm(form: OwnedForm): Promise<boolean> {
  * with an empty list, which the shipped configuration writes, means the
  * administrators alone.
  */
-export async function actorCanCreateForm(): Promise<boolean> {
-  const actor = await currentActor();
-  return isAdmin(actor) || ruleAllows(actor, wikiConfig.permissions.createForm);
+export async function personCanCreateForm(): Promise<boolean> {
+  const person = await currentPerson();
+  return isAdmin(person) || ruleAllows(person, wikiConfig.permissions.createForm);
 }
 
 /** The same read, from the identifier a screen holds. */
@@ -104,11 +104,11 @@ export function permissionsOf(form: { schema: unknown }): FormPermissions {
     : bornFormPermissions();
 }
 
-/** Whether the actor may add a fiche to this form — what the entry form asks. */
-export async function actorCanCreateEntry(form: {
+/** Whether the person may add a fiche to this form — what the entry form asks. */
+export async function personCanCreateEntry(form: {
   schema: unknown;
 }): Promise<boolean> {
-  return canCreateEntry(await currentActor(), permissionsOf(form));
+  return canCreateEntry(await currentPerson(), permissionsOf(form));
 }
 
 export async function getFormById(id: string) {
@@ -210,13 +210,13 @@ export async function updateForm(
   sweeps: FormSaveSweeps
 ): Promise<void> {
   await assertFormStructuring(await ownerOf(formId));
-  const actor = await currentUsername();
+  const person = await currentUsername();
   await prisma.$transaction(
     async (tx) => {
       await tx.form.update({ where: { id: formId }, data: definition });
       await sweepFieldRenames(tx, formId, sweeps.renames);
       if (sweeps.recomputeTitlesWith) {
-        await sweepEntryTitles(tx, formId, sweeps.recomputeTitlesWith, actor);
+        await sweepEntryTitles(tx, formId, sweeps.recomputeTitlesWith, person);
       }
     },
     { timeout: COLD_ADMIN_TRANSACTION_TIMEOUT_MS }
@@ -232,7 +232,7 @@ export async function createForm(
   slug: string,
   definition: FormDefinition
 ): Promise<void> {
-  if (!(await actorCanCreateForm())) throw new Error(CREATE_FORM_REFUSED);
+  if (!(await personCanCreateForm())) throw new Error(CREATE_FORM_REFUSED);
   const ownerUsername = await currentUsername();
   await prisma.form.create({ data: { ...definition, slug, ownerUsername } });
 }

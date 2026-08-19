@@ -14,7 +14,7 @@ import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
 import {
-  actorPermissions,
+  personPermissions,
   countPageSlugReferences,
   deletePageById,
   getPage,
@@ -136,7 +136,7 @@ export async function renamePage(
   // than from the catch below — which speaks for the rename's own failure, a
   // unique-constraint race on the new slug. It comes before the clash test
   // too, that being the one answer which says something about another page.
-  if (!(await actorPermissions(page)).address) {
+  if (!(await personPermissions(page)).address) {
     return { error: ADDRESS_REFUSED };
   }
   if (await getPage(newSlug)) {
