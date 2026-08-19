@@ -2,16 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   SUGGESTION_LIMIT,
   alignSpelling,
-  fold,
   rankByFrequency,
-  suggestTags,
-} from "./tag-suggestions";
-
-describe("fold", () => {
-  it("matches case- and diacritics-insensitively", () => {
-    expect(fold("École")).toBe(fold("ecole"));
-  });
-});
+  suggestValues,
+} from "./suggested-values";
 
 describe("rankByFrequency", () => {
   it("orders distinct values by descending count", () => {
@@ -22,6 +15,12 @@ describe("rankByFrequency", () => {
 
   it("settles ties alphabetically", () => {
     expect(rankByFrequency(["sport", "atelier"])).toEqual(["atelier", "sport"]);
+  });
+
+  it("trims each occurrence and ignores the empty ones", () => {
+    expect(rankByFrequency([" atelier ", "atelier", "  ", ""])).toEqual([
+      "atelier",
+    ]);
   });
 
   it("groups spelling variants and keeps the dominant one", () => {
@@ -38,10 +37,10 @@ describe("rankByFrequency", () => {
   });
 });
 
-describe("suggestTags", () => {
+describe("suggestValues", () => {
   it("shows everything on an empty draft, up to the limit", () => {
     expect(
-      suggestTags({ candidates: ["atelier", "sport"], draft: "", placed: [] })
+      suggestValues({ candidates: ["atelier", "sport"], draft: "", placed: [] })
     ).toEqual(["atelier", "sport"]);
   });
 
@@ -50,12 +49,12 @@ describe("suggestTags", () => {
       { length: SUGGESTION_LIMIT + 1 },
       (_, i) => `tag-${i}`
     );
-    expect(suggestTags({ candidates, draft: "", placed: [] })).toEqual([]);
+    expect(suggestValues({ candidates, draft: "", placed: [] })).toEqual([]);
   });
 
   it("narrows to candidates whose fold contains the draft's", () => {
     expect(
-      suggestTags({
+      suggestValues({
         candidates: ["Atelier vélo", "Atelier couture", "Sport"],
         draft: "atel",
         placed: [],
@@ -65,7 +64,7 @@ describe("suggestTags", () => {
 
   it("drops what is already placed, compared by fold", () => {
     expect(
-      suggestTags({
+      suggestValues({
         candidates: ["Atelier", "Sport"],
         draft: "",
         placed: ["atelier"],
@@ -75,7 +74,7 @@ describe("suggestTags", () => {
 
   it("drops the candidate that exactly matches the typed draft", () => {
     expect(
-      suggestTags({
+      suggestValues({
         candidates: ["Atelier", "Atelier vélo"],
         draft: "atelier",
         placed: [],

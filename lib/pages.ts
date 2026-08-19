@@ -59,7 +59,7 @@ import {
 } from "@/lib/permissions";
 import { assertAdmin, currentPerson, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
-import { rankByFrequency } from "@/lib/tag-suggestions";
+import { rankByFrequency } from "@/lib/suggested-values";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
   type SlugReferenceImpact,

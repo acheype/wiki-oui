@@ -76,7 +76,7 @@ import {
 } from "@/lib/permissions";
 import { currentPerson, currentIdentity } from "@/lib/permissions-db";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
-import { rankByFrequency } from "@/lib/tag-suggestions";
+import { rankByFrequency } from "@/lib/suggested-values";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
@@ -453,9 +453,7 @@ export async function listUsedFieldValues(
       ? value.filter((item): item is string => typeof item === "string")
       : [];
   });
-  return rankByFrequency(
-    values.map((value) => value.trim()).filter((value) => value !== "")
-  );
+  return rankByFrequency(values);
 }
 
 /** value (entry slug) → label (current title), for form-sourced options. */

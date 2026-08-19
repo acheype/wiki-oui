@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { alignSpelling, fold, suggestTags } from "@/lib/tag-suggestions";
+import { fold } from "@/lib/fold";
+import { alignSpelling, suggestValues } from "@/lib/suggested-values";
 
 const NO_CANDIDATES: string[] = [];
 
@@ -29,7 +30,7 @@ export function TagsInput({
   // field, for a reader who never meant to touch it.
   const [focused, setFocused] = useState(false);
   const suggestions = useMemo(
-    () => suggestTags({ candidates, draft, placed: tags }),
+    () => suggestValues({ candidates, draft, placed: tags }),
     [candidates, draft, tags]
   );
 

@@ -7,7 +7,7 @@
 import type { EntryFieldChoice } from "./entry-fields";
 import { valueToText } from "./form-descriptor";
 import { isPseudoField } from "./pseudo-fields";
-import { fold } from "./tag-suggestions";
+import { fold } from "./fold";
 
 /** One entry as the view consumes it: referenced field values only. */
 export interface ViewEntry {

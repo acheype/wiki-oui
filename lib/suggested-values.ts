@@ -1,28 +1,24 @@
-// Pure rules for the « Mots-clés déjà utilisés » suggestion (issue #15):
-// ranking already-used values by frequency, and what a widget offers under
-// the current draft. No database, no Server Action — those are the doors
-// next to it (lib/pages.ts listPageTags, app/form-actions.ts
-// listUsedFieldValues), which feed this module the raw occurrences.
+// Pure rules behind the "already-used values" suggestion (issue #15), shared
+// by the two vocabularies the widget serves without ever mixing them
+// (docs/forms.md, "Mots-cles != tags de Page"): ranking occurrences by
+// frequency, and choosing what to offer under the current draft. The doors
+// feeding it raw occurrences sit next to it -- lib/pages.ts listPageTags,
+// app/form-actions.ts listUsedFieldValues.
+
+import { fold } from "./fold";
 
 export const SUGGESTION_LIMIT = 8;
 
-/** Case- and diacritics-insensitive comparison key ("ecole" matches "École"). */
-export function fold(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
 /** Distinct values, most used first; ties settled alphabetically. */
 export function rankByFrequency(occurrences: string[]): string[] {
-  // Grouped by fold: "Atelier" seen 12 times and "atelier" seen 3 times form
-  // one candidate weighing 15, whose spelling is the group's most frequent \u2014
-  // the dominant one, not the first encountered. That is what gives
-  // alignSpelling its meaning: an added word rallies to what is actually in
-  // use, not to whichever variant happened to arrive first.
+  // Grouped by fold, so that "Atelier" seen 12 times and "atelier" seen 3
+  // times form one candidate weighing 15, spelled the way the group mostly
+  // spells it. That is what gives alignSpelling its meaning: an added word
+  // rallies to what is in use, not to whichever variant arrived first.
   const spellingCounts = new Map<string, Map<string, number>>();
-  for (const value of occurrences) {
+  for (const occurrence of occurrences) {
+    const value = occurrence.trim();
+    if (value === "") continue;
     const key = fold(value);
     const spellings = spellingCounts.get(key) ?? new Map<string, number>();
     spellings.set(value, (spellings.get(value) ?? 0) + 1);
@@ -45,18 +41,22 @@ export function rankByFrequency(occurrences: string[]): string[] {
 }
 
 /** What the widget offers under the current draft. */
-export function suggestTags(input: {
+export function suggestValues(input: {
   candidates: string[];
   draft: string;
   placed: string[];
 }): string[] {
   const { candidates, draft, placed } = input;
   const placedKeys = new Set(placed.map(fold));
-  // The order the caller passed in (typically rankByFrequency's output) is
-  // kept throughout: filtering is stable, so the frequency ranking survives.
-  const available = candidates.filter((candidate) => !placedKeys.has(fold(candidate)));
+  // The caller's order (rankByFrequency's output) survives: filtering is
+  // stable, so the most used values stay in front.
+  const available = candidates.filter(
+    (candidate) => !placedKeys.has(fold(candidate))
+  );
 
   const query = fold(draft.trim());
+  // Under the limit the whole vocabulary is worth showing; past it, the
+  // widget suggests rather than inventories, and waits for a first letter.
   if (query === "") {
     return available.length <= SUGGESTION_LIMIT ? available : [];
   }
