@@ -7,7 +7,7 @@
 
 import { fold } from "./fold";
 
-export const SUGGESTION_LIMIT = 8;
+export const SUGGESTION_LIMIT = 6;
 
 /** Distinct values, most used first; ties settled alphabetically. */
 export function rankByFrequency(occurrences: string[]): string[] {
