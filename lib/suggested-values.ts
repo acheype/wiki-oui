@@ -55,10 +55,11 @@ export function suggestValues(input: {
   );
 
   const query = fold(draft.trim());
-  // Under the limit the whole vocabulary is worth showing; past it, the
-  // widget suggests rather than inventories, and waits for a first letter.
+  // Nothing typed yet: the panel opens on focus with the head of the list --
+  // the most used values, or the most recent ones where frequency has no
+  // meaning. Eight of two hundred is a suggestion, not an inventory.
   if (query === "") {
-    return available.length <= SUGGESTION_LIMIT ? available : [];
+    return available.slice(0, SUGGESTION_LIMIT);
   }
 
   return available

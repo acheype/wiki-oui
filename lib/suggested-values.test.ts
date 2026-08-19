@@ -44,12 +44,14 @@ describe("suggestValues", () => {
     ).toEqual(["atelier", "sport"]);
   });
 
-  it("shows nothing on an empty draft past the limit", () => {
+  it("keeps only the head of a long list on an empty draft", () => {
     const candidates = Array.from(
-      { length: SUGGESTION_LIMIT + 1 },
+      { length: SUGGESTION_LIMIT + 4 },
       (_, i) => `tag-${i}`
     );
-    expect(suggestValues({ candidates, draft: "", placed: [] })).toEqual([]);
+    expect(suggestValues({ candidates, draft: "", placed: [] })).toEqual(
+      candidates.slice(0, SUGGESTION_LIMIT)
+    );
   });
 
   it("narrows to candidates whose fold contains the draft's", () => {
