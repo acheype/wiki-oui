@@ -59,6 +59,7 @@ import {
 } from "@/lib/permissions";
 import { assertAdmin, currentPerson, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
+import { rankByFrequency } from "@/lib/tag-suggestions";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
   type SlugReferenceImpact,
@@ -325,6 +326,22 @@ async function slugsMatching(where: Prisma.PageWhereInput): Promise<string[]> {
     orderBy: { slug: "asc" },
   });
   return pages.map((page) => page.slug);
+}
+
+/**
+ * The keywords a page-tag input offers: what this person can actually read
+ * (issue #15). `Page.tags` is a Postgres array (ADR 0007), whose own SELECT
+ * DISTINCT unnest(tags) trick is deliberately not used here — a raw query
+ * would need its own copy of the read filter, and a second copy is a copy
+ * that drifts. Reading the rows and ranking them in memory keeps the one
+ * `where` every other list goes through.
+ */
+export async function listPageTags(): Promise<string[]> {
+  const pages = await prisma.page.findMany({
+    where: await currentReadableWhere(),
+    select: { tags: true },
+  });
+  return rankByFrequency(pages.flatMap((page) => page.tags));
 }
 
 /** Named pages with their current revision — resolving links to their title. */

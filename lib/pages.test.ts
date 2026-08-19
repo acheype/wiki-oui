@@ -53,7 +53,9 @@ vi.mock("@/lib/groups-db", () => ({
 }));
 
 const {
+  currentReadableWhere,
   deletePageById,
+  listPageTags,
   renamePageSlug,
   setPageRights,
   transferPageOwnership,
@@ -344,5 +346,24 @@ describe("the same writes, to whoever they answer to", () => {
       where: { id: "page-1" },
       data: { slug: "cr" },
     });
+  });
+});
+
+// The page-tag suggestion (issue #15) reads through the same clause every
+// other list reads through — not the unnest of ADR 0007, which would leave
+// the read filter behind (see lib/pages.ts listPageTags).
+describe("listPageTags", () => {
+  it("reads through the current read filter, ranked by frequency", async () => {
+    db.page.findMany.mockResolvedValue([
+      { tags: ["Atelier", "Atelier"] },
+      { tags: ["atelier"] },
+      { tags: ["Sport"] },
+    ]);
+    const result = await listPageTags();
+    expect(db.page.findMany).toHaveBeenCalledWith({
+      where: await currentReadableWhere(),
+      select: { tags: true },
+    });
+    expect(result).toEqual(["Atelier", "Sport"]);
   });
 });
