@@ -7,6 +7,7 @@
 import type { EntryFieldChoice } from "./entry-fields";
 import { valueToText } from "./form-descriptor";
 import { isPseudoField } from "./pseudo-fields";
+import { fold } from "./tag-suggestions";
 
 /** One entry as the view consumes it: referenced field values only. */
 export interface ViewEntry {
@@ -41,14 +42,6 @@ export function defaultSearchFields(fields: EntryFieldChoice[]): string[] {
       (TEXT_SEARCH_TYPES as readonly string[]).includes(field.type)
     )
     .map((field) => field.name);
-}
-
-// Case- and diacritics-insensitive ("ecole" finds "École").
-function fold(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
 }
 
 export function searchEntries(
