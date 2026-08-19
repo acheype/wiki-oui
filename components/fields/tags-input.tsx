@@ -3,10 +3,13 @@
 import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fold } from "@/lib/fold";
 import { alignSpelling, suggestValues } from "@/lib/suggested-values";
+import {
+  SuggestionPopover,
+  useSuggestions,
+} from "./suggestion-popover";
 
 const NO_CANDIDATES: string[] = [];
 
@@ -23,16 +26,19 @@ export function TagsInput({
   onFocus?: () => void;
 }) {
   const [draft, setDraft] = useState("");
-  // Suggestions belong to the act of typing, so they show only while the
-  // field has focus. A fiche's candidates arrive at that first focus anyway,
-  // but a page's are injected with the editor (allTags): without this, a wiki
-  // of eight tags or fewer would keep its whole vocabulary pinned under the
-  // field, for a reader who never meant to touch it.
-  const [focused, setFocused] = useState(false);
-  const suggestions = useMemo(
+  const items = useMemo(
     () => suggestValues({ candidates, draft, placed: tags }),
     [candidates, draft, tags]
   );
+  // Picking adds one more chip and clears the draft: the panel stays open on
+  // the remaining candidates, so several keywords go on in a row.
+  const suggestions = useSuggestions({
+    items,
+    onPick: (value) => {
+      onChange([...tags, value]);
+      setDraft("");
+    },
+  });
 
   function addDraft() {
     const typed = draft.trim();
@@ -48,13 +54,8 @@ export function TagsInput({
     setDraft("");
   }
 
-  function addSuggestion(value: string) {
-    onChange([...tags, value]);
-    setDraft("");
-  }
-
   return (
-    <div className="flex flex-col gap-1.5">
+    <SuggestionPopover suggestions={suggestions}>
       <div className="flex flex-wrap items-center gap-1.5">
         {tags.map((tag) => (
           <Badge key={tag} variant="secondary" className="gap-1 pr-1">
@@ -70,9 +71,11 @@ export function TagsInput({
           </Badge>
         ))}
         <Input
+          {...suggestions.comboboxProps}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
+            if (suggestions.handleKeyDown(event)) return;
             if (event.key === "Enter" || event.key === ",") {
               event.preventDefault();
               addDraft();
@@ -82,38 +85,17 @@ export function TagsInput({
             }
           }}
           onFocus={() => {
-            setFocused(true);
+            suggestions.openList();
             onFocus?.();
           }}
           onBlur={() => {
-            setFocused(false);
+            suggestions.closeList();
             addDraft();
           }}
           placeholder={tags.length === 0 ? "Ajouter des tags…" : ""}
           className="h-7 w-40 border-none bg-transparent px-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
       </div>
-      {focused && suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {suggestions.map((value) => (
-            <Button
-              key={value}
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-6 rounded-full px-2 text-xs"
-              // Without this, the click's blur fires first and addDraft beats
-              // it to the punch with the raw draft ("atel" instead of the
-              // suggestion clicked, "Atelier"). It also keeps the focus, so
-              // the suggestions stay up for a second pick.
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => addSuggestion(value)}
-            >
-              {value}
-            </Button>
-          ))}
-        </div>
-      )}
-    </div>
+    </SuggestionPopover>
   );
 }
