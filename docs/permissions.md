@@ -199,12 +199,11 @@ Deux fuites sont **refusées à l'enregistrement du formulaire**, pas rattrapée
 - le **titre automatique** ne peut pas référencer un champ à lecture restreinte : `{prenom} {salaire}` publierait le salaire dans le titre, l'URL et toutes les listes. Même contrôle que le `{champ}` inconnu, déjà refusé ;
 - le champ **`title`** ne peut pas être restreint en lecture : une fiche sans titre visible casse son invariant de titre non vide (ADR 0020), son slug et son affichage partout.
 
-Deux restrictions les rejoignent, non parce qu'elles fuiraient mais parce que le wiki ne saurait pas les tenir :
+Une restriction les rejoint, non parce qu'elle fuirait mais parce que le wiki ne saurait pas la tenir :
 
-- le champ **`title`** ne se restreint pas non plus **en écriture** : une fiche est refusée sans titre, donc qui ne peut pas l'écrire ne peut créer aucune fiche — un formulaire fermé par un réglage qui n'en dit rien ;
-- le champ **`tags`** ne se restreint pas **en lecture** : les mots-clés vivent sur la Page et pas dans le snapshot (ADR 0007), et le wiki les liste partout où il liste des pages. Les cacher du formulaire et de la fiche laisserait la promesse à moitié tenue. Leur **écriture**, elle, se restreint : elle s'applique à côté de la fusion, sur la Page.
+- le champ **`title`** ne se restreint pas non plus **en écriture** : une fiche est refusée sans titre, donc qui ne peut pas l'écrire ne peut créer aucune fiche — un formulaire fermé par un réglage qui n'en dit rien.
 
-Aucun des trois réglages n'est offert par le panneau : l'état est rendu impossible plutôt que rattrapé — le motif de `@Admins`, qui n'accepte que des personnes. Le refus à l'enregistrement reste le garde-fou d'un descripteur écrit à la main.
+Aucun des deux réglages n'est offert par le panneau : l'état est rendu impossible plutôt que rattrapé — le motif de `@Admins`, qui n'accepte que des personnes. Le refus à l'enregistrement reste le garde-fou d'un descripteur écrit à la main.
 
 À la saisie, un champ non lisible est **absent** ; un champ lisible mais non modifiable est **affiché grisé avec son motif** (« 🔒 Réservé à @Bureau »).
 

@@ -205,10 +205,9 @@ function FieldRights({
       within: "parmi ceux qui voient la fiche",
       posed: field.readAcl,
       under: entryDefaults.read,
-      // Tags are the Page's, not the snapshot's (ADR 0007), and the wiki
-      // lists them wherever it lists pages: hiding the field would hide
-      // nothing. Who may pose them is still a question worth answering.
-      shown: field.type !== "tags",
+      // Every field type has a reading to pose; only the filling has an
+      // exception below.
+      shown: true,
     },
     {
       key: "writeAcl",
@@ -282,12 +281,6 @@ function FieldRights({
                 />
               </div>
             ) : null
-          )}
-          {!rules[0].shown && (
-            <InfoNote>
-              Les mots-clés vivent sur la page : le wiki les liste partout où
-              il liste des pages, leur lecture ne se restreint donc pas.
-            </InfoNote>
           )}
         </div>
       )}

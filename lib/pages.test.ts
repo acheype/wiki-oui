@@ -175,8 +175,8 @@ describe("what a save may move, field by field", () => {
     tags: ["paie"],
     current: { data: { title: "Paie", nom: "Marie", salaire: 42000 } },
   };
-  const save = (data: Record<string, unknown>, tags: string[] = ["paie"]) =>
-    writeEntryRevision({ pageId: "page-1", data, tags, descriptor: PAYROLL });
+  const save = (data: Record<string, unknown>) =>
+    writeEntryRevision({ pageId: "page-1", data, descriptor: PAYROLL });
   const written = () =>
     db.revision.create.mock.calls.at(-1)?.[0].data.data as unknown;
 
@@ -207,22 +207,26 @@ describe("what a save may move, field by field", () => {
     expect(written()).toEqual({ title: "Paie", nom: "Marie", salaire: 45000 });
   });
 
-  // Tags live on the Page and not in the snapshot (ADR 0007), so the merge
-  // cannot reach them: their field's own rule is applied beside it.
-  it("keeps the tags of whoever may not move them", async () => {
-    await save({ title: "Paie", nom: "Marie Durand" }, []);
-    expect(db.page.update).toHaveBeenCalledWith({
-      where: { id: "page-1" },
-      data: { tags: ["paie"] },
+  // A « Mots-clés » field is an ordinary field of the fiche (docs/forms.md):
+  // its value rides in the snapshot, so the merge decides on it like on any
+  // other — nothing of it reaches Page.tags, which belongs to the page.
+  it("holds back the keywords of whoever may not move them", async () => {
+    await save({ title: "Paie", nom: "Marie Durand", "mots-cles": ["rh"] });
+    expect(written()).toEqual({
+      title: "Paie",
+      nom: "Marie Durand",
+      salaire: 42000,
     });
   });
 
   it("moves them for whoever may", async () => {
     signedInAs("jean-martin", ["bureau"]);
-    await save({ title: "Paie", nom: "Marie Durand" }, []);
-    expect(db.page.update).toHaveBeenCalledWith({
-      where: { id: "page-1" },
-      data: { tags: [] },
+    await save({ title: "Paie", nom: "Marie", "mots-cles": ["rh"] });
+    expect(written()).toEqual({
+      title: "Paie",
+      nom: "Marie",
+      salaire: 42000,
+      "mots-cles": ["rh"],
     });
   });
 

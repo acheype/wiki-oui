@@ -80,21 +80,16 @@ describe("parseFormDescriptor", () => {
     });
   });
 
-  it("rejects a second tags field", () => {
+  // The « one per form » rule went with the coupling to Page.tags: a
+  // « Mots-clés » field is now an ordinary field of the fiche, and a form may
+  // hold as many as it has kinds of keyword.
+  it("accepts several tags fields", () => {
     const descriptor = contactDescriptor();
     descriptor.fields.push(
-      { type: "tags", name: "mots-cles", label: "Mots-clés" },
-      { type: "tags", name: "themes", label: "Thèmes" }
+      { type: "tags", name: "themes", label: "Thèmes" },
+      { type: "tags", name: "publics", label: "Publics" }
     );
-    const result = parseFormDescriptor(descriptor);
-    expect(result).toEqual({
-      issues: [
-        {
-          fieldIndex: 3,
-          message: "Un seul champ «\u00A0Mots-clés\u00A0» par formulaire.",
-        },
-      ],
-    });
+    expect(parseFormDescriptor(descriptor).descriptor).toBeDefined();
   });
 
   it("accepts an automatic title whose template references existing fields", () => {
@@ -738,32 +733,15 @@ describe("formAuthoringIssues", () => {
       ]);
     });
 
-    // Tags live on the Page, not in the snapshot (ADR 0007), and the wiki
-    // lists them wherever it lists pages: a restriction on their reading is a
-    // promise it could not keep.
-    it("refuses a read-restricted tags field", () => {
+    // A « Mots-clés » field carries its value in the snapshot like any other
+    // (docs/forms.md): both its senses restrict, and neither is refused.
+    it("accepts a restricted tags field, both senses", () => {
       const descriptor = contactDescriptor();
       descriptor.fields.push({
         type: "tags",
         name: "mots-cles",
         label: "Mots-clés",
         readAcl: restricted,
-      });
-      expect(formAuthoringIssues(descriptor)).toEqual([
-        {
-          fieldIndex: 2,
-          message:
-            "Les mots-clés ne peuvent pas être restreints en lecture : ils vivent sur la page, et le wiki les liste partout où il liste des pages.",
-        },
-      ]);
-    });
-
-    it("accepts a tags field whose writing alone is restricted", () => {
-      const descriptor = contactDescriptor();
-      descriptor.fields.push({
-        type: "tags",
-        name: "mots-cles",
-        label: "Mots-clés",
         writeAcl: restricted,
       });
       expect(formAuthoringIssues(descriptor)).toEqual([]);

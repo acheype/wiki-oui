@@ -18,7 +18,6 @@ import {
   isOptionsField,
   parseFormDescriptor,
   readEntryData,
-  tagsField,
   unknownFieldReferences,
 } from "@/lib/form-descriptor";
 import {
@@ -503,14 +502,6 @@ function sourcedFormSlug(
   return undefined;
 }
 
-/** The tags a save poses, which live on the Page and not in the snapshot. */
-function entryTags(descriptor: FormDescriptor, data: EntryData): string[] {
-  const field = tagsField(descriptor);
-  if (!field) return [];
-  const value = data[field.name];
-  return Array.isArray(value) ? (value as string[]) : [];
-}
-
 /**
  * The values a save writes, their title among them (ADR 0020): every reader
  * reads `data.title`, none recomputes it. In automatic mode the client never
@@ -593,8 +584,8 @@ async function readOnlyMotifs(
   );
 }
 
-// Loads what the generated entry form needs. `entrySlug` set = edit mode
-// (prefilled from the current snapshot, tags from Page.tags).
+// Loads what the generated entry form needs. `entrySlug` set = edit mode,
+// prefilled from the current snapshot.
 export async function getEntryForm(
   formSlug: string,
   entrySlug?: string
@@ -616,8 +607,6 @@ export async function getEntryForm(
     // form, and the refusal screen has already answered on the way in.
     if (!page || isRefused(page) || page.formId !== form.id) return null;
     values = seen.readableValues(page.current?.data);
-    const tags = tagsField(seen.readable);
-    if (tags) values = { ...values, [tags.name]: page.tags };
     slug = page.slug;
   }
 
@@ -703,7 +692,6 @@ export async function saveEntry(
       await writeEntryRevision({
         pageId: page.id,
         data: titled.stored,
-        tags: entryTags(descriptor, data),
         descriptor,
       });
     } catch (error) {
@@ -733,7 +721,6 @@ export async function saveEntry(
       slug,
       formId: form.id,
       data: stored,
-      tags: entryTags(descriptor, data),
       // The form decides who may add a fiche, and what that fiche is born
       // with (docs/permissions.md § Formulaire) — not the wiki's own rules,
       // which govern pages.

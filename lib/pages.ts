@@ -6,12 +6,11 @@ import {
   nothingToReplace,
 } from "@/lib/bulk-rights";
 import { restoredEntryValues } from "@/lib/entry-title";
-import { canWriteField, mergedEntryData } from "@/lib/field-rights";
+import { mergedEntryData } from "@/lib/field-rights";
 import {
   type EntryData,
   type FormDescriptor,
   readEntryData,
-  tagsField,
 } from "@/lib/form-descriptor";
 import {
   type EntryRightsImpact,
@@ -30,7 +29,6 @@ import {
   type AccessRule,
   type AclEntry,
   type AclFloor,
-  type Actor,
   type Identity,
   type PagePermissions,
   type PageRights,
@@ -52,7 +50,6 @@ import {
   permissionsOn,
   pageRule,
   listReadableWhere,
-  readableWhere,
   ruleAllows,
   storedRights,
   withoutFloor,
@@ -963,10 +960,9 @@ export async function createEntryPage(input: {
   slug: string;
   formId: string;
   data: EntryData;
-  tags: string[];
   permissions: FormPermissions;
 }): Promise<void> {
-  const { slug, formId, data, tags, permissions } = input;
+  const { slug, formId, data, permissions } = input;
   if (!canCreateEntry(await currentActor(), permissions)) {
     throw new Error(CREATE_ENTRY_REFUSED);
   }
@@ -981,7 +977,7 @@ export async function createEntryPage(input: {
   );
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, ownerUsername: author, formId, tags, ...born },
+      data: { slug, ownerUsername: author, formId, ...born },
     });
     await mintRevision(tx, {
       pageId: page.id,
@@ -993,8 +989,7 @@ export async function createEntryPage(input: {
 
 /**
  * A new snapshot for an existing entry, unless the data is unchanged
- * (revisions are the content's history, ADR 0003). Tags live on the Page and
- * update without a revision (ADR 0007).
+ * (revisions are the content's history, ADR 0003).
  *
  * A revision stores a **complete** snapshot, so the write merges rather than
  * replaces (docs/permissions.md § Champ): it starts from the current revision
@@ -1010,10 +1005,9 @@ export async function createEntryPage(input: {
 export async function writeEntryRevision(input: {
   pageId: string;
   data: EntryData;
-  tags: string[];
   descriptor: FormDescriptor;
 }): Promise<void> {
-  const { pageId, data, tags, descriptor } = input;
+  const { pageId, data, descriptor } = input;
   const page = await prisma.page.findUniqueOrThrow({
     where: { id: pageId },
     include: { current: true, ...WITH_RIGHTS },
@@ -1022,28 +1016,18 @@ export async function writeEntryRevision(input: {
   const actor = await currentActor();
   const current = readEntryData(page.current?.data);
   const written = mergedEntryData(actor, descriptor, current, data);
-  // Tags live on the Page and not in the snapshot (ADR 0007), so the merge
-  // above never reaches them: their own field's right is applied here, and
-  // what the fiche already carries answers for whoever may not move them.
-  const posedTags = canWriteTags(actor, descriptor) ? tags : page.tags;
   const unchanged = JSON.stringify(current) === JSON.stringify(written);
   const author = await currentUsername();
+  if (unchanged) return;
+  // Two writes — the revision and the pointer that names it current — so the
+  // transaction stays, though the tags no longer ride along with them.
   await prisma.$transaction(async (tx) => {
-    await tx.page.update({ where: { id: pageId }, data: { tags: posedTags } });
-    if (unchanged) return;
     await mintRevision(tx, {
       pageId,
       data: written as Prisma.InputJsonValue,
       authorUsername: author,
     });
   });
-}
-
-// A form without a tags field poses none: its entries carry whatever the
-// wiki's own tag editor put there, which no field's rule has a say over.
-function canWriteTags(actor: Actor, descriptor: FormDescriptor): boolean {
-  const field = tagsField(descriptor);
-  return field === undefined || canWriteField(actor, field);
 }
 
 /**

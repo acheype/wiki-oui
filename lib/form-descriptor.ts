@@ -143,7 +143,9 @@ const formFieldSchema = z.discriminatedUnion("type", [
     stateField: z.string().optional(),
     geolocateButton: z.boolean().optional(),
   }),
-  /** Entry widget of the Page's tags (docs/forms.md): at most one per form. */
+  // A list of free keywords, stored in `data` like any other value. Nothing
+  // to do with the tags of the Page it is written on (ADR 0007): the two
+  // share an input widget and a look, and no more (docs/forms.md).
   fieldBase.extend({ type: z.literal("tags") }),
   fieldBase.extend({
     type: z.literal("customContent"),
@@ -214,15 +216,6 @@ export function unknownFieldReferences(
 ): string[] {
   const names = new Set(descriptor.fields.map((field) => field.name));
   return extractFieldReferences(text).filter((name) => !names.has(name));
-}
-
-/**
- * The field whose value drives Page.tags (docs/forms.md), at most one per form
- * — the Page being the source of truth, both sides of the door have to find
- * the same one.
- */
-export function tagsField(descriptor: FormDescriptor): FormField | undefined {
-  return descriptor.fields.find((field) => field.type === "tags");
 }
 
 export function isOptionsField(field: FormField): field is OptionsField {
@@ -491,16 +484,6 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
     });
   }
 
-  const tagsIndexes = descriptor.fields.flatMap((field, fieldIndex) =>
-    field.type === "tags" ? [fieldIndex] : []
-  );
-  for (const fieldIndex of tagsIndexes.slice(1)) {
-    issues.push({
-      fieldIndex,
-      message: "Un seul champ «\u00A0Mots-clés\u00A0» par formulaire.",
-    });
-  }
-
   descriptor.fields.forEach((field, fieldIndex) => {
     if (field.type === "title" && field.automatic && field.template) {
       for (const name of unknownFieldReferences(field.template, descriptor)) {
@@ -612,13 +595,6 @@ function restrictedFieldLeaks(
         });
       }
       issues.push(...automaticTitleLeaks(descriptor, field, fieldIndex));
-    }
-    if (field.type === "tags" && restrictsReading(field)) {
-      issues.push({
-        fieldIndex,
-        message:
-          "Les mots-clés ne peuvent pas être restreints en lecture : ils vivent sur la page, et le wiki les liste partout où il liste des pages.",
-      });
     }
   });
   return issues;

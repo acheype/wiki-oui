@@ -103,12 +103,6 @@ export async function getEntriesViewData(
       for (const [name, value] of Object.entries(data)) {
         if (keptNames.has(name) && readable.has(name)) values[name] = value;
       }
-      // The Page's tags mirror the tags field but the Page is the source of
-      // truth (docs/forms.md): serve them under the form's tags field name.
-      const tagsField = kept.find((choice) => choice.type === "tags");
-      if (tagsField && readable.has(tagsField.name)) {
-        values[tagsField.name] = page.tags;
-      }
       values.$form = form.slug;
       values.$owner = displayName(page.owner);
       values.$createdAt = page.createdAt.toISOString();

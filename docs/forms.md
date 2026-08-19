@@ -79,7 +79,7 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 ### Validation à l'enregistrement du formulaire
 
 - descripteur bien formé (méta-schéma Zod : types connus, paramètres cohérents) ;
-- `name` de champs **uniques** ; `title` présent ; au plus **un** champ `tags` ;
+- `name` de champs **uniques** ; `title` présent ;
 - toute référence `{champ}` du titre automatique et du gabarit correspond à un champ existant (une coquille est refusée à la source) ;
 - `slug` au format slug, unique.
 
@@ -142,7 +142,7 @@ Tronc commun à tous les types : `label` · `name` (voir Identités) · `require
 | `image` | Image | `resizeWidth` · `resizeHeight` — upload vers le pool `files/` (ADR 0012), affichage via l'API de redimensionnement |
 | `file` | Upload de fichier | — pool `files/`, extensions/limites par la config globale des familles |
 | `geolocation` | Géolocalisation | `streetField` · `street1Field` · `street2Field` · `postalCodeField` · `townField` · `countyField` · `stateField` (liaison aux champs adresse du formulaire) · `geolocateButton` (« depuis ma position ») — stocke `{lat, lng}` |
-| `tags` | Mots-clés | — écrit dans **`Page.tags`** (fusion, voir ci-dessous) |
+| `tags` | Mots-clés | — liste de mots libres, stockée dans `data` (voir ci-dessous) |
 | `customContent` | Custom html/wiki | `entryContent` (MDX affiché dans le formulaire de saisie) · `displayContent` (MDX affiché dans la fiche) — rédigés par l'admin, rendus par le pipeline sandboxé |
 | `title` | Titre de la fiche | `automatic` + `template` (mode titre automatique) |
 
@@ -157,9 +157,9 @@ Tronc commun à tous les types : `label` · `name` (voir Identités) · `require
 
 Champ complet façon YesWiki : carte **Leaflet** (tuiles OSM) avec marqueur ajustable, géocodage **Nominatim** depuis les champs adresse du formulaire désignés par l'admin (`streetField`…), bouton « Géolocaliser depuis ma position » (géolocalisation navigateur). Formes multiples (lignes, polygones…) : backlog.
 
-### Mots-clés = tags de Page
+### Mots-clés ≠ tags de Page
 
-Le champ `tags` est le **widget de saisie des tags de la Page-fiche** : pré-rempli depuis `Page.tags`, sa sauvegarde met à jour `Page.tags` — non historisé, exactement la règle existante du domaine. Un seul vocabulaire de tags dans tout le wiki ; au plus un champ `tags` par formulaire.
+Le champ `tags` est un **champ de fiche ordinaire** : sa valeur vit dans le snapshot `data` comme toute autre, elle est historisée avec les révisions, elle se restreint en lecture comme en écriture, et un formulaire peut en porter autant qu'il a de sortes de mots-clés. Il ne partage avec les **tags de la Page** (ADR 0007) que le widget de saisie et l'allure : les tags classent une page dans tout le wiki et ne sont pas historisés ; les mots-clés d'une fiche sont un de ses champs. Rien ne passe de l'un à l'autre.
 
 ### API de redimensionnement d'images
 
