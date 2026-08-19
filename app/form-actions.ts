@@ -22,7 +22,6 @@ import {
 } from "@/lib/form-descriptor";
 import {
   fieldWriteRule,
-  mergedEntryData,
   writableDescriptor,
 } from "@/lib/field-rights";
 import { readableForm } from "@/lib/field-rights-db";
@@ -672,28 +671,13 @@ export async function saveEntry(
     if (!page || isRefused(page) || page.formId !== form.id) {
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
-    // The title is computed against the merge, not against what arrived: a
-    // gabarit naming a field its author may not write must go on reading the
-    // value the fiche holds, rather than losing it (ADR 0020). The door
-    // merges again on its own, from the revision it reads there — this one
-    // is what the title is worked out from.
-    const merged = mergedEntryData(
-      person,
-      descriptor,
-      readEntryData(page.current?.data),
-      data
-    );
-    const titled = titledEntry(descriptor, merged);
-    if (titled.refusal) return { ok: false, formError: titled.refusal };
-    // The form refuses long before this, so reaching it means the right went
-    // away between opening the fiche and saving it: a refusal to report, not
-    // an error boundary to fall into.
+    // Nothing is merged here, and no title worked out: both belong to the
+    // door, which merges from the revision it reads itself and computes the
+    // title from that merge (ADR 0020). What comes back as a refusal — a
+    // right that went away, a title the merge leaves empty — travels in the
+    // toast rather than into an error boundary.
     try {
-      await writeEntryRevision({
-        pageId: page.id,
-        data: titled.stored,
-        descriptor,
-      });
+      await writeEntryRevision({ pageId: page.id, data, descriptor });
     } catch (error) {
       return { ok: false, formError: refusalMessage(error) };
     }

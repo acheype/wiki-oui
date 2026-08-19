@@ -230,6 +230,61 @@ describe("what a save may move, field by field", () => {
     });
   });
 
+  // The whole reason the title is worked out at the door, after the merge: a
+  // gabarit may name a field this person cannot fill, and what arrives from
+  // the browser no longer carries it. Computed from the payload alone, the
+  // title would lose the very value the fiche still holds — and a stored
+  // title is never worked out again at read (ADR 0020).
+  it("works the automatic title out from the merge, not from the payload", async () => {
+    const automatic: FormDescriptor = {
+      fields: [
+        {
+          type: "title",
+          name: "title",
+          label: "Titre",
+          automatic: true,
+          template: "{nom} — {salaire}",
+        },
+        { type: "text", name: "nom", label: "Nom" },
+        { type: "text", name: "salaire", label: "Salaire", writeAcl: BUREAU },
+      ],
+    };
+    db.page.findUniqueOrThrow.mockResolvedValue({
+      ...JEANS_ENTRY,
+      current: { data: { title: "Marie — 42000", nom: "Marie", salaire: 42000 } },
+    });
+    await writeEntryRevision({
+      pageId: "page-1",
+      data: { nom: "Marie Durand" },
+      descriptor: automatic,
+    });
+    expect(written()).toEqual({
+      title: "Marie Durand — 42000",
+      nom: "Marie Durand",
+      salaire: 42000,
+    });
+  });
+
+  // An entry carries a non-empty title, always (ADR 0020). The refusal names
+  // the fields the author can actually fill, and travels as a thrown error
+  // the Server Action turns back into a message under the form.
+  it("refuses a save whose title the merge leaves empty", async () => {
+    const automatic: FormDescriptor = {
+      fields: [
+        { type: "title", name: "title", label: "Titre", automatic: true, template: "{nom}" },
+        { type: "text", name: "nom", label: "Nom" },
+      ],
+    };
+    db.page.findUniqueOrThrow.mockResolvedValue({
+      ...JEANS_ENTRY,
+      current: { data: { title: "Marie", nom: "Marie" } },
+    });
+    await expect(
+      writeEntryRevision({ pageId: "page-1", data: { nom: "" }, descriptor: automatic })
+    ).rejects.toThrow("Le titre de la fiche est calculé à partir de");
+    expect(db.revision.create).not.toHaveBeenCalled();
+  });
+
   // A restore is a write like any other, and a silent one: the restorer never
   // saw on screen what they would be putting back.
   it("merges a restored snapshot too", async () => {

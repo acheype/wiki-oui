@@ -10,6 +10,8 @@ import { mergedEntryData } from "@/lib/field-rights";
 import {
   type EntryData,
   type FormDescriptor,
+  computeAutomaticTitle,
+  emptyTitleMessage,
   readEntryData,
 } from "@/lib/form-descriptor";
 import {
@@ -1015,7 +1017,16 @@ export async function writeEntryRevision(input: {
   await assertCanWrite(page);
   const person = await currentPerson();
   const current = readEntryData(page.current?.data);
-  const written = mergedEntryData(person, descriptor, current, data);
+  const merged = mergedEntryData(person, descriptor, current, data);
+  // The title is worked out here, from the merge and after it — the same
+  // order a restore follows next door, and for the same reason: a gabarit
+  // naming a field this person may not write has to go on reading the value
+  // the fiche holds, where what arrived from the browser no longer carries
+  // it. Stored, never recomputed at read (ADR 0020), so a title worked out
+  // from the wrong values would stay wrong for good.
+  const title = computeAutomaticTitle(descriptor, merged);
+  if (title.trim() === "") throw new Error(emptyTitleMessage(descriptor));
+  const written = { ...merged, title };
   const unchanged = JSON.stringify(current) === JSON.stringify(written);
   const author = await currentUsername();
   if (unchanged) return;
