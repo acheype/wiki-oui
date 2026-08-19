@@ -1,0 +1,100 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// listUsedFieldValues (issue #15) is a Server Action — a public entry point
+// callable with any (formSlug, fieldName) pair, not only from the widget that
+// means to. What is asserted here is the guard at its heart: a field this
+// person may not read, or a field that isn't a « Mots-clés » field, must
+// answer [] before any entry is ever read — a filter applied only in the
+// widget would be a UI mask, not a right.
+
+const { db, person } = vi.hoisted(() => ({
+  db: {
+    form: { findMany: vi.fn(), update: vi.fn() },
+    page: { findMany: vi.fn() },
+  },
+  person: { current: { username: null as string | null, groupSlugs: [] as string[] } },
+}));
+
+vi.mock("@/lib/prisma", () => ({ prisma: db }));
+vi.mock("@/lib/permissions-db", () => ({
+  currentPerson: async () => person.current,
+  currentUsername: async () => person.current.username,
+  currentIdentity: async () => null,
+  assertAdmin: async () => {},
+}));
+vi.mock("@/lib/groups-db", () => ({
+  existingPrincipals: async () => ({ usernames: new Set(), groupSlugs: new Set() }),
+  grantTarget: async () => null,
+  listDirectory: async () => ({ people: [], groups: [] }),
+  groupDisplayNames: async () => new Map(),
+  groupNamesBySlug: async () => new Map(),
+  currentGroupSlugs: async () => [],
+}));
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+
+const { getFormBySlug } = vi.hoisted(() => ({ getFormBySlug: vi.fn() }));
+vi.mock("@/lib/forms", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/forms")>()),
+  getFormBySlug,
+}));
+
+const { readableForm } = vi.hoisted(() => ({ readableForm: vi.fn() }));
+vi.mock("@/lib/field-rights-db", () => ({ readableForm }));
+
+const { listEntryPages } = vi.hoisted(() => ({ listEntryPages: vi.fn() }));
+vi.mock("@/lib/pages", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/pages")>()),
+  listEntryPages,
+}));
+
+const { listUsedFieldValues } = await import("@/app/form-actions");
+
+const TAGS_FIELD = { type: "tags", name: "mots-cles", label: "Mots-clés" };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  getFormBySlug.mockResolvedValue({ id: "form-1", schema: {} });
+  listEntryPages.mockResolvedValue([]);
+});
+
+describe("listUsedFieldValues", () => {
+  it("answers nothing for a form that does not exist", async () => {
+    getFormBySlug.mockResolvedValue(null);
+    expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
+    expect(listEntryPages).not.toHaveBeenCalled();
+  });
+
+  it("answers nothing when the descriptor cannot be read at all", async () => {
+    readableForm.mockResolvedValue(null);
+    expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
+    expect(listEntryPages).not.toHaveBeenCalled();
+  });
+
+  it("answers nothing for a field this person may not read", async () => {
+    readableForm.mockResolvedValue({ readable: { fields: [] } });
+    expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
+    expect(listEntryPages).not.toHaveBeenCalled();
+  });
+
+  it("answers nothing for a field that is readable but not a tags field", async () => {
+    readableForm.mockResolvedValue({
+      readable: { fields: [{ type: "text", name: "mots-cles", label: "Mots-clés" }] },
+    });
+    expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
+    expect(listEntryPages).not.toHaveBeenCalled();
+  });
+
+  it("ranks the values already carried by the field's readable entries", async () => {
+    readableForm.mockResolvedValue({ readable: { fields: [TAGS_FIELD] } });
+    listEntryPages.mockResolvedValue([
+      { current: { data: { "mots-cles": ["rh", " rh ", "paie"] } } },
+      { current: { data: { "mots-cles": ["rh"] } } },
+      { current: { data: {} } },
+    ]);
+    expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([
+      "rh",
+      "paie",
+    ]);
+    expect(listEntryPages).toHaveBeenCalledWith("associations");
+  });
+});

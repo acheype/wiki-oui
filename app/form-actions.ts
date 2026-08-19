@@ -75,6 +75,7 @@ import {
 } from "@/lib/permissions";
 import { currentPerson, currentIdentity } from "@/lib/permissions-db";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
+import { rankByFrequency } from "@/lib/tag-suggestions";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
@@ -415,6 +416,45 @@ export async function renameForm(
 
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/**
+ * The values a « Mots-clés » field already carries, most used first (issue
+ * #15): what its widget offers at focus, before anyone has typed anything.
+ *
+ * A Server Action is a public entry point, reachable with any
+ * `(formSlug, fieldName)` pair whatever widget is or isn't on screen — so the
+ * field's own read right is re-checked here, not only where the entry form
+ * built its schema. Looking the name up in `seen.readable.fields` answers
+ * both the illegible field and the field that isn't a « Mots-clés » field at
+ * once: absent from that list either way. Without this guard, a caller could
+ * read any field's values through this action regardless of its type or its
+ * rights — a filter left to the widget would be a UI mask, not a right.
+ */
+export async function listUsedFieldValues(
+  formSlug: string,
+  fieldName: string
+): Promise<string[]> {
+  const form = await getFormBySlug(formSlug);
+  if (!form) return [];
+  const seen = await readableForm(form.schema);
+  if (!seen) return [];
+  const field = seen.readable.fields.find((candidate) => candidate.name === fieldName);
+  if (!field || field.type !== "tags") return [];
+
+  // Already cut to what this person may read (currentReadableWhere) and to
+  // the current revision (lib/pages.ts listEntryPages) — nothing left to
+  // check for rights here.
+  const pages = await listEntryPages(formSlug);
+  const values = pages.flatMap((page) => {
+    const value = readEntryData(page.current?.data)[fieldName];
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
+  });
+  return rankByFrequency(
+    values.map((value) => value.trim()).filter((value) => value !== "")
+  );
 }
 
 /** value (entry slug) → label (current title), for form-sourced options. */
