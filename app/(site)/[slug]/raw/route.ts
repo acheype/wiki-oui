@@ -12,6 +12,10 @@ type Params = { params: Promise<{ slug: string }> };
 
 const HEADERS = { "X-Content-Type-Options": "nosniff" } as const;
 
+function pageNotFound(): Response {
+  return new Response("Page introuvable", { status: 404, headers: HEADERS });
+}
+
 export async function GET(request: Request, { params }: Params) {
   const slug = decodeURIComponent((await params).slug);
 
@@ -22,12 +26,12 @@ export async function GET(request: Request, { params }: Params) {
     return Response.redirect(new URL(`/${lowercased}/raw`, request.url), 302);
   }
   if (!isValidSlug(slug)) {
-    return new Response("Page introuvable", { status: 404, headers: HEADERS });
+    return pageNotFound();
   }
 
   const raw = await getRawContent(slug);
   if (!raw) {
-    return new Response("Page introuvable", { status: 404, headers: HEADERS });
+    return pageNotFound();
   }
   if (isRefused(raw)) {
     return new Response("Vous n'avez pas accès à cette page.", {
