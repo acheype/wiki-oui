@@ -14,11 +14,17 @@ import {
 const NO_CANDIDATES: string[] = [];
 
 export function TagsInput({
+  id,
+  ariaLabel,
   tags,
   candidates = NO_CANDIDATES,
   onChange,
   onFocus,
 }: {
+  /** The id the field's <label> points at; absent where there is no label. */
+  id?: string;
+  /** The name a screen reader announces where no <label> names the field. */
+  ariaLabel?: string;
   tags: string[];
   /** Already-used values to suggest (issue #15) — page tags or field values, the caller's to fetch. */
   candidates?: string[];
@@ -72,6 +78,8 @@ export function TagsInput({
         ))}
         <Input
           {...suggestions.comboboxProps}
+          id={id}
+          aria-label={ariaLabel}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {

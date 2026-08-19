@@ -268,7 +268,14 @@ export function PageEditor({
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Tag className="size-4 shrink-0" aria-hidden />
-        <TagsInput tags={tags} candidates={allTags} onChange={setTags} />
+        {/* The tag icon carries the meaning for the eye; the field needs
+            its own name for a screen reader, having no <label> of its own. */}
+        <TagsInput
+          ariaLabel="Tags de la page"
+          tags={tags}
+          candidates={allTags}
+          onChange={setTags}
+        />
       </div>
 
       {warnings.length > 0 && (

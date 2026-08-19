@@ -407,6 +407,7 @@ export function FieldWidget({
     case "tags":
       return (
         <EntryTagsInput
+          id={id}
           tags={toStringArray(value)}
           formSlug={environment.formSlug}
           fieldName={spec.name}
@@ -798,11 +799,13 @@ function FileListInput({
  * entries whether or not anyone was about to type.
  */
 function EntryTagsInput({
+  id,
   tags,
   formSlug,
   fieldName,
   onChange,
 }: {
+  id: string;
   tags: string[];
   formSlug?: string;
   fieldName?: string;
@@ -824,6 +827,7 @@ function EntryTagsInput({
 
   return (
     <TagsInput
+      id={id}
       tags={tags}
       candidates={candidates}
       onFocus={() => setAsked(true)}
