@@ -22,6 +22,12 @@ export function TagsInput({
   onFocus?: () => void;
 }) {
   const [draft, setDraft] = useState("");
+  // Suggestions belong to the act of typing, so they show only while the
+  // field has focus. A fiche's candidates arrive at that first focus anyway,
+  // but a page's are injected with the editor (allTags): without this, a wiki
+  // of eight tags or fewer would keep its whole vocabulary pinned under the
+  // field, for a reader who never meant to touch it.
+  const [focused, setFocused] = useState(false);
   const suggestions = useMemo(
     () => suggestTags({ candidates, draft, placed: tags }),
     [candidates, draft, tags]
@@ -41,8 +47,8 @@ export function TagsInput({
     setDraft("");
   }
 
-  function addSuggestion(name: string) {
-    onChange([...tags, name]);
+  function addSuggestion(value: string) {
+    onChange([...tags, value]);
     setDraft("");
   }
 
@@ -74,28 +80,35 @@ export function TagsInput({
               onChange(tags.slice(0, -1));
             }
           }}
-          onBlur={addDraft}
-          onFocus={onFocus}
+          onFocus={() => {
+            setFocused(true);
+            onFocus?.();
+          }}
+          onBlur={() => {
+            setFocused(false);
+            addDraft();
+          }}
           placeholder={tags.length === 0 ? "Ajouter des tags…" : ""}
           className="h-7 w-40 border-none bg-transparent px-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
         />
       </div>
-      {suggestions.length > 0 && (
+      {focused && suggestions.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {suggestions.map((name) => (
+          {suggestions.map((value) => (
             <Button
-              key={name}
+              key={value}
               type="button"
               variant="secondary"
               size="sm"
               className="h-6 rounded-full px-2 text-xs"
-              // Without this, the click's blur fires first and addDraft
-              // beats it to the punch with the raw draft ("atel" instead of
-              // the suggestion clicked, "Atelier").
+              // Without this, the click's blur fires first and addDraft beats
+              // it to the punch with the raw draft ("atel" instead of the
+              // suggestion clicked, "Atelier"). It also keeps the focus, so
+              // the suggestions stay up for a second pick.
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => addSuggestion(name)}
+              onClick={() => addSuggestion(value)}
             >
-              {name}
+              {value}
             </Button>
           ))}
         </div>
