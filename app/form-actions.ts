@@ -739,6 +739,7 @@ export async function saveEntry(
     await createEntryPage({
       slug,
       formId: form.id,
+      formName: form.name,
       data: stored,
       // The form decides who may add a fiche, and what that fiche is born
       // with (docs/permissions.md § Formulaire) — not the wiki's own rules,

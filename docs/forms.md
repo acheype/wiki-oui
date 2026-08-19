@@ -161,6 +161,8 @@ Champ complet façon YesWiki : carte **Leaflet** (tuiles OSM) avec marqueur ajus
 
 Le champ `tags` est un **champ de fiche ordinaire** : sa valeur vit dans le snapshot `data` comme toute autre, elle est historisée avec les révisions, elle se restreint en lecture comme en écriture, et un formulaire peut en porter autant qu'il a de sortes de mots-clés. Il ne partage avec les **tags de la Page** (ADR 0007) que le widget de saisie et l'allure : les tags classent une page dans tout le wiki et ne sont pas historisés ; les mots-clés d'une fiche sont un de ses champs. Rien ne passe de l'un à l'autre.
 
+Une fiche naît malgré tout avec un tag de Page : le nom de son formulaire, posé une fois à la création (`createEntryPage`). C'est le seul défaut qui ait un sens quel que soit le formulaire — il reste modifiable comme tout tag de Page.
+
 ### API de redimensionnement d'images
 
 `GET /api/files/{nom}?w=…&h=…` : l'original du pool reste intact, la variante est calculée à la demande (**sharp**) et mise en **cache disque**. Service d'API réutilisable (le composant `<Image>` des pages pourra s'en servir).

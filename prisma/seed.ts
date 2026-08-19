@@ -227,13 +227,16 @@ async function createMdxPage(
 async function createEntryPage(
   prisma: PrismaClient,
   formId: string,
+  formName: string,
   slug: string,
   data: Prisma.InputJsonValue,
   createdAt: Date
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    // Same default as lib/pages.ts: the form's name, not the fiche's own
+    // `tags` field (docs/forms.md § Mots-clés ≠ tags de Page).
     const page = await tx.page.create({
-      data: { slug, formId, createdAt, ...SEEDED_RIGHTS },
+      data: { slug, formId, tags: [formName], createdAt, ...SEEDED_RIGHTS },
     });
     const revision = await tx.revision.create({
       data: { pageId: page.id, data, createdAt },
@@ -359,6 +362,7 @@ async function main() {
     await createEntryPage(
       prisma,
       form.id,
+      form.name,
       entry.slug,
       { ...entry.data, title } as Prisma.InputJsonValue,
       createdAt

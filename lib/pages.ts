@@ -1003,10 +1003,11 @@ export async function canContributeSomewhere(): Promise<boolean> {
 export async function createEntryPage(input: {
   slug: string;
   formId: string;
+  formName: string;
   data: EntryData;
   permissions: FormPermissions;
 }): Promise<void> {
-  const { slug, formId, data, permissions } = input;
+  const { slug, formId, formName, data, permissions } = input;
   if (!canCreateEntry(await currentPerson(), permissions)) {
     throw new Error(CREATE_ENTRY_REFUSED);
   }
@@ -1020,8 +1021,11 @@ export async function createEntryPage(input: {
     permissions.defaultEntryWrite
   );
   await prisma.$transaction(async (tx) => {
+    // Page.tags (ADR 0007) is shared machinery, not the fiche's own `tags`
+    // field (docs/forms.md § Mots-clés ≠ tags de Page). The form's name is
+    // the one default that makes sense for every fiche, whatever its form.
     const page = await tx.page.create({
-      data: { slug, ownerUsername: author, formId, ...born },
+      data: { slug, ownerUsername: author, formId, tags: [formName], ...born },
     });
     await mintRevision(tx, {
       pageId: page.id,
