@@ -41,6 +41,7 @@ import {
 import type { FormFieldType } from "@/lib/form-descriptor";
 import type { AccessRule, AclDirectory, AclFloor } from "@/lib/permissions";
 import type { PseudoField } from "@/lib/pseudo-fields";
+import { suggestValues } from "@/lib/suggested-values";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { NO_FLOOR, AclInput } from "./acl-input";
@@ -55,6 +56,10 @@ import {
 } from "./entries-view-inputs";
 import { IconPicker } from "./icon-picker";
 import type { MapViewValue } from "./map-view-input";
+import {
+  SuggestionPopover,
+  useSuggestions,
+} from "./suggestion-popover";
 import { TagsInput } from "./tags-input";
 import { UploadInput } from "./upload-input";
 import { useDebouncedJson } from "./use-debounced-json";
@@ -674,8 +679,9 @@ function DateInput({
   );
 }
 
-// Input + suggestion chips, shared by page-list and file-list: free text
-// stays accepted, candidates are suggested while typing.
+// One free-text field with the shared floating list of what already exists,
+// worn by page-list and file-list: typing stays free, picking replaces the
+// value outright — where a keyword field would add one more chip.
 function SuggestionInput({
   id,
   value,
@@ -689,47 +695,41 @@ function SuggestionInput({
   candidates: string[];
   onChange: (value: PropValue) => void;
 }) {
-  const suggestions = useMemo(() => {
-    const query = value.trim().toLowerCase();
-    return candidates
-      .filter((name) => name.includes(query) && name !== query)
-      .slice(0, 6);
-  }, [value, candidates]);
+  const items = useMemo(
+    () => suggestValues({ candidates, draft: value, placed: [] }),
+    [candidates, value]
+  );
+  const suggestions = useSuggestions({
+    items,
+    onPick: (picked) => onChange(picked),
+    closeOnPick: true,
+  });
 
   return (
-    <>
+    <SuggestionPopover suggestions={suggestions} optionClassName="font-mono">
       <Input
+        {...suggestions.comboboxProps}
         id={id}
         value={value}
         autoComplete="off"
         placeholder={placeholder}
-        onChange={(event) =>
-          onChange(event.target.value === "" ? undefined : event.target.value)
-        }
+        onChange={(event) => {
+          suggestions.openList();
+          onChange(event.target.value === "" ? undefined : event.target.value);
+        }}
+        onKeyDown={(event) => suggestions.handleKeyDown(event)}
+        onFocus={suggestions.openList}
+        onBlur={suggestions.closeList}
       />
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {suggestions.map((name) => (
-            <Button
-              key={name}
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-6 rounded-full px-2 font-mono text-xs"
-              onClick={() => onChange(name)}
-            >
-              {name}
-            </Button>
-          ))}
-        </div>
-      )}
-    </>
+    </SuggestionPopover>
   );
 }
 
 const NO_CANDIDATES: string[] = [];
 
-// Wiki pages (ADR 0006): no suggestions on an empty query or an external URL.
+// Wiki pages (ADR 0006), most recently touched first (lib/pages.ts
+// listPageSlugs). An address that has left the wiki silences the panel:
+// offering local slugs against « https://… » would answer another question.
 function PageListInput({
   id,
   value,
@@ -741,10 +741,7 @@ function PageListInput({
   allSlugs: string[];
   onChange: (value: PropValue) => void;
 }) {
-  const candidates =
-    value.trim() === "" || isExternalHref(value.trim())
-      ? NO_CANDIDATES
-      : allSlugs;
+  const candidates = isExternalHref(value.trim()) ? NO_CANDIDATES : allSlugs;
   return (
     <SuggestionInput
       id={id}
@@ -769,12 +766,17 @@ function FileListInput({
   family?: FileFamily;
   onChange: (value: PropValue) => void;
 }) {
-  const data = useDebouncedJson<{ files: { name: string }[] }>(
-    `/api/files${family ? `?family=${family}` : ""}`,
-    0
-  );
+  const data = useDebouncedJson<{
+    files: { name: string; modifiedAt: string }[];
+  }>(`/api/files${family ? `?family=${family}` : ""}`, 0);
+  // Newest upload first: one names a file in a component right after
+  // dropping it in, and the library has no frequency to rank by.
   const files = useMemo(
-    () => data?.files.map((file) => file.name) ?? NO_CANDIDATES,
+    () =>
+      data?.files
+        .map((file) => file)
+        .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
+        .map((file) => file.name) ?? NO_CANDIDATES,
     [data]
   );
 

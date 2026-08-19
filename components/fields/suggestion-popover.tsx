@@ -44,9 +44,12 @@ export interface Suggestions {
 export function useSuggestions({
   items,
   onPick,
+  closeOnPick = false,
 }: {
   items: string[];
   onPick: (value: string) => void;
+  /** A single-value field is done once it has picked; a chip field is not. */
+  closeOnPick?: boolean;
 }): Suggestions {
   const listboxId = useId();
   const [open, setOpen] = useState(false);
@@ -70,6 +73,7 @@ export function useSuggestions({
   function pick(value: string) {
     onPick(value);
     setActiveValue(null);
+    if (closeOnPick) setOpen(false);
   }
 
   // Nothing is highlighted when the panel opens, and the ends of the list
@@ -130,9 +134,12 @@ export function useSuggestions({
 /** The panel itself, hung under the field passed as its child. */
 export function SuggestionPopover({
   suggestions,
+  optionClassName,
   children,
 }: {
   suggestions: Suggestions;
+  /** Slugs and file names read better monospaced; words do not. */
+  optionClassName?: string;
   children: ReactNode;
 }) {
   return (
@@ -159,7 +166,8 @@ export function SuggestionPopover({
             aria-selected={index === suggestions.activeIndex}
             className={cn(
               "w-full truncate rounded-sm px-2 py-1.5 text-left text-sm hover:bg-muted",
-              index === suggestions.activeIndex && "bg-muted"
+              index === suggestions.activeIndex && "bg-muted",
+              optionClassName
             )}
             // Without this the click's blur closes the panel first, and the
             // field is left holding whatever was half-typed.

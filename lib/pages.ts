@@ -303,9 +303,19 @@ export async function getPageWithRevisions(slug: string) {
   return page && ifReadable(page);
 }
 
-/** The slugs a link may be suggested from: what the person can actually read. */
+/**
+ * The slugs a link may be suggested from: what the person can actually read,
+ * most recently touched first. Page slugs carry no frequency the way keywords
+ * do, and what one links to is nearly always what the wiki has been working
+ * on — where alphabetical order only ever favours the letter A.
+ */
 export async function listPageSlugs(): Promise<string[]> {
-  return slugsMatching(await currentReadableWhere());
+  const pages = await prisma.page.findMany({
+    where: await currentReadableWhere(),
+    select: { slug: true },
+    orderBy: [{ current: { createdAt: "desc" } }, { createdAt: "desc" }],
+  });
+  return pages.map((page) => page.slug);
 }
 
 /**
