@@ -223,7 +223,7 @@ function EntryFields({
                 // would show the stored value again.
                 onChange={(value) => rhf.onChange(value ?? "")}
                 error={errors[field.name]?.message as string | undefined}
-                environment={{ entryValues }}
+                environment={{ entryValues, formSlug: form.formSlug }}
               />
             )}
           />

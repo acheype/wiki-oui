@@ -10,7 +10,7 @@ import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { listFormChoices } from "@/app/form-actions";
+import { listFormChoices, listUsedFieldValues } from "@/app/form-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -98,6 +98,8 @@ export interface FieldWidgetSpec {
   icons?: Record<string, string>;
   /** file-list: restricts the combobox to one family (ADR 0012). */
   family?: FileFamily;
+  /** tags: the field's own name, to look its used values up. */
+  name?: string;
   /** form-list/form-field: one name, or an array of names (ADR 0019). */
   multiple?: boolean;
   /** form-field/field-rows: sibling field holding the chosen form slug(s). */
@@ -139,6 +141,8 @@ export type FieldValue =
 export interface FieldEnvironment {
   /** Wiki page slugs, for page-list suggestions. */
   allSlugs?: string[];
+  /** The form a tags field belongs to, for its already-used values. */
+  formSlug?: string;
   /** Existing forms, for the form-list selector. */
   forms?: { slug: string; name: string }[];
   /** Live sibling entry values, for geocoding bound address fields. */
@@ -397,8 +401,10 @@ export function FieldWidget({
       );
     case "tags":
       return (
-        <TagsInput
+        <EntryTagsInput
           tags={toStringArray(value)}
+          formSlug={environment.formSlug}
+          fieldName={spec.name}
           onChange={onChange}
         />
       );
@@ -778,6 +784,52 @@ function FileListInput({
       value={value}
       placeholder="nom-du-fichier.ext"
       candidates={files}
+      onChange={onChange}
+    />
+  );
+}
+
+const NO_USED_VALUES: string[] = [];
+
+/**
+ * A « Mots-clés » field's TagsInput, wired to its already-used values (issue
+ * #15): fetched once, at the first focus, so a fiche nobody edits never pays
+ * the scan. Not injected up front like a page's tags (allTags) — <EntryForm>
+ * slots into any page, and every render would sweep the form's entries
+ * whether or not anyone was about to type. `formSlug`/`fieldName` missing
+ * (the ComponentBuilder envelope, which has neither) leaves the widget
+ * exactly as it was: no candidates asked, none offered.
+ */
+function EntryTagsInput({
+  tags,
+  formSlug,
+  fieldName,
+  onChange,
+}: {
+  tags: string[];
+  formSlug?: string;
+  fieldName?: string;
+  onChange: (value: FieldValue) => void;
+}) {
+  const [candidates, setCandidates] = useState<string[]>(NO_USED_VALUES);
+  const [asked, setAsked] = useState(false);
+
+  useEffect(() => {
+    if (!asked || !formSlug || !fieldName) return;
+    let live = true;
+    listUsedFieldValues(formSlug, fieldName).then(
+      (values) => live && setCandidates(values)
+    );
+    return () => {
+      live = false;
+    };
+  }, [asked, formSlug, fieldName]);
+
+  return (
+    <TagsInput
+      tags={tags}
+      candidates={candidates}
+      onFocus={() => setAsked(true)}
       onChange={onChange}
     />
   );
