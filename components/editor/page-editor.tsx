@@ -35,6 +35,7 @@ export function PageEditor({
   initialContent,
   initialTags,
   allSlugs,
+  allTags,
   builders,
   isNew,
 }: {
@@ -42,6 +43,8 @@ export function PageEditor({
   initialContent: string;
   initialTags: string[];
   allSlugs: string[];
+  /** The wiki's page tags this person can read, for suggestion (issue #15). */
+  allTags: string[];
   builders: ComponentBuilderSpec[];
   isNew: boolean;
 }) {
@@ -265,7 +268,7 @@ export function PageEditor({
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Tag className="size-4 shrink-0" aria-hidden />
-        <TagsInput tags={tags} onChange={setTags} />
+        <TagsInput tags={tags} candidates={allTags} onChange={setTags} />
       </div>
 
       {warnings.length > 0 && (

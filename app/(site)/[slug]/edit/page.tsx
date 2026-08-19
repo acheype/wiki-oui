@@ -11,6 +11,7 @@ import {
   getPageWithForm,
   isRefused,
   listPageSlugs,
+  listPageTags,
 } from "@/lib/pages";
 import { CREATE_REFUSED, WRITE_REFUSED } from "@/lib/permissions";
 import { isValidSlug } from "@/lib/slug";
@@ -66,8 +67,9 @@ export default async function EditPage({ params }: Props) {
     return <EntryEdit form={form} />;
   }
 
-  const [allSlugs, builders] = await Promise.all([
+  const [allSlugs, allTags, builders] = await Promise.all([
     listPageSlugs(),
+    listPageTags(),
     loadComponentBuilders(),
   ]);
 
@@ -77,6 +79,7 @@ export default async function EditPage({ params }: Props) {
       initialContent={existing?.current?.content ?? ""}
       initialTags={existing?.tags ?? []}
       allSlugs={allSlugs}
+      allTags={allTags}
       builders={builders}
       isNew={!existing}
     />
