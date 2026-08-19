@@ -10,6 +10,7 @@ import {
   type EntryData,
   type FormDescriptor,
   type FormDescriptorIssue,
+  type FormField,
   computeAutomaticTitle,
   deriveEntrySchema,
   emptyTitleMessage,
@@ -23,11 +24,9 @@ import {
 import {
   fieldWriteRule,
   mergedEntryData,
-  readOnlyFields,
-  readableDescriptor,
-  readableEntryData,
   writableDescriptor,
 } from "@/lib/field-rights";
+import { readableForm } from "@/lib/field-rights-db";
 import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
@@ -72,7 +71,6 @@ import {
 } from "@/lib/pages";
 import {
   type AclDirectory,
-  type Actor,
   FORM_EDIT_REFUSED,
   refusalMessage,
   scopeRefusal,
@@ -453,15 +451,16 @@ export async function listEntryFieldChoices(
   // offered to sort on (docs/permissions.md § Champ). The values are cut
   // again, form by form, where the payload is assembled — a name readable on
   // one of the chosen forms is not thereby readable on the next.
-  const actor = await currentActor();
-  const ordered = formSlugs.flatMap((slug) => {
-    const form = bySlug.get(slug);
-    if (!form) return []; // a slug typed by hand may not exist (yet)
-    const parsed = parseFormDescriptor(form.schema);
-    return parsed.descriptor
-      ? [{ name: form.name, descriptor: readableDescriptor(actor, parsed.descriptor) }]
-      : [];
-  });
+  const ordered = (
+    await Promise.all(
+      formSlugs.map(async (slug) => {
+        const form = bySlug.get(slug);
+        if (!form) return []; // a slug typed by hand may not exist (yet)
+        const seen = await readableForm(form.schema);
+        return seen ? [{ name: form.name, descriptor: seen.readable }] : [];
+      })
+    )
+  ).flat();
   const choices = unionEntryFields(ordered);
   return Promise.all(
     choices.map(async (choice) => {
@@ -576,10 +575,8 @@ async function creationRefusalOf(
  * dozen fields to the same group would otherwise ask as many times.
  */
 async function readOnlyMotifs(
-  actor: Actor,
-  descriptor: FormDescriptor
+  fields: FormField[]
 ): Promise<Record<string, string>> {
-  const fields = readOnlyFields(actor, descriptor);
   if (fields.length === 0) return {};
   const named = await groupNamesBySlug(
     fields.flatMap((field) => [...(fieldWriteRule(field).groupSlugs ?? [])])
@@ -604,15 +601,12 @@ export async function getEntryForm(
 ): Promise<EntryFormData | null> {
   const form = await getFormBySlug(formSlug);
   if (!form) return null;
-  const parsed = parseFormDescriptor(form.schema);
-  if (!parsed.descriptor) {
-    throw new Error(`Descripteur invalide en base : «\u00A0${formSlug}\u00A0»`);
-  }
-
   // What this actor may not read never reaches the browser — neither the
   // field nor the value it holds (docs/permissions.md § Champ).
-  const actor = await currentActor();
-  const readable = readableDescriptor(actor, parsed.descriptor);
+  const seen = await readableForm(form.schema);
+  if (!seen) {
+    throw new Error(`Descripteur invalide en base : «\u00A0${formSlug}\u00A0»`);
+  }
 
   let values: EntryData | null = null;
   let slug: string | null = null;
@@ -621,12 +615,8 @@ export async function getEntryForm(
     // A refused read reads as « no such entry » here: the caller is the entry
     // form, and the refusal screen has already answered on the way in.
     if (!page || isRefused(page) || page.formId !== form.id) return null;
-    values = readableEntryData(
-      actor,
-      parsed.descriptor,
-      readEntryData(page.current?.data)
-    );
-    const tags = tagsField(readable);
+    values = seen.readableValues(page.current?.data);
+    const tags = tagsField(seen.readable);
     if (tags) values = { ...values, [tags.name]: page.tags };
     slug = page.slug;
   }
@@ -634,11 +624,11 @@ export async function getEntryForm(
   return {
     formSlug: form.slug,
     formName: form.name,
-    schema: readable,
+    schema: seen.readable,
     values,
     slug,
     creationRefusal: await creationRefusalOf(form, entrySlug !== undefined),
-    readOnly: await readOnlyMotifs(actor, readable),
+    readOnly: await readOnlyMotifs(seen.readOnly),
     signedIn: (await currentIdentity()) !== null,
   };
 }

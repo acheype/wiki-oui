@@ -36,7 +36,6 @@ import {
 import {
   type AccessRule,
   type AclDirectory,
-  type Scope,
   scopesUnder,
 } from "@/lib/permissions";
 import { slugify } from "@/lib/slug";
@@ -203,6 +202,7 @@ function FieldRights({
       key: "readAcl",
       id: "setting-read-acl",
       label: "Qui peut voir ce champ ?",
+      within: "parmi ceux qui voient la fiche",
       posed: field.readAcl,
       under: entryDefaults.read,
       // Tags are the Page's, not the snapshot's (ADR 0007), and the wiki
@@ -214,6 +214,7 @@ function FieldRights({
       key: "writeAcl",
       id: "setting-write-acl",
       label: "Qui peut le remplir ?",
+      within: "parmi ceux qui modifient la fiche",
       posed: field.writeAcl,
       under: entryDefaults.write,
       // A customContent field displays what its author wrote and holds no
@@ -252,7 +253,18 @@ function FieldRights({
           {rules.map((rule) =>
             rule.shown ? (
               <div key={rule.key} className="grid gap-2">
-                <Label htmlFor={rule.id}>{rule.label}</Label>
+                <div>
+                  <Label htmlFor={rule.id}>{rule.label}</Label>
+                  {/* Where the choice stops, said by the selector itself
+                      rather than by a note underneath: the ceiling is a
+                      property of the question — a field's right always
+                      stands inside the fiche's — so it belongs to the
+                      label, and a reader meets it before the portées
+                      rather than after having wondered where one went. */}
+                  <p className="text-xs text-muted-foreground">
+                    {rule.within}
+                  </p>
+                </div>
                 <AclInput
                   id={rule.id}
                   value={rule.posed ?? rule.under}
@@ -277,44 +289,11 @@ function FieldRights({
               il liste des pages, leur lecture ne se restreint donc pas.
             </InfoNote>
           )}
-          <FicheCeiling defaults={entryDefaults} />
         </div>
       )}
     </div>
   );
 }
-
-/**
- * Why the widest scopes are missing, said once for both rights rather than
- * under each: the ceiling is the fiche's, not the field's, and naming it twice
- * would read as two different rules.
- */
-function FicheCeiling({
-  defaults,
-}: {
-  defaults: { read: AccessRule; write: AccessRule };
-}) {
-  const capped = [
-    defaults.read.scope === "everyone"
-      ? null
-      : `visibles par ${SCOPE_CEILING[defaults.read.scope]}`,
-    defaults.write.scope === "everyone"
-      ? null
-      : `modifiables par ${SCOPE_CEILING[defaults.write.scope]}`,
-  ].filter((part): part is string => part !== null);
-  if (capped.length === 0) return null;
-  return (
-    <InfoNote>
-      {`Les fiches de ce formulaire sont ${capped.join(" et ")}\u00A0: un champ ne s'ouvre pas plus large qu'elles.`}
-    </InfoNote>
-  );
-}
-
-/** How each scope reads inside that sentence, where the radio label would not. */
-const SCOPE_CEILING: Record<Exclude<Scope, "everyone">, string> = {
-  authenticated: "les personnes connectées",
-  restricted: "les seules personnes que l'onglet « Accès » nomme",
-};
 
 // The field's identifier (docs/forms.md « Identités », ADR 0017). Persisted:
 // a chip and « Changer », staging the rename locally — the impact headcount

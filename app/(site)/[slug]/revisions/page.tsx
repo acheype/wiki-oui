@@ -10,13 +10,11 @@ import { DiffView } from "@/components/revisions/diff-view";
 import { RestoreButton } from "@/components/revisions/restore-button";
 import { RevisionTimeline } from "@/components/revisions/timeline";
 import { Button } from "@/components/ui/button";
-import { readableDescriptor, readableEntryData } from "@/lib/field-rights";
-import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
+import { readableForm } from "@/lib/field-rights-db";
 import { formatDateTime } from "@/lib/format";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
 import { actorCanWrite, getPageWithRevisions, isRefused } from "@/lib/pages";
-import { currentActor } from "@/lib/permissions-db";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { displayName } from "@/lib/username";
@@ -74,18 +72,14 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   // work on a pretty-printed JSON of the values, the preview renders the
   // entry's default view (below).
   const form = page.formId ? await getFormById(page.formId) : null;
-  const wholeForm = form ? parseFormDescriptor(form.schema).descriptor ?? null : null;
   // The history is another way of reading a fiche, so the fields cut from its
   // rendering are cut from every revision of it too (docs/permissions.md §
   // Champ) — the JSON of a snapshot would otherwise hand over what the fiche
   // itself withholds.
-  const actor = await currentActor();
-  const entryDescriptor = wholeForm ? readableDescriptor(actor, wholeForm) : null;
-  const readableValuesOf = (data: unknown) =>
-    wholeForm ? readableEntryData(actor, wholeForm, readEntryData(data)) : {};
+  const seen = form ? await readableForm(form.schema) : null;
   const sourceOf = (revision: { content: string | null; data: unknown }) =>
-    entryDescriptor
-      ? JSON.stringify(readableValuesOf(revision.data), null, 2)
+    seen
+      ? JSON.stringify(seen.readableValues(revision.data), null, 2)
       : revision.content ?? "";
   const current =
     revisions.find((revision) => revision.id === page.currentRevisionId) ??
@@ -183,10 +177,10 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
             </pre>
           ) : (
             <article>
-              {entryDescriptor ? (
+              {seen ? (
                 <EntryView
-                  descriptor={entryDescriptor}
-                  data={readableValuesOf(selected.data)}
+                  descriptor={seen.readable}
+                  data={seen.readableValues(selected.data)}
                   linkTitles={{}}
                 />
               ) : (
