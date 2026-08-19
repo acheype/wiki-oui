@@ -55,6 +55,8 @@ vi.mock("@/lib/groups-db", () => ({
 const {
   currentReadableWhere,
   deletePageById,
+  getRawContent,
+  isRefused,
   listPageTags,
   renamePageSlug,
   setPageRights,
@@ -365,5 +367,65 @@ describe("listPageTags", () => {
       select: { tags: true },
     });
     expect(result).toEqual(["Atelier", "Sport"]);
+  });
+});
+
+// /{slug}/raw (docs/permissions.md): born inside the door (ADR 0025), so its
+// own refusal and its own cut are exercised the same way as every other read.
+describe("getRawContent", () => {
+  const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;
+
+  /** A payroll form: a name anyone reads, a salary @Bureau's alone. */
+  const PAYROLL_SCHEMA = {
+    fields: [
+      { type: "title", name: "title", label: "Titre" },
+      { type: "text", name: "nom", label: "Nom" },
+      { type: "text", name: "salaire", label: "Salaire", readAcl: BUREAU, writeAcl: BUREAU },
+    ],
+  };
+
+  it("answers null on a slug nobody wrote", async () => {
+    db.page.findUnique.mockResolvedValue(null);
+    expect(await getRawContent("inconnue")).toBeNull();
+  });
+
+  it("refuses a page this person may not read", async () => {
+    db.page.findUnique.mockResolvedValue({ ...MARIES_PAGE, form: null });
+    const raw = await getRawContent("compte-rendu");
+    expect(isRefused(raw!)).toBe(true);
+  });
+
+  it("serves an MDX page's source as text/plain", async () => {
+    db.page.findUnique.mockResolvedValue({
+      ...MARIES_PAGE,
+      readScope: "everyone",
+      form: null,
+      current: { content: "# Bonjour" },
+    });
+    const raw = await getRawContent("compte-rendu");
+    expect(raw).toEqual({ contentType: "text/plain", body: "# Bonjour" });
+  });
+
+  it("serves a fiche's values as JSON, its unreadable fields cut", async () => {
+    db.page.findUnique.mockResolvedValue({
+      ...MARIES_PAGE,
+      readScope: "everyone",
+      formId: "form-1",
+      form: { schema: PAYROLL_SCHEMA },
+      current: { data: { title: "Paie", nom: "Marie", salaire: 42000 } },
+    });
+
+    const raw = await getRawContent("paie-marie");
+    expect(raw).toEqual({
+      contentType: "application/json",
+      body: JSON.stringify({ title: "Paie", nom: "Marie" }),
+    });
+
+    signedInAs("jean-martin", ["bureau"]);
+    const seenByBureau = await getRawContent("paie-marie");
+    expect(seenByBureau).toEqual({
+      contentType: "application/json",
+      body: JSON.stringify({ title: "Paie", nom: "Marie", salaire: 42000 }),
+    });
   });
 });

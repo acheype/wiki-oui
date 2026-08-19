@@ -6,6 +6,7 @@ import {
   nothingToReplace,
 } from "@/lib/bulk-rights";
 import { restoredEntryValues } from "@/lib/entry-title";
+import { readableForm } from "@/lib/field-rights-db";
 import { mergedEntryData } from "@/lib/field-rights";
 import {
   type EntryData,
@@ -284,6 +285,37 @@ export async function getPageWithForm(slug: string) {
     include: { form: true, current: true, ...WITH_RIGHTS },
   });
   return page && ifReadable(page);
+}
+
+/** What `/{slug}/raw` (docs/permissions.md) hands the route to serve. */
+export interface RawContent {
+  contentType: "text/plain" | "application/json";
+  body: string;
+}
+
+/**
+ * The MDX or the field values of a page, in the shape `/{slug}/raw` serves
+ * them (docs/permissions.md § /{slug}/raw, the equivalent of YesWiki's
+ * `/raw`): text/plain for an MDX page, application/json for a fiche. Born
+ * *inside* this door rather than beside it (ADR 0025) — a bare route reading
+ * Prisma on its own is exactly the shortcut the door exists to close.
+ *
+ * A fiche is filtered through readableForm() (lib/field-rights-db.ts), the
+ * same cut its own rendering already makes: without it, this handler would
+ * publish a field the fiche itself withholds.
+ */
+export async function getRawContent(
+  slug: string
+): Promise<RawContent | AccessRefusal | null> {
+  const page = await getPageWithForm(slug);
+  if (!page) return null;
+  if (isRefused(page)) return page;
+  if (!page.formId || !page.form) {
+    return { contentType: "text/plain", body: page.current?.content ?? "" };
+  }
+  const seen = await readableForm(page.form.schema);
+  const data = seen ? seen.readableValues(page.current?.data) : {};
+  return { contentType: "application/json", body: JSON.stringify(data) };
 }
 
 export async function getPageWithRevisions(slug: string) {
