@@ -7,6 +7,7 @@ import {
   extractFieldReferences,
   formAuthoringIssues,
   initialEntryValues,
+  orderedEntryData,
   parseFormDescriptor,
   substituteFieldReferences,
   unknownFieldReferences,
@@ -530,6 +531,47 @@ describe("initialEntryValues", () => {
       ],
     };
     expect(Object.keys(initialEntryValues(descriptor))).toEqual(["prenom"]);
+  });
+});
+
+// docs/permissions.md § /{slug}/raw: storage makes no order promise (jsonb),
+// so a snapshot's keys are rebuilt in the form's own order wherever that
+// order has to be relied on — this is the one function that does it.
+describe("orderedEntryData", () => {
+  const descriptor: FormDescriptor = {
+    fields: [
+      { type: "title", name: "title", label: "Titre de la fiche" },
+      { type: "text", name: "prenom", label: "Prénom" },
+      { type: "text", name: "nom", label: "Nom" },
+    ],
+  };
+
+  it("reorders a snapshot to the form's own field order", () => {
+    expect(
+      orderedEntryData(descriptor, { nom: "Durand", title: "Marie Durand", prenom: "Marie" })
+    ).toEqual({ title: "Marie Durand", prenom: "Marie", nom: "Durand" });
+    expect(
+      Object.keys(
+        orderedEntryData(descriptor, { nom: "Durand", title: "Marie Durand", prenom: "Marie" })
+      )
+    ).toEqual(["title", "prenom", "nom"]);
+  });
+
+  // A schema that moved on leaves a value behind (docs/architecture.md's
+  // graceful degradation): kept, not dropped, just no longer part of the form.
+  it("keeps a value no field claims, trailing in its own order", () => {
+    const data = { ancien: "valeur orpheline", title: "Marie Durand", autre: "aussi" };
+    expect(Object.keys(orderedEntryData(descriptor, data))).toEqual([
+      "title",
+      "ancien",
+      "autre",
+    ]);
+  });
+
+  it("leaves out a field the snapshot never carried", () => {
+    expect(Object.keys(orderedEntryData(descriptor, { title: "Marie" }))).toEqual([
+      "title",
+    ]);
   });
 });
 

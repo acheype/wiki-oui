@@ -198,6 +198,19 @@ describe("what a save may move, field by field", () => {
     });
   });
 
+  // docs/permissions.md § /{slug}/raw: written in the form's own order —
+  // title first — regardless of the order the revision it starts from
+  // happens to carry (storage makes no promise there, jsonb included).
+  it("writes the revision back in the form's own field order, title first", async () => {
+    db.page.findUniqueOrThrow.mockResolvedValue({
+      ...JEANS_ENTRY,
+      current: { data: { salaire: 42000, nom: "Marie", title: "Paie" } },
+    });
+    signedInAs("jean-martin", ["bureau"]);
+    await save({ title: "Paie modifiée", nom: "Marie", salaire: 42000 });
+    expect(Object.keys(written() as object)).toEqual(["title", "nom", "salaire"]);
+  });
+
   // Ignored, not refused: a difference of rights must never be what makes a
   // save fail — and a save with nothing left to record records nothing.
   it("mints no revision when all that moved was refused", async () => {
@@ -374,6 +387,11 @@ describe("listPageTags", () => {
 // own refusal and its own cut are exercised the same way as every other read.
 describe("getRawContent", () => {
   const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;
+  const CREATED_AT = new Date("2026-01-05T10:00:00.000Z");
+  const EDITED_AT = new Date("2026-02-10T09:00:00.000Z");
+  const EVERYONE = { scope: "everyone", usernames: [], groupSlugs: [] };
+  const RESTRICTED = { scope: "restricted", usernames: [], groupSlugs: [] };
+  const EDITOR = { name: "Jean Martin", username: "jean-martin" };
 
   /** A payroll form: a name anyone reads, a salary @Bureau's alone. */
   const PAYROLL_SCHEMA = {
@@ -384,48 +402,96 @@ describe("getRawContent", () => {
     ],
   };
 
+  const OPEN_PAGE = {
+    ...MARIES_PAGE,
+    createdAt: CREATED_AT,
+    readScope: "everyone",
+  };
+
   it("answers null on a slug nobody wrote", async () => {
     db.page.findUnique.mockResolvedValue(null);
     expect(await getRawContent("inconnue")).toBeNull();
   });
 
   it("refuses a page this person may not read", async () => {
-    db.page.findUnique.mockResolvedValue({ ...MARIES_PAGE, form: null });
+    db.page.findUnique.mockResolvedValue({
+      ...MARIES_PAGE,
+      createdAt: CREATED_AT,
+      form: null,
+    });
     const raw = await getRawContent("compte-rendu");
     expect(isRefused(raw!)).toBe(true);
   });
 
-  it("serves an MDX page's source as text/plain", async () => {
+  it("serves an MDX page's content and metadata as JSON", async () => {
     db.page.findUnique.mockResolvedValue({
-      ...MARIES_PAGE,
-      readScope: "everyone",
+      ...OPEN_PAGE,
       form: null,
-      current: { content: "# Bonjour" },
+      current: { content: "# Bonjour", createdAt: EDITED_AT, author: EDITOR },
     });
     const raw = await getRawContent("compte-rendu");
-    expect(raw).toEqual({ contentType: "text/plain", body: "# Bonjour" });
+    expect(raw).toEqual({
+      content: "# Bonjour",
+      "created-at": CREATED_AT,
+      owner: "Marie Durand",
+      "last-edited-at": EDITED_AT,
+      "last-edited-by": "Jean Martin",
+      "read-scope": EVERYONE,
+      "write-scope": RESTRICTED,
+    });
   });
 
-  it("serves a fiche's values as JSON, its unreadable fields cut", async () => {
+  it("serves a fiche ordered by the form, form-id right after title, fields cut", async () => {
     db.page.findUnique.mockResolvedValue({
-      ...MARIES_PAGE,
-      readScope: "everyone",
+      ...OPEN_PAGE,
       formId: "form-1",
-      form: { schema: PAYROLL_SCHEMA },
-      current: { data: { title: "Paie", nom: "Marie", salaire: 42000 } },
+      form: { id: "form-1", slug: "paie", schema: PAYROLL_SCHEMA },
+      // Deliberately out of form order, to prove getRawContent rebuilds it —
+      // storage (jsonb) makes no promise about the order it hands back.
+      current: {
+        data: { salaire: 42000, title: "Paie", nom: "Marie" },
+        createdAt: EDITED_AT,
+        author: EDITOR,
+      },
     });
 
     const raw = await getRawContent("paie-marie");
     expect(raw).toEqual({
-      contentType: "application/json",
-      body: JSON.stringify({ title: "Paie", nom: "Marie" }),
+      title: "Paie",
+      "form-id": "paie",
+      nom: "Marie",
+      "created-at": CREATED_AT,
+      owner: "Marie Durand",
+      "last-edited-at": EDITED_AT,
+      "last-edited-by": "Jean Martin",
+      "read-scope": EVERYONE,
+      "write-scope": RESTRICTED,
     });
+    expect(Object.keys(raw as object)).toEqual([
+      "title",
+      "form-id",
+      "nom",
+      "created-at",
+      "owner",
+      "last-edited-at",
+      "last-edited-by",
+      "read-scope",
+      "write-scope",
+    ]);
 
     signedInAs("jean-martin", ["bureau"]);
     const seenByBureau = await getRawContent("paie-marie");
-    expect(seenByBureau).toEqual({
-      contentType: "application/json",
-      body: JSON.stringify({ title: "Paie", nom: "Marie", salaire: 42000 }),
-    });
+    expect(Object.keys(seenByBureau as object)).toEqual([
+      "title",
+      "form-id",
+      "nom",
+      "salaire",
+      "created-at",
+      "owner",
+      "last-edited-at",
+      "last-edited-by",
+      "read-scope",
+      "write-scope",
+    ]);
   });
 });

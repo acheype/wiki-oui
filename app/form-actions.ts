@@ -16,6 +16,7 @@ import {
   emptyTitleMessage,
   formAuthoringIssues,
   isOptionsField,
+  orderedEntryData,
   parseFormDescriptor,
   readEntryData,
   unknownFieldReferences,
@@ -549,7 +550,9 @@ function titledEntry(
 ): { stored: EntryData; title: string; refusal: string | null } {
   const title = computeAutomaticTitle(descriptor, data);
   return {
-    stored: { ...data, title },
+    // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw),
+    // title normally landing first because that is where forms carry it.
+    stored: orderedEntryData(descriptor, { ...data, title }),
     title,
     refusal: title.trim() === "" ? emptyTitleMessage(descriptor) : null,
   };

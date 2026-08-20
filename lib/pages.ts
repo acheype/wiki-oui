@@ -13,6 +13,7 @@ import {
   type FormDescriptor,
   computeAutomaticTitle,
   emptyTitleMessage,
+  orderedEntryData,
   readEntryData,
 } from "@/lib/form-descriptor";
 import {
@@ -62,6 +63,7 @@ import { assertAdmin, currentPerson, currentUsername } from "@/lib/permissions-d
 import { prisma } from "@/lib/prisma";
 import { rankByFrequency } from "@/lib/suggested-values";
 import type { SlugRename } from "@/lib/slug-rename";
+import { displayName } from "@/lib/username";
 import {
   type SlugReferenceImpact,
   countSlugReferenceImpact,
@@ -278,31 +280,58 @@ export async function getPage(slug: string) {
   return prisma.page.findUnique({ where: { slug }, include: WITH_RIGHTS });
 }
 
-/** A page with the form it is an entry of, null form for an MDX page. */
+/**
+ * A page with the form it is an entry of, null form for an MDX page. The
+ * current revision's author rides along for `/{slug}/raw`'s `last-edited-by`
+ * — the only reader of it, the other caller (the edit screen) ignoring it.
+ */
 export async function getPageWithForm(slug: string) {
   const page = await prisma.page.findUnique({
     where: { slug },
-    include: { form: true, current: true, ...WITH_RIGHTS },
+    include: {
+      form: true,
+      current: { include: { author: PUBLIC_IDENTITY } },
+      ...WITH_RIGHTS,
+    },
   });
   return page && ifReadable(page);
 }
 
 /** What `/{slug}/raw` (docs/permissions.md) hands the route to serve. */
-export interface RawContent {
-  contentType: "text/plain" | "application/json";
-  body: string;
+export type RawContent = Record<string, unknown>;
+
+/** Inserts `form-id` right after `title`, wherever the ordering left it. */
+function withFormIdAfterTitle(ordered: RawContent, formSlug: string): RawContent {
+  const withFormId: RawContent = {};
+  let inserted = false;
+  for (const [name, value] of Object.entries(ordered)) {
+    withFormId[name] = value;
+    if (name === "title") {
+      withFormId["form-id"] = formSlug;
+      inserted = true;
+    }
+  }
+  // The panel refuses to save a form without a title field (parseFormDescriptor,
+  // lib/form-descriptor.ts) and never lets its reading be restricted
+  // (docs/permissions.md § Champ) — `title` is always there to insert after.
+  // This only guards a descriptor this engine can no longer parse at all.
+  if (!inserted) withFormId["form-id"] = formSlug;
+  return withFormId;
 }
 
 /**
- * The MDX or the field values of a page, in the shape `/{slug}/raw` serves
- * them (docs/permissions.md § /{slug}/raw, the equivalent of YesWiki's
- * `/raw`): text/plain for an MDX page, application/json for a fiche. Born
- * *inside* this door rather than beside it (ADR 0025) — a bare route reading
- * Prisma on its own is exactly the shortcut the door exists to close.
+ * The content and metadata of a page, in the shape `/{slug}/raw` serves them
+ * (docs/permissions.md § /{slug}/raw, the equivalent of YesWiki's `/raw`):
+ * always JSON. Born *inside* this door rather than beside it (ADR 0025) — a
+ * bare route reading Prisma on its own is exactly the shortcut the door
+ * exists to close.
  *
- * A fiche is filtered through readableForm() (lib/field-rights-db.ts), the
- * same cut its own rendering already makes: without it, this handler would
- * publish a field the fiche itself withholds.
+ * An MDX page hands back `content` plus the six metadata fields below. A
+ * fiche hands back its field values in the form's own order — `title`
+ * normally first, `form-id` inserted right after it — then the same six.
+ * A fiche's values are filtered through readableForm() (lib/field-rights-db.ts),
+ * the same cut its own rendering already makes: without it, this handler
+ * would publish a field the fiche itself withholds.
  */
 export async function getRawContent(
   slug: string
@@ -310,12 +339,24 @@ export async function getRawContent(
   const page = await getPageWithForm(slug);
   if (!page) return null;
   if (isRefused(page)) return page;
+
+  const meta = {
+    "created-at": page.createdAt,
+    owner: displayName(page.owner),
+    "last-edited-at": page.current?.createdAt ?? page.createdAt,
+    "last-edited-by": displayName(page.current?.author ?? null),
+    "read-scope": pageRule(page, "READ"),
+    "write-scope": pageRule(page, "WRITE"),
+  };
+
   if (!page.formId || !page.form) {
-    return { contentType: "text/plain", body: page.current?.content ?? "" };
+    return { content: page.current?.content ?? "", ...meta };
   }
+
   const seen = await readableForm(page.form.schema);
   const data = seen ? seen.readableValues(page.current?.data) : {};
-  return { contentType: "application/json", body: JSON.stringify(data) };
+  const ordered = seen ? orderedEntryData(seen.readable, data) : data;
+  return { ...withFormIdAfterTitle(ordered, page.form.slug), ...meta };
 }
 
 export async function getPageWithRevisions(slug: string) {
@@ -1104,10 +1145,19 @@ export async function writeEntryRevision(input: {
   // from the wrong values would stay wrong for good.
   const title = computeAutomaticTitle(descriptor, merged);
   if (title.trim() === "") throw new Error(emptyTitleMessage(descriptor));
-  const written = { ...merged, title };
-  const unchanged = JSON.stringify(current) === JSON.stringify(written);
+  const withTitle = { ...merged, title };
+  // Compared before reordering, against `merged` — which, like `current`,
+  // carries only genuinely new keys out of place: storage makes no order
+  // promise (jsonb), so reordering first would make every save look changed,
+  // the reorder itself masquerading as new content.
+  const unchanged = JSON.stringify(current) === JSON.stringify(withTitle);
   const author = await currentUsername();
   if (unchanged) return;
+  // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw),
+  // title normally landing first because that is where forms carry it — the
+  // one reorder that actually reaches storage, done last so nothing above
+  // has to reason about anything but values.
+  const written = orderedEntryData(descriptor, withTitle);
   // Two writes — the revision and the pointer that names it current — so the
   // transaction stays, though the tags no longer ride along with them.
   await prisma.$transaction(async (tx) => {

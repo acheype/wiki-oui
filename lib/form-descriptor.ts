@@ -389,6 +389,27 @@ export function initialEntryValues(
   return values;
 }
 
+// A snapshot's keys, rebuilt in the form's own field order (docs/permissions.md
+// § /{slug}/raw): storage makes no promise here — Postgres's jsonb does not
+// preserve the order keys were written in — so anyone wanting the form's
+// order has to rebuild it, rather than trust what comes back from Prisma. A
+// key with no matching field (an orphan a schema change left behind,
+// docs/architecture.md's graceful degradation) rides at the end, in the order
+// it already had: it is still preserved, just not part of the form anymore.
+export function orderedEntryData(
+  descriptor: FormDescriptor,
+  data: EntryData
+): EntryData {
+  const ordered: EntryData = {};
+  for (const field of descriptor.fields) {
+    if (field.name in data) ordered[field.name] = data[field.name];
+  }
+  for (const [name, value] of Object.entries(data)) {
+    if (!(name in ordered)) ordered[name] = value;
+  }
+  return ordered;
+}
+
 // The labels an automatic title draws from. The entry form hides the title
 // field in automatic mode, so "the title is empty" alone would be a dead
 // end: the refusal has to name the fields the author can actually fill.

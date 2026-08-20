@@ -5,6 +5,7 @@ import {
   type EntryData,
   type FormDescriptor,
   computeAutomaticTitle,
+  orderedEntryData,
 } from "./form-descriptor";
 
 interface TitleMode {
@@ -55,6 +56,9 @@ export function restoredEntryValues(
 ): { values: EntryData; titleKept: boolean } {
   const title = computeAutomaticTitle(descriptor, values);
   return title.trim() === ""
-    ? { values, titleKept: true }
-    : { values: { ...values, title }, titleKept: false };
+    ? { values: orderedEntryData(descriptor, values), titleKept: true }
+    : {
+        values: orderedEntryData(descriptor, { ...values, title }),
+        titleKept: false,
+      };
 }

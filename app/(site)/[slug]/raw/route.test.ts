@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The route only turns getRawContent's answer into HTTP (docs/permissions.md
-// § /{slug}/raw): the right to read and the field cut are lib/pages.ts's own
-// job, already exercised in lib/pages.test.ts. Mocked here so this suite is
-// about status codes, headers and slug handling alone.
+// § /{slug}/raw): the right to read, the field cut and the order are
+// lib/pages.ts's own job, already exercised in lib/pages.test.ts. Mocked here
+// so this suite is about status codes, headers, slug handling and ?field=
+// alone.
 
 const { rawContent } = vi.hoisted(() => ({ rawContent: vi.fn() }));
 
@@ -15,9 +16,9 @@ vi.mock("@/lib/pages", () => ({
 
 const { GET } = await import("./route");
 
-function get(slug: string) {
+function get(slug: string, query = "") {
   const encoded = encodeURIComponent(slug);
-  return GET(new Request(`http://localhost/${encoded}/raw`), {
+  return GET(new Request(`http://localhost/${encoded}/raw${query}`), {
     params: Promise.resolve({ slug: encoded }),
   });
 }
@@ -33,12 +34,15 @@ describe("GET /{slug}/raw", () => {
     expect(rawContent).not.toHaveBeenCalled();
   });
 
-  it("redirects an uppercase slug to its lowercase, canonical address", async () => {
-    const response = await GET(new Request("http://localhost/ACCUEIL/raw"), {
-      params: Promise.resolve({ slug: "ACCUEIL" }),
-    });
+  it("redirects an uppercase slug to its lowercase, canonical address, query kept", async () => {
+    const response = await GET(
+      new Request("http://localhost/ACCUEIL/raw?field=content"),
+      { params: Promise.resolve({ slug: "ACCUEIL" }) }
+    );
     expect(response.status).toBe(302);
-    expect(response.headers.get("Location")).toBe("http://localhost/accueil/raw");
+    expect(response.headers.get("Location")).toBe(
+      "http://localhost/accueil/raw?field=content"
+    );
     expect(rawContent).not.toHaveBeenCalled();
   });
 
@@ -54,23 +58,36 @@ describe("GET /{slug}/raw", () => {
     expect(response.status).toBe(403);
   });
 
-  it("serves an MDX page's source as text/plain", async () => {
-    rawContent.mockResolvedValue({ contentType: "text/plain", body: "# Bonjour" });
+  it("serves a page's content and metadata as JSON", async () => {
+    const raw = { content: "# Bonjour", "created-at": "2026-01-05T10:00:00.000Z" };
+    rawContent.mockResolvedValue(raw);
     const response = await get("accueil");
-    expect(response.status).toBe(200);
-    expect(response.headers.get("Content-Type")).toBe("text/plain; charset=utf-8");
-    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
-    expect(await response.text()).toBe("# Bonjour");
-  });
-
-  it("serves a fiche's field values as JSON", async () => {
-    const body = JSON.stringify({ title: "Paie", nom: "Marie" });
-    rawContent.mockResolvedValue({ contentType: "application/json", body });
-    const response = await get("paie-marie");
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Type")).toBe(
       "application/json; charset=utf-8"
     );
-    expect(await response.text()).toBe(body);
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(await response.json()).toEqual(raw);
+  });
+
+  it("serves a fiche's field values and metadata as JSON", async () => {
+    const raw = { title: "Paie", "form-id": "paie", nom: "Marie" };
+    rawContent.mockResolvedValue(raw);
+    const response = await get("paie-marie");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(raw);
+  });
+
+  it("?field= narrows the response to that one field's value", async () => {
+    rawContent.mockResolvedValue({ title: "Paie", nom: "Marie" });
+    const response = await get("paie-marie", "?field=nom");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toBe("Marie");
+  });
+
+  it("?field= 404s a field absent or unreadable, the same way as a missing one", async () => {
+    rawContent.mockResolvedValue({ title: "Paie", nom: "Marie" });
+    const response = await get("paie-marie", "?field=salaire");
+    expect(response.status).toBe(404);
   });
 });

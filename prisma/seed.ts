@@ -12,6 +12,7 @@ import type { Prisma } from "../lib/generated/prisma/client";
 import { PrismaClient } from "../lib/generated/prisma/client";
 import {
   computeAutomaticTitle,
+  orderedEntryData,
   parseFormDescriptor,
 } from "../lib/form-descriptor";
 import { bornFormPermissions } from "../lib/form-rights";
@@ -359,12 +360,18 @@ async function main() {
     }
     const createdAt = new Date();
     createdAt.setUTCDate(createdAt.getUTCDate() + entry.daysOffset);
+    // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw),
+    // like every other writer — title lands wherever the form's own title
+    // field sits, normally first.
+    const data = descriptor
+      ? orderedEntryData(descriptor, { ...entry.data, title })
+      : { ...entry.data, title };
     await createEntryPage(
       prisma,
       form.id,
       form.name,
       entry.slug,
-      { ...entry.data, title } as Prisma.InputJsonValue,
+      data as Prisma.InputJsonValue,
       createdAt
     );
     console.log(`+ fiche ${entry.slug}`);
