@@ -426,11 +426,19 @@ Le second temps est irréductiblement en mémoire : les droits par champ vivent 
 
 ### `/{slug}/raw`
 
-Handler (l'équivalent du `/raw` de YesWiki) : toujours du JSON. Miroir de `/api/render` — un service d'API dont la réponse est du HTML est porté par une `page.tsx` nue ; un handler de page dont la réponse n'est pas un écran est porté par un `route.ts`.
+Handler (l'équivalent du `/raw` de YesWiki). Miroir de `/api/render` — un service d'API dont la réponse est du HTML est porté par une `page.tsx` nue ; un handler de page dont la réponse n'est pas un écran est porté par un `route.ts`.
 
 Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pages.ts`), et **filtre les champs non lisibles avant de sérialiser** : sans ça, il court-circuiterait les droits par champ, qui n'existent qu'au rendu.
 
-**Une page** :
+**Une page, par défaut** : son `content` seul, en texte brut (`Content-Type: text/plain`) — comme le `/raw` de YesWiki dont ce handler hérite, `\n` y est un vrai saut de ligne, pas les deux caractères qu'un JSON exigerait pour l'échapper.
+
+```
+# Bienvenue
+
+…
+```
+
+**`?all`** bascule une page vers son JSON complet, `content` puis les six champs de métadonnées :
 
 ```json
 {
@@ -444,7 +452,7 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pag
 }
 ```
 
-**Une fiche** : les valeurs de champs dans l'ordre du formulaire — `title` n'est pas forcé en tête, il apparaît là où l'auteur du formulaire l'a posé dans le canvas —, `form-id` (le slug du formulaire, obtenu depuis son identifiant) inséré juste après `title`, où qu'il se trouve, puis les six mêmes champs de métadonnées à la fin :
+**Une fiche, par défaut et avec `?all` — les deux répondent pareil**, faute d'un `content` unique à isoler : les valeurs de champs dans l'ordre du formulaire — `title` n'est pas forcé en tête, il apparaît là où l'auteur du formulaire l'a posé dans le canvas —, `form-id` (le slug du formulaire, obtenu depuis son identifiant) inséré juste après `title`, où qu'il se trouve, puis les six mêmes champs de métadonnées à la fin :
 
 ```json
 {
@@ -464,10 +472,6 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pag
 **L'ordre n'est pas une propriété du stockage.** `Revision.data` est du `jsonb`, qui ne garantit pas de préserver l'ordre des clés qu'on lui a écrites — `getRawContent()` le reconstruit donc systématiquement depuis le formulaire (`orderedEntryData()`, `lib/form-descriptor.ts`) plutôt que de faire confiance à ce que Prisma rend. La même fonction ordonne aussi l'écriture (`createEntryPage`, `writeEntryRevision`, `writeRestoredRevision`, le recalcul de masse) : un confort pour qui inspecte la base à la main, mais la garantie que `/{slug}/raw` tient vient de cette reconstruction à la lecture, pas du stockage.
 
 `owner` et `last-edited-by` suivent la même règle d'affichage que le reste du wiki (`displayName()`, `lib/username.ts`) : « Anonyme » pour un contenu sans propriétaire ou sans auteur identifié. `read-scope` et `write-scope` sont l'objet `AccessRule` déjà utilisé par la modale de droits (`{ scope, usernames, groupSlugs }`, § Le droit).
-
-**`?field=`** limite la réponse à la valeur d'un seul champ (`GET /paie-marie/raw?field=title` répond `"Paie de janvier"`, guillemets compris — c'est du JSON, pas du texte brut). Un nom absent — parce que le champ n'existe pas, ou parce que cette personne ne peut pas le lire — répond `404` sans distinguer les deux raisons : la coupe en lecture d'un champ n'existe qu'au rendu (§ Champ), `/{slug}/raw` ne doit donc jamais laisser deviner qu'un champ existe en traitant son absence différemment de celle d'un nom inconnu.
-
-**`?field=content` fait exception** et répond en texte brut (`Content-Type: text/plain`), comme le `/raw` de YesWiki dont ce handler hérite : `\n` y est un vrai saut de ligne, pas les deux caractères qu'un JSON exigerait pour l'échapper. Tout le reste — la page ou la fiche entière, ou la valeur d'un autre champ — reste en JSON.
 
 ## Modèle de données
 

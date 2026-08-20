@@ -22,7 +22,7 @@ export async function GET(request: Request, { params }: Params) {
   const url = new URL(request.url);
 
   // Mirrors the show handler's own redirect (app/(site)/[slug]/page.tsx):
-  // uppercase variants resolve to the canonical lowercase slug, ?field=
+  // uppercase variants resolve to the canonical lowercase slug, ?all
   // carried along.
   const lowercased = slug.toLowerCase();
   if (slug !== lowercased && isValidSlug(lowercased)) {
@@ -46,27 +46,21 @@ export async function GET(request: Request, { params }: Params) {
     });
   }
 
-  // ?field=… narrows the response to one field's own value, still JSON —
-  // an unreadable field is absent from `raw` exactly like one that does not
-  // exist, so the two answer the same 404 rather than one leaking the other.
-  const field = url.searchParams.get("field");
-  if (field !== null && !Object.hasOwn(raw, field)) {
-    return notFound("Champ introuvable");
-  }
-  const body = field !== null ? raw[field] : raw;
-
-  // YesWiki's own /raw, the reference this handler mirrors, returns content
-  // as plain readable text, not JSON — \n a line break, not two characters
-  // to decode. That expectation only survives narrowing to that one field:
-  // any other shape (a whole page or fiche, or a value from another field)
-  // stays JSON, where \n-escaping is just how a string travels.
-  if (field === "content" && typeof body === "string") {
-    return new Response(body, {
+  // YesWiki's own /raw, the reference this handler mirrors, returns a page's
+  // content as plain readable text — \n a line break, not two characters to
+  // decode. That default only applies to a page: a fiche has no single
+  // "content" to isolate, so it keeps showing every field plus metadata,
+  // exactly what ?all also gives back. ?all switches a page to that same
+  // full JSON view, the one this handler always served before this default.
+  const all = url.searchParams.has("all");
+  const isPage = Object.hasOwn(raw, "content");
+  if (!all && isPage && typeof raw.content === "string") {
+    return new Response(raw.content, {
       headers: { ...HEADERS, "Content-Type": "text/plain; charset=utf-8" },
     });
   }
 
-  return new Response(JSON.stringify(body), {
+  return new Response(JSON.stringify(raw), {
     headers: { ...HEADERS, "Content-Type": "application/json; charset=utf-8" },
   });
 }
