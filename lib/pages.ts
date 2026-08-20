@@ -5,6 +5,7 @@ import {
   alreadyGrants,
   nothingToReplace,
 } from "@/lib/bulk-rights";
+import { hasForm, isEntryPage } from "@/lib/entry-page";
 import { restoredEntryValues } from "@/lib/entry-title";
 import { readableForm } from "@/lib/field-rights-db";
 import { mergedEntryData } from "@/lib/field-rights";
@@ -141,6 +142,13 @@ export function isRefused<T extends object>(
 ): result is AccessRefusal {
   return "refused" in result;
 }
+
+// isEntryPage() and hasForm() live in lib/entry-page.ts, a module with no
+// server-only imports of its own (unlike this one, ADR 0025's door): a
+// Client Component can call them directly without pulling next/headers into
+// its bundle (components/page/pages-admin.tsx does exactly that). Re-exported
+// here so every server-side caller still reaches them through this one door.
+export { isEntryPage, hasForm };
 
 /**
  * What the lists filter on, in SQL and never afterwards (docs/permissions.md
@@ -315,12 +323,11 @@ interface EntryRawMetadata extends RawMetadata {
 /**
  * What `/{slug}/raw` (docs/permissions.md) hands the route to serve — a
  * discriminated union, not a bag of unknown keys: the route dispatches on
- * `kind`, set once here from the same `formId`/`form` pair every other
- * fiche-or-page branch in this module reads, rather than probing the shape
- * (a `content` key, a field's own `typeof`) the way an earlier version of
- * this handler did. `fields` stays internal to this module; the route
- * flattens it back into the wire shape `/{slug}/raw` actually serves
- * (docs/permissions.md § /{slug}/raw).
+ * `kind`, set once here from hasForm() rather than probing the shape (a
+ * `content` key, a field's own `typeof`) the way an earlier version of this
+ * handler did. `fields` stays internal to this module; the route flattens it
+ * back into the wire shape `/{slug}/raw` actually serves (docs/permissions.md
+ * § /{slug}/raw).
  */
 export type RawContent =
   | { kind: "page"; content: string; metadata: RawMetadata }
@@ -360,7 +367,7 @@ export async function getRawContent(
     "write-scope": pageRule(page, "WRITE"),
   };
 
-  if (!page.formId || !page.form) {
+  if (!hasForm(page)) {
     return { kind: "page", content: page.current?.content ?? "", metadata };
   }
 
@@ -762,7 +769,7 @@ export async function getPageRights(slug: string): Promise<PageRightsView | null
   await assertStructuring(page, RIGHTS_REFUSED);
   return {
     floor: pageFloor(page),
-    isEntry: page.formId !== null,
+    isEntry: isEntryPage(page),
     read: pageRule(page, "READ"),
     write: pageRule(page, "WRITE"),
   };
@@ -807,6 +814,8 @@ export async function setPageRights(
 export interface ManagedPage extends PageRights {
   slug: string;
   owner: Identity | null;
+  /** isEntryPage()'s own scalar — see there for why this is the signal, not `form`. */
+  formId: string | null;
   /** The `⌗Formulaire` marker, which tells a fiche from a page. Null for a page. */
   form: { slug: string; name: string } | null;
 }
@@ -822,6 +831,7 @@ export async function listManagedPages(): Promise<ManagedPage[]> {
       writeScope: true,
       owner: PUBLIC_IDENTITY,
       acls: ACL_ROWS,
+      formId: true,
       form: { select: { slug: true, name: true } },
     },
   });

@@ -6,6 +6,7 @@ function managed(slug: string, form?: { slug: string; name: string }): ManagedPa
   return {
     slug,
     owner: null,
+    formId: form ? form.slug : null,
     form: form ?? null,
     ownerUsername: null,
     readScope: "everyone",

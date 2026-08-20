@@ -9,6 +9,7 @@ import {
   personCanCreatePage,
   personCanWrite,
   getPageWithForm,
+  hasForm,
   isRefused,
   listPageSlugs,
   listPageTags,
@@ -61,7 +62,7 @@ export default async function EditPage({ params }: Props) {
 
   // A form entry (ADR 0014) edits through its generated form, never
   // CodeMirror: branch on the page's nature before loading editor data.
-  if (existing?.form) {
+  if (existing && hasForm(existing)) {
     const form = await getEntryForm(existing.form.slug, slug);
     if (!form) notFound();
     return <EntryEdit form={form} />;

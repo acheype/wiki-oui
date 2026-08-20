@@ -14,6 +14,7 @@ import {
   personCanCreatePage,
   personPermissions,
   getPageWithCurrent,
+  isEntryPage,
   isRefused,
 } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
@@ -61,7 +62,7 @@ export default async function ShowPage({ params }: Props) {
       {/* flex-1: a short entry's blank area stays double-clickable. */}
       <DoubleClickToEdit slug={slug} enabled={permissions.write} className="flex-1">
         <article>
-          {page.formId ? (
+          {isEntryPage(page) ? (
             <EntryContent formId={page.formId} rawData={page.current?.data} />
           ) : (
             <Prose>{await renderMdx(page.current?.content ?? "")}</Prose>

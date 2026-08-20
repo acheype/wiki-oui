@@ -4,6 +4,11 @@
 // page one has filtered out is the surprise that screen exists to avoid, and a
 // tick surviving the filter that hid it is a bug the eye does not catch.
 
+// hasForm/isEntryPage from lib/entry-page.ts, not lib/pages.ts: this module
+// is read by a Client Component (components/page/pages-admin.tsx), and
+// lib/pages.ts carries server-only imports (ADR 0025) a client bundle cannot
+// take on, even for a function that never touches them.
+import { hasForm, isEntryPage } from "@/lib/entry-page";
 import type { ManagedPage } from "@/lib/pages";
 
 /** The three answers to « Type », and what each keeps of the list. */
@@ -40,8 +45,8 @@ export function coherent(current: Criteria, next: Partial<Criteria>): Criteria {
 }
 
 function matchesKind(page: ManagedPage, kind: KindFilter): boolean {
-  if (kind === "pages") return page.form === null;
-  if (kind === "entries") return page.form !== null;
+  if (kind === "pages") return !isEntryPage(page);
+  if (kind === "entries") return isEntryPage(page);
   return true;
 }
 
@@ -64,7 +69,7 @@ export function formsOf(
   pages: readonly ManagedPage[]
 ): { slug: string; name: string }[] {
   const bySlug = new Map(
-    pages.flatMap((page) => (page.form ? [[page.form.slug, page.form]] : []))
+    pages.flatMap((page) => (hasForm(page) ? [[page.form.slug, page.form]] : []))
   );
   return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name, "fr"));
 }

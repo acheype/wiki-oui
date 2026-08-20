@@ -19,6 +19,7 @@ import {
   deletePageById,
   getPage,
   getRevisionToRestore,
+  hasForm,
   isRefused,
   listAllPageSlugs,
   renamePageSlug,
@@ -249,7 +250,10 @@ export async function restoreRevision(
     return { error: ACCESS_DENIED };
   }
 
-  const restored = restoredEntryData(source.page.form?.schema, source.data);
+  const restored = restoredEntryData(
+    hasForm(source.page) ? source.page.form.schema : undefined,
+    source.data
+  );
   // Restoring is a write (docs/permissions.md § Quel droit commande quelle
   // action): the history stays readable to whoever may read the page, and the
   // button that puts a revision back is offered to whoever may write it.

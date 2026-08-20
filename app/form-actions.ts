@@ -64,6 +64,7 @@ import {
   createEntryPage,
   getPage,
   getPageWithCurrent,
+  hasForm,
   isRefused,
   listEntryPages,
   listEntrySnapshots,
@@ -768,7 +769,7 @@ export interface EntrySummary {
 export async function listEntries(formSlug?: string): Promise<EntrySummary[]> {
   const pages = await listEntryPages(formSlug);
   return pages.flatMap((page) => {
-    if (!page.form) return [];
+    if (!hasForm(page)) return [];
     const title = String(readEntryData(page.current?.data).title ?? page.slug);
     return [
       {

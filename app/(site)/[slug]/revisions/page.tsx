@@ -14,7 +14,12 @@ import { readableForm } from "@/lib/field-rights-db";
 import { formatDateTime } from "@/lib/format";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import { personCanWrite, getPageWithRevisions, isRefused } from "@/lib/pages";
+import {
+  personCanWrite,
+  getPageWithRevisions,
+  isEntryPage,
+  isRefused,
+} from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { displayName } from "@/lib/username";
@@ -71,7 +76,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the
   // entry's default view (below).
-  const form = page.formId ? await getFormById(page.formId) : null;
+  const form = isEntryPage(page) ? await getFormById(page.formId) : null;
   // The history is another way of reading a fiche, so the fields cut from its
   // rendering are cut from every revision of it too (docs/permissions.md §
   // Champ) — the JSON of a snapshot would otherwise hand over what the fiche

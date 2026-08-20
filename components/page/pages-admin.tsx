@@ -41,6 +41,10 @@ import {
   formsOf,
   pagesMatching,
 } from "@/lib/page-filters";
+// hasForm from lib/entry-page.ts, not lib/pages.ts: this is a Client
+// Component, and lib/pages.ts carries server-only imports (ADR 0025) a
+// client bundle cannot take on, even for a function that never touches them.
+import { hasForm } from "@/lib/entry-page";
 import type { ManagedPage } from "@/lib/pages";
 import {
   type AccessRule,
@@ -204,7 +208,7 @@ export function PagesAdmin() {
                   >
                     {page.slug}
                   </Link>
-                  {page.form && (
+                  {hasForm(page) && (
                     <Link
                       href={`/fiches?formulaire=${page.form.slug}`}
                       title={`Fiche du formulaire ${page.form.name}`}

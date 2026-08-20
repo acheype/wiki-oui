@@ -6,7 +6,7 @@ import { Prose } from "@/components/page/prose";
 import { WikiFrameResizeEmitter } from "@/components/wiki/internal/wiki-frame-emitter";
 import { readEntryData } from "@/lib/form-descriptor";
 import { firstHeadingText, renderMdx } from "@/lib/mdx";
-import { getPageWithCurrent, isRefused } from "@/lib/pages";
+import { getPageWithCurrent, isEntryPage, isRefused } from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 
 // The /{slug}/iframe handler (ADR 0001): the page's real "show" rendering
@@ -38,7 +38,7 @@ export async function generateMetadata({
   const slug = decodeURIComponent((await params).slug);
   const page = await getPageWithCurrent(slug);
   if (!page || isRefused(page)) return {};
-  if (page.formId) {
+  if (isEntryPage(page)) {
     const title = readEntryData(page.current?.data).title;
     return { title: typeof title === "string" && title.trim() ? title : slug };
   }
@@ -73,7 +73,7 @@ export default async function IframePage({
   return (
     <div data-wiki-frame>
       <article>
-        {page.formId ? (
+        {isEntryPage(page) ? (
           <EntryContent
             formId={page.formId}
             rawData={page.current?.data}
