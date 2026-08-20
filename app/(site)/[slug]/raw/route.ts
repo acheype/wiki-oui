@@ -55,6 +55,17 @@ export async function GET(request: Request, { params }: Params) {
   }
   const body = field !== null ? raw[field] : raw;
 
+  // YesWiki's own /raw, the reference this handler mirrors, returns content
+  // as plain readable text, not JSON — \n a line break, not two characters
+  // to decode. That expectation only survives narrowing to that one field:
+  // any other shape (a whole page or fiche, or a value from another field)
+  // stays JSON, where \n-escaping is just how a string travels.
+  if (field === "content" && typeof body === "string") {
+    return new Response(body, {
+      headers: { ...HEADERS, "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+
   return new Response(JSON.stringify(body), {
     headers: { ...HEADERS, "Content-Type": "application/json; charset=utf-8" },
   });

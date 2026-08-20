@@ -90,4 +90,24 @@ describe("GET /{slug}/raw", () => {
     const response = await get("paie-marie", "?field=salaire");
     expect(response.status).toBe(404);
   });
+
+  it("?field=content serves a page's content as plain readable text, not JSON", async () => {
+    rawContent.mockResolvedValue({ content: "Ligne un\nLigne deux" });
+    const response = await get("accueil", "?field=content");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe(
+      "text/plain; charset=utf-8"
+    );
+    expect(await response.text()).toBe("Ligne un\nLigne deux");
+  });
+
+  it("still serves other single fields as JSON, quotes and escapes included", async () => {
+    rawContent.mockResolvedValue({ chapeau: "Une phrase.\nEt une autre." });
+    const response = await get("un-billet", "?field=chapeau");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe(
+      "application/json; charset=utf-8"
+    );
+    expect(await response.text()).toBe('"Une phrase.\\nEt une autre."');
+  });
 });
