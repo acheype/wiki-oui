@@ -477,6 +477,8 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pag
 
 `owner` et `last-edited-by` suivent la même règle d'affichage que le reste du wiki (`displayName()`, `lib/username.ts`) : « Anonyme » pour un contenu sans propriétaire ou sans auteur identifié. `read-scope` et `write-scope` sont l'objet `AccessRule` déjà utilisé par la modale de droits (`{ scope, usernames, groupSlugs }`, § Le droit).
 
+**`content`, `form-id` et `metadata` ne peuvent pas nommer un champ** : `formAuthoringIssues()` ([`forms.md`](forms.md)) refuse l'enregistrement d'un formulaire qui en porterait un, pour la collision qu'il ferait avec ce que `/{slug}/raw` écrit lui-même à ces noms. `title` n'a pas besoin de la même règle, déjà réservé par le méta-schéma au seul champ de type Titre.
+
 ## Modèle de données
 
 Toutes les tables restent dans le schéma `public` — pas de `multiSchema`.

@@ -16,10 +16,10 @@ import {
   emptyTitleMessage,
   formAuthoringIssues,
   isOptionsField,
-  orderedEntryData,
   parseFormDescriptor,
   readEntryData,
   unknownFieldReferences,
+  withTitleOrdered,
 } from "@/lib/form-descriptor";
 import {
   fieldWriteRule,
@@ -550,9 +550,10 @@ function titledEntry(
 ): { stored: EntryData; title: string; refusal: string | null } {
   const title = computeAutomaticTitle(descriptor, data);
   return {
-    // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw),
-    // title normally landing first because that is where forms carry it.
-    stored: orderedEntryData(descriptor, { ...data, title }),
+    // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw) —
+    // title lands wherever the form's own author placed it, never forced to
+    // the front.
+    stored: withTitleOrdered(descriptor, data, title),
     title,
     refusal: title.trim() === "" ? emptyTitleMessage(descriptor) : null,
   };

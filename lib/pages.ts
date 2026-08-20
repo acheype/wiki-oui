@@ -15,6 +15,7 @@ import {
   emptyTitleMessage,
   orderedEntryData,
   readEntryData,
+  withTitleOrdered,
 } from "@/lib/form-descriptor";
 import {
   type EntryRightsImpact,
@@ -297,26 +298,40 @@ export async function getPageWithForm(slug: string) {
   return page && ifReadable(page);
 }
 
-/** What `/{slug}/raw` (docs/permissions.md) hands the route to serve. */
-export type RawContent = Record<string, unknown>;
+/** The six fields `/{slug}/raw` (docs/permissions.md) always ends on. */
+interface RawMetadata {
+  "created-at": Date;
+  owner: string;
+  "last-edited-at": Date;
+  "last-edited-by": string;
+  "read-scope": AccessRule;
+  "write-scope": AccessRule;
+}
+
+/**
+ * What `/{slug}/raw` (docs/permissions.md) hands the route to serve — a
+ * discriminated union, not a bag of unknown keys: the route dispatches on
+ * `kind` rather than probing the shape (a `content` key, a field's own
+ * `typeof`) to guess whether this is a page or a fiche, a guess a fiche
+ * whose own form names a field `content` could otherwise spoof. `fields`
+ * stays internal to this module; the route flattens it back into the wire
+ * shape `/{slug}/raw` actually serves (docs/permissions.md § /{slug}/raw).
+ */
+export type RawContent =
+  | { kind: "page"; content: string; metadata: RawMetadata }
+  | { kind: "entry"; fields: EntryData; metadata: RawMetadata };
 
 /** Inserts `form-id` right after `title`, wherever the ordering left it. */
-function withFormIdAfterTitle(ordered: RawContent, formSlug: string): RawContent {
-  const withFormId: RawContent = {};
-  let inserted = false;
-  for (const [name, value] of Object.entries(ordered)) {
-    withFormId[name] = value;
-    if (name === "title") {
-      withFormId["form-id"] = formSlug;
-      inserted = true;
-    }
-  }
+function withFormIdAfterTitle(ordered: EntryData, formSlug: string): EntryData {
+  const entries = Object.entries(ordered);
+  const afterTitle = entries.findIndex(([name]) => name === "title") + 1;
   // The panel refuses to save a form without a title field (parseFormDescriptor,
   // lib/form-descriptor.ts) and never lets its reading be restricted
   // (docs/permissions.md § Champ) — `title` is always there to insert after.
-  // This only guards a descriptor this engine can no longer parse at all.
-  if (!inserted) withFormId["form-id"] = formSlug;
-  return withFormId;
+  // findIndex returning -1 (afterTitle 0) only guards a descriptor this
+  // engine can no longer parse at all, and inserts at the front instead.
+  entries.splice(afterTitle, 0, ["form-id", formSlug]);
+  return Object.fromEntries(entries);
 }
 
 /**
@@ -325,11 +340,14 @@ function withFormIdAfterTitle(ordered: RawContent, formSlug: string): RawContent
  * Born *inside* this door rather than beside it (ADR 0025) — a bare route
  * reading Prisma on its own is exactly the shortcut the door exists to close.
  *
- * An MDX page hands back `content` plus a `metadata` object holding the six
- * fields below. A fiche hands back its field values in the form's own order
- * — `title` normally first, `form-id` inserted right after it — then the
- * same `metadata` object. Nested rather than spread flat: metadata is never
- * a field a form could have named, so it never competes with one.
+ * An MDX page hands back `content` plus `metadata`. A fiche hands back its
+ * field values in the form's own order — `title` normally first, `form-id`
+ * inserted right after it — then the same `metadata`. Neither `content`,
+ * `form-id`, nor `metadata` can be a field's own name (formAuthoringIssues,
+ * lib/form-descriptor.ts refuses the form at save time), so nesting the
+ * fields under `fields` here is purely about `getRawContent()`'s own return
+ * type — the route still spreads them flat, matching what a field's own
+ * name could never collide with.
  * A fiche's values are filtered through readableForm() (lib/field-rights-db.ts),
  * the same cut its own rendering already makes: without it, this handler
  * would publish a field the fiche itself withholds.
@@ -341,7 +359,7 @@ export async function getRawContent(
   if (!page) return null;
   if (isRefused(page)) return page;
 
-  const metadata = {
+  const metadata: RawMetadata = {
     "created-at": page.createdAt,
     owner: displayName(page.owner),
     "last-edited-at": page.current?.createdAt ?? page.createdAt,
@@ -351,13 +369,14 @@ export async function getRawContent(
   };
 
   if (!page.formId || !page.form) {
-    return { content: page.current?.content ?? "", metadata };
+    return { kind: "page", content: page.current?.content ?? "", metadata };
   }
 
   const seen = await readableForm(page.form.schema);
   const data = seen ? seen.readableValues(page.current?.data) : {};
   const ordered = seen ? orderedEntryData(seen.readable, data) : data;
-  return { ...withFormIdAfterTitle(ordered, page.form.slug), metadata };
+  const fields = withFormIdAfterTitle(ordered, page.form.slug);
+  return { kind: "entry", fields, metadata };
 }
 
 export async function getPageWithRevisions(slug: string) {
@@ -1154,11 +1173,11 @@ export async function writeEntryRevision(input: {
   const unchanged = JSON.stringify(current) === JSON.stringify(withTitle);
   const author = await currentUsername();
   if (unchanged) return;
-  // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw),
-  // title normally landing first because that is where forms carry it — the
-  // one reorder that actually reaches storage, done last so nothing above
-  // has to reason about anything but values.
-  const written = orderedEntryData(descriptor, withTitle);
+  // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw) —
+  // `title` lands wherever the form's own author placed it, never forced to
+  // the front — the one reorder that actually reaches storage, done last so
+  // nothing above has to reason about anything but values.
+  const written = withTitleOrdered(descriptor, merged, title);
   // Two writes — the revision and the pointer that names it current — so the
   // transaction stays, though the tags no longer ride along with them.
   await prisma.$transaction(async (tx) => {

@@ -432,17 +432,17 @@ describe("getRawContent", () => {
     "write-scope": RESTRICTED,
   };
 
-  it("serves an MDX page's content, metadata nested under its own key", async () => {
+  it("serves an MDX page's content, kind and metadata alongside it", async () => {
     db.page.findUnique.mockResolvedValue({
       ...OPEN_PAGE,
       form: null,
       current: { content: "# Bonjour", createdAt: EDITED_AT, author: EDITOR },
     });
     const raw = await getRawContent("compte-rendu");
-    expect(raw).toEqual({ content: "# Bonjour", metadata: METADATA });
+    expect(raw).toEqual({ kind: "page", content: "# Bonjour", metadata: METADATA });
   });
 
-  it("serves a fiche ordered by the form, form-id right after title, fields cut, metadata nested", async () => {
+  it("serves a fiche's fields ordered by the form, form-id right after title, fields cut", async () => {
     db.page.findUnique.mockResolvedValue({
       ...OPEN_PAGE,
       formId: "form-1",
@@ -458,26 +458,20 @@ describe("getRawContent", () => {
 
     const raw = await getRawContent("paie-marie");
     expect(raw).toEqual({
-      title: "Paie",
-      "form-id": "paie",
-      nom: "Marie",
+      kind: "entry",
+      fields: { title: "Paie", "form-id": "paie", nom: "Marie" },
       metadata: METADATA,
     });
-    expect(Object.keys(raw as object)).toEqual([
-      "title",
-      "form-id",
-      "nom",
-      "metadata",
-    ]);
+    expect(
+      raw && "fields" in raw ? Object.keys(raw.fields) : []
+    ).toEqual(["title", "form-id", "nom"]);
 
     signedInAs("jean-martin", ["bureau"]);
     const seenByBureau = await getRawContent("paie-marie");
-    expect(Object.keys(seenByBureau as object)).toEqual([
-      "title",
-      "form-id",
-      "nom",
-      "salaire",
-      "metadata",
-    ]);
+    expect(
+      seenByBureau && "fields" in seenByBureau
+        ? Object.keys(seenByBureau.fields)
+        : []
+    ).toEqual(["title", "form-id", "nom", "salaire"]);
   });
 });

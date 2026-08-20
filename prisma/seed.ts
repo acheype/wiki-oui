@@ -12,8 +12,8 @@ import type { Prisma } from "../lib/generated/prisma/client";
 import { PrismaClient } from "../lib/generated/prisma/client";
 import {
   computeAutomaticTitle,
-  orderedEntryData,
   parseFormDescriptor,
+  withTitleOrdered,
 } from "../lib/form-descriptor";
 import { bornFormPermissions } from "../lib/form-rights";
 import { storedRights } from "../lib/permissions";
@@ -362,9 +362,9 @@ async function main() {
     createdAt.setUTCDate(createdAt.getUTCDate() + entry.daysOffset);
     // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw),
     // like every other writer — title lands wherever the form's own title
-    // field sits, normally first.
+    // field sits, never forced to the front.
     const data = descriptor
-      ? orderedEntryData(descriptor, { ...entry.data, title })
+      ? withTitleOrdered(descriptor, entry.data, title)
       : { ...entry.data, title };
     await createEntryPage(
       prisma,

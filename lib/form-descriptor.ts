@@ -410,6 +410,20 @@ export function orderedEntryData(
   return ordered;
 }
 
+// Every write site (createEntryPage, writeEntryRevision, a restore, the
+// title-recompute sweep, the seed) reaches the same two steps once it has a
+// title in hand: fold it into the values, then hand the result through
+// orderedEntryData. Each site still decides *whether* and *what* title to
+// compute — an empty gabarit, an unwritable field merged back in, a restore
+// falling back to the one already stored — only this common tail is shared.
+export function withTitleOrdered(
+  descriptor: FormDescriptor,
+  data: EntryData,
+  title: string
+): EntryData {
+  return orderedEntryData(descriptor, { ...data, title });
+}
+
 // The labels an automatic title draws from. The entry form hides the title
 // field in automatic mode, so "the title is empty" alone would be a dead
 // end: the refusal has to name the fields the author can actually fill.
@@ -541,6 +555,15 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
   return issues.length > 0 ? { issues } : { descriptor };
 }
 
+// Names `/{slug}/raw` (docs/permissions.md § /{slug}/raw) puts to its own
+// use, next to a fiche's field values: `form-id` right after `title`,
+// `metadata` at the end. `title` needs no entry here — the meta-schema
+// already locks it to the one field of type "title" (formFieldSchema). A
+// field carrying one of these names would collide with what /raw itself
+// writes there, silently dropped or overwritten depending on the field's own
+// position — so the name is refused before that shape can ever exist.
+const RESERVED_FIELD_NAMES = ["content", "form-id", "metadata"] as const;
+
 // Rules checked when a form is *saved*, not when it is read. A descriptor
 // already in base has to keep parsing: getForm throws on one it cannot read,
 // which would shut the author out of the very screen where the mistake gets
@@ -563,6 +586,14 @@ export function formAuthoringIssues(
         issues.push({
           fieldIndex,
           message: `L'identifiant «\u00A0${value}\u00A0» du champ «\u00A0${fieldName(field)}\u00A0» est invalide (minuscules, chiffres et tirets).`,
+        });
+      } else if (
+        setting.key === "name" &&
+        (RESERVED_FIELD_NAMES as readonly string[]).includes(value)
+      ) {
+        issues.push({
+          fieldIndex,
+          message: `L'identifiant «\u00A0${value}\u00A0» est réservé à \`/{slug}/raw\` et ne peut pas nommer un champ.`,
         });
       }
     }

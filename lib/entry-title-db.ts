@@ -9,8 +9,8 @@ import {
   type EntryData,
   type FormDescriptor,
   computeAutomaticTitle,
-  orderedEntryData,
   readEntryData,
+  withTitleOrdered,
 } from "./form-descriptor";
 import { Prisma } from "./generated/prisma/client";
 
@@ -58,7 +58,7 @@ async function planTitleRecompute(
     if (title === data.title) continue;
     changes.push({
       pageId: page.id,
-      data: orderedEntryData(descriptor, { ...data, title }),
+      data: withTitleOrdered(descriptor, data, title),
     });
   }
   return { changes, skipped };

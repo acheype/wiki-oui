@@ -52,15 +52,26 @@ export async function GET(request: Request, { params }: Params) {
   // "content" to isolate, so it keeps showing every field plus metadata,
   // exactly what ?all also gives back. ?all switches a page to that same
   // full JSON view, the one this handler always served before this default.
+  // Dispatched on `raw.kind` — set once, inside the door (ADR 0025) — rather
+  // than guessed here from a `content` key a fiche's own form could otherwise
+  // carry as a field name.
   const all = url.searchParams.has("all");
-  const isPage = Object.hasOwn(raw, "content");
-  if (!all && isPage && typeof raw.content === "string") {
+  if (raw.kind === "page" && !all) {
     return new Response(raw.content, {
       headers: { ...HEADERS, "Content-Type": "text/plain; charset=utf-8" },
     });
   }
 
-  return new Response(JSON.stringify(raw), {
+  // The wire shape /{slug}/raw actually serves (docs/permissions.md § the
+  // same section): a page flattens to `content` + `metadata`, a fiche to its
+  // own fields + `metadata` — `kind` is this handler's own bookkeeping, not
+  // part of what a caller sees.
+  const body: Record<string, unknown> =
+    raw.kind === "page"
+      ? { content: raw.content, metadata: raw.metadata }
+      : { ...raw.fields, metadata: raw.metadata };
+
+  return new Response(JSON.stringify(body), {
     headers: { ...HEADERS, "Content-Type": "application/json; charset=utf-8" },
   });
 }
