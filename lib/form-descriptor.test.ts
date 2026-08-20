@@ -675,19 +675,27 @@ describe("formAuthoringIssues", () => {
     expect(formAuthoringIssues(withTitle({ name: "" }))).toEqual([]);
   });
 
-  // form-id and metadata are what /{slug}/raw itself writes next to a
-  // fiche's fields (docs/permissions.md § /{slug}/raw) — a field carrying
-  // either name would silently collide with that, so it is refused here,
-  // before such a descriptor can ever be saved.
-  it.each(["content", "form-id", "metadata"])(
-    "refuses a field named %s, reserved by /{slug}/raw",
+  // metadata is the key a fiche's own metadata sits under, next to its
+  // field values (docs/permissions.md § /{slug}/raw) — a field carrying
+  // that same name would collide with it, so it is refused here, before
+  // such a descriptor can ever be saved.
+  it("refuses a field named metadata, reserved by /{slug}/raw", () => {
+    expect(formAuthoringIssues(withField({ name: "metadata" }))).toEqual([
+      {
+        fieldIndex: 1,
+        message: "L'identifiant « metadata » est réservé à `/{slug}/raw` et ne peut pas nommer un champ.",
+      },
+    ]);
+  });
+
+  // Neither needs the same guard: getRawContent() (lib/pages.ts) tells a
+  // page from a fiche by formId/form, never by a "content" key a field
+  // could spoof, and form-id now lives inside metadata, a different object
+  // than a fiche's own fields — so a field can freely carry either name.
+  it.each(["content", "form-id"])(
+    "accepts a field named %s — no longer a /{slug}/raw collision",
     (name) => {
-      expect(formAuthoringIssues(withField({ name }))).toEqual([
-        {
-          fieldIndex: 1,
-          message: `L'identifiant « ${name} » est réservé à \`/{slug}/raw\` et ne peut pas nommer un champ.`,
-        },
-      ]);
+      expect(formAuthoringIssues(withField({ name }))).toEqual([]);
     }
   );
 

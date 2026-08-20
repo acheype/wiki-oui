@@ -92,10 +92,11 @@ describe("GET /{slug}/raw", () => {
   });
 
   it("serves a fiche's field values and metadata as JSON by default — no content to isolate", async () => {
+    const metadata = { "form-id": "paie", ...METADATA };
     rawContent.mockResolvedValue({
       kind: "entry",
-      fields: { title: "Paie", "form-id": "paie", nom: "Marie" },
-      metadata: METADATA,
+      fields: { title: "Paie", nom: "Marie" },
+      metadata,
     });
     const response = await get("paie-marie");
     expect(response.status).toBe(200);
@@ -104,25 +105,24 @@ describe("GET /{slug}/raw", () => {
     );
     expect(await response.json()).toEqual({
       title: "Paie",
-      "form-id": "paie",
       nom: "Marie",
-      metadata: METADATA,
+      metadata,
     });
   });
 
   it("?all serves a fiche exactly the same way as the default", async () => {
+    const metadata = { "form-id": "paie", ...METADATA };
     rawContent.mockResolvedValue({
       kind: "entry",
-      fields: { title: "Paie", "form-id": "paie", nom: "Marie" },
-      metadata: METADATA,
+      fields: { title: "Paie", nom: "Marie" },
+      metadata,
     });
     const response = await get("paie-marie", "?all");
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       title: "Paie",
-      "form-id": "paie",
       nom: "Marie",
-      metadata: METADATA,
+      metadata,
     });
   });
 });

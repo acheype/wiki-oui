@@ -442,7 +442,7 @@ describe("getRawContent", () => {
     expect(raw).toEqual({ kind: "page", content: "# Bonjour", metadata: METADATA });
   });
 
-  it("serves a fiche's fields ordered by the form, form-id right after title, fields cut", async () => {
+  it("serves a fiche's fields ordered by the form, form-id inside metadata, fields cut", async () => {
     db.page.findUnique.mockResolvedValue({
       ...OPEN_PAGE,
       formId: "form-1",
@@ -459,12 +459,15 @@ describe("getRawContent", () => {
     const raw = await getRawContent("paie-marie");
     expect(raw).toEqual({
       kind: "entry",
-      fields: { title: "Paie", "form-id": "paie", nom: "Marie" },
-      metadata: METADATA,
+      fields: { title: "Paie", nom: "Marie" },
+      metadata: { "form-id": "paie", ...METADATA },
     });
     expect(
       raw && "fields" in raw ? Object.keys(raw.fields) : []
-    ).toEqual(["title", "form-id", "nom"]);
+    ).toEqual(["title", "nom"]);
+    expect(
+      raw && "metadata" in raw ? Object.keys(raw.metadata) : []
+    ).toEqual(["form-id", ...Object.keys(METADATA)]);
 
     signedInAs("jean-martin", ["bureau"]);
     const seenByBureau = await getRawContent("paie-marie");
@@ -472,6 +475,6 @@ describe("getRawContent", () => {
       seenByBureau && "fields" in seenByBureau
         ? Object.keys(seenByBureau.fields)
         : []
-    ).toEqual(["title", "form-id", "nom", "salaire"]);
+    ).toEqual(["title", "nom", "salaire"]);
   });
 });

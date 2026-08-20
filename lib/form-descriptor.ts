@@ -555,14 +555,17 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
   return issues.length > 0 ? { issues } : { descriptor };
 }
 
-// Names `/{slug}/raw` (docs/permissions.md § /{slug}/raw) puts to its own
-// use, next to a fiche's field values: `form-id` right after `title`,
-// `metadata` at the end. `title` needs no entry here — the meta-schema
-// already locks it to the one field of type "title" (formFieldSchema). A
-// field carrying one of these names would collide with what /raw itself
-// writes there, silently dropped or overwritten depending on the field's own
-// position — so the name is refused before that shape can ever exist.
-const RESERVED_FIELD_NAMES = ["content", "form-id", "metadata"] as const;
+// `metadata` is the one name `/{slug}/raw` (docs/permissions.md §
+// /{slug}/raw) cannot let a field carry: it is the key a fiche's own
+// metadata sits under, next to the field values — a field also named
+// `metadata` would collide with it, one silently overwriting the other.
+// `content` and `form-id` need no such rule: `getRawContent()` (lib/pages.ts)
+// tells a page from a fiche by `formId`/`form`, never by a `content` key a
+// field could spoof, and `form-id` itself now lives inside `metadata`, a
+// different object than a fiche's own fields. `title` needs none either —
+// the meta-schema already locks it to the one field of type "title"
+// (formFieldSchema).
+const RESERVED_FIELD_NAME = "metadata";
 
 // Rules checked when a form is *saved*, not when it is read. A descriptor
 // already in base has to keep parsing: getForm throws on one it cannot read,
@@ -587,10 +590,7 @@ export function formAuthoringIssues(
           fieldIndex,
           message: `L'identifiant «\u00A0${value}\u00A0» du champ «\u00A0${fieldName(field)}\u00A0» est invalide (minuscules, chiffres et tirets).`,
         });
-      } else if (
-        setting.key === "name" &&
-        (RESERVED_FIELD_NAMES as readonly string[]).includes(value)
-      ) {
+      } else if (setting.key === "name" && value === RESERVED_FIELD_NAME) {
         issues.push({
           fieldIndex,
           message: `L'identifiant «\u00A0${value}\u00A0» est réservé à \`/{slug}/raw\` et ne peut pas nommer un champ.`,

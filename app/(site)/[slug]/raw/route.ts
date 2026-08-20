@@ -52,9 +52,9 @@ export async function GET(request: Request, { params }: Params) {
   // "content" to isolate, so it keeps showing every field plus metadata,
   // exactly what ?all also gives back. ?all switches a page to that same
   // full JSON view, the one this handler always served before this default.
-  // Dispatched on `raw.kind` — set once, inside the door (ADR 0025) — rather
-  // than guessed here from a `content` key a fiche's own form could otherwise
-  // carry as a field name.
+  // Dispatched on `raw.kind` — set once, inside the door (ADR 0025) from
+  // `formId`/`form`, the same pair every fiche-or-page branch there reads —
+  // rather than guessed here from the response's own shape.
   const all = url.searchParams.has("all");
   if (raw.kind === "page" && !all) {
     return new Response(raw.content, {

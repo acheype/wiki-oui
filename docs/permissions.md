@@ -454,15 +454,15 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pag
 }
 ```
 
-**Une fiche, par défaut et avec `?all` — les deux répondent pareil**, faute d'un `content` unique à isoler : les valeurs de champs dans l'ordre du formulaire — `title` n'est pas forcé en tête, il apparaît là où l'auteur du formulaire l'a posé dans le canvas —, `form-id` (le slug du formulaire, obtenu depuis son identifiant) inséré juste après `title`, où qu'il se trouve, puis `metadata` à la fin, les mêmes six champs :
+**Une fiche, par défaut et avec `?all` — les deux répondent pareil**, faute d'un `content` unique à isoler : les valeurs de champs dans l'ordre du formulaire — `title` n'est pas forcé en tête, il apparaît là où l'auteur du formulaire l'a posé dans le canvas —, puis `metadata` à la fin, portant `form-id` (le slug du formulaire, obtenu depuis son identifiant) en tête des six mêmes champs :
 
 ```json
 {
   "title": "Les Jardins partagés",
-  "form-id": "associations",
   "objet": "…",
   "email": "contact@…",
   "metadata": {
+    "form-id": "associations",
     "created-at": "2026-01-05T10:00:00.000Z",
     "owner": "Marie Durand",
     "last-edited-at": "2026-02-10T09:00:00.000Z",
@@ -477,7 +477,7 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pag
 
 `owner` et `last-edited-by` suivent la même règle d'affichage que le reste du wiki (`displayName()`, `lib/username.ts`) : « Anonyme » pour un contenu sans propriétaire ou sans auteur identifié. `read-scope` et `write-scope` sont l'objet `AccessRule` déjà utilisé par la modale de droits (`{ scope, usernames, groupSlugs }`, § Le droit).
 
-**`content`, `form-id` et `metadata` ne peuvent pas nommer un champ** : `formAuthoringIssues()` ([`forms.md`](forms.md)) refuse l'enregistrement d'un formulaire qui en porterait un, pour la collision qu'il ferait avec ce que `/{slug}/raw` écrit lui-même à ces noms. `title` n'a pas besoin de la même règle, déjà réservé par le méta-schéma au seul champ de type Titre.
+**Seul `metadata` ne peut pas nommer un champ** : `formAuthoringIssues()` ([`forms.md`](forms.md)) refuse l'enregistrement d'un formulaire qui en porterait un, pour la collision qu'il ferait avec la clé où `/{slug}/raw` range ses six champs. `content` et `form-id` n'ont pas besoin de la même règle : `getRawContent()` distingue une page d'une fiche par `formId`/`form` (jamais par une clé `content` qu'un champ pourrait porter), et `form-id` vit désormais dans `metadata`, un objet distinct des champs d'une fiche — un champ peut donc librement s'appeler `content` ou `form-id`. `title` n'a pas besoin de la même règle non plus, déjà réservé par le méta-schéma au seul champ de type Titre.
 
 ## Modèle de données
 
