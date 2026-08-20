@@ -423,25 +423,26 @@ describe("getRawContent", () => {
     expect(isRefused(raw!)).toBe(true);
   });
 
-  it("serves an MDX page's content and metadata as JSON", async () => {
+  const METADATA = {
+    "created-at": CREATED_AT,
+    owner: "Marie Durand",
+    "last-edited-at": EDITED_AT,
+    "last-edited-by": "Jean Martin",
+    "read-scope": EVERYONE,
+    "write-scope": RESTRICTED,
+  };
+
+  it("serves an MDX page's content, metadata nested under its own key", async () => {
     db.page.findUnique.mockResolvedValue({
       ...OPEN_PAGE,
       form: null,
       current: { content: "# Bonjour", createdAt: EDITED_AT, author: EDITOR },
     });
     const raw = await getRawContent("compte-rendu");
-    expect(raw).toEqual({
-      content: "# Bonjour",
-      "created-at": CREATED_AT,
-      owner: "Marie Durand",
-      "last-edited-at": EDITED_AT,
-      "last-edited-by": "Jean Martin",
-      "read-scope": EVERYONE,
-      "write-scope": RESTRICTED,
-    });
+    expect(raw).toEqual({ content: "# Bonjour", metadata: METADATA });
   });
 
-  it("serves a fiche ordered by the form, form-id right after title, fields cut", async () => {
+  it("serves a fiche ordered by the form, form-id right after title, fields cut, metadata nested", async () => {
     db.page.findUnique.mockResolvedValue({
       ...OPEN_PAGE,
       formId: "form-1",
@@ -460,23 +461,13 @@ describe("getRawContent", () => {
       title: "Paie",
       "form-id": "paie",
       nom: "Marie",
-      "created-at": CREATED_AT,
-      owner: "Marie Durand",
-      "last-edited-at": EDITED_AT,
-      "last-edited-by": "Jean Martin",
-      "read-scope": EVERYONE,
-      "write-scope": RESTRICTED,
+      metadata: METADATA,
     });
     expect(Object.keys(raw as object)).toEqual([
       "title",
       "form-id",
       "nom",
-      "created-at",
-      "owner",
-      "last-edited-at",
-      "last-edited-by",
-      "read-scope",
-      "write-scope",
+      "metadata",
     ]);
 
     signedInAs("jean-martin", ["bureau"]);
@@ -486,12 +477,7 @@ describe("getRawContent", () => {
       "form-id",
       "nom",
       "salaire",
-      "created-at",
-      "owner",
-      "last-edited-at",
-      "last-edited-by",
-      "read-scope",
-      "write-scope",
+      "metadata",
     ]);
   });
 });

@@ -321,14 +321,15 @@ function withFormIdAfterTitle(ordered: RawContent, formSlug: string): RawContent
 
 /**
  * The content and metadata of a page, in the shape `/{slug}/raw` serves them
- * (docs/permissions.md § /{slug}/raw, the equivalent of YesWiki's `/raw`):
- * always JSON. Born *inside* this door rather than beside it (ADR 0025) — a
- * bare route reading Prisma on its own is exactly the shortcut the door
- * exists to close.
+ * (docs/permissions.md § /{slug}/raw, the equivalent of YesWiki's `/raw`).
+ * Born *inside* this door rather than beside it (ADR 0025) — a bare route
+ * reading Prisma on its own is exactly the shortcut the door exists to close.
  *
- * An MDX page hands back `content` plus the six metadata fields below. A
- * fiche hands back its field values in the form's own order — `title`
- * normally first, `form-id` inserted right after it — then the same six.
+ * An MDX page hands back `content` plus a `metadata` object holding the six
+ * fields below. A fiche hands back its field values in the form's own order
+ * — `title` normally first, `form-id` inserted right after it — then the
+ * same `metadata` object. Nested rather than spread flat: metadata is never
+ * a field a form could have named, so it never competes with one.
  * A fiche's values are filtered through readableForm() (lib/field-rights-db.ts),
  * the same cut its own rendering already makes: without it, this handler
  * would publish a field the fiche itself withholds.
@@ -340,7 +341,7 @@ export async function getRawContent(
   if (!page) return null;
   if (isRefused(page)) return page;
 
-  const meta = {
+  const metadata = {
     "created-at": page.createdAt,
     owner: displayName(page.owner),
     "last-edited-at": page.current?.createdAt ?? page.createdAt,
@@ -350,13 +351,13 @@ export async function getRawContent(
   };
 
   if (!page.formId || !page.form) {
-    return { content: page.current?.content ?? "", ...meta };
+    return { content: page.current?.content ?? "", metadata };
   }
 
   const seen = await readableForm(page.form.schema);
   const data = seen ? seen.readableValues(page.current?.data) : {};
   const ordered = seen ? orderedEntryData(seen.readable, data) : data;
-  return { ...withFormIdAfterTitle(ordered, page.form.slug), ...meta };
+  return { ...withFormIdAfterTitle(ordered, page.form.slug), metadata };
 }
 
 export async function getPageWithRevisions(slug: string) {

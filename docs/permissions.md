@@ -438,21 +438,23 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pag
 …
 ```
 
-**`?all`** bascule une page vers son JSON complet, `content` puis les six champs de métadonnées :
+**`?all`** bascule une page vers son JSON complet, `content` puis `metadata` — les six champs regroupés sous leur propre clé, pour ne jamais se mêler aux champs eux-mêmes :
 
 ```json
 {
   "content": "# Bienvenue\n\n…",
-  "created-at": "2026-01-05T10:00:00.000Z",
-  "owner": "Marie Durand",
-  "last-edited-at": "2026-02-10T09:00:00.000Z",
-  "last-edited-by": "Jean Martin",
-  "read-scope": { "scope": "everyone", "usernames": [], "groupSlugs": [] },
-  "write-scope": { "scope": "restricted", "usernames": [], "groupSlugs": [] }
+  "metadata": {
+    "created-at": "2026-01-05T10:00:00.000Z",
+    "owner": "Marie Durand",
+    "last-edited-at": "2026-02-10T09:00:00.000Z",
+    "last-edited-by": "Jean Martin",
+    "read-scope": { "scope": "everyone", "usernames": [], "groupSlugs": [] },
+    "write-scope": { "scope": "restricted", "usernames": [], "groupSlugs": [] }
+  }
 }
 ```
 
-**Une fiche, par défaut et avec `?all` — les deux répondent pareil**, faute d'un `content` unique à isoler : les valeurs de champs dans l'ordre du formulaire — `title` n'est pas forcé en tête, il apparaît là où l'auteur du formulaire l'a posé dans le canvas —, `form-id` (le slug du formulaire, obtenu depuis son identifiant) inséré juste après `title`, où qu'il se trouve, puis les six mêmes champs de métadonnées à la fin :
+**Une fiche, par défaut et avec `?all` — les deux répondent pareil**, faute d'un `content` unique à isoler : les valeurs de champs dans l'ordre du formulaire — `title` n'est pas forcé en tête, il apparaît là où l'auteur du formulaire l'a posé dans le canvas —, `form-id` (le slug du formulaire, obtenu depuis son identifiant) inséré juste après `title`, où qu'il se trouve, puis `metadata` à la fin, les mêmes six champs :
 
 ```json
 {
@@ -460,12 +462,14 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pag
   "form-id": "associations",
   "objet": "…",
   "email": "contact@…",
-  "created-at": "2026-01-05T10:00:00.000Z",
-  "owner": "Marie Durand",
-  "last-edited-at": "2026-02-10T09:00:00.000Z",
-  "last-edited-by": "Jean Martin",
-  "read-scope": { "scope": "everyone", "usernames": [], "groupSlugs": [] },
-  "write-scope": { "scope": "restricted", "usernames": [], "groupSlugs": [] }
+  "metadata": {
+    "created-at": "2026-01-05T10:00:00.000Z",
+    "owner": "Marie Durand",
+    "last-edited-at": "2026-02-10T09:00:00.000Z",
+    "last-edited-by": "Jean Martin",
+    "read-scope": { "scope": "everyone", "usernames": [], "groupSlugs": [] },
+    "write-scope": { "scope": "restricted", "usernames": [], "groupSlugs": [] }
+  }
 }
 ```
 

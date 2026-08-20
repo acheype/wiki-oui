@@ -57,11 +57,10 @@ describe("GET /{slug}/raw", () => {
     expect(response.status).toBe(403);
   });
 
+  const METADATA = { "created-at": "2026-01-05T10:00:00.000Z" };
+
   it("serves a page's content as plain readable text by default", async () => {
-    const raw = {
-      content: "Ligne un\nLigne deux",
-      "created-at": "2026-01-05T10:00:00.000Z",
-    };
+    const raw = { content: "Ligne un\nLigne deux", metadata: METADATA };
     rawContent.mockResolvedValue(raw);
     const response = await get("accueil");
     expect(response.status).toBe(200);
@@ -72,8 +71,8 @@ describe("GET /{slug}/raw", () => {
     expect(await response.text()).toBe("Ligne un\nLigne deux");
   });
 
-  it("?all serves a page's content and metadata as JSON", async () => {
-    const raw = { content: "# Bonjour", "created-at": "2026-01-05T10:00:00.000Z" };
+  it("?all serves a page's content and metadata as JSON, metadata nested", async () => {
+    const raw = { content: "# Bonjour", metadata: METADATA };
     rawContent.mockResolvedValue(raw);
     const response = await get("accueil", "?all");
     expect(response.status).toBe(200);
@@ -84,7 +83,7 @@ describe("GET /{slug}/raw", () => {
   });
 
   it("serves a fiche's field values and metadata as JSON by default — no content to isolate", async () => {
-    const raw = { title: "Paie", "form-id": "paie", nom: "Marie" };
+    const raw = { title: "Paie", "form-id": "paie", nom: "Marie", metadata: METADATA };
     rawContent.mockResolvedValue(raw);
     const response = await get("paie-marie");
     expect(response.status).toBe(200);
@@ -95,7 +94,7 @@ describe("GET /{slug}/raw", () => {
   });
 
   it("?all serves a fiche exactly the same way as the default", async () => {
-    const raw = { title: "Paie", "form-id": "paie", nom: "Marie" };
+    const raw = { title: "Paie", "form-id": "paie", nom: "Marie", metadata: METADATA };
     rawContent.mockResolvedValue(raw);
     const response = await get("paie-marie", "?all");
     expect(response.status).toBe(200);
