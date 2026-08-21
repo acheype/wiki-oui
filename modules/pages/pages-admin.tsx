@@ -40,7 +40,7 @@ import {
   coherent,
   formsOf,
   pagesMatching,
-} from "@/modules/pages/filters";
+} from "@/modules/pages/filters/filters";
 // hasForm from modules/pages/entry-page.ts, not modules/pages/content.ts:
 // this is a Client Component, and modules/pages/content.ts carries
 // server-only imports (ADR 0025) a client bundle cannot take on, even for a
