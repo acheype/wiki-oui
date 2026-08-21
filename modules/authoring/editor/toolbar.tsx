@@ -24,8 +24,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, type RefObject } from "react";
-import { emitsMarkdownLink } from "@/lib/component-descriptor";
-import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+import { emitsMarkdownLink } from "@/modules/authoring/descriptor";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

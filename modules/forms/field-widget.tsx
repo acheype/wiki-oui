@@ -37,7 +37,7 @@ import {
   type FileFamily,
   type PropValue,
   propKindFits,
-} from "@/lib/component-descriptor";
+} from "@/modules/authoring/descriptor";
 import type { FormFieldType } from "@/modules/forms/form-descriptor";
 import type { AccessRule, AclDirectory, AclFloor } from "@/modules/permissions/rules";
 import type { PseudoField } from "@/modules/forms/pseudo-fields";

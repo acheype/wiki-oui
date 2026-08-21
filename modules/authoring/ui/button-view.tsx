@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 import { ModalLink } from "./modal-link";
 import { WikiLinkView } from "./wiki-link-view";
-import type { ButtonColor, ButtonProps } from "../button";
+import type { ButtonColor, ButtonProps } from "../wiki-components/button";
 
 // One entry per palette color, enforced by the compiler: either a shadcn
 // variant or explicit classes on the theme colors added for v0.2 (globals.css).

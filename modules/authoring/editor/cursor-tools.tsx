@@ -30,8 +30,8 @@ import {
   tagToBuilderState,
   type PropValues,
   type Range,
-} from "@/lib/component-descriptor";
-import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+} from "@/modules/authoring/descriptor";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import {
   addTableColumn,
   addTableRow,

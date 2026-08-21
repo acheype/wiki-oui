@@ -1,8 +1,8 @@
 import { fileUrl } from "@/modules/files/storage";
 import { imageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
-import { ImageLightbox } from "./internal/image-lightbox";
-import { WikiLinkView } from "./internal/wiki-link-view";
+import { ImageLightbox } from "../ui/image-lightbox";
+import { WikiLinkView } from "../ui/wiki-link-view";
 
 export type ImageProps = {
   /** Uploaded file name (files/ directory, ADR 0012). */

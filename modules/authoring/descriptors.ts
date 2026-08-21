@@ -6,13 +6,15 @@ import {
   descriptorDefaults,
   pascalCase,
   validateDescriptor,
-} from "./component-descriptor";
+} from "./descriptor";
 import { readDescriptorSource } from "./descriptor-source";
 
 // Server-side loader of the ComponentBuilder descriptors: every .yaml file
-// in components/wiki/ describes the builder of its co-located .tsx component
-// (docs/component-builder.md). Same regime as the registry (lib/mdx.tsx):
+// in wiki-components/ describes the builder of its co-located .tsx component
+// (docs/component-builder.md). Same regime as the registry (mdx.tsx):
 // presence in the folder is the whitelist, loading fails fast and loud.
+// Screens have no descriptor and never get one, so this never looks in
+// wiki-components/screens/ — the plain .yaml filter already excludes it.
 
 export interface ComponentBuilderSpec {
   /** Kebab file base, e.g. "file-link"; the authoritative on-disk identity. */
@@ -24,7 +26,7 @@ export interface ComponentBuilderSpec {
   defaults: PropDefaults;
 }
 
-const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "components/wiki");
+const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "modules/authoring/wiki-components");
 
 let cache: Promise<ComponentBuilderSpec[]> | undefined;
 let devStamp: string | undefined;
@@ -37,7 +39,7 @@ export function loadComponentBuilders(): Promise<ComponentBuilderSpec[]> {
 // Dev memoization: rebuilding — and above all re-running the ts-morph
 // verification — on every editor load costs seconds per request, yet editing
 // a descriptor must still be picked up without a restart (ADR 0013). Keyed on
-// a stamp of components/wiki/, so a change to a constant imported from outside
+// a stamp of wiki-components/, so a change to a constant imported from outside
 // that folder (resolveLiteral crossing files) goes undetected until the dev
 // server restarts. A rejected promise stays cached on purpose: same sources,
 // same error on the overlay, and fixing the file invalidates the stamp.
@@ -76,7 +78,7 @@ async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
   // drift throws here, surfacing on the Next error overlay. The dynamic import
   // keeps ts-morph out of the production bundle (this branch is compiled away).
   if (process.env.NODE_ENV === "development") {
-    const { verifyDescriptorSignatures } = await import("./verify-descriptors");
+    const { verifyDescriptorSignatures } = await import("./verify");
     await verifyDescriptorSignatures(specs);
   }
   return specs;

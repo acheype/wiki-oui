@@ -284,8 +284,9 @@ export const isSlugReadable = cache(async (slug: string): Promise<boolean> => {
  * Whether a `hideIfNoAccess` link, button or iframe should vanish
  * (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13):
  * only when the setting is on, the target is internal, and it resolves to a
- * slug this person may not read. The one door components/wiki/{wiki-link,
- * button,iframe}.tsx all ask through, so an external target or an
+ * slug this person may not read. The one door
+ * modules/authoring/wiki-components/{wiki-link,button,iframe}.tsx all ask
+ * through, so an external target or an
  * unparsable one reads the same way — visible — from every one of them,
  * rather than each re-deriving its own edge cases.
  */

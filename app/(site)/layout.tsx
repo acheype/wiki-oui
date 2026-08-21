@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AccountMenu } from "@/modules/accounts/ui/account-menu";
-import { isBlankMdx, renderMdx } from "@/lib/mdx";
+import { isBlankMdx, renderMdx } from "@/modules/authoring/mdx";
 import { getLayoutContents } from "@/modules/pages/content";
 import { currentIdentity } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";

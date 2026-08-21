@@ -1,4 +1,4 @@
-import { FILE_FAMILIES } from "@/lib/component-descriptor";
+import { FILE_FAMILIES } from "@/modules/authoring/descriptor";
 import { fileFamily, listFiles, saveFile } from "@/modules/files/storage";
 import { formatFileSize } from "@/lib/format";
 import { canContributeSomewhere } from "@/modules/pages/rights";

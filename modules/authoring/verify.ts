@@ -14,8 +14,8 @@ import {
   type PropValue,
   emitsMarkdownLink,
   fieldProp,
-} from "./component-descriptor";
-import type { ComponentBuilderSpec } from "./component-descriptors";
+} from "./descriptor";
+import type { ComponentBuilderSpec } from "./descriptors";
 import { readDescriptorSource } from "./descriptor-source";
 
 // Signature verification (ADR 0013): does each YAML descriptor still match
@@ -63,7 +63,7 @@ export interface PropSignature {
 }
 
 export interface ComponentSignature {
-  /** Component source path, e.g. "components/wiki/button.tsx" (for messages). */
+  /** Component source path, e.g. "modules/authoring/wiki-components/button.tsx" (for messages). */
   file: string;
   props: Record<string, PropSignature>;
 }
@@ -526,7 +526,7 @@ export async function verifyDescriptorSignatures(
   const errors: string[] = [];
   const warnings: string[] = [];
   for (const spec of tagEmitters) {
-    const relativeFile = `components/wiki/${spec.base}.tsx`;
+    const relativeFile = `modules/authoring/wiki-components/${spec.base}.tsx`;
     const sourceFile = project.addSourceFileAtPath(
       path.join(process.cwd(), relativeFile)
     );

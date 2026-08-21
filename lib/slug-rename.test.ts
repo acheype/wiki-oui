@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ComponentBuilderSpec } from "./component-descriptors";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import type { FormDescriptor } from "@/modules/forms/form-descriptor";
 import {
   formReferenceProps,

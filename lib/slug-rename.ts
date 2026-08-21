@@ -2,7 +2,7 @@ import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { visit } from "unist-util-visit";
-import type { ComponentBuilderSpec } from "./component-descriptors";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import {
   type EntryData,
   type FormDescriptor,

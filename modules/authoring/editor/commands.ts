@@ -1,7 +1,7 @@
 import { EditorSelection, type EditorState, type Line } from "@codemirror/state";
 // A value import: scrollIntoView is a static method, not only a type.
 import { EditorView } from "@codemirror/view";
-import type { Range } from "@/lib/component-descriptor";
+import type { Range } from "@/modules/authoring/descriptor";
 
 // Toolbar commands (ADR 0005). Everything manipulates the MDX source text:
 // the editor has no rich model, so each command is a text transformation.

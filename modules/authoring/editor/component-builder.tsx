@@ -22,8 +22,8 @@ import {
   generateTag,
   isEmpty,
   visibleFields,
-} from "@/lib/component-descriptor";
-import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+} from "@/modules/authoring/descriptor";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 
 // The ComponentBuilder modal (docs/component-builder.md): fully generated
 // from a descriptor + the component's exported defaults — preview on top

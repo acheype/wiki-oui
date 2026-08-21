@@ -1,7 +1,7 @@
 import { statSync } from "node:fs";
 import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { FILE_FAMILIES, type FileFamily } from "@/lib/component-descriptor";
+import { FILE_FAMILIES, type FileFamily } from "@/modules/authoring/descriptor";
 import { captureFileName } from "@/lib/format";
 import { slugify } from "@/lib/slug";
 import { wikiConfig } from "@/wiki.config";

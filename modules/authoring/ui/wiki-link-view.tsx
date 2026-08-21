@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { isExternalHref, isWikiHref } from "@/lib/slug";
 import { ModalLink } from "./modal-link";
-import type { WikiLinkProps } from "../wiki-link";
+import type { WikiLinkProps } from "../wiki-components/wiki-link";
 
 // Split from the `WikiLink` the registry serves (wiki-link.tsx, issue #13),
 // the same pattern as Button/ButtonView (internal/button-view.tsx) and for

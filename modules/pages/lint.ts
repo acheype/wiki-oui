@@ -10,10 +10,10 @@ import {
   propKind,
   propKindFits,
   visibleFields,
-} from "@/lib/component-descriptor";
-import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
-import { isAllowedHostElement, isHostElement } from "@/lib/mdx-host-elements";
-import { type EstreeProgram, staticLiteralValue } from "@/lib/mdx-literal-props";
+} from "@/modules/authoring/descriptor";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
+import { isAllowedHostElement, isHostElement } from "@/modules/authoring/host-elements";
+import { type EstreeProgram, staticLiteralValue } from "@/modules/authoring/literal-props";
 import { wikiHrefSlug } from "@/lib/slug";
 
 // What a page's MDX says versus what the registry and the descriptors can

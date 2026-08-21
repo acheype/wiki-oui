@@ -1,4 +1,4 @@
-import type { FileFamily } from "@/lib/component-descriptor";
+import type { FileFamily } from "@/modules/authoring/descriptor";
 import { captureFileName } from "@/lib/format";
 
 // Client side of POST /api/files (ADR 0012): XHR because upload progress

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { loadComponentBuilders } from "@/lib/component-descriptors";
+import { loadComponentBuilders } from "@/modules/authoring/descriptors";
 import { deleteFile } from "@/modules/files/storage";
 import { restoredEntryValues } from "@/modules/forms/entry-title";
 import {
@@ -11,7 +11,7 @@ import {
   readEntryData,
 } from "@/modules/forms/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { listWikiComponentNames } from "@/lib/mdx";
+import { listWikiComponentNames } from "@/modules/authoring/mdx";
 import { type PageWarning, lintPageSource } from "@/modules/pages/lint";
 import { hasForm } from "@/modules/pages/entry-page";
 import {

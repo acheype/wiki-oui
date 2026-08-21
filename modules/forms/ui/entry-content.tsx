@@ -4,7 +4,7 @@ import { readableForm } from "@/modules/permissions/readable-form";
 import { renderTemplateSource } from "@/modules/forms/entry-render";
 import { formSourcedValues, readEntryData } from "@/modules/forms/form-descriptor";
 import { getFormById } from "@/modules/forms/forms";
-import { renderMdx } from "@/lib/mdx";
+import { renderMdx } from "@/modules/authoring/mdx";
 import { listPagesWithCurrent } from "@/modules/pages/content";
 
 // The entry "show" rendering (ADR 0014), shared by the page at /[slug] and

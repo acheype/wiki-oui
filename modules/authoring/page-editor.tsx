@@ -9,30 +9,30 @@ import { toast } from "sonner";
 import { discardUploadedFile, lintPage, savePage } from "@/modules/pages/actions";
 import type { PageWarning } from "@/modules/pages/lint";
 import { Button } from "@/components/ui/button";
-import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
-import { CodeMirrorEditor } from "./codemirror-editor";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
+import { CodeMirrorEditor } from "./editor/codemirror-editor";
 import {
   ComponentBuilderDialog,
   insertionState,
   type BuilderDialogState,
-} from "./component-builder";
+} from "./editor/component-builder";
 import {
   emitsMarkdownLink,
   type PropValue,
   type Range,
-} from "@/lib/component-descriptor";
-import { goToLine, insertSnippet, replaceSnippet } from "./commands";
+} from "@/modules/authoring/descriptor";
+import { goToLine, insertSnippet, replaceSnippet } from "./editor/commands";
 import {
   cursorTools,
   type ComponentInfo,
   type LinkInfo,
-} from "./cursor-tools";
+} from "./editor/cursor-tools";
 import { TagsInput } from "@/components/fields/tags-input";
-import { EditorToolbar } from "./toolbar";
+import { EditorToolbar } from "./editor/toolbar";
 import { uploadFile } from "@/modules/files/upload";
-import { UploadDialog, type UploadDialogState } from "./upload-dialog";
-import { uploadDoors } from "./upload-extension";
-import { WarningsPanel } from "./warnings-panel";
+import { UploadDialog, type UploadDialogState } from "./editor/upload-dialog";
+import { uploadDoors } from "./editor/upload-extension";
+import { WarningsPanel } from "./editor/warnings-panel";
 
 export function PageEditor({
   slug,

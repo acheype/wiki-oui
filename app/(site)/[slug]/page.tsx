@@ -9,7 +9,7 @@ import { PageActions } from "@/modules/pages/ui/page-actions";
 import { Prose } from "@/components/ui/prose";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
-import { renderMdx } from "@/lib/mdx";
+import { renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithCurrent } from "@/modules/pages/content";
 import { isRefused, personCanCreatePage, personPermissions } from "@/modules/pages/rights";

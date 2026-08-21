@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import { lintPageSource } from "./lint";
 
 // The registry as the directory sees it: Menu is registered but has no .yaml,

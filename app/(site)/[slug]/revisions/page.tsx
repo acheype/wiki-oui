@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { formatDateTime } from "@/lib/format";
 import { getFormById } from "@/modules/forms/forms";
-import { renderMdx } from "@/lib/mdx";
+import { renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithRevisions } from "@/modules/pages/revisions";
 import { isRefused, personCanWrite } from "@/modules/pages/rights";

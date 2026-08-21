@@ -27,7 +27,7 @@ import {
 } from "@/modules/permissions/field-level";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { type EntryFieldChoice, unionEntryFields } from "@/modules/forms/entry-fields";
-import { loadComponentBuilders } from "@/lib/component-descriptors";
+import { loadComponentBuilders } from "@/modules/authoring/descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/modules/forms/field-rename/rules";
 import { titleRecomputeNeeded } from "@/modules/forms/entry-title";
 import type { TitleRecomputeImpact } from "@/modules/forms/entry-title/sweep";

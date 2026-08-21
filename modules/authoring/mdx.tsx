@@ -8,13 +8,13 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { EXIT, visit } from "unist-util-visit";
 import type { MDXComponents } from "mdx/types";
-import { pascalCase } from "@/lib/component-descriptor";
+import { pascalCase } from "@/modules/authoring/descriptor";
 import {
   allowListedHostElementsOnly,
   normalizePastedHtmlAttributes,
-} from "@/lib/mdx-host-elements";
-import { allowLiteralPropsOnly } from "@/lib/mdx-literal-props";
-import { WikiLink } from "@/components/wiki/wiki-link";
+} from "@/modules/authoring/host-elements";
+import { allowLiteralPropsOnly } from "@/modules/authoring/literal-props";
+import { WikiLink } from "./wiki-components/wiki-link";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote appends its
 // own plugins AFTER ours, so mdx-annotations consumes its {{ … }} expressions
@@ -69,12 +69,14 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
   }
 }
 
-// Component registry (ADR 0002): every .tsx file in components/wiki/ is
-// callable from page content — presence in the folder IS the whitelist.
-// Each file must export a component named as the PascalCase of its file name
-// (button.tsx → Button). A co-located descriptor (button.yaml) only affects
-// the editor's component menu (authoring backlog), never what may render.
-const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "components/wiki");
+// Component registry (ADR 0002, ADR 0029): every .tsx file in
+// wiki-components/ or its screens/ is callable from page content — presence
+// in either folder IS the whitelist. Each file must export a component named
+// as the PascalCase of its file name (button.tsx → Button). A co-located
+// descriptor (button.yaml) only affects the editor's component menu, never
+// what may render — screens have none and still render.
+const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "modules/authoring/wiki-components");
+const SCREENS_DIR = path.join(WIKI_COMPONENTS_DIR, "screens");
 
 let registryCache: Promise<MDXComponents> | undefined;
 
@@ -85,34 +87,46 @@ function loadWikiComponents(): Promise<MDXComponents> {
 }
 
 /**
- * The tag names the registry answers to. Reads the directory without importing
- * the modules — the save-time report only needs to know what exists, and must
- * not drag every wiki component into its graph.
+ * The tag names the registry answers to. Reads the directories without
+ * importing the modules — the save-time report only needs to know what
+ * exists, and must not drag every wiki component into its graph.
  */
 export async function listWikiComponentNames(): Promise<string[]> {
-  const files = await readdir(WIKI_COMPONENTS_DIR);
-  return files
+  const flat = await readdir(WIKI_COMPONENTS_DIR);
+  const screens = await readdir(SCREENS_DIR);
+  return [...flat, ...screens]
     .filter((file) => file.endsWith(".tsx"))
     .map((file) => pascalCase(file.slice(0, -".tsx".length)));
 }
 
 async function buildRegistry(): Promise<MDXComponents> {
-  const files = await readdir(WIKI_COMPONENTS_DIR);
   const registry: MDXComponents = {};
+  await loadInto(registry, await readdir(WIKI_COMPONENTS_DIR), "wiki-components");
+  await loadInto(registry, await readdir(SCREENS_DIR), "wiki-components/screens");
+  return registry;
+}
+
+async function loadInto(
+  registry: MDXComponents,
+  files: string[],
+  relativeDir: "wiki-components" | "wiki-components/screens",
+): Promise<void> {
   for (const file of files) {
     if (!file.endsWith(".tsx")) continue;
     const base = file.slice(0, -".tsx".length);
     const name = pascalCase(base);
     // The extension keeps the bundler's directory scan to .tsx files only.
-    const mod = await import(`../components/wiki/${base}.tsx`);
+    const mod =
+      relativeDir === "wiki-components"
+        ? await import(`./wiki-components/${base}.tsx`)
+        : await import(`./wiki-components/screens/${base}.tsx`);
     if (typeof mod[name] !== "function") {
       throw new Error(
-        `components/wiki/${file} must export a component named ${name}`,
+        `modules/authoring/${relativeDir}/${file} must export a component named ${name}`,
       );
     }
     registry[name] = mod[name];
   }
-  return registry;
 }
 
 // The compiled MDX throws at render time on any component missing from the

@@ -1,5 +1,5 @@
 import { hiddenIfNoAccess } from "@/modules/pages/content";
-import { ButtonView } from "./internal/button-view";
+import { ButtonView } from "../ui/button-view";
 
 export type ButtonColor =
   | "default"
@@ -38,7 +38,7 @@ export type ButtonProps = {
 // calls (ADR 0002, lib/mdx.tsx). A plain Server Component on purpose (ADR
 // 0013 icon hybrid's other half): resolving hideIfNoAccess needs a
 // server-side read of the current person's rights, which the interactive
-// button (internal/button-view.tsx, "use client") has no door to. Rendered
+// button (ui/button-view.tsx, "use client") has no door to. Rendered
 // here as a child of <Menu> ("use client" itself), this component's own
 // invocation still happens server-side (it carries no "use client"), so an
 // inaccessible button never reaches the flight payload at all — the tree

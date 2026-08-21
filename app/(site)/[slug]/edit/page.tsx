@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getEntryForm } from "@/modules/forms/actions";
-import { PageEditor } from "@/components/editor/page-editor";
+import { PageEditor } from "@/modules/authoring/page-editor";
 import { EntryEdit } from "@/modules/forms/ui/entry-edit";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
-import { loadComponentBuilders } from "@/lib/component-descriptors";
+import { loadComponentBuilders } from "@/modules/authoring/descriptors";
 import { hasForm } from "@/modules/pages/entry-page";
 import { getPageWithForm, listPageSlugs, listPageTags } from "@/modules/pages/content";
 import { isRefused, personCanCreatePage, personCanWrite } from "@/modules/pages/rights";

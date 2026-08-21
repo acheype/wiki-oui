@@ -291,15 +291,15 @@ function valueAt(raw: unknown, nodePath: readonly PropertyKey[]): unknown {
 // well-formed descriptor, without looking at the component? Shape comes from
 // the Zod meta-schema (the loader's cast is gone: raw unknown in, typed
 // descriptor out), cross-field rules stay imperative below. Same fail-fast
-// spirit as buildRegistry in lib/mdx.tsx — a broken descriptor stops the
+// spirit as buildRegistry in mdx.tsx — a broken descriptor stops the
 // loader with an explicit message. The YAML ↔ component match is a separate
-// pass (lib/verify-descriptors, dev + build only).
+// pass (verify.ts, dev + build only).
 export function validateDescriptor(
   name: string,
   raw: unknown,
   lineOf?: LineLookup
 ): ComponentDescriptor {
-  const source = `components/wiki/${name}.yaml`;
+  const source = `modules/authoring/wiki-components/${name}.yaml`;
   // Prefixes the message with the file and, when known, the first of the
   // candidate paths that resolves to a line — so it points at the offending
   // key (e.g. the `type:` line), falling back to the field, then the file.

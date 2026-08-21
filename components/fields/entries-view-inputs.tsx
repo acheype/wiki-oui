@@ -37,7 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Icon } from "@/components/ui/icon";
-import type { LiteralValue, StructuredValue } from "@/lib/component-descriptor";
+import type { LiteralValue, StructuredValue } from "@/modules/authoring/descriptor";
 import {
   type EntryFieldChoice,
   type FieldChoiceOption,

@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { LineCounter, isMap, isScalar, parseDocument } from "yaml";
-import type { LineLookup } from "./component-descriptor";
+import type { LineLookup } from "./descriptor";
 
 // Reads a co-located descriptor YAML *with source positions* (ADR 0013): the
 // raw parsed data for the meta-schema (ADR 0015 — typing happens at
@@ -9,7 +9,7 @@ import type { LineLookup } from "./component-descriptor";
 // to point at the exact offending line. Shared by the loader (structural
 // checks) and the signature verifier (dev + build).
 
-const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "components/wiki");
+const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "modules/authoring/wiki-components");
 
 export interface DescriptorSource {
   raw: unknown;
