@@ -68,9 +68,10 @@ const eslintConfig = defineConfig([
       "lib/permissions-db.ts",
       "lib/settings.ts",
       // Sweeps: they retcon a whole namespace in place, actor-free by nature
-      // (ADR 0016/0017/0020). Future ones (acl-rename-db) belong here too.
+      // (ADR 0016/0017/0020/0024).
       "lib/slug-rename-db.ts",
       "lib/entry-title-db.ts",
+      "lib/acl-rename-db.ts",
       // The seed writes without an actor, before anyone can be one.
       "prisma/seed.ts",
     ],

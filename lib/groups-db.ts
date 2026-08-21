@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { sweepAclReferences } from "@/lib/acl-rename-db";
 import type { GrantTarget } from "@/lib/bulk-rights";
 import {
   type InheritedMember,
@@ -446,9 +447,19 @@ export async function updateGroupName(slug: string, name: string): Promise<void>
   await prisma.group.update({ where: { slug }, data: { name } });
 }
 
+/**
+ * Deletes the group, and with it every membership and right naming it
+ * (`onDelete: Cascade`, ADR 0024). The field rights and form defaults naming
+ * this slug live in `Form.schema` on the other hand, which no foreign key
+ * reaches, so the sweep runs here, in the same transaction, rather than
+ * trusting Postgres to have done it.
+ */
 export async function deleteGroupBySlug(slug: string): Promise<void> {
   await assertAdmin();
-  await prisma.group.delete({ where: { slug } });
+  await prisma.$transaction(async (tx) => {
+    await tx.group.delete({ where: { slug } });
+    await sweepAclReferences(tx, { kind: "groupSlug", from: slug, to: null });
+  });
 }
 
 /** Why a membership was refused, or null once it is in. */

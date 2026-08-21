@@ -5,6 +5,7 @@ import {
   deleteRefusal,
   disableRefusal,
 } from "@/lib/accounts";
+import { sweepAclReferences } from "@/lib/acl-rename-db";
 import { auth } from "@/lib/auth";
 import { countFormsOwnedByAccount, reassignOwnedForms } from "@/lib/forms";
 import { inheritedGroups } from "@/lib/groups";
@@ -626,7 +627,10 @@ export async function deleteOwnAccount(): Promise<AccountRefusal> {
 /**
  * The DELETE itself: the `onDelete` of each relation does the rest —
  * memberships, sessions and pending link gone with the account, pages and
- * history staying, signed « Anonyme » (ADR 0024).
+ * history staying, signed « Anonyme » (ADR 0024). One transaction beyond the
+ * cascade: the field rights and form defaults naming this username live in
+ * `Form.schema`, which no foreign key reaches (ADR 0024), so the sweep runs
+ * here rather than trusting Postgres to have done it.
  */
 async function erase(username: string): Promise<AccountRefusal> {
   const user = await prisma.user.findUnique({
@@ -634,7 +638,14 @@ async function erase(username: string): Promise<AccountRefusal> {
     select: { id: true, email: true },
   });
   if (!user) return null;
-  await prisma.accountLink.deleteMany({ where: { email: user.email } });
-  await prisma.user.delete({ where: { id: user.id } });
+  await prisma.$transaction(async (tx) => {
+    await tx.accountLink.deleteMany({ where: { email: user.email } });
+    await tx.user.delete({ where: { id: user.id } });
+    await sweepAclReferences(tx, {
+      kind: "username",
+      from: username,
+      to: null,
+    });
+  });
   return null;
 }
