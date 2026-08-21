@@ -6,10 +6,10 @@ import { username } from "better-auth/plugins";
 import {
   ACCOUNT_DISABLED_CODE,
   ACCOUNT_DISABLED_MESSAGE,
-} from "@/lib/accounts";
-import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
+} from "@/modules/accounts/rules";
+import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { prisma } from "@/lib/prisma";
-import { isValidUsername } from "@/lib/username";
+import { isValidUsername } from "@/modules/accounts/username";
 
 // BetterAuth authenticates, WikiOui authorizes (ADR 0023): accounts,
 // sessions, passwords and tokens live here; groups, ownership and rights are

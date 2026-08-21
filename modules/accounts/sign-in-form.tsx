@@ -4,8 +4,8 @@ import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useId } from "react";
-import { signIn } from "@/app/auth-actions";
-import { AuthFormError, useAuthForm } from "@/components/auth/auth-form";
+import { signIn } from "@/modules/accounts/auth-actions";
+import { AuthFormError, useAuthForm } from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { DESTINATION_PARAM } from "@/lib/destination";
 import { authPagePath } from "@/wiki.config";
 
 // One field for the email and the identifier: the wiki knows which one it
-// received (lib/username.ts), so nobody has to.
+// received (modules/accounts/username.ts), so nobody has to.
 //
 // The screen is a wiki page (ADR 0028), which knows nothing of the query
 // string it was called with — so where the visitor was heading is read here,

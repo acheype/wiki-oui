@@ -1,7 +1,7 @@
 import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { toast } from "sonner";
-import { withClipboardName } from "@/components/fields/upload";
+import { withClipboardName } from "@/modules/files/upload";
 
 // Two of the three upload doors (docs/architecture.md): drag & drop (the
 // caret moves to the pointer position at drop time) and paste. One file at

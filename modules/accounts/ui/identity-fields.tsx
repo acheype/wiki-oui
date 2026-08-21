@@ -12,7 +12,7 @@ import { useId, useState } from "react";
 import { SlugInlineEdit } from "@/components/ui/slug-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { deriveUsername } from "@/lib/username";
+import { deriveUsername } from "@/modules/accounts/username";
 
 export function useIdentityFields() {
   const [name, setName] = useState("");

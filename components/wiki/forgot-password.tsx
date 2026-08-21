@@ -1,5 +1,5 @@
-import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
-import { isMailerConfigured } from "@/lib/mailer";
+import { ForgotPasswordForm } from "@/modules/accounts/forgot-password-form";
+import { isMailerConfigured } from "@/modules/accounts/mailer";
 
 // Built-in component rendered by the `mot-de-passe-oublie` special page (ADR
 // 0028). Whether the wiki can send anything is decided here, on the server,

@@ -8,7 +8,7 @@
 //
 // A wiki whose SMTP is configured but broken says so too, rather than send
 // the person waiting for a mail that never left. That answer says nothing
-// about the address: the server is asked either way (lib/mailer.ts). No
+// about the address: the server is asked either way (modules/accounts/mailer.ts). No
 // technical detail here — a stranger can do nothing with « 535 Auth failed »
 // but learn about the host, so the sentence points at an administrator, who
 // reads the reason on their own screens and in the logs.
@@ -16,11 +16,11 @@
 import { KeyRound, MailWarning } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
-import { requestPasswordLink } from "@/app/auth-actions";
+import { requestPasswordLink } from "@/modules/accounts/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MAIL_FAILURE_NOTICE } from "@/lib/invitations";
+import { MAIL_FAILURE_NOTICE } from "@/modules/accounts/invitations";
 import { authPagePath } from "@/wiki.config";
 
 export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
-import { deleteFile } from "@/lib/files";
+import { deleteFile } from "@/modules/files/storage";
 import { restoredEntryValues } from "@/modules/forms/entry-title";
 import {
   type FormDescriptor,

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AccountMenu } from "@/components/auth/account-menu";
+import { AccountMenu } from "@/modules/accounts/ui/account-menu";
 import { isBlankMdx, renderMdx } from "@/lib/mdx";
 import { getLayoutContents } from "@/modules/pages/content";
 import { currentIdentity } from "@/modules/permissions/person";

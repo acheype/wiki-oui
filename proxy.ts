@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { INSTALLATION_PATH } from "@/lib/installation";
-import { isInstalled } from "@/lib/settings";
+import { INSTALLATION_PATH } from "@/modules/settings/installation";
+import { isInstalled } from "@/modules/settings/settings";
 
 // While the wiki has never been installed, every address shows the
 // installation screen — and once it has, that screen stops existing (ADR
@@ -13,7 +13,7 @@ import { isInstalled } from "@/lib/settings";
 // ordinary slug — a page named that way opens the day the wiki is up.
 //
 // Next runs a proxy on the Node.js runtime, so Prisma is at home here; and
-// the flag is irreversible, so lib/settings.ts answers from memory after the
+// the flag is irreversible, so modules/settings/settings.ts answers from memory after the
 // first read rather than querying on every request.
 export async function proxy(request: NextRequest) {
   const installed = await isInstalled();

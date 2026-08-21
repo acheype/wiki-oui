@@ -1,4 +1,4 @@
-import type { ResizeRequest } from "./image-resize";
+import type { ResizeRequest } from "@/modules/files/image-resize";
 
 // The URL of an uploaded image at a chosen display size (docs/forms.md): the
 // `?w=&h=` box the files API resizes into. A pure builder, kept apart from

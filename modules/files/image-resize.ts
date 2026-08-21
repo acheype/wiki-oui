@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { filePath } from "./files";
+import { filePath } from "./storage";
 
 // On-demand image resizing (docs/forms.md): the pool original stays intact,
 // the variant is computed once with sharp and cached on disk. A reusable

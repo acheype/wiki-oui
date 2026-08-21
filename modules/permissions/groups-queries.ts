@@ -404,7 +404,7 @@ export async function createAdminsGroupWith(username: string): Promise<void> {
 /**
  * Who administers the wiki, directly — nesting never makes an administrator
  * (docs/permissions.md § Groupes), so this list is the whole answer. Read by
- * lib/accounts-db.ts before it disables or erases anyone: the memberships are
+ * modules/accounts/queries/queries.ts before it disables or erases anyone: the memberships are
  * this door's, whoever asks.
  */
 export async function listAdminUsernames(): Promise<string[]> {

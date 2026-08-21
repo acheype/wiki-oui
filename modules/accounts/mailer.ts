@@ -4,7 +4,7 @@ import {
   type LinkPurpose,
   type MailFailure,
   RESET_LIFETIME_DAYS,
-} from "@/lib/invitations";
+} from "@/modules/accounts/invitations";
 
 // Sending a link by mail (docs/permissions.md § Naissance d'un compte). SMTP
 // is a delivery mode, never a dependency: with it the wiki sends the link,

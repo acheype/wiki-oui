@@ -2,12 +2,12 @@
 
 import { Info, Sprout } from "lucide-react";
 import { useId } from "react";
-import { installWiki } from "@/app/installation-actions";
-import { AuthFormError, useAuthForm } from "@/components/auth/auth-form";
+import { installWiki } from "@/modules/settings/actions";
+import { AuthFormError, useAuthForm } from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 
 // First visit of a wiki that has never been installed (ADR 0027). It asks for
 // an email and a password, nothing else: the display name and the identifier

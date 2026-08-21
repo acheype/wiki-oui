@@ -12,7 +12,7 @@
 import { Trash2 } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { deleteOwnUser, getOwnDeletionImpact } from "@/app/user-actions";
+import { deleteOwnUser, getOwnDeletionImpact } from "@/modules/accounts/actions";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { OWN_ERASURE_NOTICE, deletionImpactLines } from "@/lib/accounts";
+import { OWN_ERASURE_NOTICE, deletionImpactLines } from "@/modules/accounts/rules";
 
 export function DeleteOwnAccountDialog({ onClose }: { onClose: () => void }) {
   const [impact, setImpact] = useState<{

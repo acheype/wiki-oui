@@ -1,4 +1,4 @@
-import { fileUrl } from "@/lib/files";
+import { fileUrl } from "@/modules/files/storage";
 
 export type PdfProps = {
   /** Uploaded file name (files/ directory, ADR 0012). */

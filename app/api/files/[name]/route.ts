@@ -2,8 +2,8 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { fileFamily, filePath } from "@/lib/files";
-import { parseResizeRequest, resizedVariant, variantKey } from "@/lib/image-resize";
+import { fileFamily, filePath } from "@/modules/files/storage";
+import { parseResizeRequest, resizedVariant, variantKey } from "@/modules/files/image-resize";
 
 const INLINE_TYPES: Record<string, string> = {
   jpg: "image/jpeg",

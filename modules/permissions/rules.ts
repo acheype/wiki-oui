@@ -9,7 +9,7 @@
 
 import { plural } from "@/lib/format";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import { ANONYMOUS } from "@/lib/username";
+import { ANONYMOUS } from "@/modules/accounts/username";
 
 /**
  * The administrators' group. Administration is a membership, never a `role`

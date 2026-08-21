@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { INSTALLER } from "./installation";
-import { deriveUsername, isValidUsername } from "./username";
+import { deriveUsername, isValidUsername } from "@/modules/accounts/username";
 
 // ADR 0027 imposes both halves of the initial identity, and they must agree
 // with the wiki's own rule: an installer who reads "Wiki Admin" and types it

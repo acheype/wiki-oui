@@ -6,14 +6,14 @@
 // and this one starts signed in.
 
 import { KeyRound } from "lucide-react";
-import { resetPasswordLink } from "@/app/auth-actions";
+import { resetPasswordLink } from "@/modules/accounts/auth-actions";
 import {
   AuthFormError,
   NewPasswordField,
   useAuthForm,
-} from "@/components/auth/auth-form";
+} from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
-import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 
 export function ResetPasswordForm({
   token,

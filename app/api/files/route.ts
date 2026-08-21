@@ -1,5 +1,5 @@
 import { FILE_FAMILIES } from "@/lib/component-descriptor";
-import { fileFamily, listFiles, saveFile } from "@/lib/files";
+import { fileFamily, listFiles, saveFile } from "@/modules/files/storage";
 import { formatFileSize } from "@/lib/format";
 import { canContributeSomewhere } from "@/modules/pages/rights";
 import { UPLOAD_REFUSED } from "@/modules/permissions/rules";

@@ -1,4 +1,4 @@
-import { fileUrl } from "@/lib/files";
+import { fileUrl } from "@/modules/files/storage";
 import { imageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
 import { ImageLightbox } from "./internal/image-lightbox";

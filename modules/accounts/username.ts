@@ -3,7 +3,7 @@
 // slug (ADR 0001): derived from the display name, personalisable before
 // saving, then frozen — the fixed-identity move of ADR 0014.
 
-import { SLUG_PATTERN, slugify } from "./slug";
+import { SLUG_PATTERN, slugify } from "@/lib/slug";
 
 /** The identifier a display name suggests. "" when nothing survives. */
 export function deriveUsername(name: string): string {

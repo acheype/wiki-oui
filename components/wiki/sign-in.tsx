@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { SignInForm } from "@/components/auth/sign-in-form";
+import { SignInForm } from "@/modules/accounts/sign-in-form";
 import { wikiConfig } from "@/wiki.config";
 
 // Built-in component rendered by the `connexion` special page (ADR 0028):

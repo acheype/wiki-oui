@@ -14,7 +14,7 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 import { isExternalHref, wikiHrefSlug } from "@/lib/slug";
 import { rankByFrequency } from "@/modules/forms/suggested-values";
 import type { SlugRename } from "@/lib/slug-rename";
-import { displayName } from "@/lib/username";
+import { displayName } from "@/modules/accounts/username";
 import {
   type SlugReferenceImpact,
   countSlugReferenceImpact,

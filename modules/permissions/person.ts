@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { cache } from "react";
-import { auth } from "@/lib/auth";
+import { auth } from "@/modules/accounts/auth";
 import { currentGroupSlugs } from "@/modules/permissions/groups-queries";
 import { type Person, type Identity, isAdmin } from "@/modules/permissions/rules";
 
@@ -65,7 +65,7 @@ const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";
 /**
  * The check every action of the two administration screens passes, at the
  * door rather than in each caller (ADR 0025) — groups-queries.ts and
- * lib/accounts-db.ts both ask for it by name.
+ * modules/accounts/queries/queries.ts both ask for it by name.
  */
 export async function assertAdmin(): Promise<void> {
   if (!(await isCurrentAdmin())) throw new Error(ADMINISTRATORS_ONLY);

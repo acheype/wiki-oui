@@ -5,7 +5,7 @@ import {
   deletionImpactLines,
   disableRefusal,
   matchesAccountFilter,
-} from "./accounts";
+} from "./rules";
 import { LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
 
 describe("ACCOUNT_FILTERS", () => {

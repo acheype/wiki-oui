@@ -19,7 +19,7 @@ import { getPageWithRevisions } from "@/modules/pages/revisions";
 import { isRefused, personCanWrite } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
-import { displayName } from "@/lib/username";
+import { displayName } from "@/modules/accounts/username";
 
 export const dynamic = "force-dynamic";
 

@@ -4,9 +4,9 @@ import {
   type AccountAction,
   deleteRefusal,
   disableRefusal,
-} from "@/lib/accounts";
+} from "@/modules/accounts/rules";
 import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
-import { auth } from "@/lib/auth";
+import { auth } from "@/modules/accounts/auth";
 import { countFormsOwnedByAccount, reassignOwnedForms } from "@/modules/forms/forms";
 import { inheritedGroups } from "@/modules/permissions/groups";
 import {
@@ -24,8 +24,8 @@ import {
   type MailFailure,
   RESET_LIFETIME_DAYS,
   expiresIn,
-} from "@/lib/invitations";
-import { probeMailer, sendAccountLink } from "@/lib/mailer";
+} from "@/modules/accounts/invitations";
+import { probeMailer, sendAccountLink } from "@/modules/accounts/mailer";
 import { countOwnedByAccount, reassignOwnedPages } from "@/modules/pages/rights";
 import type { Identity } from "@/modules/permissions/rules";
 import { assertAdmin, currentUsername } from "@/modules/permissions/person";

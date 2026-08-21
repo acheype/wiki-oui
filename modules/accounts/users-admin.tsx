@@ -21,9 +21,9 @@ import {
   listInvitations,
   listUsers,
   signedInUsername,
-} from "@/app/user-actions";
-import { AccountActions, InvitationActions } from "@/components/users/account-actions";
-import { InviteDialog } from "@/components/users/invite-dialog";
+} from "@/modules/accounts/actions";
+import { AccountActions, InvitationActions } from "@/modules/accounts/ui/account-actions";
+import { InviteDialog } from "@/modules/accounts/ui/invite-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -32,8 +32,8 @@ import {
   ACCOUNT_FILTERS,
   type AccountFilter,
   matchesAccountFilter,
-} from "@/lib/accounts";
-import type { PendingInvitation, UserRow } from "@/lib/accounts-db";
+} from "@/modules/accounts/rules";
+import type { PendingInvitation, UserRow } from "@/modules/accounts/queries/queries";
 import { formatDayMonth } from "@/lib/format";
 import { PATH_SEPARATOR } from "@/modules/permissions/groups";
 import type { NamedGroup } from "@/modules/permissions/groups-queries";

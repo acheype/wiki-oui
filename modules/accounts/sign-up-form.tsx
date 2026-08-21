@@ -10,21 +10,21 @@ import { UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useId } from "react";
-import { signUp } from "@/app/auth-actions";
+import { signUp } from "@/modules/accounts/auth-actions";
 import {
   IdentityFields,
   useIdentityFields,
-} from "@/components/auth/identity-fields";
+} from "@/modules/accounts/ui/identity-fields";
 import {
   AuthFormError,
   NewPasswordField,
   useAuthForm,
-} from "@/components/auth/auth-form";
+} from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DESTINATION_PARAM } from "@/lib/destination";
-import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { authPagePath } from "@/wiki.config";
 
 export function SignUpForm() {

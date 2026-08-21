@@ -192,7 +192,7 @@ const UNGUARDED_READS: Record<string, string> = {
   getLayoutContents: "the site's chrome (menu, footer…), not its content — deliberately shown to everyone",
   // A number, never the pages themselves — and both callers already decide
   // before asking: accountDeletionImpact behind assertAdmin, ownDeletionImpact
-  // for the signed-in person's own account only (lib/accounts-db.ts).
+  // for the signed-in person's own account only (modules/accounts/queries/queries.ts).
   countOwnedByAccount: "a count, not the pages — both callers already gate on admin or on the person's own account",
   // A number, never the pages — and its one caller, getGroup, runs behind
   // getGroupDetail's own admin check first (modules/permissions/group-actions.ts).

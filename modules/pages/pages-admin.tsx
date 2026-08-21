@@ -53,7 +53,7 @@ import {
   pageRule,
   ruleSummary,
 } from "@/modules/permissions/rules";
-import { ANONYMOUS } from "@/lib/username";
+import { ANONYMOUS } from "@/modules/accounts/username";
 
 /** « Tous » in the formulaire filter: Radix refuses an item with no value. */
 const EVERY_FORM = SELECT_NONE;

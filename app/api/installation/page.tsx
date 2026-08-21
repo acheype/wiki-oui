@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { InstallationForm } from "@/components/auth/installation-form";
+import { InstallationForm } from "@/modules/settings/ui/installation-form";
 
 // The proxy rewrites every address here until the wiki is installed, and
 // stops the day it is (ADR 0027). No site chrome around it: there is no wiki

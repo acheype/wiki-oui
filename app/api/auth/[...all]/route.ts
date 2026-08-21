@@ -1,5 +1,5 @@
 import { toNextJsHandler } from "better-auth/next-js";
-import { auth } from "@/lib/auth";
+import { auth } from "@/modules/accounts/auth";
 import { wikiConfig } from "@/wiki.config";
 
 // BetterAuth's own endpoints (sign-in, sign-out, session). Everything the

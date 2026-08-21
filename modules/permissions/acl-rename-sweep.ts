@@ -6,7 +6,7 @@ import { parseFormDescriptor } from "@/modules/forms/form-descriptor";
 // field-rename-db.ts and slug-rename-db.ts (a LIKE prefilter narrows the
 // candidates, the pure engine gives the precise answer). Runs inside the
 // caller's transaction — right where the account or the group action itself
-// writes (lib/accounts-db.ts, modules/permissions/groups-queries.ts) — so a
+// writes (modules/accounts/queries/queries.ts, modules/permissions/groups-queries.ts) — so a
 // rename or an erasure never leaves a form's rights momentarily out of step
 // with the accounts and groups that still exist.
 

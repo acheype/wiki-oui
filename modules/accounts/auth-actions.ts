@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { ACCOUNT_DISABLED_CODE, ACCOUNT_DISABLED_MESSAGE } from "@/lib/accounts";
+import { ACCOUNT_DISABLED_CODE, ACCOUNT_DISABLED_MESSAGE } from "@/modules/accounts/rules";
 import {
   type AccountLinkTarget,
   acceptInvitation,
@@ -14,11 +14,11 @@ import {
   requestPasswordReset,
   resetPasswordWithLink,
   signUpRefusal,
-} from "@/lib/accounts-db";
-import { auth } from "@/lib/auth";
+} from "@/modules/accounts/queries/queries";
+import { auth } from "@/modules/accounts/auth";
 import { destinationWithinWiki } from "@/lib/destination";
-import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
-import { isValidUsername, signInMethod } from "@/lib/username";
+import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
+import { isValidUsername, signInMethod } from "@/modules/accounts/username";
 import { wikiConfig } from "@/wiki.config";
 
 export type AuthError = { error: string };
@@ -156,7 +156,7 @@ export async function readInvitation(
 /**
  * The end of an invitation: the person names themselves and chooses a
  * password, and the link is spent. Nobody is signed in when this runs — the
- * token is the whole credential (lib/accounts-db.ts).
+ * token is the whole credential (modules/accounts/queries/queries.ts).
  */
 export async function acceptInvitationLink(input: {
   token: string;
@@ -196,7 +196,7 @@ export async function resetPasswordLink(input: {
  * it is known is not this screen's to reveal, and an administrator remains
  * the way through for a wiki with no SMTP. What it does report is whether a
  * mail could leave at all — the same verdict for every address, since one
- * with no account makes the wiki prove it could have sent (lib/mailer.ts).
+ * with no account makes the wiki prove it could have sent (modules/accounts/mailer.ts).
  * Only the failure travels back, never its detail: the screen is open to
  * anyone, and the reason names hosts and accounts.
  */

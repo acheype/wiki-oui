@@ -19,7 +19,7 @@ import {
   sampleEntries,
 } from "@/modules/forms/sample-entries";
 import { TEXT_SEARCH_TYPES } from "@/lib/entries-view";
-import { displayName } from "@/lib/username";
+import { displayName } from "@/modules/accounts/username";
 
 export interface EntriesViewQuery {
   /** Chosen form slugs, in the author's order. */

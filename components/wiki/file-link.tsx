@@ -1,5 +1,5 @@
 import { FileDown } from "lucide-react";
-import { fileSizeSync, fileUrl } from "@/lib/files";
+import { fileSizeSync, fileUrl } from "@/modules/files/storage";
 import { formatFileSize } from "@/lib/format";
 
 export type FileLinkProps = {

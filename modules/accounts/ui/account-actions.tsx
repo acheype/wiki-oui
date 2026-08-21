@@ -16,9 +16,9 @@ import {
   revokeInvite,
   sendResetLink,
   setUserDisabled,
-} from "@/app/user-actions";
-import { DeleteOwnAccountDialog } from "@/components/users/delete-own-account-dialog";
-import { LinkToCopy } from "@/components/users/link-to-copy";
+} from "@/modules/accounts/actions";
+import { DeleteOwnAccountDialog } from "@/modules/accounts/ui/delete-own-account-dialog";
+import { LinkToCopy } from "@/modules/accounts/ui/link-to-copy";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -42,12 +42,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ERASURE_KEEPS_CONTENT, deletionImpactLines } from "@/lib/accounts";
+import { ERASURE_KEEPS_CONTENT, deletionImpactLines } from "@/modules/accounts/rules";
 import type {
   DeliveredLink,
   PendingInvitation,
   UserRow,
-} from "@/lib/accounts-db";
+} from "@/modules/accounts/queries/queries";
 
 /** « Personne » — the pages then read « Anonyme » (ADR 0024). */
 const NOBODY = SELECT_NONE;

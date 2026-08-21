@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { auth } from "@/modules/accounts/auth";
 import { createAdminsGroupWith } from "@/modules/permissions/groups-queries";
-import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { assignPagesOwner } from "@/modules/pages/rights";
-import { isInstalled, markInstalled } from "@/lib/settings";
+import { isInstalled, markInstalled } from "@/modules/settings/settings";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 
 export type InstallError = { error: string };

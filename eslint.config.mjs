@@ -148,11 +148,14 @@ const eslintConfig = defineConfig([
       // applies to (ADR 0027). None of them reaches Page or Form except
       // through modules/pages/ and modules/forms/, which is why the counts
       // and the reassignment of an erased account live over there.
-      "lib/auth.ts",
-      "lib/accounts-db.ts",
+      // modules/settings/settings.ts stays a root file rather than a private
+      // queries.ts: proxy.ts, outside every module, calls isInstalled() and
+      // markInstalled() directly on every request.
+      "modules/accounts/auth.ts",
+      "modules/accounts/queries/queries.ts",
       "modules/permissions/groups-queries.ts",
       "modules/permissions/person.ts",
-      "lib/settings.ts",
+      "modules/settings/settings.ts",
       // Sweeps: they retcon a whole namespace in place, actor-free by nature
       // (ADR 0016/0017/0020/0024).
       "lib/slug-rename-db.ts",

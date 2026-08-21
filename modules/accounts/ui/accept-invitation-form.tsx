@@ -7,18 +7,18 @@
 // mail or was pasted into a chat by hand.
 
 import { UserRoundPlus } from "lucide-react";
-import { acceptInvitationLink } from "@/app/auth-actions";
+import { acceptInvitationLink } from "@/modules/accounts/auth-actions";
 import {
   IdentityFields,
   useIdentityFields,
-} from "@/components/auth/identity-fields";
+} from "@/modules/accounts/ui/identity-fields";
 import {
   AuthFormError,
   NewPasswordField,
   useAuthForm,
-} from "@/components/auth/auth-form";
+} from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
-import { MIN_PASSWORD_LENGTH } from "@/lib/installation";
+import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 
 export function AcceptInvitationForm({
   token,

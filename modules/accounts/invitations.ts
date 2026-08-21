@@ -1,11 +1,11 @@
 // Inviting people (docs/permissions.md § Naissance d'un compte): reading a
 // pasted list of addresses and telling what came of it. Pure, no I/O — the
-// links themselves are minted behind the door, in lib/accounts-db.ts — and
+// links themselves are minted behind the door, in modules/accounts/queries/queries.ts — and
 // client-safe, so the invite dialog can count the addresses as they are
 // pasted rather than after a round trip.
 
 import { z } from "zod";
-import { plural } from "./format";
+import { plural } from "@/lib/format";
 
 /** The fortnight an invitation lasts, announced beside the link. */
 export const INVITATION_LIFETIME_DAYS = 14;
@@ -28,7 +28,7 @@ export const RESET_LIFETIME_DAYS = 1;
  * Why a mail did not leave, or null when it did — the delivery, never the
  * action: an invitation whose mail failed is an invitation all the same, and
  * the screen falls back on the link it can always show. Declared here rather
- * than in lib/mailer.ts so the screens can name it without pulling an SMTP
+ * than in modules/accounts/mailer.ts so the screens can name it without pulling an SMTP
  * client into the browser.
  *
  * `detail` is what the server answered. It is shown to an administrator, who

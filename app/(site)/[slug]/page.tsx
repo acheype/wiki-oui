@@ -14,7 +14,7 @@ import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithCurrent } from "@/modules/pages/content";
 import { isRefused, personCanCreatePage, personPermissions } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
-import { displayName } from "@/lib/username";
+import { displayName } from "@/modules/accounts/username";
 
 // Wiki content is edited live; never serve a build-time snapshot.
 export const dynamic = "force-dynamic";

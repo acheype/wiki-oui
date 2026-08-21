@@ -3,7 +3,7 @@
 // Server Actions of the accounts screen (docs/permissions.md § Les écrans).
 // Reading them is an administrator's action — email addresses are shown here
 // and nowhere else — and the check lives behind the door, in
-// lib/accounts-db.ts, so none of these can forget it.
+// modules/accounts/queries/queries.ts, so none of these can forget it.
 //
 // The two at the end are the exception, and are not called from that screen:
 // erasing one's own account belongs to the person, not to an administrator's
@@ -30,10 +30,10 @@ import {
   resendInvitation,
   revokeInvitation,
   setAccountDisabled,
-} from "@/lib/accounts-db";
-import { auth } from "@/lib/auth";
-import { parseAddressList } from "@/lib/invitations";
-import { isMailerConfigured } from "@/lib/mailer";
+} from "@/modules/accounts/queries/queries";
+import { auth } from "@/modules/accounts/auth";
+import { parseAddressList } from "@/modules/accounts/invitations";
+import { isMailerConfigured } from "@/modules/accounts/mailer";
 import { currentUsername } from "@/modules/permissions/person";
 import { wikiConfig } from "@/wiki.config";
 

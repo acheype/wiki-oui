@@ -29,7 +29,7 @@ import {
 } from "./cursor-tools";
 import { TagsInput } from "@/components/fields/tags-input";
 import { EditorToolbar } from "./toolbar";
-import { uploadFile } from "@/components/fields/upload";
+import { uploadFile } from "@/modules/files/upload";
 import { UploadDialog, type UploadDialogState } from "./upload-dialog";
 import { uploadDoors } from "./upload-extension";
 import { WarningsPanel } from "./warnings-panel";

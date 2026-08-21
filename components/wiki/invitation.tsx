@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { InvitationScreen } from "@/components/auth/invitation-screen";
+import { InvitationScreen } from "@/modules/accounts/invitation-screen";
 
 // Built-in component rendered by the `invitation` special page (ADR 0028):
 // where an invitation, a « mot de passe oublié » and an administrator's reset

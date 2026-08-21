@@ -9,12 +9,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { readInvitation } from "@/app/auth-actions";
-import { AcceptInvitationForm } from "@/components/auth/accept-invitation-form";
-import { ResetPasswordForm } from "@/components/auth/reset-password-form";
+import { readInvitation } from "@/modules/accounts/auth-actions";
+import { AcceptInvitationForm } from "@/modules/accounts/ui/accept-invitation-form";
+import { ResetPasswordForm } from "@/modules/accounts/ui/reset-password-form";
 import { Button } from "@/components/ui/button";
-import type { AccountLinkTarget } from "@/lib/accounts-db";
-import { INVITATION_TOKEN_PARAM } from "@/lib/invitations";
+import type { AccountLinkTarget } from "@/modules/accounts/queries/queries";
+import { INVITATION_TOKEN_PARAM } from "@/modules/accounts/invitations";
 import { authPagePath } from "@/wiki.config";
 
 export function InvitationScreen() {

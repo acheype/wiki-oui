@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { SignUpForm } from "@/components/auth/sign-up-form";
+import { SignUpForm } from "@/modules/accounts/sign-up-form";
 import { Button } from "@/components/ui/button";
 import { authPagePath, wikiConfig } from "@/wiki.config";
 

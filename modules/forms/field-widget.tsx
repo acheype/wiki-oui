@@ -61,7 +61,7 @@ import {
   useSuggestions,
 } from "@/components/fields/suggestion-popover";
 import { TagsInput } from "@/components/fields/tags-input";
-import { UploadInput } from "@/components/fields/upload-input";
+import { UploadInput } from "@/modules/files/upload-input";
 import { useDebouncedJson } from "@/components/fields/use-debounced-json";
 
 // Leaflet touches window at import time: the map widgets load client-only.

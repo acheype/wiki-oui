@@ -1,9 +1,9 @@
 // The end of an account (docs/permissions.md § Fin d'un compte): the two
 // permissions an administrator has, and what the screen says about them. Pure
-// and client-safe, like modules/permissions/groups.ts beside it — lib/accounts-db.ts loads
+// and client-safe, like modules/permissions/groups.ts beside it — modules/accounts/queries/queries.ts loads
 // what these functions need and writes their verdict back.
 
-import { plural } from "./format";
+import { plural } from "@/lib/format";
 import { LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
 
 /**
