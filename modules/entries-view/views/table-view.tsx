@@ -21,8 +21,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { entryValue } from "@/lib/entries-view";
-import type { ViewEntry } from "@/lib/entries-view";
+import { entryValue } from "@/modules/entries-view/rules";
+import type { ViewEntry } from "@/modules/entries-view/rules";
 import { imageUrl } from "@/lib/image-url";
 import type { PagePermissions } from "@/modules/permissions/rules";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";

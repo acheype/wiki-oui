@@ -14,7 +14,7 @@ import formaTheme from "@fullcalendar/react/themes/forma";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/forma/theme.css";
-import { entryDay, entryValue } from "@/lib/entries-view";
+import { entryDay, entryValue } from "@/modules/entries-view/rules";
 import { cn } from "@/lib/utils";
 import type { ViewContext } from "./types";
 

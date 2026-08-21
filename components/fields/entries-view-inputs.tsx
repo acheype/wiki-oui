@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Icon } from "@/components/wiki/internal/icon";
+import { Icon } from "@/components/ui/icon";
 import type { LiteralValue, StructuredValue } from "@/lib/component-descriptor";
 import {
   type EntryFieldChoice,

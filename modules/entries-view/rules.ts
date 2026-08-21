@@ -7,7 +7,7 @@
 import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
 import { valueToText } from "@/modules/forms/form-descriptor";
 import { isPseudoField } from "@/modules/forms/pseudo-fields";
-import { fold } from "./fold";
+import { fold } from "@/lib/fold";
 
 /** One entry as the view consumes it: referenced field values only. */
 export interface ViewEntry {

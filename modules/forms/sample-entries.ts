@@ -3,7 +3,7 @@
 // generated entries with plausible values per field type — the FormBuilder
 // template-preview motif. Pure and deterministic: same schema, same samples.
 
-import type { ViewEntry } from "@/lib/entries-view";
+import type { ViewEntry } from "@/modules/entries-view/rules";
 import type { FormDescriptor, FormField } from "./form-descriptor";
 import { isOptionsField } from "./form-descriptor";
 

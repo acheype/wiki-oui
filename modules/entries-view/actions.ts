@@ -8,7 +8,7 @@
 
 import { listEntryFieldChoices } from "@/modules/forms/actions";
 import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
-import type { ViewEntry } from "@/lib/entries-view";
+import type { ViewEntry } from "@/modules/entries-view/rules";
 import { readEntryData } from "@/modules/forms/form-descriptor";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { listFormsWithEntries } from "@/modules/forms/forms";
@@ -18,7 +18,7 @@ import {
   FALLBACK_SAMPLE_DESCRIPTOR,
   sampleEntries,
 } from "@/modules/forms/sample-entries";
-import { TEXT_SEARCH_TYPES } from "@/lib/entries-view";
+import { TEXT_SEARCH_TYPES } from "@/modules/entries-view/rules";
 import { displayName } from "@/modules/accounts/username";
 
 export interface EntriesViewQuery {

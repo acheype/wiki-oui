@@ -4,9 +4,9 @@
 // title's initial, with a sticky clickable letter index (empty letters
 // greyed). No specific parameter; sorting is alphabetical by construction.
 
-import { directoryGroups } from "@/lib/entries-view";
+import { directoryGroups } from "@/modules/entries-view/rules";
 import { cn } from "@/lib/utils";
-import { Icon } from "../icon";
+import { Icon } from "@/components/ui/icon";
 import type { ViewContext } from "./types";
 
 const ALPHABET = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];

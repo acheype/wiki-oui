@@ -15,7 +15,7 @@
 import { Button as UIButton } from "@/components/ui/button";
 import { isWikiHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
-import { Icon } from "./icon";
+import { Icon } from "@/components/ui/icon";
 import { ModalLink } from "./modal-link";
 import { WikiLinkView } from "./wiki-link-view";
 import type { ButtonColor, ButtonProps } from "../button";

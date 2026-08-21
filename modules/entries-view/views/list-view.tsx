@@ -7,10 +7,10 @@
 
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import { entryValue } from "@/lib/entries-view";
-import type { ViewEntry } from "@/lib/entries-view";
+import { entryValue } from "@/modules/entries-view/rules";
+import type { ViewEntry } from "@/modules/entries-view/rules";
 import { cn } from "@/lib/utils";
-import { Icon } from "../icon";
+import { Icon } from "@/components/ui/icon";
 import { WikiFrame } from "@/modules/pages/wiki-frame";
 import type { ViewContext } from "./types";
 

@@ -7,10 +7,10 @@
 
 import { ImageIcon } from "lucide-react";
 import { imageUrl } from "@/lib/image-url";
-import type { ViewEntry } from "@/lib/entries-view";
+import type { ViewEntry } from "@/modules/entries-view/rules";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";
-import { Icon } from "../icon";
+import { Icon } from "@/components/ui/icon";
 import { defaultColumnCount, type ViewContext } from "./types";
 
 // Static class strings (Tailwind scans source): the responsive ramp for each

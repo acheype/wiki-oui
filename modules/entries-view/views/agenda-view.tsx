@@ -5,10 +5,10 @@
 // by time. Typographic date block on the left, grouped by month, only the
 // days that have events. Title/subtitle zones like the Liste.
 
-import { entryDay, entryValue } from "@/lib/entries-view";
-import type { ViewEntry } from "@/lib/entries-view";
+import { entryDay, entryValue } from "@/modules/entries-view/rules";
+import type { ViewEntry } from "@/modules/entries-view/rules";
 import { cn } from "@/lib/utils";
-import { Icon } from "../icon";
+import { Icon } from "@/components/ui/icon";
 import { defaultColumnCount, type ViewContext } from "./types";
 
 interface Dated {

@@ -13,7 +13,7 @@ import {
   sortEntries,
   splitPseudo,
   type ViewEntry,
-} from "./entries-view";
+} from "./rules";
 import { sampleEntries, FALLBACK_SAMPLE_DESCRIPTOR } from "@/modules/forms/sample-entries";
 
 const entry = (
