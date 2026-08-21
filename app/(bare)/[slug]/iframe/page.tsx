@@ -60,11 +60,13 @@ export default async function IframePage({
   if (!page) notFound();
 
   // A frame onto a page the reader may not see shows the same refusal as the
-  // page itself, and WikiFrame sizes down to it (ADR 0022).
+  // page itself, in its compact form — this route is always loaded inside a
+  // frame (docs/permissions.md § Liens et boutons vers l'inaccessible), and
+  // WikiFrame sizes down to it (ADR 0022).
   if (isRefused(page)) {
     return (
       <div data-wiki-frame>
-        <AccessRefused slug={slug} ownerName={page.ownerName} />
+        <AccessRefused slug={slug} ownerName={page.ownerName} compact />
         <WikiFrameResizeEmitter />
       </div>
     );

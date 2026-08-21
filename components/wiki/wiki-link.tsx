@@ -1,48 +1,26 @@
-import Link from "next/link";
-import { isExternalHref, isWikiHref } from "@/lib/slug";
-import { ModalLink } from "./internal/modal-link";
+import { hiddenIfNoAccess } from "@/lib/pages";
+import { WikiLinkView } from "./internal/wiki-link-view";
 
-// The builder fields (text, link, target) map to the markdown link it emits
-// (ADR 0006), not to these render props; its defaults live in wiki-link.yaml
-// (ADR 0013). The interactive modal is in internal/modal-link.tsx.
-type WikiLinkProps = React.ComponentPropsWithoutRef<"a">;
+// The builder fields (text, link, target, hideIfNoAccess) map to the
+// markdown link it emits (ADR 0006), not directly to these render props; its
+// defaults live in wiki-link.yaml (ADR 0013). This is the `a` the MDX
+// pipeline actually renders (lib/mdx.tsx): it resolves hideIfNoAccess
+// (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13)
+// before deciding whether to render at all, then delegates every other prop
+// — target included — to internal/wiki-link-view.tsx. Same split as
+// Button/ButtonView (button.tsx), for the same reason: the check needs a
+// server-side read of the current person's rights, which the view has no
+// door to once it's reused from a "use client" caller (button-view.tsx) or a
+// plain server one (image.tsx) that never asks the question.
+export type WikiLinkProps = React.ComponentPropsWithoutRef<"a"> & {
+  hideIfNoAccess?: boolean;
+};
 
-// Renders every `a` coming out of the MDX pipeline (ADR 0006).
-// target comes from the author via an annotation: "_blank" or "modal".
-export function WikiLink({ href = "", target, children, ...rest }: WikiLinkProps) {
-  const isExternal = isExternalHref(href);
-  const isInternal = isWikiHref(href);
-  // Author links are slug-relative; resolve from the site root so they work
-  // from handler URLs like /ma-page/edit too.
-  const resolvedHref = isInternal ? `/${href}` : href;
-
-  if (target === "modal") {
-    return (
-      <ModalLink href={resolvedHref} {...rest}>
-        {children}
-      </ModalLink>
-    );
-  }
-
-  if (target === "_blank") {
-    return (
-      <a href={resolvedHref} target="_blank" rel="noopener noreferrer" {...rest}>
-        {children}
-      </a>
-    );
-  }
-
-  if (isInternal && !isExternal) {
-    return (
-      <Link href={resolvedHref} {...rest}>
-        {children}
-      </Link>
-    );
-  }
-
-  return (
-    <a href={href} {...rest}>
-      {children}
-    </a>
-  );
+export async function WikiLink({
+  hideIfNoAccess = false,
+  href = "",
+  ...rest
+}: WikiLinkProps) {
+  if (await hiddenIfNoAccess(href, hideIfNoAccess)) return null;
+  return <WikiLinkView href={href} {...rest} />;
 }

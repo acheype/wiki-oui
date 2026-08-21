@@ -2,7 +2,7 @@ import { fileUrl } from "@/lib/files";
 import { imageUrl } from "@/lib/image-url";
 import { cn } from "@/lib/utils";
 import { ImageLightbox } from "./internal/image-lightbox";
-import { WikiLink } from "./wiki-link";
+import { WikiLinkView } from "./internal/wiki-link-view";
 
 export type ImageProps = {
   /** Uploaded file name (files/ directory, ADR 0012). */
@@ -69,9 +69,9 @@ export function Image({
 
   if (link) {
     return (
-      <WikiLink href={link} className={alignClasses[align]}>
+      <WikiLinkView href={link} className={alignClasses[align]}>
         {img}
-      </WikiLink>
+      </WikiLinkView>
     );
   }
   if (lightbox) {

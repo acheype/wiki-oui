@@ -16,7 +16,11 @@ import {
   insertionState,
   type BuilderDialogState,
 } from "./component-builder";
-import { emitsMarkdownLink, type Range } from "@/lib/component-descriptor";
+import {
+  emitsMarkdownLink,
+  type PropValue,
+  type Range,
+} from "@/lib/component-descriptor";
 import { goToLine, insertSnippet, replaceSnippet } from "./commands";
 import {
   cursorTools,
@@ -74,7 +78,12 @@ export function PageEditor({
       builders,
       onEditLink: (info: LinkInfo) =>
         openWikiLinkBuilder(
-          { text: info.text, link: info.href, target: info.target },
+          {
+            text: info.text,
+            link: info.href,
+            target: info.target,
+            hideIfNoAccess: info.hideIfNoAccess,
+          },
           { from: info.from, to: info.to }
         ),
       onEditComponent: (info: ComponentInfo) =>
@@ -96,7 +105,7 @@ export function PageEditor({
   function openBuilder(
     spec: ComponentBuilderSpec | undefined,
     missingSpecLabel: string,
-    values: Record<string, string | undefined>,
+    values: Record<string, PropValue>,
     range?: Range
   ) {
     if (!spec) {
@@ -118,7 +127,7 @@ export function PageEditor({
   // The wiki-link builder (emits markdown-link) has its own doors: the
   // toolbar link button and the anchored link pencil (docs/component-builder.md).
   function openWikiLinkBuilder(
-    values: Record<string, string | undefined>,
+    values: Record<string, PropValue>,
     range?: Range
   ) {
     openBuilder(

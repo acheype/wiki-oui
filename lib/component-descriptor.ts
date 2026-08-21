@@ -946,10 +946,16 @@ export function camelCase(kebab: string): string {
 }
 
 // The markdown-link serialization target (`emits: markdown-link`,
-// docs/component-builder.md): fixed field semantics — text, link, target —
-// emitting `[text](link)` with a target annotation when not the default
-// (ADR 0006). wiki-link is its only user; the rest of the engine (fields,
-// showif, preview, inverse mapping) is shared with tag emitters.
+// docs/component-builder.md): fixed field semantics — text, link, target,
+// hideIfNoAccess — emitting `[text](link)` with an annotation carrying
+// whichever of the two is non-default (ADR 0006). wiki-link is its only user;
+// the rest of the engine (fields, showif, preview, inverse mapping) is shared
+// with tag emitters.
+//
+// hideIfNoAccess is only ever written as `true` (docs/permissions.md § Liens
+// et boutons vers l'inaccessible): its default is `false`, and the omission
+// rule already says that — a literal `false` annotation would say nothing
+// the reader could not already tell.
 export function generateMarkdownLink(
   defaults: PropDefaults,
   values: PropValues
@@ -957,7 +963,12 @@ export function generateMarkdownLink(
   const link = String(values.link ?? "").trim();
   const text = String(values.text ?? "").trim() || link;
   const target = values.target ?? defaults.target;
+  const hideIfNoAccess = values.hideIfNoAccess ?? defaults.hideIfNoAccess;
+  const annotationParts = [
+    target !== defaults.target ? `target: '${target}'` : null,
+    hideIfNoAccess === true ? "hideIfNoAccess: true" : null,
+  ].filter((part): part is string => part !== null);
   const annotation =
-    target === defaults.target ? "" : `{{ target: '${target}' }}`;
+    annotationParts.length > 0 ? `{{ ${annotationParts.join(", ")} }}` : "";
   return `[${text}](${link})${annotation}`;
 }

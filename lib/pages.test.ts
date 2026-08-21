@@ -56,7 +56,9 @@ const {
   currentReadableWhere,
   deletePageById,
   getRawContent,
+  hiddenIfNoAccess,
   isRefused,
+  isSlugReadable,
   listPageTags,
   renamePageSlug,
   setPageRights,
@@ -380,6 +382,90 @@ describe("listPageTags", () => {
       select: { tags: true },
     });
     expect(result).toEqual(["Atelier", "Sport"]);
+  });
+});
+
+// hideIfNoAccess (docs/permissions.md § Liens et boutons vers l'inaccessible,
+// issue #13): the check a link, a button or an iframe runs before deciding
+// whether to render at all.
+describe("isSlugReadable", () => {
+  it("reads a page open to everyone", async () => {
+    db.page.findUnique.mockResolvedValue({
+      ownerUsername: null,
+      readScope: "everyone",
+      writeScope: "everyone",
+      acls: [],
+    });
+    expect(await isSlugReadable("compte-rendu")).toBe(true);
+  });
+
+  it("refuses a page restricted to someone else", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await isSlugReadable("compte-rendu")).toBe(false);
+  });
+
+  it("reads a page whose owner is the current person", async () => {
+    signedInAs("marie-durand");
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await isSlugReadable("compte-rendu")).toBe(true);
+  });
+
+  it("reads a missing page — a dead link is page-lint's business, not this one's", async () => {
+    db.page.findUnique.mockResolvedValue(null);
+    expect(await isSlugReadable("nulle-part")).toBe(true);
+  });
+
+  it("reads an auth page whatever its own rights say", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await isSlugReadable("connexion")).toBe(true);
+    expect(db.page.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+// The one door components/wiki/{wiki-link,button,iframe}.tsx all ask through
+// before deciding whether to render at all — a link/button/iframe vanishes
+// only when every one of these holds.
+describe("hiddenIfNoAccess", () => {
+  it("never hides when the setting is off", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu", false)).toBe(false);
+  });
+
+  it("never hides an external target", async () => {
+    expect(
+      await hiddenIfNoAccess("https://exemple.org", true)
+    ).toBe(false);
+    expect(db.page.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("never hides an empty link", async () => {
+    expect(await hiddenIfNoAccess("", true)).toBe(false);
+  });
+
+  it("never hides a target that does not parse as a wiki href", async () => {
+    // Malformed rather than merely missing (isSlugReadable's own case): not
+    // this door's job to guess a slug out of it either.
+    expect(await hiddenIfNoAccess("javascript:alert(1)", true)).toBe(false);
+    expect(db.page.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("hides a restricted target the person may not read", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu", true)).toBe(true);
+  });
+
+  it("keeps a target the person may read", async () => {
+    signedInAs("marie-durand");
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu", true)).toBe(false);
+  });
+
+  it("keeps a handler href, judged on the page it names", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu/edit", true)).toBe(true);
+    expect(db.page.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { slug: "compte-rendu" } })
+    );
   });
 });
 

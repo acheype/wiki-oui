@@ -202,6 +202,18 @@ describe("visibleFields", () => {
     expect(visibleFields(descriptor, {}, { ratio: "doc.pdf" })).not.toContain("height");
   });
 
+  // hideIfNoAccess's own showif (wiki-link.yaml, button.yaml,
+  // docs/permissions.md § Liens et boutons vers l'inaccessible): a negative
+  // lookahead reusing the same regex engine as externalModalWarning, so it
+  // hides the moment an author types "https://" — no separate condition kind.
+  it("hides behind a negative-lookahead regex on an external URL", () => {
+    const descriptor = withShowif({ ratio: "/^(?!https?:\\/\\/)/" });
+    expect(visibleFields(descriptor, {}, { ratio: "ma-page" })).toContain("height");
+    expect(
+      visibleFields(descriptor, {}, { ratio: "https://exemple.org" })
+    ).not.toContain("height");
+  });
+
   it("ANDs several showif entries", () => {
     const descriptor: ComponentDescriptor = {
       label: "Image",
@@ -514,6 +526,29 @@ describe("generateMarkdownLink", () => {
   it("falls back on the link when the text is empty", () => {
     expect(generateMarkdownLink(defaults, { link: "equipe" })).toBe(
       "[equipe](equipe)"
+    );
+  });
+
+  it("annotates hideIfNoAccess only when checked", () => {
+    expect(
+      generateMarkdownLink(defaults, {
+        text: "Notre équipe",
+        link: "equipe",
+        hideIfNoAccess: true,
+      })
+    ).toBe("[Notre équipe](equipe){{ hideIfNoAccess: true }}");
+  });
+
+  it("combines both annotations when target and hideIfNoAccess both differ", () => {
+    expect(
+      generateMarkdownLink(defaults, {
+        text: "Notre équipe",
+        link: "equipe",
+        target: "modal",
+        hideIfNoAccess: true,
+      })
+    ).toBe(
+      "[Notre équipe](equipe){{ target: 'modal', hideIfNoAccess: true }}"
     );
   });
 });

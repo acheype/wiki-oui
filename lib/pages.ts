@@ -62,6 +62,7 @@ import {
 } from "@/lib/permissions";
 import { assertAdmin, currentPerson, currentUsername } from "@/lib/permissions-db";
 import { prisma } from "@/lib/prisma";
+import { isExternalHref, wikiHrefSlug } from "@/lib/slug";
 import { rankByFrequency } from "@/lib/suggested-values";
 import type { SlugRename } from "@/lib/slug-rename";
 import { displayName } from "@/lib/username";
@@ -157,6 +158,47 @@ export { isEntryPage, hasForm };
  */
 export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
   return listReadableWhere(await currentPerson(), ALWAYS_READABLE);
+}
+
+/**
+ * Whether the current person may read the page a link, a button or an iframe
+ * names — what `hideIfNoAccess` asks before deciding to render at all
+ * (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13). A
+ * missing target is not this door's business: `lib/page-lint.ts` already
+ * signals a dead slug, so an unwritten page reads as reachable here rather
+ * than as a reason to hide.
+ *
+ * Memoized per request and per slug (React cache), like every other read
+ * behind currentPerson — a menu naming the same page from several entries
+ * costs one query, not one per entry.
+ */
+export const isSlugReadable = cache(async (slug: string): Promise<boolean> => {
+  if (ALWAYS_READABLE.includes(slug)) return true;
+  const page = await prisma.page.findUnique({
+    where: { slug },
+    select: { ownerUsername: true, readScope: true, writeScope: true, acls: ACL_ROWS },
+  });
+  if (!page) return true;
+  return canRead(await currentPerson(), page);
+});
+
+/**
+ * Whether a `hideIfNoAccess` link, button or iframe should vanish
+ * (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13):
+ * only when the setting is on, the target is internal, and it resolves to a
+ * slug this person may not read. The one door components/wiki/{wiki-link,
+ * button,iframe}.tsx all ask through, so an external target or an
+ * unparsable one reads the same way — visible — from every one of them,
+ * rather than each re-deriving its own edge cases.
+ */
+export async function hiddenIfNoAccess(
+  link: string,
+  hideIfNoAccess: boolean
+): Promise<boolean> {
+  if (!hideIfNoAccess || !link || isExternalHref(link)) return false;
+  const slug = wikiHrefSlug(link);
+  if (!slug) return false;
+  return !(await isSlugReadable(slug));
 }
 
 /** A single page's read decision — the lists get a `where` instead. */

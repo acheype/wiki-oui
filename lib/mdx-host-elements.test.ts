@@ -1,13 +1,33 @@
 import { describe, expect, it } from "vitest";
 import { renderMdx } from "./mdx";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToPipeableStream } from "react-dom/server";
+import { PassThrough } from "node:stream";
 
 // The tag allowlist (ADR 0002). Every refusal below was seen running in a real
 // browser against /api/render before the list existed — <script src> loaded and
 // executed third-party JS, <iframe srcdoc> scripted the wiki's own origin.
 
+// renderToStaticMarkup is synchronous and cannot wait on an async Server
+// Component (WikiLink, Iframe — issue #13's readability check).
+// renderToPipeableStream can: it streams, and onAllReady only fires once
+// every one of them has resolved, so awaiting it hands back the final HTML.
 async function render(source: string): Promise<string> {
-  return renderToStaticMarkup((await renderMdx(source)) as React.ReactElement);
+  const element = (await renderMdx(source)) as React.ReactElement;
+  return new Promise((resolve, reject) => {
+    let html = "";
+    const collector = new PassThrough();
+    collector.on("data", (chunk: Buffer) => {
+      html += chunk.toString();
+    });
+    collector.on("end", () => resolve(html));
+    collector.on("error", reject);
+    const { pipe } = renderToPipeableStream(element, {
+      onAllReady() {
+        pipe(collector);
+      },
+      onError: reject,
+    });
+  });
 }
 
 describe("tags that reach the reader", () => {
