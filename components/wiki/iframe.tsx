@@ -1,6 +1,6 @@
-import { hiddenIfNoAccess } from "@/lib/pages";
+import { hiddenIfNoAccess } from "@/modules/pages/content";
 import { isExternalHref } from "@/lib/slug";
-import { WikiFrame, type FrameRatio } from "./internal/wiki-frame";
+import { WikiFrame, type FrameRatio } from "@/modules/pages/wiki-frame";
 
 export type IframeProps = {
   /** A wiki page (slug or href) when internal, an http(s) URL when external. */

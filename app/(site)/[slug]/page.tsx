@@ -2,21 +2,17 @@ import { FilePlus2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { DoubleClickToEdit } from "@/components/page/double-click-to-edit";
+import { DoubleClickToEdit } from "@/modules/pages/ui/double-click-to-edit";
 import { EntryContent } from "@/components/forms/entry-content";
-import { AccessRefused } from "@/components/page/access-refused";
-import { PageActions } from "@/components/page/page-actions";
-import { Prose } from "@/components/page/prose";
+import { AccessRefused } from "@/modules/pages/ui/access-refused";
+import { PageActions } from "@/modules/pages/ui/page-actions";
+import { Prose } from "@/modules/pages/prose";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
-import {
-  personCanCreatePage,
-  personPermissions,
-  getPageWithCurrent,
-  isEntryPage,
-  isRefused,
-} from "@/lib/pages";
+import { isEntryPage } from "@/modules/pages/entry-page";
+import { getPageWithCurrent } from "@/modules/pages/content";
+import { isRefused, personCanCreatePage, personPermissions } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 import { displayName } from "@/lib/username";
 

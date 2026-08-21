@@ -1,10 +1,11 @@
 // A fiche or a page, told apart the one shared way (docs/architecture.md):
 // pure predicates over a plain shape, no Prisma or session behind them, so
-// this file carries none of the server-only imports lib/pages.ts (ADR 0025)
-// does — a Client Component (components/page/pages-admin.tsx) can call these
-// directly without pulling next/headers into its bundle. lib/pages.ts
-// re-exports both, so every server-side caller still reaches them through
-// the one door ADR 0025 asks for.
+// this file carries none of the server-only imports modules/pages/queries.ts
+// (ADR 0025) does — a Client Component (modules/pages/pages-admin.tsx) can
+// call these directly without pulling next/headers into its bundle. Being a
+// root file of the module (ADR 0029), it is imported directly wherever it is
+// needed — server or client side alike — rather than re-exported through the
+// door.
 
 /**
  * A fiche is a Page whose `formId` is set — the one scalar every query

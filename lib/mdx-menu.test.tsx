@@ -6,21 +6,22 @@ import { renderMdx } from "./mdx";
 // The wiring behind a hideIfNoAccess link vanishing from a page's actual MDX
 // (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13):
 // WikiLink (components/wiki/wiki-link.tsx) resolves the annotation via
-// lib/pages's hiddenIfNoAccess, and renders nothing when it refuses. Menu's
-// own pruning of the *bullet* left behind — including the recursive "empty
-// parent" case — has its own, more precise test in lib/menu-pruning.test.tsx
-// (see that file for why it isn't tested here too: this harness's plain
-// react-dom/server has no RSC boundary, so it cannot tell Menu's pruning
-// apart from the link simply rendering null wherever it landed).
+// modules/pages/content.ts's hiddenIfNoAccess, and renders nothing when it
+// refuses. Menu's own pruning of the *bullet* left behind — including the
+// recursive "empty parent" case — has its own, more precise test in
+// lib/menu-pruning.test.tsx (see that file for why it isn't tested here too:
+// this harness's plain react-dom/server has no RSC boundary, so it cannot
+// tell Menu's pruning apart from the link simply rendering null wherever it
+// landed).
 //
 // hiddenIfNoAccess itself is stubbed rather than isSlugReadable underneath
 // it: what this file is testing is the wiring from annotation to vanished
 // bullet, not the slug/external resolution hiddenIfNoAccess already has its
-// own unit test for (lib/pages.test.ts).
+// own unit test for (modules/pages/content.test.ts).
 
 const { readable } = vi.hoisted(() => ({ readable: new Set<string>() }));
 
-vi.mock("@/lib/pages", () => ({
+vi.mock("@/modules/pages/content", () => ({
   hiddenIfNoAccess: vi.fn(
     async (link: string, hideIfNoAccess: boolean) =>
       hideIfNoAccess && !readable.has(link)

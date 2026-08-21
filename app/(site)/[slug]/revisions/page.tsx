@@ -3,23 +3,20 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EntryView } from "@/components/forms/entry-view";
-import { AccessRefused } from "@/components/page/access-refused";
-import { Prose } from "@/components/page/prose";
-import { CodeToggle } from "@/components/revisions/code-toggle";
-import { DiffView } from "@/components/revisions/diff-view";
-import { RestoreButton } from "@/components/revisions/restore-button";
-import { RevisionTimeline } from "@/components/revisions/timeline";
+import { AccessRefused } from "@/modules/pages/ui/access-refused";
+import { Prose } from "@/modules/pages/prose";
+import { CodeToggle } from "@/modules/pages/ui/code-toggle";
+import { DiffView } from "@/modules/pages/ui/diff-view";
+import { RestoreButton } from "@/modules/pages/ui/restore-button";
+import { RevisionTimeline } from "@/modules/pages/ui/timeline";
 import { Button } from "@/components/ui/button";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { formatDateTime } from "@/lib/format";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import {
-  personCanWrite,
-  getPageWithRevisions,
-  isEntryPage,
-  isRefused,
-} from "@/lib/pages";
+import { isEntryPage } from "@/modules/pages/entry-page";
+import { getPageWithRevisions } from "@/modules/pages/revisions";
+import { isRefused, personCanWrite } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { displayName } from "@/lib/username";

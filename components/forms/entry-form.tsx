@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { type EntryFormData, saveEntry } from "@/app/form-actions";
 import { listFormOptions } from "@/app/form-actions";
 import { Field } from "@/components/fields/field-widget";
-import { SlugInlineEdit } from "@/components/slug/slug-input";
+import { SlugInlineEdit } from "@/modules/pages/slug-input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DESTINATION_PARAM } from "@/lib/destination";

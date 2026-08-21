@@ -10,11 +10,11 @@ import {
 } from "ts-morph";
 
 // One door to Page (ADR 0025): an ESLint rule keeps `prisma.page` out of
-// every file but lib/pages.ts (and lib/forms.ts for Form). That rule is
-// silent about what happens *inside* the door — a read that forgets to check
-// who is asking compiles, passes lint, and leaks in silence. This module
-// closes that gap, in the culture of ADR 0013 (parse the source with
-// ts-morph, never import or run it).
+// every file but the five modules/pages/ split into (and lib/forms.ts for
+// Form). That rule is silent about what happens *inside* the door — a read
+// that forgets to check who is asking compiles, passes lint, and leaks in
+// silence. This module closes that gap, in the culture of ADR 0013 (parse the
+// source with ts-morph, never import or run it).
 //
 // The three primitives every access decision in this codebase bottoms out on
 // are canRead, canWrite and isAdmin (modules/permissions/rules.ts) — every relay this
@@ -184,7 +184,7 @@ const UNGUARDED_READS: Record<string, string> = {
   getPage:
     "existence probe for a slug clash and the write paths' own read — callers assertCanWrite or personPermissions before using the content",
   // Slugs only, readable or not (see the function's own docstring): what
-  // lib/page-lint.ts decides « cette page n'existe pas » against, never
+  // modules/pages/lint.ts decides « cette page n'existe pas » against, never
   // content.
   listAllPageSlugs: "every slug, readable or not — the broken-link lint's own denominator, not content",
   // The site's chrome, not its content (see the function's own docstring):
@@ -200,24 +200,44 @@ const UNGUARDED_READS: Record<string, string> = {
 };
 
 /**
+ * The five files ADR 0029 split lib/pages.ts into: the door itself
+ * (queries.ts, private to modules/pages/) plus the four root files that each
+ * read or write Page (content.ts, revisions.ts, rights.ts, entries.ts). A
+ * function moved from one to another keeps the same name, so UNGUARDED_READS
+ * below did not need to change with the split — only this list of files did.
+ */
+const PAGE_ACCESS_FILES = [
+  "modules/pages/queries.ts",
+  "modules/pages/content.ts",
+  "modules/pages/revisions.ts",
+  "modules/pages/rights.ts",
+  "modules/pages/entries.ts",
+];
+
+/**
  * The prebuild gate itself (ADR 0013's culture, applied to ADR 0025's door):
- * throws with every exported read of lib/pages.ts that does not decide who is
- * asking, and that this session has not already looked at and allowlisted.
+ * throws with every exported read of modules/pages/ that does not decide who
+ * is asking, and that this session has not already looked at and
+ * allowlisted.
  */
 export function verifyPageAccessGuards(): void {
   const project = new Project({
     tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
     skipAddingFilesFromTsConfig: true,
   });
-  const file = project.addSourceFileAtPath(path.join(process.cwd(), "lib/pages.ts"));
-  const findings = scanAccessGuards(file).filter((finding) => !(finding.name in UNGUARDED_READS));
+  const findings = PAGE_ACCESS_FILES.flatMap((relativePath) => {
+    const file = project.addSourceFileAtPath(path.join(process.cwd(), relativePath));
+    return scanAccessGuards(file)
+      .filter((finding) => !(finding.name in UNGUARDED_READS))
+      .map((finding) => ({ ...finding, file: relativePath }));
+  });
   if (findings.length > 0) {
     throw new Error(
-      "lib/pages.ts reads Page without deciding who is asking (ADR 0025's door has no filter on this):\n" +
+      "modules/pages/ reads Page without deciding who is asking (ADR 0025's door has no filter on this):\n" +
         findings
           .map(
             (finding) =>
-              `  - ${finding.name} (lib/pages.ts:${finding.line}) never reaches canRead, canWrite or isAdmin`
+              `  - ${finding.name} (${finding.file}:${finding.line}) never reaches canRead, canWrite or isAdmin`
           )
           .join("\n") +
         "\nGuard the read, or — if it is deliberate — add it to UNGUARDED_READS in lib/verify-access.ts with why."

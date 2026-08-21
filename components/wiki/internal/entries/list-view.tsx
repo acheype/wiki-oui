@@ -11,7 +11,7 @@ import { entryValue } from "@/lib/entries-view";
 import type { ViewEntry } from "@/lib/entries-view";
 import { cn } from "@/lib/utils";
 import { Icon } from "../icon";
-import { WikiFrame } from "../wiki-frame";
+import { WikiFrame } from "@/modules/pages/wiki-frame";
 import type { ViewContext } from "./types";
 
 export function ListView({ context }: { context: ViewContext }) {

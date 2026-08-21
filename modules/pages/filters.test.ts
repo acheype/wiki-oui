@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ManagedPage } from "@/lib/pages";
-import { EVERYTHING, coherent, pagesMatching } from "./page-filters";
+import type { ManagedPage } from "@/modules/pages/rights";
+import { EVERYTHING, coherent, pagesMatching } from "./filters";
 
 function managed(slug: string, form?: { slug: string; name: string }): ManagedPage {
   return {

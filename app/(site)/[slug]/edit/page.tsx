@@ -3,17 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { getEntryForm } from "@/app/form-actions";
 import { PageEditor } from "@/components/editor/page-editor";
 import { EntryEdit } from "@/components/forms/entry-edit";
-import { AccessRefused } from "@/components/page/access-refused";
+import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
-import {
-  personCanCreatePage,
-  personCanWrite,
-  getPageWithForm,
-  hasForm,
-  isRefused,
-  listPageSlugs,
-  listPageTags,
-} from "@/lib/pages";
+import { hasForm } from "@/modules/pages/entry-page";
+import { getPageWithForm, listPageSlugs, listPageTags } from "@/modules/pages/content";
+import { isRefused, personCanCreatePage, personCanWrite } from "@/modules/pages/rights";
 import { CREATE_REFUSED, WRITE_REFUSED } from "@/modules/permissions/rules";
 import { isValidSlug } from "@/lib/slug";
 

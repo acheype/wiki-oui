@@ -559,8 +559,9 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
 // /{slug}/raw) cannot let a field carry: it is the key a fiche's own
 // metadata sits under, next to the field values — a field also named
 // `metadata` would collide with it, one silently overwriting the other.
-// `content` and `form-id` need no such rule: `getRawContent()` (lib/pages.ts)
-// tells a page from a fiche by `formId`/`form`, never by a `content` key a
+// `content` and `form-id` need no such rule: `getRawContent()`
+// (modules/pages/content.ts) tells a page from a fiche by `formId`/`form`,
+// never by a `content` key a
 // field could spoof, and `form-id` itself now lives inside `metadata`, a
 // different object than a fiche's own fields. `title` needs none either —
 // the meta-schema already locks it to the one field of type "title"

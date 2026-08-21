@@ -1,4 +1,4 @@
-import { hiddenIfNoAccess } from "@/lib/pages";
+import { hiddenIfNoAccess } from "@/modules/pages/content";
 import { ButtonView } from "./internal/button-view";
 
 export type ButtonColor =

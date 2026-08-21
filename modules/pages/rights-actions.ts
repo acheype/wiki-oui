@@ -7,7 +7,7 @@ import {
   getPageRights,
   setPageRights,
   transferPageOwnership,
-} from "@/lib/pages";
+} from "@/modules/pages/rights";
 import {
   type AccessRule,
   type AclDirectory,
@@ -19,8 +19,8 @@ import {
 // choice « Changer l'adresse » made (docs/permissions.md § La modale de
 // droits d'une page). Handing the page on is the third: it stops at the same
 // rung, and it is where the modal already names the owner. All three go
-// through lib/pages.ts, which refuses anyone but the owner and the
-// administrators (ADR 0025).
+// through modules/pages/queries.ts, which refuses anyone but the owner and
+// the administrators (ADR 0025).
 
 export interface PageRightsForm extends PageRightsView {
   /** Who the two lists — and the transfer — may name. */

@@ -13,9 +13,9 @@ import {
   type PageRightsForm,
   loadPageRights,
   savePageRights,
-} from "@/app/page-rights-actions";
+} from "@/modules/pages/rights-actions";
 import { Field } from "@/components/fields/field-widget";
-import { OwnerTransfer } from "@/components/page/owner-transfer";
+import { OwnerTransfer } from "@/modules/pages/ui/owner-transfer";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

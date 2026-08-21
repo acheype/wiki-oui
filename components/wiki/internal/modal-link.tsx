@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { WikiFrame } from "./wiki-frame";
+import { WikiFrame } from "@/modules/pages/wiki-frame";
 
 // Client innard of WikiLink's modal target — also the popup rendering of
 // <Button> (trigger "hover" opens on mouse-over).

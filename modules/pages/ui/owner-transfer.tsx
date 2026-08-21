@@ -9,7 +9,7 @@
 import { KeyRound, UserRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { transferOwnership } from "@/app/page-rights-actions";
+import { transferOwnership } from "@/modules/pages/rights-actions";
 import { PersonPicker } from "@/modules/permissions/person-picker";
 import { Button } from "@/components/ui/button";
 import { InfoNote } from "@/components/ui/info-note";

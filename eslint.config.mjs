@@ -34,7 +34,7 @@ const directPageOrFormAccess =
 // The three clauses that may come out empty, `{}` meaning « every row » for
 // an actor who reads or writes everything. Prisma drops an empty branch from
 // an `OR`, so joining one by hand turns « everything » into « only the other
-// branches » — see anyClause() in lib/permissions.ts, which absorbs instead.
+// branches » — see anyClause() in modules/permissions/rules.ts, which absorbs instead.
 const ACCESS_CLAUSES = "readableWhere|writableWhere|listReadableWhere|currentReadableWhere";
 
 // An `OR: [ … ]` holding a call to one of them, however deep in the array.
@@ -124,8 +124,17 @@ const eslintConfig = defineConfig([
     // caller that forgot them — a forgotten read leaks in silence, and no test
     // reddens. Exceptions stay few, so that adding one is visible in review.
     ignores: [
-      // The access layer itself.
-      "lib/pages.ts",
+      // The access layer itself. lib/pages.ts split into five files at the
+      // door (ADR 0029): modules/pages/queries.ts plus the four root files
+      // that each read or write Page directly (content.ts, revisions.ts,
+      // rights.ts, entries.ts) — this rule polices `prisma.page`, not the
+      // ESLint module-seam privacy of queries.ts, so all five need the
+      // exemption, not just the one that stayed private.
+      "modules/pages/queries.ts",
+      "modules/pages/content.ts",
+      "modules/pages/revisions.ts",
+      "modules/pages/rights.ts",
+      "modules/pages/entries.ts",
       "lib/forms.ts",
       // Its neighbours behind the same door: BetterAuth owns the account
       // tables and touches nothing else (ADR 0023), the actor resolution
@@ -133,7 +142,7 @@ const eslintConfig = defineConfig([
       // every action on one is an administrator's or a link holder's,
       // checked there — and the installation flag is a single row no rule
       // applies to (ADR 0027). None of them reaches Page or Form except
-      // through lib/pages.ts and lib/forms.ts, which is why the counts and
+      // through modules/pages/ and lib/forms.ts, which is why the counts and
       // the reassignment of an erased account live over there.
       "lib/auth.ts",
       "lib/accounts-db.ts",
@@ -154,7 +163,7 @@ const eslintConfig = defineConfig([
         {
           selector: directPageOrFormAccess,
           message:
-            "Page and Form are reached through lib/pages.ts and lib/forms.ts only (ADR 0025). Add a function there rather than querying Prisma here.",
+            "Page and Form are reached through modules/pages/ and lib/forms.ts only (ADR 0025). Add a function there rather than querying Prisma here.",
         },
       ],
       // The syntax rule reads names, so it says nothing about a Page reached
@@ -168,7 +177,7 @@ const eslintConfig = defineConfig([
             {
               name: "@/lib/prisma",
               message:
-                "The Prisma client lives behind lib/pages.ts and lib/forms.ts (ADR 0025). Sweep modules receive their client as a parameter.",
+                "The Prisma client lives behind modules/pages/ and lib/forms.ts (ADR 0025). Sweep modules receive their client as a parameter.",
             },
           ],
         },
@@ -186,7 +195,7 @@ const eslintConfig = defineConfig([
         {
           selector: accessClauseInsideOr,
           message:
-            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish. Compose with anyClause() from lib/permissions.ts.",
+            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish. Compose with anyClause() from modules/permissions/rules.ts.",
         },
       ],
     },

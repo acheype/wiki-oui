@@ -1,12 +1,12 @@
 "use client";
 
 import { Signpost } from "lucide-react";
-import { countSlugReferences, renamePage } from "@/app/actions";
+import { countSlugReferences, renamePage } from "@/modules/pages/actions";
 import {
   RenameSlugDialog,
   impactParts,
   impactTotal,
-} from "@/components/slug/rename-slug-dialog";
+} from "@/modules/pages/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 

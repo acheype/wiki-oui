@@ -2,7 +2,7 @@
 
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { PageWarning } from "@/lib/page-lint";
+import type { PageWarning } from "@/modules/pages/lint";
 
 // What the render will ignore, shown between the source and the save (ADR
 // 0002). It stops the first save rather than reporting after the fact: the

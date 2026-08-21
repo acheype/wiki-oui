@@ -728,7 +728,7 @@ function SuggestionInput({
 
 const NO_CANDIDATES: string[] = [];
 
-// Wiki pages (ADR 0006), most recently touched first (lib/pages.ts
+// Wiki pages (ADR 0006), most recently touched first (modules/pages/content.ts
 // listPageSlugs). An address that has left the wiki silences the panel:
 // offering local slugs against « https://… » would answer another question.
 function PageListInput({

@@ -60,16 +60,15 @@ import {
   groupNamesBySlug,
   listDirectory,
 } from "@/modules/permissions/groups-queries";
+import { hasForm } from "@/modules/pages/entry-page";
+import { getPage, getPageWithCurrent } from "@/modules/pages/content";
+import { isRefused } from "@/modules/pages/rights";
 import {
   createEntryPage,
-  getPage,
-  getPageWithCurrent,
-  hasForm,
-  isRefused,
   listEntryPages,
   listEntrySnapshots,
   writeEntryRevision,
-} from "@/lib/pages";
+} from "@/modules/pages/entries";
 import {
   type AclDirectory,
   FORM_EDIT_REFUSED,
@@ -442,8 +441,8 @@ export async function listUsedFieldValues(
   if (!field || field.type !== "tags") return [];
 
   // Already cut to what this person may read (currentReadableWhere) and to
-  // the current revision (lib/pages.ts listEntrySnapshots) — nothing left to
-  // check for rights here.
+  // the current revision (modules/pages/entries.ts listEntrySnapshots) —
+  // nothing left to check for rights here.
   const snapshots = await listEntrySnapshots(formSlug);
   const values = snapshots.flatMap((snapshot) => {
     const value = readEntryData(snapshot)[fieldName];

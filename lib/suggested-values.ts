@@ -2,8 +2,8 @@
 // by the two vocabularies the widget serves without ever mixing them
 // (docs/forms.md, "Mots-cles != tags de Page"): ranking occurrences by
 // frequency, and choosing what to offer under the current draft. The doors
-// feeding it raw occurrences sit next to it -- lib/pages.ts listPageTags,
-// app/form-actions.ts listUsedFieldValues.
+// feeding it raw occurrences sit next to it -- modules/pages/content.ts
+// listPageTags, app/form-actions.ts listUsedFieldValues.
 
 import { fold } from "./fold";
 

@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The route only turns getRawContent's answer into HTTP (docs/permissions.md
 // § /{slug}/raw): the right to read, the field cut and the order are
-// lib/pages.ts's own job, already exercised in lib/pages.test.ts. Mocked here
-// so this suite is about status codes, headers, slug handling and ?all
-// alone.
+// modules/pages/content.ts's own job, already exercised in
+// modules/pages/content.test.ts. Mocked here so this suite is about status
+// codes, headers, slug handling and ?all alone.
 
 const { rawContent } = vi.hoisted(() => ({ rawContent: vi.fn() }));
 
-vi.mock("@/lib/pages", () => ({
-  getRawContent: rawContent,
+vi.mock("@/modules/pages/content", () => ({ getRawContent: rawContent }));
+vi.mock("@/modules/pages/rights", () => ({
   isRefused: (result: unknown) =>
     typeof result === "object" && result !== null && "refused" in result,
 }));

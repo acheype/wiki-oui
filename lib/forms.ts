@@ -16,10 +16,9 @@ import {
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   WITH_RIGHTS,
-  applyFormDefaultsToEntries,
-  countEntryRightsImpact,
   currentReadableWhere,
-} from "@/lib/pages";
+} from "@/modules/pages/rights";
+import { applyFormDefaultsToEntries, countEntryRightsImpact } from "@/modules/pages/entries";
 import {
   CREATE_FORM_REFUSED,
   FORM_EDIT_REFUSED,
@@ -37,10 +36,10 @@ import {
 } from "@/lib/slug-rename-db";
 import { wikiConfig } from "@/wiki.config";
 
-// The only door to `Form` (ADR 0025), alongside lib/pages.ts for `Page`. An
-// ESLint rule refuses `prisma.form` anywhere else, so the permission checks
-// this layer will host cannot be bypassed by a caller that forgot them — the
-// risk being a silent read, which no test would ever catch.
+// The only door to `Form` (ADR 0025), alongside modules/pages/queries.ts for
+// `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
+// permission checks this layer will host cannot be bypassed by a caller that
+// forgot them — the risk being a silent read, which no test would ever catch.
 
 /** What deciding on a form's definition needs, and nothing more. */
 type OwnedForm = { ownerUsername: string | null };

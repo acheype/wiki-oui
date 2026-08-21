@@ -26,7 +26,7 @@ import {
   expiresIn,
 } from "@/lib/invitations";
 import { probeMailer, sendAccountLink } from "@/lib/mailer";
-import { countOwnedByAccount, reassignOwnedPages } from "@/lib/pages";
+import { countOwnedByAccount, reassignOwnedPages } from "@/modules/pages/rights";
 import type { Identity } from "@/modules/permissions/rules";
 import { assertAdmin, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";

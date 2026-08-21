@@ -1,7 +1,7 @@
 import { FILE_FAMILIES } from "@/lib/component-descriptor";
 import { fileFamily, listFiles, saveFile } from "@/lib/files";
 import { formatFileSize } from "@/lib/format";
-import { canContributeSomewhere } from "@/lib/pages";
+import { canContributeSomewhere } from "@/modules/pages/rights";
 import { UPLOAD_REFUSED } from "@/modules/permissions/rules";
 import { wikiConfig } from "@/wiki.config";
 

@@ -12,7 +12,7 @@ import { useState } from "react";
 import { countFieldReferences } from "@/app/form-actions";
 import { AclInput, NO_FLOOR } from "@/modules/permissions/acl-input";
 import { Field } from "@/components/fields/field-widget";
-import { RenameSlugDialog } from "@/components/slug/rename-slug-dialog";
+import { RenameSlugDialog } from "@/modules/pages/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { InfoNote } from "@/components/ui/info-note";
@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { SlugInlineEdit } from "@/components/slug/slug-input";
+import { SlugInlineEdit } from "@/modules/pages/slug-input";
 import type { FieldReferenceCounts } from "@/lib/field-rename";
 import {
   type FormField,

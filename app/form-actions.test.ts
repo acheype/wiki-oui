@@ -42,8 +42,8 @@ const { readableForm } = vi.hoisted(() => ({ readableForm: vi.fn() }));
 vi.mock("@/modules/permissions/readable-form", () => ({ readableForm }));
 
 const { listEntrySnapshots } = vi.hoisted(() => ({ listEntrySnapshots: vi.fn() }));
-vi.mock("@/lib/pages", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/pages")>()),
+vi.mock("@/modules/pages/entries", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/pages/entries")>()),
   listEntrySnapshots,
 }));
 

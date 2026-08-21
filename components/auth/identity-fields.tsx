@@ -9,7 +9,7 @@
 // ways in produce accounts nothing tells apart afterwards.
 
 import { useId, useState } from "react";
-import { SlugInlineEdit } from "@/components/slug/slug-input";
+import { SlugInlineEdit } from "@/modules/pages/slug-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { deriveUsername } from "@/lib/username";

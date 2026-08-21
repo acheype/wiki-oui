@@ -6,7 +6,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { createAdminsGroupWith } from "@/modules/permissions/groups-queries";
 import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/lib/installation";
-import { assignPagesOwner } from "@/lib/pages";
+import { assignPagesOwner } from "@/modules/pages/rights";
 import { isInstalled, markInstalled } from "@/lib/settings";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 

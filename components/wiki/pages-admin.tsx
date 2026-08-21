@@ -1,4 +1,4 @@
-import { PagesAdmin as PagesAdminScreen } from "@/components/page/pages-admin";
+import { PagesAdmin as PagesAdminScreen } from "@/modules/pages/pages-admin";
 import { AdminOnly } from "@/modules/permissions/admin-only";
 
 // Built-in component rendered by the `gerer-pages` special page

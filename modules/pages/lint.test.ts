@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ComponentBuilderSpec } from "./component-descriptors";
-import { lintPageSource } from "./page-lint";
+import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+import { lintPageSource } from "./lint";
 
 // The registry as the directory sees it: Menu is registered but has no .yaml,
 // which is exactly the case whose props cannot be checked.

@@ -14,12 +14,13 @@ import {
   handPagesTo,
   listManagedPages,
   replacePagesRights,
-} from "@/lib/pages";
+} from "@/modules/pages/rights";
 import { type AclDirectory, refusalMessage } from "@/modules/permissions/rules";
 
 // Server Actions of `gerer-pages` (docs/permissions.md § Les écrans). Reading
 // the list and acting on a lot are both an administrator's permissions, and the
-// check lives behind the door in lib/pages.ts, so none of these can forget it.
+// check lives behind the door in modules/pages/queries.ts, so none of these
+// can forget it.
 //
 // Refusals travel as values rather than as throws: across the Server Action
 // boundary a throw becomes a render error, where a right that went away

@@ -1,4 +1,4 @@
-import { hiddenIfNoAccess } from "@/lib/pages";
+import { hiddenIfNoAccess } from "@/modules/pages/content";
 import { WikiLinkView } from "./internal/wiki-link-view";
 
 // The builder fields (text, link, target, hideIfNoAccess) map to the

@@ -12,7 +12,7 @@ import type { ViewEntry } from "@/lib/entries-view";
 import { readEntryData } from "@/lib/form-descriptor";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { listFormsWithEntries } from "@/lib/forms";
-import { personPermissions } from "@/lib/pages";
+import { personPermissions } from "@/modules/pages/rights";
 import type { PagePermissions } from "@/modules/permissions/rules";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
@@ -133,7 +133,7 @@ export async function getEntriesViewData(
   }
 
   // Decided here rather than in the row: the person is resolved once for the
-  // request (lib/permissions-db), and the rules are pure — so a formful of
+  // request (modules/permissions/person.ts), and the rules are pure — so a formful of
   // entries costs the loop and nothing else.
   const permissions: Record<string, PagePermissions> = {};
   for (const form of ordered) {

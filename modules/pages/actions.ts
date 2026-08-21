@@ -12,20 +12,18 @@ import {
 } from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
-import { type PageWarning, lintPageSource } from "@/lib/page-lint";
+import { type PageWarning, lintPageSource } from "@/modules/pages/lint";
+import { hasForm } from "@/modules/pages/entry-page";
 import {
-  personPermissions,
   countPageSlugReferences,
   deletePageById,
   getPage,
-  getRevisionToRestore,
-  hasForm,
-  isRefused,
   listAllPageSlugs,
   renamePageSlug,
   writePageContent,
-  writeRestoredRevision,
-} from "@/lib/pages";
+} from "@/modules/pages/content";
+import { getRevisionToRestore, writeRestoredRevision } from "@/modules/pages/revisions";
+import { isRefused, personPermissions } from "@/modules/pages/rights";
 import {
   ACCESS_DENIED,
   ADDRESS_REFUSED,

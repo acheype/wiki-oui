@@ -1,4 +1,5 @@
-import { getRawContent, isRefused } from "@/lib/pages";
+import { getRawContent } from "@/modules/pages/content";
+import { isRefused } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 
 // /{slug}/raw, the equivalent of YesWiki's /raw (docs/permissions.md): a

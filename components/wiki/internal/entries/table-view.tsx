@@ -9,7 +9,7 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { deletePage } from "@/app/actions";
+import { deletePage } from "@/modules/pages/actions";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,

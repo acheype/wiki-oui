@@ -1,11 +1,11 @@
 import { EntryView } from "@/components/forms/entry-view";
-import { Prose } from "@/components/page/prose";
+import { Prose } from "@/modules/pages/prose";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { renderTemplateSource } from "@/lib/entry-render";
 import { formSourcedValues, readEntryData } from "@/lib/form-descriptor";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import { listPagesWithCurrent } from "@/lib/pages";
+import { listPagesWithCurrent } from "@/modules/pages/content";
 
 // The entry "show" rendering (ADR 0014), shared by the page at /[slug] and
 // the chrome-free popup service (docs/entries-view.md): the form's MDX

@@ -10,11 +10,11 @@ import {
   propKind,
   propKindFits,
   visibleFields,
-} from "./component-descriptor";
-import type { ComponentBuilderSpec } from "./component-descriptors";
-import { isAllowedHostElement, isHostElement } from "./mdx-host-elements";
-import { type EstreeProgram, staticLiteralValue } from "./mdx-literal-props";
-import { wikiHrefSlug } from "./slug";
+} from "@/lib/component-descriptor";
+import type { ComponentBuilderSpec } from "@/lib/component-descriptors";
+import { isAllowedHostElement, isHostElement } from "@/lib/mdx-host-elements";
+import { type EstreeProgram, staticLiteralValue } from "@/lib/mdx-literal-props";
+import { wikiHrefSlug } from "@/lib/slug";
 
 // What a page's MDX says versus what the registry and the descriptors can
 // honour (ADR 0002). Every rule here answers the same question — "will this

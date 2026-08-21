@@ -15,9 +15,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type PagesAdminData,
   loadManagedPages,
-} from "@/app/pages-admin-actions";
-import { BulkOwnerDialog } from "@/components/page/bulk-owner-dialog";
-import { BulkRightsDialog } from "@/components/page/bulk-rights-dialog";
+} from "@/modules/pages/admin-actions";
+import { BulkOwnerDialog } from "@/modules/pages/ui/bulk-owner-dialog";
+import { BulkRightsDialog } from "@/modules/pages/ui/bulk-rights-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,12 +40,13 @@ import {
   coherent,
   formsOf,
   pagesMatching,
-} from "@/lib/page-filters";
-// hasForm from lib/entry-page.ts, not lib/pages.ts: this is a Client
-// Component, and lib/pages.ts carries server-only imports (ADR 0025) a
-// client bundle cannot take on, even for a function that never touches them.
-import { hasForm } from "@/lib/entry-page";
-import type { ManagedPage } from "@/lib/pages";
+} from "@/modules/pages/filters";
+// hasForm from modules/pages/entry-page.ts, not modules/pages/content.ts:
+// this is a Client Component, and modules/pages/content.ts carries
+// server-only imports (ADR 0025) a client bundle cannot take on, even for a
+// function that never touches them.
+import { hasForm } from "@/modules/pages/entry-page";
+import type { ManagedPage } from "@/modules/pages/rights";
 import {
   type AccessRule,
   type AclDirectory,

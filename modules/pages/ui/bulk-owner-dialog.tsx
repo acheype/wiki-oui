@@ -8,7 +8,7 @@
 import { KeyRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { handPagesOver } from "@/app/pages-admin-actions";
+import { handPagesOver } from "@/modules/pages/admin-actions";
 import { PersonPicker } from "@/modules/permissions/person-picker";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { InfoNote } from "@/components/ui/info-note";
 import { lotSubject } from "@/modules/permissions/bulk";
-import type { ManagedPage } from "@/lib/pages";
+import type { ManagedPage } from "@/modules/pages/rights";
 import {
   type Identity,
   ownerTransferNote,

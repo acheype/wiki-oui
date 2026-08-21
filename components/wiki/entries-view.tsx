@@ -50,7 +50,7 @@ import { AgendaView } from "./internal/entries/agenda-view";
 import { CalendarView } from "./internal/entries/calendar-view";
 import { CarouselView } from "./internal/entries/carousel-view";
 import { DirectoryView } from "./internal/entries/directory-view";
-import { WikiFrame } from "./internal/wiki-frame";
+import { WikiFrame } from "@/modules/pages/wiki-frame";
 
 // Leaflet touches window at import time: the map view loads client-only.
 const MapEntriesView = dynamic(

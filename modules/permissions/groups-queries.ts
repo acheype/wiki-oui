@@ -37,8 +37,8 @@ const PERSON = { select: { username: true, name: true } } as const;
 
 /**
  * Every group the current person counts as a member of, memoized for the
- * duration of the request with React's cache() — the pattern lib/pages.ts
- * already uses. Deliberately never carried in the session: removing someone
+ * duration of the request with React's cache() — the pattern
+ * modules/pages/content.ts already uses. Deliberately never carried in the session: removing someone
  * from a group has to take effect at once, not when their session renews.
  */
 export const currentGroupSlugs = cache(async (): Promise<string[]> => {

@@ -688,7 +688,7 @@ describe("formAuthoringIssues", () => {
     ]);
   });
 
-  // Neither needs the same guard: getRawContent() (lib/pages.ts) tells a
+  // Neither needs the same guard: getRawContent() (modules/pages/content.ts) tells a
   // page from a fiche by formId/form, never by a "content" key a field
   // could spoof, and form-id now lives inside metadata, a different object
   // than a fiche's own fields — so a field can freely carry either name.

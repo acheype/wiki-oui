@@ -234,7 +234,7 @@ async function createEntryPage(
   createdAt: Date
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
-    // Same default as lib/pages.ts: the form's name, not the fiche's own
+    // Same default as modules/pages/entries.ts: the form's name, not the fiche's own
     // `tags` field (docs/forms.md § Mots-clés ≠ tags de Page).
     const page = await tx.page.create({
       data: { slug, formId, tags: [formName], createdAt, ...SEEDED_RIGHTS },

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Prose } from "@/components/page/prose";
+import { Prose } from "@/modules/pages/prose";
 import { DEFAULT_IMAGE_WIDTH, imageUrl } from "@/lib/image-url";
 import { renderMdx } from "@/lib/mdx";
 import {

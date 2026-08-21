@@ -4,12 +4,13 @@
 // page one has filtered out is the surprise that screen exists to avoid, and a
 // tick surviving the filter that hid it is a bug the eye does not catch.
 
-// hasForm/isEntryPage from lib/entry-page.ts, not lib/pages.ts: this module
-// is read by a Client Component (components/page/pages-admin.tsx), and
-// lib/pages.ts carries server-only imports (ADR 0025) a client bundle cannot
-// take on, even for a function that never touches them.
-import { hasForm, isEntryPage } from "@/lib/entry-page";
-import type { ManagedPage } from "@/lib/pages";
+// hasForm/isEntryPage from modules/pages/entry-page.ts, not
+// modules/pages/content.ts: this module is read by a Client Component
+// (modules/pages/pages-admin.tsx), and modules/pages/content.ts carries
+// server-only imports (ADR 0025) a client bundle cannot take on, even for a
+// function that never touches them.
+import { hasForm, isEntryPage } from "@/modules/pages/entry-page";
+import type { ManagedPage } from "@/modules/pages/rights";
 
 /** The three answers to « Type », and what each keeps of the list. */
 export const KINDS = [

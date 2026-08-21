@@ -13,7 +13,7 @@ import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { createGroup, listGroups } from "@/modules/permissions/group-actions";
 import { GroupEditor } from "@/modules/permissions/ui/group-editor";
-import { SlugInlineEdit } from "@/components/slug/slug-input";
+import { SlugInlineEdit } from "@/modules/pages/slug-input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

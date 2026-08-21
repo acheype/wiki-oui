@@ -17,7 +17,7 @@ import {
   describeGrantTarget,
   giveAccess,
   replaceRights,
-} from "@/app/pages-admin-actions";
+} from "@/modules/pages/admin-actions";
 import { AclInput, NO_FLOOR, PrincipalBox } from "@/modules/permissions/acl-input";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +46,7 @@ import {
   replacementNote,
 } from "@/modules/permissions/bulk";
 import { type MemberRef, refGroupSlug, refUsername } from "@/modules/permissions/groups";
-import type { ManagedPage } from "@/lib/pages";
+import type { ManagedPage } from "@/modules/pages/rights";
 import {
   type AccessRule,
   type AclDirectory,

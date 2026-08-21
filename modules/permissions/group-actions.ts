@@ -24,7 +24,7 @@ import {
   removeGroupMember,
   updateGroupName,
 } from "@/modules/permissions/groups-queries";
-import { countPagesGrantingGroup } from "@/lib/pages";
+import { countPagesGrantingGroup } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 
 export type GroupError = { error: string };
