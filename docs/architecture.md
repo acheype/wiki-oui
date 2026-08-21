@@ -152,6 +152,7 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 26. [Un droit par défaut se recopie à la création, il ne se lie jamais](adr/0026-defauts-recopies-jamais-lies.md)
 27. [L'écran d'installation est gardé par un drapeau irréversible](adr/0027-installation-drapeau-irreversible.md)
 28. [Tout écran est une page WikiOui ; `/api` est le seul segment réservé](adr/0028-tout-ecran-est-une-page.md)
+29. [Le code est rangé par concept du domaine, et la profondeur dit la visibilité](adr/0029-modules-par-concept-du-domaine.md)
 
 ## Points validés avant code
 
