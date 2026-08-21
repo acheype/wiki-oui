@@ -2,21 +2,21 @@ import { Project } from "ts-morph";
 import { describe, expect, it } from "vitest";
 import { scanAccessGuards } from "./verify-access";
 
-// Builds an in-memory project with a stand-in lib/permissions.ts (the three
-// primitives) plus whatever pages.ts-shaped source the test provides — the
-// same in-memory pattern lib/verify-descriptors.test.ts uses for cross-file
-// resolution.
+// Builds an in-memory project with a stand-in modules/permissions/rules.ts
+// (the three primitives) plus whatever pages.ts-shaped source the test
+// provides — the same in-memory pattern lib/verify-descriptors.test.ts uses
+// for cross-file resolution.
 function projectWith(pagesSource: string, extraFiles: Record<string, string> = {}) {
   const project = new Project({ useInMemoryFileSystem: true });
   project.createSourceFile(
-    "lib/permissions.ts",
+    "modules/permissions/rules.ts",
     `export function canRead(person: unknown, page: unknown): boolean { return true; }
      export function canWrite(person: unknown, page: unknown): boolean { return true; }
      export function isAdmin(person: unknown): boolean { return true; }`
   );
   project.createSourceFile(
-    "lib/permissions-db.ts",
-    `import { isAdmin } from "./permissions";
+    "modules/permissions/person.ts",
+    `import { isAdmin } from "./rules";
      export async function currentPerson(): Promise<unknown> { return {}; }
      export async function assertAdmin(): Promise<void> {
        if (!isAdmin(await currentPerson())) throw new Error("refused");
@@ -43,7 +43,7 @@ describe("scanAccessGuards", () => {
   it("accepts a direct call to one of the three primitives", () => {
     const file = projectWith(
       `import { prisma } from "./prisma";
-       import { canRead } from "./permissions";
+       import { canRead } from "../modules/permissions/rules";
        async function currentPerson() { return {}; }
        export async function safe(slug: string) {
          const page = await prisma.page.findUnique({ where: { slug } });
@@ -57,7 +57,7 @@ describe("scanAccessGuards", () => {
   it("follows a relay two hops deep (assertStructuring -> ownsPage -> isAdmin)", () => {
     const file = projectWith(
       `import { prisma } from "./prisma";
-       import { isAdmin } from "./permissions";
+       import { isAdmin } from "../modules/permissions/rules";
        async function currentPerson() { return {}; }
        function ownsPage(person: unknown, page: unknown): boolean {
          return isAdmin(person);
@@ -77,7 +77,7 @@ describe("scanAccessGuards", () => {
   it("follows a relay imported from another file (assertAdmin -> isAdmin)", () => {
     const file = projectWith(
       `import { prisma } from "./prisma";
-       import { assertAdmin } from "./permissions-db";
+       import { assertAdmin } from "../modules/permissions/person";
        export async function listAll() {
          await assertAdmin();
          return prisma.page.findMany({});
@@ -112,7 +112,7 @@ describe("scanAccessGuards", () => {
   it("accepts a page read through a revision relation once guarded", () => {
     const file = projectWith(
       `import { prisma } from "./prisma";
-       import { canRead } from "./permissions";
+       import { canRead } from "../modules/permissions/rules";
        async function currentPerson() { return {}; }
        export async function safeRelation(id: string) {
          const revision = await prisma.revision.findUnique({
@@ -140,7 +140,7 @@ describe("scanAccessGuards", () => {
     const file = projectWith(
       `import { cache } from "react";
        import { prisma } from "./prisma";
-       import { canRead } from "./permissions";
+       import { canRead } from "../modules/permissions/rules";
        async function currentPerson() { return {}; }
        export const cached = cache(async (slug: string) => {
          const page = await prisma.page.findUnique({ where: { slug } });

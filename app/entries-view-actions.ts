@@ -10,10 +10,10 @@ import { listEntryFieldChoices } from "@/app/form-actions";
 import type { EntryFieldChoice } from "@/lib/entry-fields";
 import type { ViewEntry } from "@/lib/entries-view";
 import { readEntryData } from "@/lib/form-descriptor";
-import { readableForm } from "@/lib/field-rights-db";
+import { readableForm } from "@/modules/permissions/readable-form";
 import { listFormsWithEntries } from "@/lib/forms";
 import { personPermissions } from "@/lib/pages";
-import type { PagePermissions } from "@/lib/permissions";
+import type { PagePermissions } from "@/modules/permissions/rules";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
   sampleEntries,

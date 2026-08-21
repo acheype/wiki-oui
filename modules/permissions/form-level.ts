@@ -18,7 +18,7 @@ import {
   ruleAllows,
   storedRights,
   withoutCovered,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 import { wikiConfig } from "@/wiki.config";
 
 /**

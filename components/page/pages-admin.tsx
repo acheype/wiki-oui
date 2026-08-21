@@ -51,7 +51,7 @@ import {
   type AclDirectory,
   pageRule,
   ruleSummary,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 import { ANONYMOUS } from "@/lib/username";
 
 /** « Tous » in the formulaire filter: Radix refuses an item with no value. */

@@ -34,7 +34,7 @@ import {
 import { auth } from "@/lib/auth";
 import { parseAddressList } from "@/lib/invitations";
 import { isMailerConfigured } from "@/lib/mailer";
-import { currentUsername } from "@/lib/permissions-db";
+import { currentUsername } from "@/modules/permissions/person";
 import { wikiConfig } from "@/wiki.config";
 
 export type UserError = { error: string };

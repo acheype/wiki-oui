@@ -1,6 +1,6 @@
 import { cache } from "react";
-import { sweepAclReferences } from "@/lib/acl-rename-db";
-import type { GrantTarget } from "@/lib/bulk-rights";
+import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
+import type { GrantTarget } from "@/modules/permissions/bulk";
 import {
   type InheritedMember,
   type MemberRef,
@@ -14,9 +14,9 @@ import {
   nestingCycleMessage,
   refGroupSlug,
   refUsername,
-} from "@/lib/groups";
-import { type AclDirectory, type Identity, ADMINS_GROUP } from "@/lib/permissions";
-import { assertAdmin, currentUsername } from "@/lib/permissions-db";
+} from "@/modules/permissions/groups";
+import { type AclDirectory, type Identity, ADMINS_GROUP } from "@/modules/permissions/rules";
+import { assertAdmin, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
 // The database side of the groups (docs/permissions.md § Groupes): it loads
@@ -63,7 +63,7 @@ export const currentGroupSlugs = cache(async (): Promise<string[]> => {
  * a group's own answer holds the groups that contain it — whoever is granted
  * @Rédacteurs is already granting @Bureau, nested inside it.
  *
- * What « Donner accès » counts as « y donne déjà accès » (lib/bulk-rights.ts)
+ * What « Donner accès » counts as « y donne déjà accès » (modules/permissions/bulk.ts)
  * rests on this: a line that only repeats what a group already carries adds
  * nothing.
  */

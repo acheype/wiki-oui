@@ -1,6 +1,6 @@
 import { EntryView } from "@/components/forms/entry-view";
 import { Prose } from "@/components/page/prose";
-import { readableForm } from "@/lib/field-rights-db";
+import { readableForm } from "@/modules/permissions/readable-form";
 import { renderTemplateSource } from "@/lib/entry-render";
 import { formSourcedValues, readEntryData } from "@/lib/form-descriptor";
 import { getFormById } from "@/lib/forms";

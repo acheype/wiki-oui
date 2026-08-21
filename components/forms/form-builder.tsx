@@ -42,7 +42,7 @@ import {
   renameForm,
   saveForm,
 } from "@/app/form-actions";
-import { NO_FLOOR } from "@/components/fields/acl-input";
+import { NO_FLOOR } from "@/modules/permissions/acl-input";
 import { Field } from "@/components/fields/field-widget";
 import { InfoNote } from "@/components/ui/info-note";
 import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
@@ -52,12 +52,12 @@ import {
   appliesNothing,
   bornFormPermissions,
   entryRightsNote,
-} from "@/lib/form-rights";
+} from "@/modules/permissions/form-level";
 import {
   type AccessRule,
   type AclDirectory,
   FORM_EDIT_REFUSED,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 import {
   AlertDialog,
   AlertDialogAction,

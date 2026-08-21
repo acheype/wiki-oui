@@ -19,7 +19,7 @@ import {
   listFormChoices,
   listRightsDirectory,
 } from "@/app/form-actions";
-import { type AclDirectory, CREATE_FORM_REFUSED } from "@/lib/permissions";
+import { type AclDirectory, CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
 import {
   AlertDialog,
   AlertDialogAction,

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { createAdminsGroupWith } from "@/lib/groups-db";
+import { createAdminsGroupWith } from "@/modules/permissions/groups-queries";
 import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/lib/installation";
 import { assignPagesOwner } from "@/lib/pages";
 import { isInstalled, markInstalled } from "@/lib/settings";

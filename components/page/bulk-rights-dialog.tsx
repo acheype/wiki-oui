@@ -18,7 +18,7 @@ import {
   giveAccess,
   replaceRights,
 } from "@/app/pages-admin-actions";
-import { AclInput, NO_FLOOR, PrincipalBox } from "@/components/fields/acl-input";
+import { AclInput, NO_FLOOR, PrincipalBox } from "@/modules/permissions/acl-input";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,8 +44,8 @@ import {
   lotSubject,
   nothingToReplace,
   replacementNote,
-} from "@/lib/bulk-rights";
-import { type MemberRef, refGroupSlug, refUsername } from "@/lib/groups";
+} from "@/modules/permissions/bulk";
+import { type MemberRef, refGroupSlug, refUsername } from "@/modules/permissions/groups";
 import type { ManagedPage } from "@/lib/pages";
 import {
   type AccessRule,
@@ -53,7 +53,7 @@ import {
   type PermKind,
   type PrincipalList,
   PERM_KINDS,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 
 const NOBODY: PrincipalList = { usernames: [], groupSlugs: [] };
 const EMPTY_GRANT: Record<PermKind, PrincipalList> = {

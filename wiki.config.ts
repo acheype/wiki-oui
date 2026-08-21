@@ -1,7 +1,7 @@
 // Typed config module (ADR 0004): nothing here is hot-editable in the MVP.
 // Operator-facing settings move to a `Settings` table once auth/admin lands.
 
-import type { AccessRule } from "@/lib/permissions";
+import type { AccessRule } from "@/modules/permissions/rules";
 
 export interface WikiConfig {
   /** Target of the `/` redirect. */

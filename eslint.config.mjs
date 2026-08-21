@@ -137,14 +137,14 @@ const eslintConfig = defineConfig([
       // the reassignment of an erased account live over there.
       "lib/auth.ts",
       "lib/accounts-db.ts",
-      "lib/groups-db.ts",
-      "lib/permissions-db.ts",
+      "modules/permissions/groups-queries.ts",
+      "modules/permissions/person.ts",
       "lib/settings.ts",
       // Sweeps: they retcon a whole namespace in place, actor-free by nature
       // (ADR 0016/0017/0020/0024).
       "lib/slug-rename-db.ts",
       "lib/entry-title-db.ts",
-      "lib/acl-rename-db.ts",
+      "modules/permissions/acl-rename-sweep.ts",
       // The seed writes without an actor, before anyone can be one.
       "prisma/seed.ts",
     ],

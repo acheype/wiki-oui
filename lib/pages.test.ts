@@ -6,7 +6,7 @@ import {
   RIGHTS_REFUSED,
   TRANSFER_REFUSED,
   WRITE_REFUSED,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 
 // The door's own test (ADR 0025). Everything else in this suite is pure, so
 // the checks that stand between a person and a write had nothing holding them:
@@ -41,12 +41,12 @@ const { db, person } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
-vi.mock("@/lib/permissions-db", () => ({
+vi.mock("@/modules/permissions/person", () => ({
   currentPerson: async () => person.current,
   currentUsername: async () => person.current.username,
   assertAdmin: async () => {},
 }));
-vi.mock("@/lib/groups-db", () => ({
+vi.mock("@/modules/permissions/groups-queries", () => ({
   existingPrincipals: async () => ({ usernames: new Set(), groupSlugs: new Set() }),
   grantTarget: async () => null,
   listDirectory: async () => ({ people: [], groups: [] }),

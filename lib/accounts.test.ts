@@ -6,7 +6,7 @@ import {
   disableRefusal,
   matchesAccountFilter,
 } from "./accounts";
-import { LAST_ADMIN_REFUSAL } from "./permissions";
+import { LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
 
 describe("ACCOUNT_FILTERS", () => {
   it("offers the four the screen shows, in the order it shows them", () => {

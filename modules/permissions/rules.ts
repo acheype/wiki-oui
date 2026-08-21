@@ -124,7 +124,7 @@ export interface PageRights {
  */
 export interface Person {
   username: string | null;
-  /** Effective groups, nesting already resolved by lib/groups.ts. */
+  /** Effective groups, nesting already resolved by groups.ts. */
   groupSlugs: readonly string[];
 }
 

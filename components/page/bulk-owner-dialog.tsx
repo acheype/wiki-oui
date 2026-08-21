@@ -9,7 +9,7 @@ import { KeyRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { handPagesOver } from "@/app/pages-admin-actions";
-import { PersonPicker } from "@/components/page/person-picker";
+import { PersonPicker } from "@/modules/permissions/person-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,13 +21,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { InfoNote } from "@/components/ui/info-note";
-import { lotSubject } from "@/lib/bulk-rights";
+import { lotSubject } from "@/modules/permissions/bulk";
 import type { ManagedPage } from "@/lib/pages";
 import {
   type Identity,
   ownerTransferNote,
   ownerTransferWarning,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 
 export function BulkOwnerDialog({
   pages,
@@ -80,7 +80,7 @@ export function BulkOwnerDialog({
         <DialogHeader>
           <DialogTitle>Changer le propriétaire</DialogTitle>
           {/* Both sentences are the ones the « Accès » modal shows on a single
-              page, which is why they live in lib/permissions.ts: one action,
+              page, which is why they live in modules/permissions/rules.ts: one action,
               taken here on a lot, has to be described in one voice. */}
           <DialogDescription>{ownerTransferNote(pages.length)}</DialogDescription>
         </DialogHeader>

@@ -14,7 +14,7 @@ import {
   listPageSlugs,
   listPageTags,
 } from "@/lib/pages";
-import { CREATE_REFUSED, WRITE_REFUSED } from "@/lib/permissions";
+import { CREATE_REFUSED, WRITE_REFUSED } from "@/modules/permissions/rules";
 import { isValidSlug } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";

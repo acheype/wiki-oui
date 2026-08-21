@@ -24,7 +24,7 @@ import {
 import { entryValue } from "@/lib/entries-view";
 import type { ViewEntry } from "@/lib/entries-view";
 import { imageUrl } from "@/lib/image-url";
-import type { PagePermissions } from "@/lib/permissions";
+import type { PagePermissions } from "@/modules/permissions/rules";
 import { SAMPLE_IMAGE } from "@/lib/sample-entries";
 import { cn } from "@/lib/utils";
 import type { ViewContext } from "./types";

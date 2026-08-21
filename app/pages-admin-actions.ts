@@ -5,9 +5,9 @@ import type {
   AccessGrant,
   GrantTarget,
   RightsReplacement,
-} from "@/lib/bulk-rights";
-import type { MemberRef } from "@/lib/groups";
-import { grantTarget, listDirectory } from "@/lib/groups-db";
+} from "@/modules/permissions/bulk";
+import type { MemberRef } from "@/modules/permissions/groups";
+import { grantTarget, listDirectory } from "@/modules/permissions/groups-queries";
 import {
   type ManagedPage,
   grantPagesAccess,
@@ -15,7 +15,7 @@ import {
   listManagedPages,
   replacePagesRights,
 } from "@/lib/pages";
-import { type AclDirectory, refusalMessage } from "@/lib/permissions";
+import { type AclDirectory, refusalMessage } from "@/modules/permissions/rules";
 
 // Server Actions of `gerer-pages` (docs/permissions.md § Les écrans). Reading
 // the list and acting on a lot are both an administrator's permissions, and the

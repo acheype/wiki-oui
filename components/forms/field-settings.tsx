@@ -10,7 +10,7 @@
 import { ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { countFieldReferences } from "@/app/form-actions";
-import { AclInput, NO_FLOOR } from "@/components/fields/acl-input";
+import { AclInput, NO_FLOOR } from "@/modules/permissions/acl-input";
 import { Field } from "@/components/fields/field-widget";
 import { RenameSlugDialog } from "@/components/slug/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ import {
   type AccessRule,
   type AclDirectory,
   scopesUnder,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";

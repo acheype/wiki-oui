@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { AdminOnly } from "@/components/users/admin-only";
-import { GroupsAdmin as GroupsAdminScreen } from "@/components/users/groups-admin";
+import { AdminOnly } from "@/modules/permissions/admin-only";
+import { GroupsAdmin as GroupsAdminScreen } from "@/modules/permissions/groups-admin";
 
 // Built-in component rendered by the `gerer-utilisateurs` special page
 // (docs/permissions.md § Les écrans), below <UsersAdmin />. Creating and

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { listDirectory } from "@/lib/groups-db";
+import { listDirectory } from "@/modules/permissions/groups-queries";
 import {
   type PageRightsView,
   getPageRights,
@@ -12,7 +12,7 @@ import {
   type AccessRule,
   type AclDirectory,
   refusalMessage,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 
 // The « Accès » modal's three calls. Posing rights is a mutation, so it opens
 // from the action bar rather than from a /{slug}/droits handler — the same

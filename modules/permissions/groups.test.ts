@@ -14,7 +14,7 @@ import {
   nestingCycleMessage,
   stillMemberMessage,
 } from "./groups";
-import { ADMINS_GROUP } from "./permissions";
+import { ADMINS_GROUP } from "@/modules/permissions/rules";
 
 // The nesting of the spec's own example (docs/permissions.md § Groupes):
 // @Rédacteurs contains @Bureau, which contains @Trésorerie.

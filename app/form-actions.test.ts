@@ -16,13 +16,13 @@ const { db, person } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
-vi.mock("@/lib/permissions-db", () => ({
+vi.mock("@/modules/permissions/person", () => ({
   currentPerson: async () => person.current,
   currentUsername: async () => person.current.username,
   currentIdentity: async () => null,
   assertAdmin: async () => {},
 }));
-vi.mock("@/lib/groups-db", () => ({
+vi.mock("@/modules/permissions/groups-queries", () => ({
   existingPrincipals: async () => ({ usernames: new Set(), groupSlugs: new Set() }),
   grantTarget: async () => null,
   listDirectory: async () => ({ people: [], groups: [] }),
@@ -39,7 +39,7 @@ vi.mock("@/lib/forms", async (importOriginal) => ({
 }));
 
 const { readableForm } = vi.hoisted(() => ({ readableForm: vi.fn() }));
-vi.mock("@/lib/field-rights-db", () => ({ readableForm }));
+vi.mock("@/modules/permissions/readable-form", () => ({ readableForm }));
 
 const { listEntrySnapshots } = vi.hoisted(() => ({ listEntrySnapshots: vi.fn() }));
 vi.mock("@/lib/pages", async (importOriginal) => ({

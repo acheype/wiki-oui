@@ -28,7 +28,7 @@ import {
   aclFloorLabels,
   aclFloorPrincipals,
   alwaysAllowedNote,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 
 const EMPTY_DIRECTORY: AclDirectory = { people: [], groups: [] };
 /** The floor of a subject with no owner to name — the wiki's own defaults. */

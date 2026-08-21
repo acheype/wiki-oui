@@ -2,7 +2,7 @@ import { History, Pencil, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { PagePermissions } from "@/lib/permissions";
+import type { PagePermissions } from "@/modules/permissions/rules";
 import { specialSlugs } from "@/wiki.config";
 import { DeletePageButton } from "./delete-page-button";
 import { PageRightsButton } from "./page-rights-button";
@@ -12,7 +12,7 @@ import { RenamePageButton } from "./rename-page-button";
 // que voit qui n'a pas le droit): an offer that cannot be taken up informs
 // nobody, and a disabled button invites a click that will never work.
 //
-// The three rungs of the ladder come decided (lib/permissions.ts): the bar
+// The three rungs of the ladder come decided (modules/permissions/rules.ts): the bar
 // reads which permissions are open, never who is looking at it.
 export function PageActions({
   slug,

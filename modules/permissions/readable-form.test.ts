@@ -9,11 +9,11 @@ const { person } = vi.hoisted(() => ({
   person: { current: { username: null as string | null, groupSlugs: [] as string[] } },
 }));
 
-vi.mock("@/lib/permissions-db", () => ({
+vi.mock("@/modules/permissions/person", () => ({
   currentPerson: async () => person.current,
 }));
 
-const { readableForm } = await import("@/lib/field-rights-db");
+const { readableForm } = await import("@/modules/permissions/readable-form");
 
 const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;
 

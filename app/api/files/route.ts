@@ -2,7 +2,7 @@ import { FILE_FAMILIES } from "@/lib/component-descriptor";
 import { fileFamily, listFiles, saveFile } from "@/lib/files";
 import { formatFileSize } from "@/lib/format";
 import { canContributeSomewhere } from "@/lib/pages";
-import { UPLOAD_REFUSED } from "@/lib/permissions";
+import { UPLOAD_REFUSED } from "@/modules/permissions/rules";
 import { wikiConfig } from "@/wiki.config";
 
 // Upload service (ADR 0012): a mutation carried by an API service because

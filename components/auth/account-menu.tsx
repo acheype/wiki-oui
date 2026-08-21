@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { DESTINATION_PARAM } from "@/lib/destination";
-import type { Identity } from "@/lib/permissions";
+import type { Identity } from "@/modules/permissions/rules";
 import { authPagePath } from "@/wiki.config";
 
 // The account corner of the top bar. It lives in the chrome rather than in

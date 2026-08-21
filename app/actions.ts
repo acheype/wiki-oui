@@ -30,7 +30,7 @@ import {
   ACCESS_DENIED,
   ADDRESS_REFUSED,
   refusalMessage,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";

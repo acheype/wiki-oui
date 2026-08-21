@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { isBlankMdx, renderMdx } from "@/lib/mdx";
 import { getLayoutContents } from "@/lib/pages";
-import { currentIdentity } from "@/lib/permissions-db";
+import { currentIdentity } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";
 import { wikiConfig } from "@/wiki.config";
 

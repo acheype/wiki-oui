@@ -1,14 +1,14 @@
-import { type PrincipalChange, rewriteDescriptorRights } from "./acl-rename";
-import type { Prisma } from "./generated/prisma/client";
-import { parseFormDescriptor } from "./form-descriptor";
+import { type PrincipalChange, rewriteDescriptorRights } from "@/modules/permissions/acl-rename/rules";
+import type { Prisma } from "@/lib/generated/prisma/client";
+import { parseFormDescriptor } from "@/lib/form-descriptor";
 
 // The database side of the sweep ADR 0024 calls for, shaped like
 // field-rename-db.ts and slug-rename-db.ts (a LIKE prefilter narrows the
 // candidates, the pure engine gives the precise answer). Runs inside the
 // caller's transaction — right where the account or the group action itself
-// writes (lib/accounts-db.ts, lib/groups-db.ts) — so a rename or an erasure
-// never leaves a form's rights momentarily out of step with the accounts and
-// groups that still exist.
+// writes (lib/accounts-db.ts, modules/permissions/groups-queries.ts) — so a
+// rename or an erasure never leaves a form's rights momentarily out of step
+// with the accounts and groups that still exist.
 
 // Works both inside a transaction and on the bare client.
 type Db = Prisma.TransactionClient;

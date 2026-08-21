@@ -5,7 +5,7 @@ import {
   bornFormPermissions,
   canCreateEntry,
   formPermissions,
-} from "@/lib/form-rights";
+} from "@/modules/permissions/form-level";
 import type { FieldRenameMapping } from "@/lib/field-rename";
 import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
 import {
@@ -26,8 +26,8 @@ import {
   isAdmin,
   ownsSubject,
   ruleAllows,
-} from "@/lib/permissions";
-import { currentPerson, currentUsername } from "@/lib/permissions-db";
+} from "@/modules/permissions/rules";
+import { currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {

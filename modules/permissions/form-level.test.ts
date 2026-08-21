@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FormDescriptor } from "./form-descriptor";
+import type { FormDescriptor } from "@/lib/form-descriptor";
 import {
   type FormPermissions,
   appliesNothing,
@@ -13,8 +13,8 @@ import {
   formPermissions,
   holdsRights,
   withKnownPrincipals,
-} from "./form-rights";
-import { type Person, type PageRights, ADMINS_GROUP } from "./permissions";
+} from "./form-level";
+import { type Person, type PageRights, ADMINS_GROUP } from "@/modules/permissions/rules";
 import { wikiConfig } from "@/wiki.config";
 
 const VISITOR: Person = { username: null, groupSlugs: [] };

@@ -25,7 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { AccessRule } from "@/lib/permissions";
+import type { AccessRule } from "@/modules/permissions/rules";
 
 export function PageRightsButton({
   slug,

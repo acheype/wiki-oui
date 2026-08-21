@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CREATE_FORM_REFUSED } from "@/lib/permissions";
+import { CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
 
 // What a screen announces and what it then shows have to be filtered the same
 // way. Nothing held that: the count of `formulaires` read one clause and the
@@ -19,7 +19,7 @@ const { db, person } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
-vi.mock("@/lib/permissions-db", () => ({
+vi.mock("@/modules/permissions/person", () => ({
   currentPerson: async () => person.current,
   currentUsername: async () => person.current.username,
   assertAdmin: async () => {},

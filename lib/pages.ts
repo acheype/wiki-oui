@@ -4,11 +4,11 @@ import {
   type RightsReplacement,
   alreadyGrants,
   nothingToReplace,
-} from "@/lib/bulk-rights";
+} from "@/modules/permissions/bulk";
 import { hasForm, isEntryPage } from "@/lib/entry-page";
 import { restoredEntryValues } from "@/lib/entry-title";
-import { readableForm } from "@/lib/field-rights-db";
-import { mergedEntryData } from "@/lib/field-rights";
+import { readableForm } from "@/modules/permissions/readable-form";
+import { mergedEntryData } from "@/modules/permissions/field-level";
 import {
   type EntryData,
   type FormDescriptor,
@@ -26,10 +26,10 @@ import {
   entryRightsImpact,
   entryRightsVerdict,
   withKnownPrincipals,
-} from "@/lib/form-rights";
+} from "@/modules/permissions/form-level";
 import { Prisma } from "@/lib/generated/prisma/client";
-import { refGroupSlug, refUsername } from "@/lib/groups";
-import { existingPrincipals, grantTarget } from "@/lib/groups-db";
+import { refGroupSlug, refUsername } from "@/modules/permissions/groups";
+import { existingPrincipals, grantTarget } from "@/modules/permissions/groups-queries";
 import {
   type AccessRule,
   type AclEntry,
@@ -59,8 +59,8 @@ import {
   storedRights,
   withoutFloor,
   writableWhere,
-} from "@/lib/permissions";
-import { assertAdmin, currentPerson, currentUsername } from "@/lib/permissions-db";
+} from "@/modules/permissions/rules";
+import { assertAdmin, currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import { isExternalHref, wikiHrefSlug } from "@/lib/slug";
 import { rankByFrequency } from "@/lib/suggested-values";
@@ -389,7 +389,7 @@ export type RawContent =
  * `metadata` is the one name a field still cannot carry (formAuthoringIssues,
  * lib/form-descriptor.ts refuses the form at save time) — nothing short of
  * renaming this key itself could avoid that one collision.
- * A fiche's values are filtered through readableForm() (lib/field-rights-db.ts),
+ * A fiche's values are filtered through readableForm() (modules/permissions/readable-form.ts),
  * the same cut its own rendering already makes: without it, this handler
  * would publish a field the fiche itself withholds.
  */

@@ -8,7 +8,7 @@
 import { UserRound } from "lucide-react";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import type { Identity } from "@/lib/permissions";
+import type { Identity } from "@/modules/permissions/rules";
 import { cn } from "@/lib/utils";
 
 export function PersonPicker({

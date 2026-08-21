@@ -18,7 +18,7 @@ import {
   getGroup,
   removeMember,
   renameGroup,
-} from "@/app/group-actions";
+} from "@/modules/permissions/group-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,9 +53,9 @@ import {
   PEOPLE_ONLY_NOTE,
   groupDeletionImpact,
   stillMemberMessage,
-} from "@/lib/groups";
-import type { NamedGroup } from "@/lib/groups-db";
-import type { Identity } from "@/lib/permissions";
+} from "@/modules/permissions/groups";
+import type { NamedGroup } from "@/modules/permissions/groups-queries";
+import type { Identity } from "@/modules/permissions/rules";
 
 export function GroupEditor({
   slug,

@@ -1,5 +1,5 @@
-import type { FormDescriptor, FormField } from "./form-descriptor";
-import type { AccessRule } from "./permissions";
+import type { FormDescriptor, FormField } from "@/lib/form-descriptor";
+import type { AccessRule } from "@/modules/permissions/rules";
 
 // The application sweep ADR 0024 calls for: a username or a group slug reaches
 // no foreign key inside `Form.schema` — the field rights (docs/permissions.md

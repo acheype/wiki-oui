@@ -1,5 +1,5 @@
 // The nesting of groups (docs/permissions.md § Groupes): pure graph work on
-// plain edges, no I/O — lib/groups-db.ts loads them and writes the results
+// plain edges, no I/O — groups-queries.ts loads them and writes the results
 // back, the pairing this project uses throughout (slug-rename, field-rename,
 // entry-title).
 //
@@ -8,8 +8,8 @@
 // membership would close a cycle, and by which path someone lands in a group
 // they were never added to.
 
-import { plural } from "./format";
-import { ADMINS_GROUP, LAST_ADMIN_REFUSAL } from "./permissions";
+import { plural } from "@/lib/format";
+import { ADMINS_GROUP, LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
 
 /** One nesting: `groupSlug` holds `memberGroupSlug` among its members. */
 export interface Nesting {

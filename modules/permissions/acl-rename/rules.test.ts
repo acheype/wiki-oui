@@ -5,8 +5,8 @@ import {
   rewriteDescriptorRights,
   rewriteFieldRights,
   rewriteFormPermissions,
-} from "./acl-rename";
-import type { FormDescriptor, FormField } from "./form-descriptor";
+} from "./rules";
+import type { FormDescriptor, FormField } from "@/lib/form-descriptor";
 
 const renameJean: PrincipalChange = {
   kind: "username",

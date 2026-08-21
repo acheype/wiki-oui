@@ -10,7 +10,7 @@ import { DiffView } from "@/components/revisions/diff-view";
 import { RestoreButton } from "@/components/revisions/restore-button";
 import { RevisionTimeline } from "@/components/revisions/timeline";
 import { Button } from "@/components/ui/button";
-import { readableForm } from "@/lib/field-rights-db";
+import { readableForm } from "@/modules/permissions/readable-form";
 import { formatDateTime } from "@/lib/format";
 import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";

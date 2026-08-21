@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADMINS_GROUP, type PageRights } from "@/lib/permissions";
+import { ADMINS_GROUP, type PageRights } from "@/modules/permissions/rules";
 import {
   type GrantTarget,
   alreadyGrants,
@@ -10,7 +10,7 @@ import {
   lotSubject,
   nothingToReplace,
   replacementNote,
-} from "./bulk-rights";
+} from "./bulk";
 
 const BUREAU: GrantTarget = {
   label: "@Bureau",

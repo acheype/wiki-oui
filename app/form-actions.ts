@@ -24,8 +24,8 @@ import {
 import {
   fieldWriteRule,
   writableDescriptor,
-} from "@/lib/field-rights";
-import { readableForm } from "@/lib/field-rights-db";
+} from "@/modules/permissions/field-level";
+import { readableForm } from "@/modules/permissions/readable-form";
 import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
@@ -35,7 +35,7 @@ import {
   type EntryRightsImpact,
   type FormPermissions,
   bornFormPermissions,
-} from "@/lib/form-rights";
+} from "@/modules/permissions/form-level";
 import {
   personCanCreateEntry,
   personCanCreateForm,
@@ -59,7 +59,7 @@ import {
   groupDisplayNames,
   groupNamesBySlug,
   listDirectory,
-} from "@/lib/groups-db";
+} from "@/modules/permissions/groups-queries";
 import {
   createEntryPage,
   getPage,
@@ -75,8 +75,8 @@ import {
   FORM_EDIT_REFUSED,
   refusalMessage,
   scopeRefusal,
-} from "@/lib/permissions";
-import { currentPerson, currentIdentity } from "@/lib/permissions-db";
+} from "@/modules/permissions/rules";
+import { currentPerson, currentIdentity } from "@/modules/permissions/person";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
 import { rankByFrequency } from "@/lib/suggested-values";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";

@@ -30,12 +30,12 @@ import {
   scopesUnder,
   storedRights,
   writableWhere,
-} from "./permissions";
+} from "./rules";
 
 const VISITOR: Person = { username: null, groupSlugs: [] };
 const MARIE: Person = { username: "marie-durand", groupSlugs: [] };
 // Bureau is nested in Rédacteurs, so both slugs are already in the effective
-// list lib/groups.ts hands over.
+// list modules/permissions/groups/rules.ts hands over.
 const JEAN: Person = { username: "jean-martin", groupSlugs: ["bureau", "redacteurs"] };
 const ADMIN: Person = { username: "wiki-admin", groupSlugs: [ADMINS_GROUP.slug] };
 

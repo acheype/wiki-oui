@@ -35,8 +35,8 @@ import {
 } from "@/lib/accounts";
 import type { PendingInvitation, UserRow } from "@/lib/accounts-db";
 import { formatDayMonth } from "@/lib/format";
-import { PATH_SEPARATOR } from "@/lib/groups";
-import type { NamedGroup } from "@/lib/groups-db";
+import { PATH_SEPARATOR } from "@/modules/permissions/groups";
+import type { NamedGroup } from "@/modules/permissions/groups-queries";
 
 export function UsersAdmin() {
   const [users, setUsers] = useState<UserRow[] | null>(null);

@@ -1,5 +1,5 @@
 import { PagesAdmin as PagesAdminScreen } from "@/components/page/pages-admin";
-import { AdminOnly } from "@/components/users/admin-only";
+import { AdminOnly } from "@/modules/permissions/admin-only";
 
 // Built-in component rendered by the `gerer-pages` special page
 // (docs/permissions.md § Les écrans). It reads nothing from the URL, so no

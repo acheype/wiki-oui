@@ -14,7 +14,7 @@ import {
   readOnlyFields,
   readableDescriptor,
   readableEntryData,
-} from "@/lib/field-rights";
+} from "@/modules/permissions/field-level";
 import {
   type EntryData,
   type FormDescriptor,
@@ -22,7 +22,7 @@ import {
   parseFormDescriptor,
   readEntryData,
 } from "@/lib/form-descriptor";
-import { currentPerson } from "@/lib/permissions-db";
+import { currentPerson } from "@/modules/permissions/person";
 
 /**
  * A form's definition as the current person may see it. The whole descriptor

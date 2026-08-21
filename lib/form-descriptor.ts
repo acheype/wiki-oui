@@ -5,7 +5,7 @@
 // the automatic title and the entry template.
 
 import { z } from "zod";
-import { SCOPES } from "./permissions";
+import { SCOPES } from "@/modules/permissions/rules";
 import { SLUG_PATTERN } from "./slug";
 
 /** Palette of the 14 entry field types (docs/forms.md). */
@@ -169,7 +169,7 @@ export const formDescriptorSchema = z.object({
   /**
    * The « Accès » tab (docs/permissions.md § Formulaire : trois réglages,
    * pas deux). Optional: a form saved before the tab existed carries none,
-   * and lib/form-rights.ts answers for it with the wiki's own defaults —
+   * and modules/permissions/form-level.ts answers for it with the wiki's own defaults —
    * exactly what would have been copied at its creation.
    */
   permissions: z

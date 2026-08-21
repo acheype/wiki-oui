@@ -4,7 +4,7 @@
 // the same function, so what was announced is what happens.
 
 import { plural } from "@/lib/format";
-import { type MemberRef, refUsername } from "@/lib/groups";
+import { type MemberRef, refUsername } from "@/modules/permissions/groups";
 import {
   type AccessRule,
   type PageRights,
@@ -12,7 +12,7 @@ import {
   ADMINS_GROUP,
   PERM_KINDS,
   pageRule,
-} from "@/lib/permissions";
+} from "@/modules/permissions/rules";
 
 /**
  * The two intents one modal carries, each with the description it keeps

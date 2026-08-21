@@ -2,8 +2,8 @@ import { Lock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DESTINATION_PARAM } from "@/lib/destination";
-import { ACCESS_DENIED, ownerLine } from "@/lib/permissions";
-import { currentIdentity } from "@/lib/permissions-db";
+import { ACCESS_DENIED, ownerLine } from "@/modules/permissions/rules";
+import { currentIdentity } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";
 import { authPagePath } from "@/wiki.config";
 

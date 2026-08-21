@@ -10,7 +10,7 @@
 
 import { Plus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
-import { listGroups } from "@/app/group-actions";
+import { listGroups } from "@/modules/permissions/group-actions";
 import { canSendMail, invitePeople } from "@/app/user-actions";
 import { LinkToCopy } from "@/components/users/link-to-copy";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { plural } from "@/lib/format";
-import type { GroupSummary } from "@/lib/groups-db";
+import type { GroupSummary } from "@/modules/permissions/groups-queries";
 import {
   INVITATION_LIFETIME_DAYS,
   type MailFailure,

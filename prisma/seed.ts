@@ -15,8 +15,8 @@ import {
   parseFormDescriptor,
   withTitleOrdered,
 } from "../lib/form-descriptor";
-import { bornFormPermissions } from "../lib/form-rights";
-import { storedRights } from "../lib/permissions";
+import { bornFormPermissions } from "../modules/permissions/form-level";
+import { storedRights } from "../modules/permissions/rules";
 import { specialSlugs, wikiConfig } from "../wiki.config";
 import { formSeeds } from "./seed/forms";
 import { pageSeeds, topMenuContent } from "./seed/pages";

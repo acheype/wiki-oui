@@ -39,12 +39,12 @@ import {
   propKindFits,
 } from "@/lib/component-descriptor";
 import type { FormFieldType } from "@/lib/form-descriptor";
-import type { AccessRule, AclDirectory, AclFloor } from "@/lib/permissions";
+import type { AccessRule, AclDirectory, AclFloor } from "@/modules/permissions/rules";
 import type { PseudoField } from "@/lib/pseudo-fields";
 import { suggestValues } from "@/lib/suggested-values";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
-import { NO_FLOOR, AclInput } from "./acl-input";
+import { NO_FLOOR, AclInput } from "@/modules/permissions/acl-input";
 import {
   ColorMappingInput,
   EntryFieldChips,

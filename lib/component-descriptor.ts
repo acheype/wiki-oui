@@ -4,7 +4,7 @@
 
 import { z } from "zod";
 import { FORM_FIELD_TYPES } from "./form-descriptor";
-import { SCOPES } from "./permissions";
+import { SCOPES } from "@/modules/permissions/rules";
 import { PSEUDO_FIELDS } from "./pseudo-fields";
 
 const FIELD_TYPES = [

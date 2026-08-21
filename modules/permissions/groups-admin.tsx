@@ -11,8 +11,8 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { createGroup, listGroups } from "@/app/group-actions";
-import { GroupEditor } from "@/components/users/group-editor";
+import { createGroup, listGroups } from "@/modules/permissions/group-actions";
+import { GroupEditor } from "@/modules/permissions/ui/group-editor";
 import { SlugInlineEdit } from "@/components/slug/slug-input";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { GroupSummary } from "@/lib/groups-db";
+import type { GroupSummary } from "@/modules/permissions/groups-queries";
 import { slugify } from "@/lib/slug";
 
 export function GroupsAdmin() {

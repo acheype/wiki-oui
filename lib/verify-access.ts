@@ -17,7 +17,7 @@ import {
 // ts-morph, never import or run it).
 //
 // The three primitives every access decision in this codebase bottoms out on
-// are canRead, canWrite and isAdmin (lib/permissions.ts) — every relay this
+// are canRead, canWrite and isAdmin (modules/permissions/rules.ts) — every relay this
 // file has today (ifReadable, assertCanWrite, assertStructuring, assertAdmin,
 // assertAddress, writableWhere, currentReadableWhere…) is, transitively, a
 // call to one of the three. So rather than naming the relays — a list a
@@ -27,8 +27,8 @@ import {
 
 type FunctionLike = FunctionDeclaration | FunctionExpression | ArrowFunction;
 
-/** lib/permissions.ts's own name — the primitives count only from there. */
-const PRIMITIVES_FILE = "lib/permissions.ts";
+/** modules/permissions/rules.ts's own name — the primitives count only from there. */
+const PRIMITIVES_FILE = "modules/permissions/rules.ts";
 const PRIMITIVES = new Set(["canRead", "canWrite", "isAdmin"]);
 
 // Prisma methods that return rows rather than writing them (mirrors
@@ -195,7 +195,7 @@ const UNGUARDED_READS: Record<string, string> = {
   // for the signed-in person's own account only (lib/accounts-db.ts).
   countOwnedByAccount: "a count, not the pages — both callers already gate on admin or on the person's own account",
   // A number, never the pages — and its one caller, getGroup, runs behind
-  // getGroupDetail's own admin check first (app/group-actions.ts).
+  // getGroupDetail's own admin check first (modules/permissions/group-actions.ts).
   countPagesGrantingGroup: "a count, not the pages — its one caller already runs behind an admin check",
 };
 

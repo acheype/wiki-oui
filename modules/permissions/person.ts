@@ -1,16 +1,17 @@
 import { headers } from "next/headers";
 import { cache } from "react";
 import { auth } from "@/lib/auth";
-import { currentGroupSlugs } from "@/lib/groups-db";
-import { type Person, type Identity, isAdmin } from "@/lib/permissions";
+import { currentGroupSlugs } from "@/modules/permissions/groups-queries";
+import { type Person, type Identity, isAdmin } from "@/modules/permissions/rules";
 
 // The database side of the rules (docs/permissions.md): who is acting, and
 // which access level that puts them at. The rules themselves — and the `where`
-// clauses that carry them into SQL — are pure, and live in permissions.ts.
+// clauses that carry them into SQL — are pure, and live in rules.ts.
 //
-// The groups a person ends up in are resolved next door, in lib/groups-db.ts,
-// which reads back the session from here: the two modules name each other, and
-// only ever inside a function body, once a request is being served.
+// The groups a person ends up in are resolved next door, in
+// groups-queries.ts, which reads back the session from here: the two files
+// name each other, and only ever inside a function body, once a request is
+// being served.
 
 /**
  * Who the current HTTP request comes from, memoized for its duration with
@@ -63,7 +64,7 @@ const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";
 
 /**
  * The check every action of the two administration screens passes, at the
- * door rather than in each caller (ADR 0025) — lib/groups-db.ts and
+ * door rather than in each caller (ADR 0025) — groups-queries.ts and
  * lib/accounts-db.ts both ask for it by name.
  */
 export async function assertAdmin(): Promise<void> {

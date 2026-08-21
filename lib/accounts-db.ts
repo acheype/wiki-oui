@@ -5,17 +5,17 @@ import {
   deleteRefusal,
   disableRefusal,
 } from "@/lib/accounts";
-import { sweepAclReferences } from "@/lib/acl-rename-db";
+import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
 import { auth } from "@/lib/auth";
 import { countFormsOwnedByAccount, reassignOwnedForms } from "@/lib/forms";
-import { inheritedGroups } from "@/lib/groups";
+import { inheritedGroups } from "@/modules/permissions/groups";
 import {
   type NamedGroup,
   groupNames,
   joinGroupOnInvitation,
   listAdminUsernames,
   listNestings,
-} from "@/lib/groups-db";
+} from "@/modules/permissions/groups-queries";
 import {
   INVITATION_LIFETIME_DAYS,
   INVITATION_TOKEN_PARAM,
@@ -27,8 +27,8 @@ import {
 } from "@/lib/invitations";
 import { probeMailer, sendAccountLink } from "@/lib/mailer";
 import { countOwnedByAccount, reassignOwnedPages } from "@/lib/pages";
-import type { Identity } from "@/lib/permissions";
-import { assertAdmin, currentUsername } from "@/lib/permissions-db";
+import type { Identity } from "@/modules/permissions/rules";
+import { assertAdmin, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/site-url";
 import { authPagePath } from "@/wiki.config";
