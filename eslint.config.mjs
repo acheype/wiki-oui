@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
@@ -41,9 +42,81 @@ const accessClauseInsideOr =
   `Property[key.name='OR'] > ArrayExpression CallExpression[callee.name=/^(${ACCESS_CLAUSES})$/],` +
   `Property[key.name='OR'] > ArrayExpression AwaitExpression > CallExpression[callee.name=/^(${ACCESS_CLAUSES})$/]`;
 
+// modules/<name>/<rest…> -> the module a file belongs to; null outside modules/.
+function moduleOfFile(filename) {
+  const relative = path.relative(process.cwd(), filename).split(path.sep).join("/");
+  const match = relative.match(/^modules\/([^/]+)\//);
+  return match ? match[1] : null;
+}
+
+// "@/modules/<name>/<rest…>" -> { module, first segment, root or not }; null
+// for anything else (a bare specifier, a relative import, another alias).
+function moduleImportTarget(source) {
+  const match = /^@\/modules\/([^/]+)\/(.+)$/.exec(source);
+  if (!match) return null;
+  const [, targetModule, rest] = match;
+  const segments = rest.split("/");
+  return { module: targetModule, first: segments[0], isRoot: segments.length === 1 };
+}
+
+// A module's interface is its root listing (ADR 0029): a file one hop below
+// modules/<name>/ can be imported from elsewhere, a file under a sub-folder
+// cannot, and queries.ts — root or not — never can, since it is the door
+// (ADR 0025) and a door reached from outside its own module answers to nobody's
+// rights but the caller's own module. `app/` is the one composition root
+// allowed past `ui/`, and only `ui/` — every other sub-folder stays private to
+// its module even from `app/`.
+const moduleSeamRule = {
+  meta: {
+    type: "problem",
+    docs: {
+      description: "A module's interface is its root listing, not its sub-folders (ADR 0029).",
+    },
+    schema: [],
+  },
+  create(context) {
+    function check(node, source) {
+      const target = moduleImportTarget(source);
+      if (!target) return;
+      const filename = context.filename;
+      if (moduleOfFile(filename) === target.module) return; // inside the module: no seam here
+      const bareFirst = target.first.replace(/\.tsx?$/, "");
+      if (target.isRoot && bareFirst !== "queries") return; // a root file, and not the door
+      if (target.first === "ui") {
+        const fromApp = path.relative(process.cwd(), filename).split(path.sep).join("/").startsWith("app/");
+        if (fromApp) return; // the sole exemption: app/ composes a module's ui/
+      }
+      const what = bareFirst === "queries" && target.isRoot ? "queries.ts is the door" : `${target.first} is private`;
+      context.report({
+        node,
+        message: `modules/${target.module}/${what} (ADR 0029) — import a root file of the module instead.`,
+      });
+    }
+    return {
+      ImportDeclaration(node) {
+        if (typeof node.source?.value === "string") check(node, node.source.value);
+      },
+      ExportNamedDeclaration(node) {
+        if (typeof node.source?.value === "string") check(node, node.source.value);
+      },
+      ExportAllDeclaration(node) {
+        if (typeof node.source?.value === "string") check(node, node.source.value);
+      },
+    };
+  },
+};
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    name: "wikioui/module-seam",
+    files: ["**/*.ts", "**/*.tsx"],
+    plugins: { wikioui: { rules: { "module-seam": moduleSeamRule } } },
+    rules: {
+      "wikioui/module-seam": "error",
+    },
+  },
   {
     name: "wikioui/access-layer",
     // One door to Page and Form (ADR 0025): every other module asks the access
