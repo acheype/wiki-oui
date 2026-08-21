@@ -14,7 +14,7 @@ import {
   splitPseudo,
   type ViewEntry,
 } from "./entries-view";
-import { sampleEntries, FALLBACK_SAMPLE_DESCRIPTOR } from "./sample-entries";
+import { sampleEntries, FALLBACK_SAMPLE_DESCRIPTOR } from "@/modules/forms/sample-entries";
 
 const entry = (
   slug: string,

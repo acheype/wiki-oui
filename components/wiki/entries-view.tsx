@@ -41,9 +41,9 @@ import {
   queryEntries,
   sortEntries,
 } from "@/lib/entries-view";
-import { resolveColorMapping } from "@/lib/entry-fields";
-import { valueToText } from "@/lib/form-descriptor";
-import { PSEUDO_FIELD_LABELS, isPseudoField } from "@/lib/pseudo-fields";
+import { resolveColorMapping } from "@/modules/forms/entry-fields";
+import { valueToText } from "@/modules/forms/form-descriptor";
+import { PSEUDO_FIELD_LABELS, isPseudoField } from "@/modules/forms/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { Icon } from "./internal/icon";
 import { AgendaView } from "./internal/entries/agenda-view";

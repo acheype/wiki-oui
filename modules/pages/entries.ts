@@ -6,7 +6,7 @@ import {
   emptyTitleMessage,
   orderedEntryData,
   readEntryData,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import {
   type EntryRightsImpact,
   type FormPermissions,

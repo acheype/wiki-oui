@@ -1,5 +1,11 @@
 // When a form save invalidates the titles already stored on its entries
-// (ADR 0020). Pure logic — the database side lives in entry-title-db.ts.
+// (ADR 0020). Pure logic — the database side lives in entry-title/sweep.ts.
+//
+// Stays at the root of modules/forms/, not nested in entry-title/, because
+// restoredEntryValues is a real cross-module dependency: modules/pages/
+// revisions.ts and modules/pages/actions.ts read it for restoring a fiche
+// (an entry is a page — modules/pages/entry-page.ts). Nesting it would make
+// it private (ADR 0029, wikioui/module-seam) and break both callers.
 
 import {
   type EntryData,

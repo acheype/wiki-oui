@@ -21,7 +21,7 @@ import {
   type FormField,
   parseFormDescriptor,
   readEntryData,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import { currentPerson } from "@/modules/permissions/person";
 
 /**

@@ -1,9 +1,9 @@
-import { EntryView } from "@/components/forms/entry-view";
+import { EntryView } from "@/modules/forms/ui/entry-view";
 import { Prose } from "@/components/ui/prose";
 import { readableForm } from "@/modules/permissions/readable-form";
-import { renderTemplateSource } from "@/lib/entry-render";
-import { formSourcedValues, readEntryData } from "@/lib/form-descriptor";
-import { getFormById } from "@/lib/forms";
+import { renderTemplateSource } from "@/modules/forms/entry-render";
+import { formSourcedValues, readEntryData } from "@/modules/forms/form-descriptor";
+import { getFormById } from "@/modules/forms/forms";
 import { renderMdx } from "@/lib/mdx";
 import { listPagesWithCurrent } from "@/modules/pages/content";
 

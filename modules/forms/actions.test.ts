@@ -33,8 +33,8 @@ vi.mock("@/modules/permissions/groups-queries", () => ({
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
 const { getFormBySlug } = vi.hoisted(() => ({ getFormBySlug: vi.fn() }));
-vi.mock("@/lib/forms", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/forms")>()),
+vi.mock("@/modules/forms/forms", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/modules/forms/forms")>()),
   getFormBySlug,
 }));
 
@@ -47,7 +47,7 @@ vi.mock("@/modules/pages/entries", async (importOriginal) => ({
   listEntrySnapshots,
 }));
 
-const { listUsedFieldValues } = await import("@/app/form-actions");
+const { listUsedFieldValues } = await import("@/modules/forms/actions");
 
 const TAGS_FIELD = { type: "tags", name: "mots-cles", label: "Mots-clés" };
 

@@ -3,9 +3,9 @@
 // YAML files are read and parsed by the server-side loader.
 
 import { z } from "zod";
-import { FORM_FIELD_TYPES } from "./form-descriptor";
+import { FORM_FIELD_TYPES } from "@/modules/forms/form-descriptor";
 import { SCOPES } from "@/modules/permissions/rules";
-import { PSEUDO_FIELDS } from "./pseudo-fields";
+import { PSEUDO_FIELDS } from "@/modules/forms/pseudo-fields";
 
 const FIELD_TYPES = [
   "text",

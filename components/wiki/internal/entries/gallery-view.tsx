@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { ViewEntry } from "@/lib/entries-view";
 import { imageUrl } from "@/lib/image-url";
-import { SAMPLE_IMAGE } from "@/lib/sample-entries";
+import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import type { ViewContext } from "./types";
 
 export function GalleryView({ context }: { context: ViewContext }) {

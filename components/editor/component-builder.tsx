@@ -2,7 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Field } from "@/components/fields/field-widget";
+import { Field } from "@/modules/forms/field-widget";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

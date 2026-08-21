@@ -10,7 +10,7 @@ import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { listFormChoices, listUsedFieldValues } from "@/app/form-actions";
+import { listFormChoices, listUsedFieldValues } from "@/modules/forms/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -38,10 +38,10 @@ import {
   type PropValue,
   propKindFits,
 } from "@/lib/component-descriptor";
-import type { FormFieldType } from "@/lib/form-descriptor";
+import type { FormFieldType } from "@/modules/forms/form-descriptor";
 import type { AccessRule, AclDirectory, AclFloor } from "@/modules/permissions/rules";
-import type { PseudoField } from "@/lib/pseudo-fields";
-import { suggestValues } from "@/lib/suggested-values";
+import type { PseudoField } from "@/modules/forms/pseudo-fields";
+import { suggestValues } from "@/modules/forms/suggested-values";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { NO_FLOOR, AclInput } from "@/modules/permissions/acl-input";
@@ -53,20 +53,20 @@ import {
   IconMappingInput,
   MultiFormListInput,
   ViewPickerTiles,
-} from "./entries-view-inputs";
-import { IconPicker } from "./icon-picker";
-import type { MapViewValue } from "./map-view-input";
+} from "@/components/fields/entries-view-inputs";
+import { IconPicker } from "@/components/fields/icon-picker";
+import type { MapViewValue } from "@/components/fields/map-view-input";
 import {
   SuggestionPopover,
   useSuggestions,
-} from "./suggestion-popover";
-import { TagsInput } from "./tags-input";
-import { UploadInput } from "./upload-input";
-import { useDebouncedJson } from "./use-debounced-json";
+} from "@/components/fields/suggestion-popover";
+import { TagsInput } from "@/components/fields/tags-input";
+import { UploadInput } from "@/components/fields/upload-input";
+import { useDebouncedJson } from "@/components/fields/use-debounced-json";
 
 // Leaflet touches window at import time: the map widgets load client-only.
 const GeolocationInput = dynamic(
-  () => import("./geolocation-input").then((mod) => mod.GeolocationInput),
+  () => import("@/components/fields/geolocation-input").then((mod) => mod.GeolocationInput),
   {
     ssr: false,
     loading: () => (
@@ -76,7 +76,7 @@ const GeolocationInput = dynamic(
 );
 
 const MapViewInput = dynamic(
-  () => import("./map-view-input").then((mod) => mod.MapViewInput),
+  () => import("@/components/fields/map-view-input").then((mod) => mod.MapViewInput),
   {
     ssr: false,
     loading: () => (

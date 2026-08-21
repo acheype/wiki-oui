@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { EntryContent } from "@/components/forms/entry-content";
+import { EntryContent } from "@/modules/forms/ui/entry-content";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { Prose } from "@/components/ui/prose";
 import { WikiFrameResizeEmitter } from "@/modules/pages/wiki-frame-emitter";
-import { readEntryData } from "@/lib/form-descriptor";
+import { readEntryData } from "@/modules/forms/form-descriptor";
 import { firstHeadingText, renderMdx } from "@/lib/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithCurrent } from "@/modules/pages/content";

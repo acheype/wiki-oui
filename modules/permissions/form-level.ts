@@ -5,7 +5,7 @@
 // decides what the write then changes — so what was announced is what happens.
 
 import { plural } from "@/lib/format";
-import type { FormDescriptor } from "@/lib/form-descriptor";
+import type { FormDescriptor } from "@/modules/forms/form-descriptor";
 import {
   type AccessRule,
   type AclEntry,

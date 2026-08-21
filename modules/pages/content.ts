@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { hasForm } from "@/modules/pages/entry-page";
 import { readableForm } from "@/modules/permissions/readable-form";
-import { type EntryData, orderedEntryData } from "@/lib/form-descriptor";
+import { type EntryData, orderedEntryData } from "@/modules/forms/form-descriptor";
 import {
   type AccessRule,
   DELETE_REFUSED,
@@ -12,7 +12,7 @@ import { currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { isExternalHref, wikiHrefSlug } from "@/lib/slug";
-import { rankByFrequency } from "@/lib/suggested-values";
+import { rankByFrequency } from "@/modules/forms/suggested-values";
 import type { SlugRename } from "@/lib/slug-rename";
 import { displayName } from "@/lib/username";
 import {
@@ -127,7 +127,7 @@ export type RawContent =
  * carrying `form-id` first: a fiche's own field could be named `form-id`
  * without colliding with it, since the two live in different objects.
  * `metadata` is the one name a field still cannot carry (formAuthoringIssues,
- * lib/form-descriptor.ts refuses the form at save time) — nothing short of
+ * modules/forms/form-descriptor.ts refuses the form at save time) — nothing short of
  * renaming this key itself could avoid that one collision.
  * A fiche's values are filtered through readableForm() (modules/permissions/readable-form.ts),
  * the same cut its own rendering already makes: without it, this handler

@@ -7,7 +7,7 @@ import {
   type EntryData,
   type FormDescriptor,
   isOptionsField,
-} from "./form-descriptor";
+} from "@/modules/forms/form-descriptor";
 
 // The reference map of a slug rename (ADR 0016): every place an author-written
 // slug lives — markdown link targets, JSX props typed `page-list` by their

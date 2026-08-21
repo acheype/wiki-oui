@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { FormsAdmin as FormsAdminScreen } from "@/components/forms/forms-admin";
+import { FormsAdmin as FormsAdminScreen } from "@/modules/forms/forms-admin";
 
 // Built-in component rendered by the `formulaires` special page (ADR 0014).
 // The screen reads the URL via useSearchParams, so it needs a Suspense

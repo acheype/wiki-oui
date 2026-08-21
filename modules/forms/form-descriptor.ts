@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import { SCOPES } from "@/modules/permissions/rules";
-import { SLUG_PATTERN } from "./slug";
+import { SLUG_PATTERN } from "@/lib/slug";
 
 /** Palette of the 14 entry field types (docs/forms.md). */
 export const FORM_FIELD_TYPES = [

@@ -14,7 +14,7 @@ import {
   computeAutomaticTitle,
   parseFormDescriptor,
   withTitleOrdered,
-} from "../lib/form-descriptor";
+} from "../modules/forms/form-descriptor";
 import { bornFormPermissions } from "../modules/permissions/form-level";
 import { storedRights } from "../modules/permissions/rules";
 import { specialSlugs, wikiConfig } from "../wiki.config";

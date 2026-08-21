@@ -30,7 +30,7 @@ const {
   createForm,
   listFormsWithEntries,
   listFormsWithEntryCount,
-} = await import("@/lib/forms");
+} = await import("@/modules/forms/forms");
 
 /** The `where` each call handed Prisma for the entries of a form. */
 function countClause() {

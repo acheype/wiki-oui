@@ -1,6 +1,6 @@
-import { restoredEntryValues } from "@/lib/entry-title";
+import { restoredEntryValues } from "@/modules/forms/entry-title";
 import { mergedEntryData } from "@/modules/permissions/field-level";
-import { type EntryData, type FormDescriptor, readEntryData } from "@/lib/form-descriptor";
+import { type EntryData, type FormDescriptor, readEntryData } from "@/modules/forms/form-descriptor";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";

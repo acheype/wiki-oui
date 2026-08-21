@@ -1,5 +1,5 @@
-import type { FieldWidgetSpec } from "@/components/fields/field-widget";
-import { type FormField, isOptionsField } from "@/lib/form-descriptor";
+import type { FieldWidgetSpec } from "@/modules/forms/field-widget";
+import { type FormField, isOptionsField } from "@/modules/forms/form-descriptor";
 
 // Adapts a descriptor FormField to the flat FieldWidgetSpec the shared
 // renderer consumes (ADR 0015). Form-sourced options are resolved at the

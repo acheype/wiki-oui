@@ -134,15 +134,20 @@ const eslintConfig = defineConfig([
       "modules/pages/revisions.ts",
       "modules/pages/rights.ts",
       "modules/pages/entries.ts",
-      "lib/forms.ts",
+      // lib/forms.ts split the same way at the door (ADR 0029): a private
+      // queries/queries.ts (three helpers, ownerOf among them) plus the one
+      // root file left, forms.ts, that carries the whole public API — small
+      // enough that a single file sufficed where Page needed four.
+      "modules/forms/forms.ts",
+      "modules/forms/queries/queries.ts",
       // Its neighbours behind the same door: BetterAuth owns the account
       // tables and touches nothing else (ADR 0023), the actor resolution
       // reads the session, the accounts and the groups are their own door —
       // every action on one is an administrator's or a link holder's,
       // checked there — and the installation flag is a single row no rule
       // applies to (ADR 0027). None of them reaches Page or Form except
-      // through modules/pages/ and lib/forms.ts, which is why the counts and
-      // the reassignment of an erased account live over there.
+      // through modules/pages/ and modules/forms/, which is why the counts
+      // and the reassignment of an erased account live over there.
       "lib/auth.ts",
       "lib/accounts-db.ts",
       "modules/permissions/groups-queries.ts",
@@ -151,7 +156,7 @@ const eslintConfig = defineConfig([
       // Sweeps: they retcon a whole namespace in place, actor-free by nature
       // (ADR 0016/0017/0020/0024).
       "lib/slug-rename-db.ts",
-      "lib/entry-title-db.ts",
+      "modules/forms/entry-title/sweep.ts",
       "modules/permissions/acl-rename-sweep.ts",
       // The seed writes without an actor, before anyone can be one.
       "prisma/seed.ts",

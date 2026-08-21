@@ -3,7 +3,7 @@
 // Server Actions of the form-administration screens (ADR 0014): the admin
 // components are client-side and read their data through actions too — same
 // transport as mutations, no URL. Validation happens here with the same
-// engine the FormBuilder uses client-side (lib/form-descriptor).
+// engine the FormBuilder uses client-side (modules/forms/form-descriptor).
 
 import { revalidatePath } from "next/cache";
 import {
@@ -20,17 +20,17 @@ import {
   readEntryData,
   unknownFieldReferences,
   withTitleOrdered,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import {
   fieldWriteRule,
   writableDescriptor,
 } from "@/modules/permissions/field-level";
 import { readableForm } from "@/modules/permissions/readable-form";
-import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
+import { type EntryFieldChoice, unionEntryFields } from "@/modules/forms/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
-import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
-import { titleRecomputeNeeded } from "@/lib/entry-title";
-import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
+import { type FieldRename, fieldRenameMapping } from "@/modules/forms/field-rename/rules";
+import { titleRecomputeNeeded } from "@/modules/forms/entry-title";
+import type { TitleRecomputeImpact } from "@/modules/forms/entry-title/sweep";
 import {
   type EntryRightsImpact,
   type FormPermissions,
@@ -54,7 +54,7 @@ import {
   permissionsOf,
   renameFormSlug,
   updateForm,
-} from "@/lib/forms";
+} from "@/modules/forms/forms";
 import {
   groupDisplayNames,
   groupNamesBySlug,
@@ -77,7 +77,7 @@ import {
 } from "@/modules/permissions/rules";
 import { currentPerson, currentIdentity } from "@/modules/permissions/person";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
-import { rankByFrequency } from "@/lib/suggested-values";
+import { rankByFrequency } from "@/modules/forms/suggested-values";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 

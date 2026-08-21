@@ -3,7 +3,7 @@ import {
   type FormField,
   extractFieldReferences,
   fieldReferencePattern,
-} from "./form-descriptor";
+} from "@/modules/forms/form-descriptor";
 
 // The pure side of a field-identifier rename (ADR 0017): staged in the
 // FormBuilder, applied at save. Every rewrite takes the whole mapping

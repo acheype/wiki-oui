@@ -12,7 +12,7 @@ import {
   substituteFieldReferences,
   unknownFieldReferences,
 } from "./form-descriptor";
-import { slugify } from "./slug";
+import { slugify } from "@/lib/slug";
 
 // Minimal valid descriptor: the default-present title field plus one text
 // field, the shape the FormBuilder writes into Form.schema (docs/forms.md).

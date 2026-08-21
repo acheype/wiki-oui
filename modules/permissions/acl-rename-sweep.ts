@@ -1,6 +1,6 @@
 import { type PrincipalChange, rewriteDescriptorRights } from "@/modules/permissions/acl-rename/rules";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import { parseFormDescriptor } from "@/lib/form-descriptor";
+import { parseFormDescriptor } from "@/modules/forms/form-descriptor";
 
 // The database side of the sweep ADR 0024 calls for, shaped like
 // field-rename-db.ts and slug-rename-db.ts (a LIKE prefilter narrows the

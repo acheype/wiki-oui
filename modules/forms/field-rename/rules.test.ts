@@ -4,8 +4,8 @@ import {
   renameDataKeys,
   renameFieldBindings,
   renameFieldReferences,
-} from "./field-rename";
-import type { FormField } from "./form-descriptor";
+} from "./rules";
+import type { FormField } from "@/modules/forms/form-descriptor";
 
 const mapping = new Map([["ancien", "nouveau"]]);
 const swap = new Map([

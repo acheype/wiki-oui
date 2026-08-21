@@ -18,7 +18,7 @@ import {
   listForms,
   listFormChoices,
   listRightsDirectory,
-} from "@/app/form-actions";
+} from "@/modules/forms/actions";
 import { type AclDirectory, CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
 import {
   AlertDialog,
@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDirectKeyboard } from "@/components/ui/use-direct-keyboard";
 import { formatDateTime } from "@/lib/format";
-import { FormBuilder } from "./form-builder";
+import { FormBuilder } from "@/modules/forms/ui/form-builder";
 
 export function FormsAdmin() {
   const params = useSearchParams();

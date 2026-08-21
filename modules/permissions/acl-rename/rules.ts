@@ -1,4 +1,4 @@
-import type { FormDescriptor, FormField } from "@/lib/form-descriptor";
+import type { FormDescriptor, FormField } from "@/modules/forms/form-descriptor";
 import type { AccessRule } from "@/modules/permissions/rules";
 
 // The application sweep ADR 0024 calls for: a username or a group slug reaches

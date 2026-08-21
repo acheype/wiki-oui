@@ -4,12 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { deleteFile } from "@/lib/files";
-import { restoredEntryValues } from "@/lib/entry-title";
+import { restoredEntryValues } from "@/modules/forms/entry-title";
 import {
   type FormDescriptor,
   parseFormDescriptor,
   readEntryData,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/modules/pages/lint";
@@ -199,7 +199,7 @@ export async function discardUploadedFile(name: string): Promise<void> {
  * form-save sweep applies, and the one that keeps a restore from ever being
  * blocked by a stale entry.
  */
-// Prisma-side wrapper around restoredEntryValues (lib/entry-title): the JSON
+// Prisma-side wrapper around restoredEntryValues (modules/forms/entry-title): the JSON
 // casting and the MDX-page case, where there are no entry values at all.
 function restoredEntryData(
   schema: unknown,

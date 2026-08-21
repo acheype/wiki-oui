@@ -14,7 +14,7 @@ import type {
   EntryData,
   FormDescriptor,
   FormField,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import { type AccessRule, type Person, isAdmin, ruleAllows } from "@/modules/permissions/rules";
 
 /** What an unposed rule stands for: a field is open until one says otherwise. */

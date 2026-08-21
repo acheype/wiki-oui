@@ -9,9 +9,9 @@
 
 import { ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { countFieldReferences } from "@/app/form-actions";
+import { countFieldReferences } from "@/modules/forms/actions";
 import { AclInput, NO_FLOOR } from "@/modules/permissions/acl-input";
-import { Field } from "@/components/fields/field-widget";
+import { Field } from "@/modules/forms/field-widget";
 import { RenameSlugDialog } from "@/components/ui/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,12 +27,12 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { SlugInlineEdit } from "@/components/ui/slug-input";
-import type { FieldReferenceCounts } from "@/lib/field-rename";
+import type { FieldReferenceCounts } from "@/modules/forms/field-rename/rules";
 import {
   type FormField,
   type RequiredSetting,
   requiredSettings,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import {
   type AccessRule,
   type AclDirectory,

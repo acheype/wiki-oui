@@ -1,4 +1,4 @@
-import { type FormDescriptor, parseFormDescriptor } from "@/lib/form-descriptor";
+import { type FormDescriptor, parseFormDescriptor } from "@/modules/forms/form-descriptor";
 import {
   type EntryRightsImpact,
   type FormPermissions,
@@ -6,26 +6,20 @@ import {
   canCreateEntry,
   formPermissions,
 } from "@/modules/permissions/form-level";
-import type { FieldRenameMapping } from "@/lib/field-rename";
-import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
+import type { FieldRenameMapping } from "@/modules/forms/field-rename/rules";
+import { countFieldCarriers, sweepFieldRenames } from "@/modules/forms/field-rename/sweep";
 import {
   type TitleRecomputeImpact,
   countTitleRecompute,
   sweepEntryTitles,
-} from "@/lib/entry-title-db";
+} from "@/modules/forms/entry-title/sweep";
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   WITH_RIGHTS,
   currentReadableWhere,
 } from "@/modules/pages/rights";
 import { applyFormDefaultsToEntries, countEntryRightsImpact } from "@/modules/pages/entries";
-import {
-  CREATE_FORM_REFUSED,
-  FORM_EDIT_REFUSED,
-  isAdmin,
-  ownsSubject,
-  ruleAllows,
-} from "@/modules/permissions/rules";
+import { CREATE_FORM_REFUSED, isAdmin, ownsSubject, ruleAllows } from "@/modules/permissions/rules";
 import { currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
@@ -35,25 +29,17 @@ import {
   sweepSlugReferences,
 } from "@/lib/slug-rename-db";
 import { wikiConfig } from "@/wiki.config";
+import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/queries/queries";
 
 // The only door to `Form` (ADR 0025), alongside modules/pages/queries/queries.ts for
 // `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
-// permission checks this layer will host cannot be bypassed by a caller that
+// permission checks this layer hosts cannot be bypassed by a caller that
 // forgot them — the risk being a silent read, which no test would ever catch.
-
-/** What deciding on a form's definition needs, and nothing more. */
-type OwnedForm = { ownerUsername: string | null };
-
-/**
- * The rung the permissions on a form's definition stop at: its owner, or an
- * administrator (docs/permissions.md § Droits au niveau du formulaire). The
- * same rule as on a page, posed on the other subject — editing a form reaches
- * every fiche ever written with it, so it never opens with the writing.
- */
-async function assertFormStructuring(form: OwnedForm): Promise<void> {
-  if (ownsSubject(await currentPerson(), form.ownerUsername)) return;
-  throw new Error(FORM_EDIT_REFUSED);
-}
+//
+// Split at the door like modules/pages/ was (ADR 0029): this file is the
+// public API, modules/forms/queries/queries.ts holds the three private pieces
+// (OwnedForm, assertFormStructuring, ownerOf) nothing outside the module
+// needs. Unlike lib/pages.ts, this door was small enough to stay one file.
 
 /** Whether the screens offer those permissions at all, or simply leave them out. */
 export async function personCanEditForm(form: OwnedForm): Promise<boolean> {
@@ -74,14 +60,6 @@ export async function personCanEditForm(form: OwnedForm): Promise<boolean> {
 export async function personCanCreateForm(): Promise<boolean> {
   const person = await currentPerson();
   return isAdmin(person) || ruleAllows(person, wikiConfig.permissions.createForm);
-}
-
-/** The same read, from the identifier a screen holds. */
-async function ownerOf(formId: string): Promise<OwnedForm> {
-  return prisma.form.findUniqueOrThrow({
-    where: { id: formId },
-    select: { ownerUsername: true },
-  });
 }
 
 export async function getFormBySlug(slug: string) {

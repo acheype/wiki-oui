@@ -3,7 +3,7 @@
 // scattered points, a calendar/agenda needs past *and* future dates, a
 // gallery needs images. Towns and coordinates are real Nouvelle-Calédonie
 // communes, consistent with the sample-entry generator's own town list
-// (lib/sample-entries.ts).
+// (modules/forms/sample-entries.ts).
 
 // Pool filename (written under files/, ADR 0012) → source asset shipped in
 // prisma/seed/assets/ (attribution: prisma/seed/assets/ATTRIBUTIONS.md).

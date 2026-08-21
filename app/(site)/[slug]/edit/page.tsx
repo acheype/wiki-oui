@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getEntryForm } from "@/app/form-actions";
+import { getEntryForm } from "@/modules/forms/actions";
 import { PageEditor } from "@/components/editor/page-editor";
-import { EntryEdit } from "@/components/forms/entry-edit";
+import { EntryEdit } from "@/modules/forms/ui/entry-edit";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { hasForm } from "@/modules/pages/entry-page";

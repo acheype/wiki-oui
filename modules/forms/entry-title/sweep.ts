@@ -1,6 +1,6 @@
 // The database side of a stored-title recompute (ADR 0020): runs inside the
 // saveForm transaction, after the schema overwrite. Unlike the field-rename
-// sweep (lib/field-rename-db), it touches only the *current* revision of each
+// sweep (modules/forms/field-rename/sweep.ts), it touches only the *current* revision of each
 // entry, and by minting a new one — a recompute changes what the entry
 // *says*, so rewriting history in place would falsify it, where a rename only
 // retouches the representation and must reach history to keep it legible.
@@ -11,8 +11,8 @@ import {
   computeAutomaticTitle,
   readEntryData,
   withTitleOrdered,
-} from "./form-descriptor";
-import { Prisma } from "./generated/prisma/client";
+} from "@/modules/forms/form-descriptor";
+import { Prisma } from "@/lib/generated/prisma/client";
 
 type Db = Prisma.TransactionClient;
 

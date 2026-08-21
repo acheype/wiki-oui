@@ -8,7 +8,7 @@
 import { ImageIcon } from "lucide-react";
 import { imageUrl } from "@/lib/image-url";
 import type { ViewEntry } from "@/lib/entries-view";
-import { SAMPLE_IMAGE } from "@/lib/sample-entries";
+import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";
 import { Icon } from "../icon";
 import { defaultColumnCount, type ViewContext } from "./types";

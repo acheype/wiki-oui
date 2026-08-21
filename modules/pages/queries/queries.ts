@@ -29,7 +29,7 @@ import { wikiConfig } from "@/wiki.config";
 // cannot resolve (a real "Cannot access before initialization" hit during
 // this split — see the commit this file was added in).
 
-// The only door to `Page` (ADR 0025), alongside modules/forms/queries.ts for
+// The only door to `Page` (ADR 0025), alongside modules/forms/queries/queries.ts for
 // `Form`. An ESLint rule refuses `prisma.page` anywhere else, so the
 // permission checks this layer hosts cannot be bypassed by a caller that
 // forgot them — the risk being a silent read, which no test would ever catch.
@@ -39,7 +39,7 @@ import { wikiConfig } from "@/wiki.config";
 // constants any other module needs — WITH_RIGHTS, PUBLIC_IDENTITY, ACL_ROWS,
 // COLD_ADMIN_TRANSACTION_TIMEOUT_MS, currentReadableWhere — live in
 // modules/pages/rights.ts instead, a root file, precisely because they cross
-// that seam (modules/forms/queries.ts uses the first and the last two).
+// that seam (modules/forms/queries/queries.ts uses the first and the last two).
 
 export type Decidable = PageRights & { slug: string; owner: { name: string } | null };
 

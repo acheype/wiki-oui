@@ -4,9 +4,9 @@
 // Server Action returned (latency-zero interactions); server-side filtering
 // would slot in behind these signatures if scale ever demands it.
 
-import type { EntryFieldChoice } from "./entry-fields";
-import { valueToText } from "./form-descriptor";
-import { isPseudoField } from "./pseudo-fields";
+import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
+import { valueToText } from "@/modules/forms/form-descriptor";
+import { isPseudoField } from "@/modules/forms/pseudo-fields";
 import { fold } from "./fold";
 
 /** One entry as the view consumes it: referenced field values only. */

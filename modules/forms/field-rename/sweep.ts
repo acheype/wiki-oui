@@ -1,6 +1,6 @@
-import { Prisma } from "./generated/prisma/client";
-import { type FieldRenameMapping, renameDataKeys } from "./field-rename";
-import { readEntryData } from "./form-descriptor";
+import { Prisma } from "@/lib/generated/prisma/client";
+import { type FieldRenameMapping, renameDataKeys } from "./rules";
+import { readEntryData } from "@/modules/forms/form-descriptor";
 
 // The database side of a field-identifier rename (ADR 0017): runs inside the
 // saveForm transaction, after the schema overwrite. Same shape as the slug

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DoubleClickToEdit } from "@/modules/pages/ui/double-click-to-edit";
-import { EntryContent } from "@/components/forms/entry-content";
+import { EntryContent } from "@/modules/forms/ui/entry-content";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { PageActions } from "@/modules/pages/ui/page-actions";
 import { Prose } from "@/components/ui/prose";

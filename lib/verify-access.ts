@@ -10,8 +10,8 @@ import {
 } from "ts-morph";
 
 // One door to Page (ADR 0025): an ESLint rule keeps `prisma.page` out of
-// every file but the five modules/pages/ split into (and lib/forms.ts for
-// Form). That rule is silent about what happens *inside* the door — a read
+// every file but the five modules/pages/ split into (and modules/forms/forms.ts
+// plus modules/forms/queries/queries.ts for Form). That rule is silent about what happens *inside* the door — a read
 // that forgets to check who is asking compiles, passes lint, and leaks in
 // silence. This module closes that gap, in the culture of ADR 0013 (parse the
 // source with ts-morph, never import or run it).

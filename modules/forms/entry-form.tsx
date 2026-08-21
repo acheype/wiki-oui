@@ -12,9 +12,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
-import { type EntryFormData, saveEntry } from "@/app/form-actions";
-import { listFormOptions } from "@/app/form-actions";
-import { Field } from "@/components/fields/field-widget";
+import { type EntryFormData, saveEntry } from "@/modules/forms/actions";
+import { listFormOptions } from "@/modules/forms/actions";
+import { Field } from "@/modules/forms/field-widget";
 import { SlugInlineEdit } from "@/components/ui/slug-input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,10 +23,10 @@ import {
   type EntryData,
   deriveEntrySchema,
   initialEntryValues,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import { slugify } from "@/lib/slug";
 import { authPagePath } from "@/wiki.config";
-import { formSourcedFields, toWidgetSpec } from "./field-adapter";
+import { formSourcedFields, toWidgetSpec } from "@/modules/forms/ui/field-adapter";
 
 export function EntryForm({
   form,

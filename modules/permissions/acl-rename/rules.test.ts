@@ -6,7 +6,7 @@ import {
   rewriteFieldRights,
   rewriteFormPermissions,
 } from "./rules";
-import type { FormDescriptor, FormField } from "@/lib/form-descriptor";
+import type { FormDescriptor, FormField } from "@/modules/forms/form-descriptor";
 
 const renameJean: PrincipalChange = {
   kind: "username",

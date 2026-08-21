@@ -7,7 +7,7 @@ import {
   type FormDescriptor,
   type FormField,
   isOptionsField,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import { EntryMap } from "./entry-map-lazy";
 
 // Default entry render (docs/forms.md): a title in h1, then each field by its

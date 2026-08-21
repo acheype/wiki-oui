@@ -8,7 +8,7 @@ import {
   readableEntryData,
   writableDescriptor,
 } from "./field-level";
-import type { FormDescriptor, FormField } from "@/lib/form-descriptor";
+import type { FormDescriptor, FormField } from "@/modules/forms/form-descriptor";
 import { type Person, ADMINS_GROUP } from "@/modules/permissions/rules";
 
 const VISITOR: Person = { username: null, groupSlugs: [] };

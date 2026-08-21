@@ -4,7 +4,7 @@
 // — palette of field types, a sortable canvas, a per-field settings panel,
 // a template tab and a rights tab. The header name derives the form slug
 // (fixed identity). Saving validates through the shared engine
-// (lib/form-descriptor) server-side.
+// (modules/forms/form-descriptor) server-side.
 
 import {
   DndContext,
@@ -41,11 +41,11 @@ import {
   countTitleImpact,
   renameForm,
   saveForm,
-} from "@/app/form-actions";
+} from "@/modules/forms/actions";
 import { NO_FLOOR } from "@/modules/permissions/acl-input";
-import { Field } from "@/components/fields/field-widget";
+import { Field } from "@/modules/forms/field-widget";
 import { InfoNote } from "@/components/ui/info-note";
-import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
+import type { TitleRecomputeImpact } from "@/modules/forms/entry-title/sweep";
 import {
   type EntryRightsImpact,
   type FormPermissions,
@@ -83,7 +83,7 @@ import {
   countFieldReferenceUses,
   renameFieldBindings,
   renameFieldReferences,
-} from "@/lib/field-rename";
+} from "@/modules/forms/field-rename/rules";
 import {
   FIELD_TYPE_LABELS,
   FORM_FIELD_TYPES,
@@ -92,7 +92,7 @@ import {
   type FormField,
   type FormFieldType,
   formAuthoringIssues,
-} from "@/lib/form-descriptor";
+} from "@/modules/forms/form-descriptor";
 import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";

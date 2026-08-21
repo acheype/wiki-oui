@@ -6,18 +6,18 @@
 // the caller announces what its configuration reads, and the payload holds
 // nothing else (pseudo-fields excepted: four tiny metadata values).
 
-import { listEntryFieldChoices } from "@/app/form-actions";
-import type { EntryFieldChoice } from "@/lib/entry-fields";
+import { listEntryFieldChoices } from "@/modules/forms/actions";
+import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
 import type { ViewEntry } from "@/lib/entries-view";
-import { readEntryData } from "@/lib/form-descriptor";
+import { readEntryData } from "@/modules/forms/form-descriptor";
 import { readableForm } from "@/modules/permissions/readable-form";
-import { listFormsWithEntries } from "@/lib/forms";
+import { listFormsWithEntries } from "@/modules/forms/forms";
 import { personPermissions } from "@/modules/pages/rights";
 import type { PagePermissions } from "@/modules/permissions/rules";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
   sampleEntries,
-} from "@/lib/sample-entries";
+} from "@/modules/forms/sample-entries";
 import { TEXT_SEARCH_TYPES } from "@/lib/entries-view";
 import { displayName } from "@/lib/username";
 

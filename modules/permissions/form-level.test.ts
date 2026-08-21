@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FormDescriptor } from "@/lib/form-descriptor";
+import type { FormDescriptor } from "@/modules/forms/form-descriptor";
 import {
   type FormPermissions,
   appliesNothing,

@@ -1,5 +1,5 @@
 import type { Prisma } from "./generated/prisma/client";
-import { type EntryData, parseFormDescriptor } from "./form-descriptor";
+import { type EntryData, parseFormDescriptor } from "@/modules/forms/form-descriptor";
 import {
   type SlugKind,
   type SlugRename,

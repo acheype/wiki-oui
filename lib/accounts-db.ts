@@ -7,7 +7,7 @@ import {
 } from "@/lib/accounts";
 import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
 import { auth } from "@/lib/auth";
-import { countFormsOwnedByAccount, reassignOwnedForms } from "@/lib/forms";
+import { countFormsOwnedByAccount, reassignOwnedForms } from "@/modules/forms/forms";
 import { inheritedGroups } from "@/modules/permissions/groups";
 import {
   type NamedGroup,

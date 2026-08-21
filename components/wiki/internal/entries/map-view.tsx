@@ -23,7 +23,7 @@ import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { entryValue } from "@/lib/entries-view";
 import type { ViewEntry } from "@/lib/entries-view";
 import { imageUrl } from "@/lib/image-url";
-import { SAMPLE_IMAGE } from "@/lib/sample-entries";
+import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";
 import { defaultEntryDisplay, type ViewContext } from "./types";
 

@@ -24,7 +24,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { listEntryFieldChoices, listFormChoices } from "@/app/form-actions";
+import { listEntryFieldChoices, listFormChoices } from "@/modules/forms/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,9 +44,9 @@ import {
   autoColorMapping,
   fieldChoiceOptions,
   resolveColorMapping,
-} from "@/lib/entry-fields";
-import type { FormFieldType } from "@/lib/form-descriptor";
-import type { PseudoField } from "@/lib/pseudo-fields";
+} from "@/modules/forms/entry-fields";
+import type { FormFieldType } from "@/modules/forms/form-descriptor";
+import type { PseudoField } from "@/modules/forms/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { IconPicker } from "./icon-picker";
 

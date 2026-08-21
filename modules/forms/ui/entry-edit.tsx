@@ -5,8 +5,8 @@
 // the edit route can stay a server component.
 
 import Link from "next/link";
-import type { EntryFormData } from "@/app/form-actions";
-import { EntryForm } from "./entry-form";
+import type { EntryFormData } from "@/modules/forms/actions";
+import { EntryForm } from "@/modules/forms/entry-form";
 
 export function EntryEdit({ form }: { form: EntryFormData }) {
   return (
