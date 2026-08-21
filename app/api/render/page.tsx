@@ -1,4 +1,4 @@
-import { Prose } from "@/modules/pages/prose";
+import { Prose } from "@/components/ui/prose";
 import { renderMdx } from "@/lib/mdx";
 
 // ComponentBuilder preview (docs/component-builder.md): the modal's iframe

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EntryView } from "@/components/forms/entry-view";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
-import { Prose } from "@/modules/pages/prose";
+import { Prose } from "@/components/ui/prose";
 import { CodeToggle } from "@/modules/pages/ui/code-toggle";
 import { DiffView } from "@/modules/pages/ui/diff-view";
 import { RestoreButton } from "@/modules/pages/ui/restore-button";

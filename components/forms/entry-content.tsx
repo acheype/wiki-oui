@@ -1,5 +1,5 @@
 import { EntryView } from "@/components/forms/entry-view";
-import { Prose } from "@/modules/pages/prose";
+import { Prose } from "@/components/ui/prose";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { renderTemplateSource } from "@/lib/entry-render";
 import { formSourcedValues, readEntryData } from "@/lib/form-descriptor";

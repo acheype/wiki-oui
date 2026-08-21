@@ -6,7 +6,7 @@ import { DoubleClickToEdit } from "@/modules/pages/ui/double-click-to-edit";
 import { EntryContent } from "@/components/forms/entry-content";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { PageActions } from "@/modules/pages/ui/page-actions";
-import { Prose } from "@/modules/pages/prose";
+import { Prose } from "@/components/ui/prose";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
