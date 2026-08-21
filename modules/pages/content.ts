@@ -30,7 +30,7 @@ import {
   bornWithDefaultRights,
   ifReadable,
   mintRevision,
-} from "@/modules/pages/queries";
+} from "@/modules/pages/queries/queries";
 import {
   ACL_ROWS,
   type AccessRefusal,

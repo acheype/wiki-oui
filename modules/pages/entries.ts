@@ -22,7 +22,7 @@ import { CREATE_ENTRY_REFUSED, storedRights } from "@/modules/permissions/rules"
 import { existingPrincipals } from "@/modules/permissions/groups-queries";
 import { currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
-import { assertCanWrite, bornWith, mintRevision } from "@/modules/pages/queries";
+import { assertCanWrite, bornWith, mintRevision } from "@/modules/pages/queries/queries";
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   PUBLIC_IDENTITY,

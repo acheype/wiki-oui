@@ -36,7 +36,7 @@ import {
   ALWAYS_READABLE,
   assertStructuring,
   structuredPage,
-} from "@/modules/pages/queries";
+} from "@/modules/pages/queries/queries";
 
 // The rights of one page, and of the wiki as a whole: everything
 // modules/pages/content.ts, modules/pages/revisions.ts and
@@ -44,7 +44,7 @@ import {
 // administration screens' own bulk actions. Part of ADR 0025's door.
 //
 // PUBLIC_IDENTITY, ACL_ROWS, WITH_RIGHTS, COLD_ADMIN_TRANSACTION_TIMEOUT_MS
-// and currentReadableWhere live here rather than in modules/pages/queries.ts
+// and currentReadableWhere live here rather than in modules/pages/queries/queries.ts
 // (the door, private to the module) because modules/forms/queries.ts imports
 // several of them — a shared brick lives at a module's root, never behind its
 // door (ADR 0029). PUBLIC_IDENTITY and ACL_ROWS specifically cannot move to

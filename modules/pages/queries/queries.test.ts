@@ -18,9 +18,10 @@ import {
 //
 // Spans modules/pages/content.ts, modules/pages/rights.ts and
 // modules/pages/revisions.ts on purpose: this is a test of
-// modules/pages/queries.ts's own guards (assertStructuring, assertAddress,
-// assertCanWrite), exercised through every public function that calls them —
-// not a test of any one of those three files' own business logic.
+// modules/pages/queries/queries.ts's own guards (assertStructuring,
+// assertAddress, assertCanWrite), exercised through every public function
+// that calls them — not a test of any one of those three files' own business
+// logic.
 
 const { db, person } = vi.hoisted(() => ({
   db: {

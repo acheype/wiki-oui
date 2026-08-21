@@ -61,11 +61,12 @@ function moduleImportTarget(source) {
 
 // A module's interface is its root listing (ADR 0029): a file one hop below
 // modules/<name>/ can be imported from elsewhere, a file under a sub-folder
-// cannot, and queries.ts — root or not — never can, since it is the door
-// (ADR 0025) and a door reached from outside its own module answers to nobody's
-// rights but the caller's own module. `app/` is the one composition root
-// allowed past `ui/`, and only `ui/` — every other sub-folder stays private to
-// its module even from `app/`.
+// cannot. The door (ADR 0025, e.g. modules/pages/queries/queries.ts) never
+// sits at the root for exactly this reason — a door reached from outside its
+// own module answers to nobody's rights but the caller's own module, so
+// depth alone keeps it private, with no name to special-case. `app/` is the
+// one composition root allowed past `ui/`, and only `ui/` — every other
+// sub-folder stays private to its module even from `app/`.
 const moduleSeamRule = {
   meta: {
     type: "problem",
@@ -80,16 +81,14 @@ const moduleSeamRule = {
       if (!target) return;
       const filename = context.filename;
       if (moduleOfFile(filename) === target.module) return; // inside the module: no seam here
-      const bareFirst = target.first.replace(/\.tsx?$/, "");
-      if (target.isRoot && bareFirst !== "queries") return; // a root file, and not the door
+      if (target.isRoot) return; // a root file: this is a module's public interface
       if (target.first === "ui") {
         const fromApp = path.relative(process.cwd(), filename).split(path.sep).join("/").startsWith("app/");
         if (fromApp) return; // the sole exemption: app/ composes a module's ui/
       }
-      const what = bareFirst === "queries" && target.isRoot ? "queries.ts is the door" : `${target.first} is private`;
       context.report({
         node,
-        message: `modules/${target.module}/${what} (ADR 0029) — import a root file of the module instead.`,
+        message: `modules/${target.module}/${target.first} is private (ADR 0029) — import a root file of the module instead.`,
       });
     }
     return {
@@ -125,12 +124,12 @@ const eslintConfig = defineConfig([
     // reddens. Exceptions stay few, so that adding one is visible in review.
     ignores: [
       // The access layer itself. lib/pages.ts split into five files at the
-      // door (ADR 0029): modules/pages/queries.ts plus the four root files
-      // that each read or write Page directly (content.ts, revisions.ts,
-      // rights.ts, entries.ts) — this rule polices `prisma.page`, not the
-      // ESLint module-seam privacy of queries.ts, so all five need the
-      // exemption, not just the one that stayed private.
-      "modules/pages/queries.ts",
+      // door (ADR 0029): modules/pages/queries/queries.ts plus the four root
+      // files that each read or write Page directly (content.ts,
+      // revisions.ts, rights.ts, entries.ts) — this rule polices
+      // `prisma.page`, not the ESLint module-seam privacy of queries.ts, so
+      // all five need the exemption, not just the one that stayed private.
+      "modules/pages/queries/queries.ts",
       "modules/pages/content.ts",
       "modules/pages/revisions.ts",
       "modules/pages/rights.ts",

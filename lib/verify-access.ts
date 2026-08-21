@@ -207,7 +207,7 @@ const UNGUARDED_READS: Record<string, string> = {
  * below did not need to change with the split — only this list of files did.
  */
 const PAGE_ACCESS_FILES = [
-  "modules/pages/queries.ts",
+  "modules/pages/queries/queries.ts",
   "modules/pages/content.ts",
   "modules/pages/revisions.ts",
   "modules/pages/rights.ts",
