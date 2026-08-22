@@ -1,5 +1,6 @@
 import { getEntryForm } from "@/app/form-actions";
 import { EntryForm as EntryFormClient } from "@/components/forms/entry-form";
+import { cn } from "@/lib/utils";
 
 // Built-in that inserts a form's entry form into any page (docs/forms.md).
 // Its `id` is a form slug (form-list descriptor type); an unknown id renders
@@ -21,7 +22,10 @@ export async function EntryForm({ id }: { id?: string }) {
     );
   }
   return (
-    <div className="not-prose rounded-lg border p-4">
+    // A refusal carries its own frame (docs/permissions.md § Ce que voit qui
+    // n'a pas le droit): the block's box would double it, and two borders
+    // around one sentence read as two things.
+    <div className={cn("not-prose", !form.creationRefusal && "rounded-lg border p-4")}>
       <EntryFormClient form={form} />
     </div>
   );

@@ -10,6 +10,7 @@ import {
   type EntryData,
   type FormDescriptor,
   type FormDescriptorIssue,
+  type FormField,
   computeAutomaticTitle,
   deriveEntrySchema,
   emptyTitleMessage,
@@ -18,48 +19,95 @@ import {
   parseFormDescriptor,
   readEntryData,
   unknownFieldReferences,
+  withTitleOrdered,
 } from "@/lib/form-descriptor";
+import {
+  fieldWriteRule,
+  writableDescriptor,
+} from "@/lib/field-rights";
+import { readableForm } from "@/lib/field-rights-db";
 import { type EntryFieldChoice, unionEntryFields } from "@/lib/entry-fields";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/lib/field-rename";
-import { countFieldCarriers, sweepFieldRenames } from "@/lib/field-rename-db";
 import { titleRecomputeNeeded } from "@/lib/entry-title";
+import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
 import {
-  type TitleRecomputeImpact,
-  countTitleRecompute,
-  sweepEntryTitles,
-} from "@/lib/entry-title-db";
-import { Prisma } from "@/lib/generated/prisma/client";
-import { prisma } from "@/lib/prisma";
-import { isValidSlug, slugify } from "@/lib/slug";
+  type EntryRightsImpact,
+  type FormPermissions,
+  bornFormPermissions,
+} from "@/lib/form-rights";
+import {
+  personCanCreateEntry,
+  personCanCreateForm,
+  personCanEditForm,
+  applyFormDefaults,
+  countEntriesCarryingField,
+  countEntryTitleRecompute,
+  countFormDefaults,
+  countFormSlugReferences,
+  createForm,
+  deleteFormById,
+  getFormBySlug,
+  listFormNames,
+  listFormsBySlugs,
+  listFormsWithEntryCount,
+  permissionsOf,
+  renameFormSlug,
+  updateForm,
+} from "@/lib/forms";
+import {
+  groupDisplayNames,
+  groupNamesBySlug,
+  listDirectory,
+} from "@/lib/groups-db";
+import {
+  createEntryPage,
+  getPage,
+  getPageWithCurrent,
+  hasForm,
+  isRefused,
+  listEntryPages,
+  listEntrySnapshots,
+  writeEntryRevision,
+} from "@/lib/pages";
+import {
+  type AclDirectory,
+  FORM_EDIT_REFUSED,
+  refusalMessage,
+  scopeRefusal,
+} from "@/lib/permissions";
+import { currentPerson, currentIdentity } from "@/lib/permissions-db";
+import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
+import { rankByFrequency } from "@/lib/suggested-values";
 import { type SlugRename, formReferenceProps } from "@/lib/slug-rename";
-import {
-  type SlugReferenceImpact,
-  countSlugReferenceImpact,
-  sweepSlugReferences,
-} from "@/lib/slug-rename-db";
-
-// MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
-const AUTHOR = "Anonyme";
+import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 
 export interface FormSummary {
   slug: string;
   name: string;
   entryCount: number;
   createdAt: Date;
+  /** Whether the row offers « Éditer » and « Supprimer » at all. */
+  canEdit: boolean;
+  /** And « Nouvelle fiche » — the form's own rule, not the wiki's. */
+  canCreateEntry: boolean;
 }
 
 export async function listForms(): Promise<FormSummary[]> {
-  const forms = await prisma.form.findMany({
-    orderBy: { name: "asc" },
-    include: { _count: { select: { entries: true } } },
-  });
-  return forms.map((form) => ({
-    slug: form.slug,
-    name: form.name,
-    entryCount: form._count.entries,
-    createdAt: form.createdAt,
-  }));
+  const forms = await listFormsWithEntryCount();
+  // An offer nobody can take up informs nobody (docs/permissions.md § Ce que
+  // voit qui n'a pas le droit): the row shows the permissions it has, and leaves
+  // the others out rather than greying them.
+  return Promise.all(
+    forms.map(async (form) => ({
+      slug: form.slug,
+      name: form.name,
+      entryCount: form._count.entries,
+      createdAt: form.createdAt,
+      canEdit: await personCanEditForm(form),
+      canCreateEntry: await personCanCreateEntry(form),
+    }))
+  );
 }
 
 export interface FormDetail {
@@ -67,10 +115,14 @@ export interface FormDetail {
   name: string;
   schema: FormDescriptor;
   template: string | null;
+  /** The « Accès » tab's three settings, the wiki's own for an old form. */
+  permissions: FormPermissions;
+  /** Whether this person may save what the builder shows (owner or admin). */
+  canEdit: boolean;
 }
 
 export async function getForm(slug: string): Promise<FormDetail | null> {
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const form = await getFormBySlug(slug);
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {
@@ -85,7 +137,71 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
     name: form.name,
     schema: parsed.descriptor,
     template: form.template,
+    permissions: permissionsOf(form),
+    canEdit: await personCanEditForm(form),
   };
+}
+
+/**
+ * Who the « Accès » tab's lists may name. Read only once the person is known
+ * to have business posing a right — the whole membership of the wiki is not a
+ * visitor's affair, and a form nobody may edit needs no picker at all.
+ */
+export async function listRightsDirectory(
+  formSlug: string | null
+): Promise<AclDirectory> {
+  const form = formSlug ? await getFormBySlug(formSlug) : null;
+  // A form being created has no owner yet to hang the editing rung on, so the
+  // rung the act itself stops at answers for it: whoever may not create a form
+  // has no business reading the wiki's membership either.
+  const allowed = form
+    ? await personCanEditForm(form)
+    : await personCanCreateForm();
+  return allowed ? listDirectory() : { people: [], groups: [] };
+}
+
+/** Whether the screens offer « Nouveau formulaire » at all. */
+export async function canAddForm(): Promise<boolean> {
+  return personCanCreateForm();
+}
+
+/**
+ * Applying a form's defaults to the fiches already there (docs/permissions.md
+ * § Défauts), both halves. The rules counted against are the ones the tab
+ * shows, not the ones in base: the confirmation leads to a save, so what it
+ * announces is what the form is about to hold. Null when the form has gone, or
+ * when the person may not edit it — the button was not on offer either way.
+ */
+export type EntryDefaultsCount =
+  | { error: string }
+  | { impact: EntryRightsImpact | null };
+
+export async function countEntryDefaults(
+  formSlug: string,
+  permissions: FormPermissions
+): Promise<EntryDefaultsCount> {
+  try {
+    return { impact: await countFormDefaults(formSlug, permissions) };
+  } catch (error) {
+    // The refusal travels as a value, and as itself: a right that went away
+    // between opening the builder and clicking must not be reported as a form
+    // that no longer exists — `impact: null` is that other ending.
+    return { error: refusalMessage(error) };
+  }
+}
+
+export async function applyEntryDefaults(
+  formSlug: string,
+  permissions: FormPermissions
+): Promise<{ error: string } | void> {
+  try {
+    await applyFormDefaults(formSlug, permissions);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
+  // A fiche whose read scope just closed has to leave the menus and the lists
+  // of whoever no longer sees it: the whole tree, like a save.
+  revalidatePath("/", "layout");
 }
 
 export interface SaveFormInput {
@@ -139,9 +255,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     }
   }
 
-  const existing = issues.length === 0
-    ? await prisma.form.findUnique({ where: { slug: input.slug } })
-    : null;
+  const existing = issues.length === 0 ? await getFormBySlug(input.slug) : null;
   if (input.isNew && existing) {
     issues.push({
       message: `L'identifiant «\u00A0${input.slug}\u00A0» est déjà pris par un autre formulaire.`,
@@ -158,30 +272,38 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
   // No Form history (ADR 0014): saving overwrites, like page tags.
   const data = {
     name: input.name.trim(),
-    schema: parsed.descriptor,
+    // A form is born with the wiki's three rules, copied (ADR 0026). The tab
+    // sends them, and this stamps them for a descriptor that arrived without
+    // — a form created by anything but the builder — so that what is in base
+    // is a copy and not a silent reference to the configuration.
+    schema: {
+      ...parsed.descriptor,
+      permissions: parsed.descriptor.permissions ?? bornFormPermissions(),
+    },
     template: input.template === "" ? null : input.template,
   };
-  if (existing) {
-    // Schema overwrite, data-key retcon and title recompute in the same
-    // transaction (ADR 0017/0020): the staged renames apply to every
-    // revision of the form's entries, and the recomputed titles to their
-    // current one, or nothing does.
-    const before = parseFormDescriptor(existing.schema).descriptor;
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.form.update({ where: { id: existing.id }, data });
-        await sweepFieldRenames(tx, existing.id, renames);
-        if (before && titleRecomputeNeeded(before, parsed.descriptor)) {
-          await sweepEntryTitles(tx, existing.id, parsed.descriptor, AUTHOR);
-        }
-      },
-      // Same cold-admin-action allowance as renameForm below.
-      { timeout: 60_000 }
-    );
-  } else {
-    await prisma.form.create({
-      data: { ...data, slug: input.slug, ownerName: AUTHOR },
-    });
+  // The screens leave out what they cannot offer, so reaching the refusal
+  // means the right went away between opening the builder and saving it: an
+  // issue to report in the toast, not an error boundary to fall into.
+  try {
+    if (existing) {
+      // Schema overwrite, data-key retcon and title recompute in the same
+      // transaction (ADR 0017/0020): the staged renames apply to every
+      // revision of the form's entries, and the recomputed titles to their
+      // current one, or nothing does.
+      const before = parseFormDescriptor(existing.schema).descriptor;
+      await updateForm(existing.id, data, {
+        renames,
+        recomputeTitlesWith:
+          before && titleRecomputeNeeded(before, parsed.descriptor)
+            ? parsed.descriptor
+            : null,
+      });
+    } else {
+      await createForm(input.slug, data);
+    }
+  } catch (error) {
+    return { ok: false, issues: [{ message: refusalMessage(error) }] };
   }
 
   // Entry pages render through the form's schema/template: refresh the tree.
@@ -194,11 +316,15 @@ export type DeleteFormResult = { error: string } | { ok: true };
 // Cascade (ADR 0014): deleting a form deletes its entry pages — the UI
 // confirmation announces the count beforehand.
 export async function deleteForm(slug: string): Promise<DeleteFormResult> {
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const form = await getFormBySlug(slug);
   if (!form) {
     return { error: "Ce formulaire n'existe pas." };
   }
-  await prisma.form.delete({ where: { id: form.id } });
+  try {
+    await deleteFormById(form.id);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -208,7 +334,7 @@ export async function countFormReferences(
   slug: string
 ): Promise<SlugReferenceImpact> {
   const referenceProps = formReferenceProps(await loadComponentBuilders());
-  return countSlugReferenceImpact(prisma, slug, referenceProps, "form");
+  return countFormSlugReferences(slug, referenceProps);
 }
 
 /**
@@ -220,9 +346,9 @@ export async function countFieldReferences(
   formSlug: string,
   fieldName: string
 ): Promise<number> {
-  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  const form = await getFormBySlug(formSlug);
   if (!form) return 0;
-  return countFieldCarriers(prisma, form.id, fieldName);
+  return countEntriesCarryingField(form.id, fieldName);
 }
 
 /**
@@ -235,12 +361,12 @@ export async function countTitleImpact(
   formSlug: string,
   schema: unknown
 ): Promise<TitleRecomputeImpact | null> {
-  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  const form = await getFormBySlug(formSlug);
   if (!form) return null;
   const before = parseFormDescriptor(form.schema).descriptor;
   const after = parseFormDescriptor(schema).descriptor;
   if (!before || !after || !titleRecomputeNeeded(before, after)) return null;
-  return countTitleRecompute(prisma, form.id, after);
+  return countEntryTitleRecompute(form.id, after);
 }
 
 export type RenameFormResult = { error: string } | { ok: true };
@@ -265,11 +391,17 @@ export async function renameForm(
   if (newSlug === slug) {
     return { error: "Le nouvel identifiant est identique à l'actuel." };
   }
-  const form = await prisma.form.findUnique({ where: { slug } });
+  const form = await getFormBySlug(slug);
   if (!form) {
     return { error: "Ce formulaire n'existe pas." };
   }
-  if (await prisma.form.findUnique({ where: { slug: newSlug } })) {
+  // Checked here rather than only at the door: the generic failure message
+  // below is for a unique-constraint race, and would turn a refusal into
+  // « réessayez dans un instant » — an invitation to keep trying.
+  if (!(await personCanEditForm(form))) {
+    return { error: FORM_EDIT_REFUSED };
+  }
+  if (await getFormBySlug(newSlug)) {
     return {
       error: `L'identifiant «\u00A0${newSlug}\u00A0» est déjà pris par un autre formulaire.`,
     };
@@ -278,17 +410,7 @@ export async function renameForm(
   const rename: SlugRename = { oldSlug: slug, newSlug };
   const referenceProps = formReferenceProps(await loadComponentBuilders());
   try {
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.form.update({
-          where: { id: form.id },
-          data: { slug: newSlug },
-        });
-        await sweepSlugReferences(tx, rename, referenceProps, "form");
-      },
-      // Same cold-admin-action allowance as renamePage (app/actions.ts).
-      { timeout: 60_000 }
-    );
+    await renameFormSlug(form.id, rename, referenceProps);
   } catch {
     return {
       error: "Le changement d'identifiant a échoué. Réessayez dans un instant.",
@@ -297,6 +419,39 @@ export async function renameForm(
 
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+/**
+ * The values a « Mots-clés » field already carries, most used first (issue
+ * #15).
+ *
+ * A Server Action is a public entry point, reachable with any
+ * `(formSlug, fieldName)` pair whatever is on screen: the field's own read
+ * right is re-checked here, not only where the entry form built its schema.
+ * A filter left to the widget would be a UI mask, not a right.
+ */
+export async function listUsedFieldValues(
+  formSlug: string,
+  fieldName: string
+): Promise<string[]> {
+  const form = await getFormBySlug(formSlug);
+  if (!form) return [];
+  const seen = await readableForm(form.schema);
+  if (!seen) return [];
+  const field = seen.readable.fields.find((candidate) => candidate.name === fieldName);
+  if (!field || field.type !== "tags") return [];
+
+  // Already cut to what this person may read (currentReadableWhere) and to
+  // the current revision (lib/pages.ts listEntrySnapshots) — nothing left to
+  // check for rights here.
+  const snapshots = await listEntrySnapshots(formSlug);
+  const values = snapshots.flatMap((snapshot) => {
+    const value = readEntryData(snapshot)[fieldName];
+    return Array.isArray(value)
+      ? value.filter((item): item is string => typeof item === "string")
+      : [];
+  });
+  return rankByFrequency(values);
 }
 
 /** value (entry slug) → label (current title), for form-sourced options. */
@@ -311,11 +466,7 @@ export async function listFormOptions(
 export async function listFormChoices(): Promise<
   { slug: string; name: string }[]
 > {
-  const forms = await prisma.form.findMany({
-    orderBy: { name: "asc" },
-    select: { slug: true, name: true },
-  });
-  return forms;
+  return listFormNames();
 }
 
 /**
@@ -328,18 +479,23 @@ export async function listFormChoices(): Promise<
 export async function listEntryFieldChoices(
   formSlugs: string[]
 ): Promise<EntryFieldChoice[]> {
-  const forms = await prisma.form.findMany({
-    where: { slug: { in: formSlugs } },
-  });
+  const forms = await listFormsBySlugs(formSlugs);
   const bySlug = new Map(forms.map((form) => [form.slug, form]));
-  const ordered = formSlugs.flatMap((slug) => {
-    const form = bySlug.get(slug);
-    if (!form) return []; // a slug typed by hand may not exist (yet)
-    const parsed = parseFormDescriptor(form.schema);
-    return parsed.descriptor
-      ? [{ name: form.name, descriptor: parsed.descriptor }]
-      : [];
-  });
+  // Cut to what this person may read, and so are the zones, the filters and
+  // the sorts built from it: a field they cannot see is not one they can be
+  // offered to sort on (docs/permissions.md § Champ). The values are cut
+  // again, form by form, where the payload is assembled — a name readable on
+  // one of the chosen forms is not thereby readable on the next.
+  const ordered = (
+    await Promise.all(
+      formSlugs.map(async (slug) => {
+        const form = bySlug.get(slug);
+        if (!form) return []; // a slug typed by hand may not exist (yet)
+        const seen = await readableForm(form.schema);
+        return seen ? [{ name: form.name, descriptor: seen.readable }] : [];
+      })
+    )
+  ).flat();
   const choices = unionEntryFields(ordered);
   return Promise.all(
     choices.map(async (choice) => {
@@ -382,11 +538,26 @@ function sourcedFormSlug(
   return undefined;
 }
 
-// The field whose value drives Page.tags (docs/forms.md): tags are not
-// historized, so the snapshot mirrors them but Page.tags is the source of
-// truth on prefill.
-function tagsFieldName(descriptor: FormDescriptor): string | undefined {
-  return descriptor.fields.find((field) => field.type === "tags")?.name;
+/**
+ * The values a save writes, their title among them (ADR 0020): every reader
+ * reads `data.title`, none recomputes it. In automatic mode the client never
+ * submits it — deriveEntrySchema strips it — so it is worked out here, from
+ * the very values the save is about to write, and the refusal an empty one
+ * earns travels with it rather than being computed a second time.
+ */
+function titledEntry(
+  descriptor: FormDescriptor,
+  data: EntryData
+): { stored: EntryData; title: string; refusal: string | null } {
+  const title = computeAutomaticTitle(descriptor, data);
+  return {
+    // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw) —
+    // title lands wherever the form's own author placed it, never forced to
+    // the front.
+    stored: withTitleOrdered(descriptor, data, title),
+    title,
+    refusal: title.trim() === "" ? emptyTitleMessage(descriptor) : null,
+  };
 }
 
 export interface EntryFormData {
@@ -397,42 +568,103 @@ export interface EntryFormData {
   values: EntryData | null;
   /** Existing entry slug when editing; null for a new entry. */
   slug: string | null;
+  /**
+   * Why adding a fiche is refused, null when it is not — creation only,
+   * editing being the fiche's own write right. The block says its motif
+   * rather than disappearing (docs/permissions.md § Ce que voit qui n'a pas
+   * le droit): a form that vanished reads as a page that failed to load.
+   */
+  creationRefusal: string | null;
+  /**
+   * Field name → why it is shown greyed, for the fields this person may see but
+   * not fill (docs/permissions.md § Champ). A field they may not even see is
+   * not in here: it is absent from `schema` altogether.
+   */
+  readOnly: Record<string, string>;
+  /** Whether « Se connecter » is worth offering beside that motif. */
+  signedIn: boolean;
 }
 
-// Loads what the generated entry form needs. `entrySlug` set = edit mode
-// (prefilled from the current snapshot, tags from Page.tags).
+/**
+ * The refusal the entry form shows, with the groups it names resolved to
+ * their display names. Null once the person may add a fiche — and for an edit,
+ * which this right has nothing to say about.
+ */
+async function creationRefusalOf(
+  form: { schema: unknown },
+  isEdit: boolean
+): Promise<string | null> {
+  if (isEdit || (await personCanCreateEntry(form))) return null;
+  const rule = permissionsOf(form).createEntry;
+  return scopeRefusal(rule, await groupDisplayNames(rule.groupSlugs ?? []));
+}
+
+/**
+ * The motif under each greyed field, in the words its own rule was posed in.
+ * The group names are resolved once for the whole form: a form reserving a
+ * dozen fields to the same group would otherwise ask as many times.
+ */
+async function readOnlyMotifs(
+  fields: FormField[]
+): Promise<Record<string, string>> {
+  if (fields.length === 0) return {};
+  const named = await groupNamesBySlug(
+    fields.flatMap((field) => [...(fieldWriteRule(field).groupSlugs ?? [])])
+  );
+  return Object.fromEntries(
+    fields.flatMap((field) => {
+      const rule = fieldWriteRule(field);
+      const motif = scopeRefusal(
+        rule,
+        (rule.groupSlugs ?? []).flatMap((slug) => named.get(slug) ?? [])
+      );
+      return motif ? [[field.name, motif]] : [];
+    })
+  );
+}
+
+// Loads what the generated entry form needs. `entrySlug` set = edit mode,
+// prefilled from the current snapshot.
 export async function getEntryForm(
   formSlug: string,
   entrySlug?: string
 ): Promise<EntryFormData | null> {
-  const form = await prisma.form.findUnique({ where: { slug: formSlug } });
+  const form = await getFormBySlug(formSlug);
   if (!form) return null;
-  const parsed = parseFormDescriptor(form.schema);
-  if (!parsed.descriptor) {
+  // What this person may not read never reaches the browser — neither the
+  // field nor the value it holds (docs/permissions.md § Champ).
+  const seen = await readableForm(form.schema);
+  if (!seen) {
     throw new Error(`Descripteur invalide en base : «\u00A0${formSlug}\u00A0»`);
   }
 
   let values: EntryData | null = null;
   let slug: string | null = null;
   if (entrySlug) {
-    const page = await prisma.page.findUnique({
-      where: { slug: entrySlug },
-      include: { current: true },
-    });
-    if (!page || page.formId !== form.id) return null;
-    values = readEntryData(page.current?.data);
-    const tagsField = tagsFieldName(parsed.descriptor);
-    if (tagsField) values = { ...values, [tagsField]: page.tags };
+    const page = await getPageWithCurrent(entrySlug);
+    // A refused read reads as « no such entry » here: the caller is the entry
+    // form, and the refusal screen has already answered on the way in.
+    if (!page || isRefused(page) || page.formId !== form.id) return null;
+    values = seen.readableValues(page.current?.data);
     slug = page.slug;
   }
 
   return {
     formSlug: form.slug,
     formName: form.name,
-    schema: parsed.descriptor,
+    schema: seen.readable,
     values,
     slug,
+    creationRefusal: await creationRefusalOf(form, entrySlug !== undefined),
+    readOnly: await readOnlyMotifs(seen.readOnly),
+    signedIn: (await currentIdentity()) !== null,
   };
+}
+
+/** Whether a screen offers « Nouvelle fiche » for this form at all. */
+export async function canAddEntry(formSlug: string): Promise<boolean> {
+  const form = await getFormBySlug(formSlug);
+  return form !== null && personCanCreateEntry(form);
 }
 
 export interface SaveEntryInput {
@@ -451,7 +683,7 @@ export type SaveEntryResult =
 export async function saveEntry(
   input: SaveEntryInput
 ): Promise<SaveEntryResult> {
-  const form = await prisma.form.findUnique({ where: { slug: input.formSlug } });
+  const form = await getFormBySlug(input.formSlug);
   if (!form) return { ok: false, formError: "Ce formulaire n'existe plus." };
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {
@@ -459,93 +691,71 @@ export async function saveEntry(
   }
   const descriptor = parsed.descriptor;
 
-  // Same schema as the client resolver (ADR 0015): one source of truth.
-  const validation = deriveEntrySchema(descriptor).safeParse(input.data);
+  // Same schema as the client resolver (ADR 0015): one source of truth. Cut
+  // to the fields this person may write, so that what they send on the others
+  // is stripped rather than refused (docs/permissions.md § Champ) — a mere
+  // difference of rights must never be what makes a save fail. A required
+  // field they may not fill is not asked of them either, for the same reason.
+  const person = await currentPerson();
+  const writable = writableDescriptor(person, descriptor);
+  const validation = deriveEntrySchema(writable).safeParse(input.data);
   if (!validation.success) {
     return { ok: false, formError: "Des champs sont invalides." };
   }
   const data = validation.data as EntryData;
 
-  const title = computeAutomaticTitle(descriptor, data);
-  if (title.trim() === "") {
-    return { ok: false, formError: emptyTitleMessage(descriptor) };
-  }
-  // The title is stored like any other field value (ADR 0020): every reader
-  // reads `data.title`, none recomputes it. In automatic mode the client
-  // never submits it — deriveEntrySchema strips it — so it is injected here,
-  // after validation.
-  const stored: EntryData = { ...data, title };
-
-  const tagsField = tagsFieldName(descriptor);
-  const tags = tagsField && Array.isArray(data[tagsField])
-    ? (data[tagsField] as string[])
-    : [];
-
   // Editing keeps the frozen slug; a new entry derives it from the title
   // (revealable, personalizable) and freezes it on this first save.
   if (input.entrySlug) {
-    const page = await prisma.page.findUnique({
-      where: { slug: input.entrySlug },
-    });
-    if (!page || page.formId !== form.id) {
+    const page = await getPageWithCurrent(input.entrySlug);
+    if (!page || isRefused(page) || page.formId !== form.id) {
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
-    await writeEntryRevision(page.id, stored, tags);
+    // Nothing is merged here, and no title worked out: both belong to the
+    // door, which merges from the revision it reads itself and computes the
+    // title from that merge (ADR 0020). What comes back as a refusal — a
+    // right that went away, a title the merge leaves empty — travels in the
+    // toast rather than into an error boundary.
+    try {
+      await writeEntryRevision({ pageId: page.id, data, descriptor });
+    } catch (error) {
+      return { ok: false, formError: refusalMessage(error) };
+    }
     revalidatePath("/", "layout");
     return { ok: true, slug: page.slug };
   }
 
+  const { stored, title, refusal } = titledEntry(descriptor, data);
+  if (refusal) return { ok: false, formError: refusal };
+
   const slug = input.slug && input.slug.trim() !== ""
     ? input.slug
     : slugify(title);
-  if (!isValidSlug(slug)) {
+  // The reserved segment is taken like an existing page is (ADR 0028): the
+  // entry would be written and never open, so the screen asks for another.
+  if (!isValidSlug(slug) || reservedSlugRefusal(slug)) {
     return { ok: false, slugCollision: true };
   }
   // Collision with any page (MDX or entry): explicit, never a silent suffix.
-  const clash = await prisma.page.findUnique({ where: { slug } });
+  const clash = await getPage(slug);
   if (clash) return { ok: false, slugCollision: true };
 
-  await prisma.$transaction(async (tx) => {
-    const page = await tx.page.create({
-      data: { slug, ownerName: AUTHOR, formId: form.id, tags },
+  try {
+    await createEntryPage({
+      slug,
+      formId: form.id,
+      formName: form.name,
+      data: stored,
+      // The form decides who may add a fiche, and what that fiche is born
+      // with (docs/permissions.md § Formulaire) — not the wiki's own rules,
+      // which govern pages.
+      permissions: permissionsOf(form),
     });
-    const revision = await tx.revision.create({
-      data: { pageId: page.id, data: stored as Prisma.InputJsonValue, authorName: AUTHOR },
-    });
-    await tx.page.update({
-      where: { id: page.id },
-      data: { currentRevisionId: revision.id },
-    });
-  });
+  } catch (error) {
+    return { ok: false, formError: refusalMessage(error) };
+  }
   revalidatePath("/", "layout");
   return { ok: true, slug };
-}
-
-// A new snapshot for an existing entry, unless the data is unchanged
-// (revisions are the content's history, ADR 0003). Tags live on the Page and
-// update without a revision (ADR 0007).
-async function writeEntryRevision(
-  pageId: string,
-  data: EntryData,
-  tags: string[]
-): Promise<void> {
-  const page = await prisma.page.findUniqueOrThrow({
-    where: { id: pageId },
-    include: { current: true },
-  });
-  const unchanged =
-    JSON.stringify(readEntryData(page.current?.data)) === JSON.stringify(data);
-  await prisma.$transaction(async (tx) => {
-    await tx.page.update({ where: { id: pageId }, data: { tags } });
-    if (unchanged) return;
-    const revision = await tx.revision.create({
-      data: { pageId, data: data as Prisma.InputJsonValue, authorName: AUTHOR },
-    });
-    await tx.page.update({
-      where: { id: pageId },
-      data: { currentRevisionId: revision.id },
-    });
-  });
 }
 
 export interface EntrySummary {
@@ -557,13 +767,9 @@ export interface EntrySummary {
 }
 
 export async function listEntries(formSlug?: string): Promise<EntrySummary[]> {
-  const pages = await prisma.page.findMany({
-    where: formSlug ? { form: { slug: formSlug } } : { formId: { not: null } },
-    include: { form: true, current: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const pages = await listEntryPages(formSlug);
   return pages.flatMap((page) => {
-    if (!page.form) return [];
+    if (!hasForm(page)) return [];
     const title = String(readEntryData(page.current?.data).title ?? page.slug);
     return [
       {

@@ -3,9 +3,18 @@ import { notFound, redirect } from "next/navigation";
 import { getEntryForm } from "@/app/form-actions";
 import { PageEditor } from "@/components/editor/page-editor";
 import { EntryEdit } from "@/components/forms/entry-edit";
+import { AccessRefused } from "@/components/page/access-refused";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
-import { prisma } from "@/lib/prisma";
-import { getPageWithCurrent, listPageSlugs } from "@/lib/pages";
+import {
+  personCanCreatePage,
+  personCanWrite,
+  getPageWithForm,
+  hasForm,
+  isRefused,
+  listPageSlugs,
+  listPageTags,
+} from "@/lib/pages";
+import { CREATE_REFUSED, WRITE_REFUSED } from "@/lib/permissions";
 import { isValidSlug } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -28,32 +37,52 @@ export default async function EditPage({ params }: Props) {
     notFound();
   }
 
+  const existing = await getPageWithForm(slug);
+  if (existing && isRefused(existing)) {
+    return <AccessRefused slug={slug} ownerName={existing.ownerName} />;
+  }
+
+  // The editor is reached by its address as well as by the hidden « Modifier »
+  // button, so the write right is checked here too — with its own wording,
+  // since « vous n'avez pas accès » would be untrue of a page one can read.
+  if (existing && !(await personCanWrite(existing))) {
+    return (
+      <AccessRefused
+        slug={slug}
+        ownerName={existing.owner?.name ?? null}
+        message={WRITE_REFUSED}
+      />
+    );
+  }
+  if (!existing && !(await personCanCreatePage())) {
+    return (
+      <AccessRefused slug={slug} ownerName={null} message={CREATE_REFUSED} />
+    );
+  }
+
   // A form entry (ADR 0014) edits through its generated form, never
   // CodeMirror: branch on the page's nature before loading editor data.
-  const existing = await prisma.page.findUnique({
-    where: { slug },
-    include: { form: true },
-  });
-  if (existing?.form) {
+  if (existing && hasForm(existing)) {
     const form = await getEntryForm(existing.form.slug, slug);
     if (!form) notFound();
     return <EntryEdit form={form} />;
   }
 
-  const [page, allSlugs, builders] = await Promise.all([
-    getPageWithCurrent(slug),
+  const [allSlugs, allTags, builders] = await Promise.all([
     listPageSlugs(),
+    listPageTags(),
     loadComponentBuilders(),
   ]);
 
   return (
     <PageEditor
       slug={slug}
-      initialContent={page?.current?.content ?? ""}
-      initialTags={page?.tags ?? []}
+      initialContent={existing?.current?.content ?? ""}
+      initialTags={existing?.tags ?? []}
       allSlugs={allSlugs}
+      allTags={allTags}
       builders={builders}
-      isNew={!page}
+      isNew={!existing}
     />
   );
 }

@@ -7,11 +7,15 @@
 // in it, then — once the form is saved — a chip whose « Changer » stages a
 // rename applied at the next save.
 
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { countFieldReferences } from "@/app/form-actions";
+import { AclInput, NO_FLOOR } from "@/components/fields/acl-input";
+import { Field } from "@/components/fields/field-widget";
 import { RenameSlugDialog } from "@/components/slug/rename-slug-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { InfoNote } from "@/components/ui/info-note";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -29,7 +33,13 @@ import {
   type RequiredSetting,
   requiredSettings,
 } from "@/lib/form-descriptor";
+import {
+  type AccessRule,
+  type AclDirectory,
+  scopesUnder,
+} from "@/lib/permissions";
 import { slugify } from "@/lib/slug";
+import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import type { CanvasField } from "./form-builder";
 
@@ -38,6 +48,8 @@ export function FieldSettings({
   otherFields,
   forms,
   formSlug,
+  directory,
+  entryDefaults,
   referenceCounts,
   onChange,
   onRenameStaged,
@@ -48,6 +60,10 @@ export function FieldSettings({
   forms: { slug: string; name: string }[];
   /** The edited form's slug; null while the form has never been saved. */
   formSlug: string | null;
+  /** Who the field's two rules may name: the people and groups of the wiki. */
+  directory: AclDirectory;
+  /** What the « Accès » tab poses on a fiche: the ceiling of a field's own. */
+  entryDefaults: { read: AccessRule; write: AccessRule };
   /** Local references to the field's name, for the rename dialog's impact. */
   referenceCounts: FieldReferenceCounts;
   onChange: (patch: Partial<FormField>) => void;
@@ -127,6 +143,147 @@ export function FieldSettings({
         forms={forms}
         onChange={onChange}
       />
+
+      <FieldRights
+        field={field}
+        directory={directory}
+        entryDefaults={entryDefaults}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+/**
+ * The two rights a field poses on itself (docs/permissions.md § Champ), folded
+ * under « Paramètres avancés » — the ComponentBuilder's own fold, and for the
+ * same reason: a wiki restricts a salary or an internal note on a handful of
+ * fields, and the rest of the palette should not have to step around the
+ * settings that serve them.
+ *
+ * The same `acl` widget as everywhere else (ADR 0015), on a floor that names
+ * nobody: a field has no owner — only the administrators stand under it,
+ * whatever a « seulement » holds.
+ */
+function FieldRights({
+  field,
+  directory,
+  entryDefaults,
+  onChange,
+}: {
+  field: CanvasField;
+  directory: AclDirectory;
+  entryDefaults: { read: AccessRule; write: AccessRule };
+  onChange: (patch: Partial<FormField>) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  // Nothing to pose on the title: its reading is what names the fiche in the
+  // URL, the menus and every list, so restricting it is refused at the save
+  // (ADR 0020) — and the state is made impossible here rather than caught
+  // there, the way @Admins refuses to hold a group.
+  if (field.type === "title") {
+    return (
+      <InfoNote>
+        Le titre nomme la fiche partout dans le wiki : son accès ne se
+        restreint pas.
+      </InfoNote>
+    );
+  }
+
+  // A field's rule stands under the fiche's, so what it may say is capped by
+  // what the « Accès » tab poses — offering « tout le monde » on a form whose
+  // fiches only signed-in people see would promise an audience the fiche
+  // itself refuses. The cap only decides what is *offered*: a rule posed
+  // before the tab was narrowed keeps its scope, and grants nothing extra
+  // anyway, the fiche's own right answering first.
+  const rules = [
+    {
+      key: "readAcl",
+      id: "setting-read-acl",
+      label: "Qui peut voir ce champ ?",
+      within: "parmi ceux qui voient la fiche",
+      posed: field.readAcl,
+      under: entryDefaults.read,
+      // Every field type has a reading to pose; only the filling has an
+      // exception below.
+      shown: true,
+    },
+    {
+      key: "writeAcl",
+      id: "setting-write-acl",
+      label: "Qui peut le remplir ?",
+      within: "parmi ceux qui modifient la fiche",
+      posed: field.writeAcl,
+      under: entryDefaults.write,
+      // A customContent field displays what its author wrote and holds no
+      // value of its own: there is nothing in it to fill in.
+      shown: field.type !== "customContent",
+    },
+  ] as const;
+
+  return (
+    <div className="grid gap-3">
+      <button
+        type="button"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+      >
+        <ChevronRight
+          className={cn("size-4 transition-transform", open && "rotate-90")}
+          aria-hidden
+        />
+        Paramètres avancés
+      </button>
+      {open && (
+        <div className="grid gap-4">
+          {/* A titled rule rather than a frame: the panel is a narrow column,
+              and a box would spend on padding the width the lists need. The
+              two rights sit last, so the rule marks where the settings of the
+              field end and those of its access begin — the divider of the
+              shared renderer, the same one the ComponentBuilder groups with. */}
+          <Field
+            id="setting-rights-divider"
+            spec={{ type: "divider", label: "Accès au champ" }}
+            value=""
+            onChange={() => {}}
+          />
+          {rules.map((rule) =>
+            rule.shown ? (
+              <div key={rule.key} className="grid gap-2">
+                <div>
+                  <Label htmlFor={rule.id}>{rule.label}</Label>
+                  {/* Where the choice stops, said by the selector itself
+                      rather than by a note underneath: the ceiling is a
+                      property of the question — a field's right always
+                      stands inside the fiche's — so it belongs to the
+                      label, and a reader meets it before the portées
+                      rather than after having wondered where one went. */}
+                  <p className="text-xs text-muted-foreground">
+                    {rule.within}
+                  </p>
+                </div>
+                <AclInput
+                  id={rule.id}
+                  value={rule.posed ?? rule.under}
+                  directory={directory}
+                  // A field has no owner: only the administrators stand under
+                  // it, whatever a « seulement » holds.
+                  floor={NO_FLOOR}
+                  scopes={scopesUnder(rule.under.scope, rule.posed?.scope)}
+                  unposed={{
+                    label: "Aucune restriction",
+                    selected: rule.posed === undefined,
+                    onSelect: () => onChange({ [rule.key]: undefined }),
+                  }}
+                  onChange={(posed: AccessRule) => onChange({ [rule.key]: posed })}
+                />
+              </div>
+            ) : null
+          )}
+        </div>
+      )}
     </div>
   );
 }

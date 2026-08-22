@@ -10,6 +10,7 @@ import {
   type FormDescriptor,
   computeAutomaticTitle,
   readEntryData,
+  withTitleOrdered,
 } from "./form-descriptor";
 import { Prisma } from "./generated/prisma/client";
 
@@ -55,7 +56,10 @@ async function planTitleRecompute(
       continue;
     }
     if (title === data.title) continue;
-    changes.push({ pageId: page.id, data: { ...data, title } });
+    changes.push({
+      pageId: page.id,
+      data: withTitleOrdered(descriptor, data, title),
+    });
   }
   return { changes, skipped };
 }
@@ -78,7 +82,7 @@ export async function sweepEntryTitles(
   db: Db,
   formId: string,
   descriptor: FormDescriptor,
-  authorName: string
+  authorUsername: string | null
 ): Promise<TitleRecomputeImpact> {
   const { changes, skipped } = await planTitleRecompute(db, formId, descriptor);
   for (const change of changes) {
@@ -86,7 +90,7 @@ export async function sweepEntryTitles(
       data: {
         pageId: change.pageId,
         data: change.data as Prisma.InputJsonValue,
-        authorName,
+        authorUsername,
       },
     });
     await db.page.update({

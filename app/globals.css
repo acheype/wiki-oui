@@ -194,6 +194,17 @@
   accent-color: var(--primary);
 }
 
+/* --- Leaflet ---------------------------------------------------------- */
+
+/* Leaflet grades its own layers from 400 (panes) to 1000 (controls), and it
+   does so on the page's scale — so a map sat above every overlay this app
+   has (z-50), and a panel or a dialog opened over one disappeared behind it.
+   An isolated stacking context keeps that grading between the map's own
+   layers, where it belongs, without touching their order. */
+.leaflet-container {
+  isolation: isolate;
+}
+
 /* --- Components embedded in the banner slots -------------------------- */
 
 /* Same <Button>, nav-bar look: the slot context restyles it (CONTEXT.md). */

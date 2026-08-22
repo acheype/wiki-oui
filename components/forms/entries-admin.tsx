@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import {
   type EntryFormData,
   type EntrySummary,
+  canAddEntry,
   getEntryForm,
   listEntries,
 } from "@/app/form-actions";
@@ -30,10 +31,16 @@ export function EntriesAdmin() {
 
 function EntriesList({ formSlug }: { formSlug?: string }) {
   const [entries, setEntries] = useState<EntrySummary[] | null>(null);
+  // The form decides who may add to it (docs/permissions.md § Formulaire),
+  // and an action the person does not have is left out rather than greyed.
+  const [canAdd, setCanAdd] = useState(false);
 
   useEffect(() => {
     let live = true;
     listEntries(formSlug).then((list) => live && setEntries(list));
+    if (formSlug) {
+      canAddEntry(formSlug).then((allowed) => live && setCanAdd(allowed));
+    }
     return () => {
       live = false;
     };
@@ -47,7 +54,7 @@ function EntriesList({ formSlug }: { formSlug?: string }) {
         <h1 className="flex-1 text-lg font-semibold">
           {formSlug ? `Fiches${formName ? ` — ${formName}` : ""}` : "Toutes les fiches"}
         </h1>
-        {formSlug && (
+        {formSlug && canAdd && (
           <Button asChild>
             <Link href={`/fiches?nouvelle&formulaire=${formSlug}`}>
               <FilePlus2 />

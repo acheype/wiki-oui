@@ -2,6 +2,10 @@
 
 Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/adr/`), glossaire du domaine : [`CONTEXT.md`](CONTEXT.md).
 
+## Invariants
+
+- **Tout écran est une page WikiOui** (ADR 0028) : un écran neuf est une **page spéciale** (slug dans `wiki.config.ts`, seedée, réservée) dont le contenu appelle un **composant intégré** de `components/wiki/` — jamais une route dans `app/`. Ce dont l'écran a besoin voyage en **query string** (`?suite=`, `?jeton=`) : derrière le slug d'une page, un segment est un handler. Une seule exception, `/api` — le segment réservé, qui abrite aussi les deux écrans ne pouvant pas être des pages (aperçu du ComponentBuilder, écran d'installation atteint par réécriture). Le test `app/routes.test.ts` remonte une erreur si un dossier de plus apparaît sous `app/`.
+
 ## Conventions de code
 
 - **Tout le code est en anglais** : noms de fichiers, composants (y compris les composants MDX du registre, ex. `<Button>`), props/attributs, variables, fonctions, clés de config, classes CSS. Le français est réservé à ce que voit ou tape l'utilisateur : textes d'UI, contenus seedés, slugs des pages spéciales, valeurs saisies par les auteurs (ex. noms d'icônes).
@@ -24,3 +28,17 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 ## Conventions Markdown
 
 - Dans les tableaux, la ligne de séparation doit utiliser le même espacement que les lignes de contenu : `| --- | --- |` (avec espaces), jamais `|---|---|` (règle markdownlint MD060, style « compact »).
+
+## Agent skills
+
+### Issue tracker
+
+Les issues vivent dans GitHub Issues (`acheype/wiki-oui`), via le CLI `gh`. Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Les cinq rôles canoniques, libellés inchangés. Voir `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Contexte unique : `CONTEXT.md` + `docs/adr/` à la racine. Voir `docs/agents/domain.md`.

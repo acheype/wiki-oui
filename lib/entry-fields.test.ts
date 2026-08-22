@@ -14,7 +14,7 @@ const associations: FormDescriptor = {
     {
       type: "list",
       name: "type",
-      label: "Type d'acteur",
+      label: "Type de structure",
       options: { asso: "Association", collectif: "Collectif" },
     },
     { type: "text", name: "commune", label: "Commune" },
@@ -50,7 +50,7 @@ describe("unionEntryFields", () => {
       "date-debut",
     ]);
     const type = choices.find((choice) => choice.name === "type")!;
-    expect(type.label).toBe("Type d'acteur");
+    expect(type.label).toBe("Type de structure");
     expect(type.options).toEqual({ asso: "Association", collectif: "Collectif" });
     expect(type.partialTo).toBeUndefined(); // carried by both forms
   });

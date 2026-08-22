@@ -1,0 +1,566 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { FormDescriptor } from "@/lib/form-descriptor";
+import {
+  ADDRESS_REFUSED,
+  DELETE_REFUSED,
+  RIGHTS_REFUSED,
+  TRANSFER_REFUSED,
+  WRITE_REFUSED,
+} from "@/lib/permissions";
+
+// The door's own test (ADR 0025). Everything else in this suite is pure, so
+// the checks that stand between a person and a write had nothing holding them:
+// the rules were proved, their being *called* was not. Deleting an `await
+// assertStructuring(…)` line reddened nothing until here.
+//
+// Prisma and the person are the only things stubbed. What is asserted is what
+// a missing check would change — the refusal comes back, and the write never
+// reaches the database.
+
+const { db, person } = vi.hoisted(() => ({
+  db: {
+    page: {
+      findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
+      findMany: vi.fn(),
+      delete: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      create: vi.fn(),
+    },
+    pageAcl: { deleteMany: vi.fn(), createMany: vi.fn() },
+    revision: { create: vi.fn() },
+    form: { findMany: vi.fn(), update: vi.fn() },
+    $transaction: vi.fn(),
+    // The address sweep retcons references in raw SQL (ADR 0016); it has its
+    // own test, and here it only has to not stand in the way.
+    $queryRaw: vi.fn(),
+    $executeRaw: vi.fn(),
+  },
+  person: { current: { username: null as string | null, groupSlugs: [] as string[] } },
+}));
+
+vi.mock("@/lib/prisma", () => ({ prisma: db }));
+vi.mock("@/lib/permissions-db", () => ({
+  currentPerson: async () => person.current,
+  currentUsername: async () => person.current.username,
+  assertAdmin: async () => {},
+}));
+vi.mock("@/lib/groups-db", () => ({
+  existingPrincipals: async () => ({ usernames: new Set(), groupSlugs: new Set() }),
+  grantTarget: async () => null,
+  listDirectory: async () => ({ people: [], groups: [] }),
+}));
+
+const {
+  currentReadableWhere,
+  deletePageById,
+  getRawContent,
+  hiddenIfNoAccess,
+  isRefused,
+  isSlugReadable,
+  listPageTags,
+  renamePageSlug,
+  setPageRights,
+  transferPageOwnership,
+  writeEntryRevision,
+  writePageContent,
+  writeRestoredRevision,
+} = await import("@/lib/pages");
+
+/** A page Marie owns, closed to everyone else in both senses. */
+const MARIES_PAGE = {
+  id: "page-1",
+  slug: "compte-rendu",
+  ownerUsername: "marie-durand",
+  readScope: "restricted",
+  writeScope: "restricted",
+  acls: [],
+  owner: { name: "Marie Durand", username: "marie-durand" },
+  formId: null,
+  tags: [],
+  current: null,
+};
+
+function signedInAs(username: string | null, groupSlugs: string[] = []) {
+  person.current = { username, groupSlugs };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  signedInAs("jean-martin"); // never the owner, never an administrator
+  db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+  db.page.findUniqueOrThrow.mockResolvedValue(MARIES_PAGE);
+  db.page.findMany.mockResolvedValue([MARIES_PAGE]);
+  db.form.findMany.mockResolvedValue([]);
+  db.$queryRaw.mockResolvedValue([]);
+  db.$executeRaw.mockResolvedValue(0);
+  // Runs the callback so that a missing check would really reach the writes.
+  db.$transaction.mockImplementation(async (run: (tx: unknown) => unknown) =>
+    typeof run === "function" ? run(db) : undefined
+  );
+});
+
+/** Every write of the door that a check stands in front of. */
+const guarded: [string, string, () => Promise<unknown>][] = [
+  ["deleting a page", DELETE_REFUSED, () => deletePageById("page-1")],
+  [
+    "handing a page over",
+    TRANSFER_REFUSED,
+    () => transferPageOwnership("compte-rendu", "jean-martin"),
+  ],
+  [
+    "posing the rights",
+    RIGHTS_REFUSED,
+    () => setPageRights("compte-rendu", { scope: "everyone" }, { scope: "everyone" }),
+  ],
+  [
+    "changing the address",
+    ADDRESS_REFUSED,
+    () => renamePageSlug("page-1", { oldSlug: "compte-rendu", newSlug: "cr" }, new Map()),
+  ],
+  [
+    "writing the content",
+    WRITE_REFUSED,
+    () => writePageContent({ slug: "compte-rendu", content: "# Salut", tags: [] }),
+  ],
+  [
+    "restoring a revision",
+    WRITE_REFUSED,
+    () =>
+      writeRestoredRevision({
+        pageId: "page-1",
+        content: "# Ancien",
+        data: undefined,
+        restoredFromId: "rev-1",
+        descriptor: null,
+      }),
+  ],
+];
+
+describe("the door refuses what the bar would not offer", () => {
+  for (const [what, refusal, call] of guarded) {
+    it(`refuses ${what} to someone the page does not answer to`, async () => {
+      await expect(call()).rejects.toThrow(refusal);
+    });
+  }
+
+  // The refusal alone is not the point: a check that threw *after* writing
+  // would pass the test above and still have destroyed something.
+  it("writes nothing at all when it refuses", async () => {
+    for (const [, , call] of guarded) {
+      await call().catch(() => null);
+    }
+    expect(db.page.delete).not.toHaveBeenCalled();
+    expect(db.page.update).not.toHaveBeenCalled();
+    expect(db.page.updateMany).not.toHaveBeenCalled();
+    expect(db.page.create).not.toHaveBeenCalled();
+    expect(db.pageAcl.deleteMany).not.toHaveBeenCalled();
+    expect(db.revision.create).not.toHaveBeenCalled();
+  });
+});
+
+// The merge is the door's, not its caller's (docs/permissions.md § Champ): a
+// revision holds a complete snapshot, so a save that replaced it would let
+// whoever cannot see a salary destroy it just by saving the fiche.
+describe("what a save may move, field by field", () => {
+  const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;
+  const PAYROLL: FormDescriptor = {
+    fields: [
+      { type: "title", name: "title", label: "Titre" },
+      { type: "text", name: "nom", label: "Nom" },
+      { type: "text", name: "salaire", label: "Salaire", readAcl: BUREAU, writeAcl: BUREAU },
+      { type: "tags", name: "mots-cles", label: "Mots-clés", writeAcl: BUREAU },
+    ],
+  };
+  /** A fiche Jean may write, holding a salary that is not his to move. */
+  const JEANS_ENTRY = {
+    ...MARIES_PAGE,
+    ownerUsername: "jean-martin",
+    owner: { name: "Jean Martin", username: "jean-martin" },
+    tags: ["paie"],
+    current: { data: { title: "Paie", nom: "Marie", salaire: 42000 } },
+  };
+  const save = (data: Record<string, unknown>) =>
+    writeEntryRevision({ pageId: "page-1", data, descriptor: PAYROLL });
+  const written = () =>
+    db.revision.create.mock.calls.at(-1)?.[0].data.data as unknown;
+
+  beforeEach(() => {
+    db.page.findUniqueOrThrow.mockResolvedValue(JEANS_ENTRY);
+    db.revision.create.mockResolvedValue({ id: "rev-2" });
+  });
+
+  it("lays what the person may write over the revision it starts from", async () => {
+    await save({ title: "Paie", nom: "Marie Durand", salaire: 0 });
+    expect(written()).toEqual({
+      title: "Paie",
+      nom: "Marie Durand",
+      salaire: 42000,
+    });
+  });
+
+  // docs/permissions.md § /{slug}/raw: written in the form's own order —
+  // title first — regardless of the order the revision it starts from
+  // happens to carry (storage makes no promise there, jsonb included).
+  it("writes the revision back in the form's own field order, title first", async () => {
+    db.page.findUniqueOrThrow.mockResolvedValue({
+      ...JEANS_ENTRY,
+      current: { data: { salaire: 42000, nom: "Marie", title: "Paie" } },
+    });
+    signedInAs("jean-martin", ["bureau"]);
+    await save({ title: "Paie modifiée", nom: "Marie", salaire: 42000 });
+    expect(Object.keys(written() as object)).toEqual(["title", "nom", "salaire"]);
+  });
+
+  // Ignored, not refused: a difference of rights must never be what makes a
+  // save fail — and a save with nothing left to record records nothing.
+  it("mints no revision when all that moved was refused", async () => {
+    await save({ title: "Paie", nom: "Marie", salaire: 0 });
+    expect(db.revision.create).not.toHaveBeenCalled();
+  });
+
+  it("lets the rule's own group move it", async () => {
+    signedInAs("jean-martin", ["bureau"]);
+    await save({ title: "Paie", nom: "Marie", salaire: 45000 });
+    expect(written()).toEqual({ title: "Paie", nom: "Marie", salaire: 45000 });
+  });
+
+  // A « Mots-clés » field is an ordinary field of the fiche (docs/forms.md):
+  // its value rides in the snapshot, so the merge decides on it like on any
+  // other — nothing of it reaches Page.tags, which belongs to the page.
+  it("holds back the keywords of whoever may not move them", async () => {
+    await save({ title: "Paie", nom: "Marie Durand", "mots-cles": ["rh"] });
+    expect(written()).toEqual({
+      title: "Paie",
+      nom: "Marie Durand",
+      salaire: 42000,
+    });
+  });
+
+  it("moves them for whoever may", async () => {
+    signedInAs("jean-martin", ["bureau"]);
+    await save({ title: "Paie", nom: "Marie", "mots-cles": ["rh"] });
+    expect(written()).toEqual({
+      title: "Paie",
+      nom: "Marie",
+      salaire: 42000,
+      "mots-cles": ["rh"],
+    });
+  });
+
+  // The whole reason the title is worked out at the door, after the merge: a
+  // gabarit may name a field this person cannot fill, and what arrives from
+  // the browser no longer carries it. Computed from the payload alone, the
+  // title would lose the very value the fiche still holds — and a stored
+  // title is never worked out again at read (ADR 0020).
+  it("works the automatic title out from the merge, not from the payload", async () => {
+    const automatic: FormDescriptor = {
+      fields: [
+        {
+          type: "title",
+          name: "title",
+          label: "Titre",
+          automatic: true,
+          template: "{nom} — {salaire}",
+        },
+        { type: "text", name: "nom", label: "Nom" },
+        { type: "text", name: "salaire", label: "Salaire", writeAcl: BUREAU },
+      ],
+    };
+    db.page.findUniqueOrThrow.mockResolvedValue({
+      ...JEANS_ENTRY,
+      current: { data: { title: "Marie — 42000", nom: "Marie", salaire: 42000 } },
+    });
+    await writeEntryRevision({
+      pageId: "page-1",
+      data: { nom: "Marie Durand" },
+      descriptor: automatic,
+    });
+    expect(written()).toEqual({
+      title: "Marie Durand — 42000",
+      nom: "Marie Durand",
+      salaire: 42000,
+    });
+  });
+
+  // An entry carries a non-empty title, always (ADR 0020). The refusal names
+  // the fields the author can actually fill, and travels as a thrown error
+  // the Server Action turns back into a message under the form.
+  it("refuses a save whose title the merge leaves empty", async () => {
+    const automatic: FormDescriptor = {
+      fields: [
+        { type: "title", name: "title", label: "Titre", automatic: true, template: "{nom}" },
+        { type: "text", name: "nom", label: "Nom" },
+      ],
+    };
+    db.page.findUniqueOrThrow.mockResolvedValue({
+      ...JEANS_ENTRY,
+      current: { data: { title: "Marie", nom: "Marie" } },
+    });
+    await expect(
+      writeEntryRevision({ pageId: "page-1", data: { nom: "" }, descriptor: automatic })
+    ).rejects.toThrow("Le titre de la fiche est calculé à partir de");
+    expect(db.revision.create).not.toHaveBeenCalled();
+  });
+
+  // A restore is a write like any other, and a silent one: the restorer never
+  // saw on screen what they would be putting back.
+  it("merges a restored snapshot too", async () => {
+    await writeRestoredRevision({
+      pageId: "page-1",
+      content: null,
+      data: { title: "Paie", nom: "Marie", salaire: 1 },
+      restoredFromId: "rev-1",
+      descriptor: PAYROLL,
+    });
+    expect(written()).toEqual({ title: "Paie", nom: "Marie", salaire: 42000 });
+  });
+
+  // The archived title names the archived values; the merge keeps some of
+  // today's. Recomputed after it, the title names what the fiche now holds —
+  // and a stored title is never worked out again at read (ADR 0020).
+  it("names what the merge kept, not what the archive said", async () => {
+    const automatic: FormDescriptor = {
+      fields: [
+        { type: "title", name: "title", label: "Titre", automatic: true, template: "{nom} — {salaire}" },
+        { type: "text", name: "nom", label: "Nom" },
+        { type: "text", name: "salaire", label: "Salaire", readAcl: BUREAU, writeAcl: BUREAU },
+      ],
+    };
+    await writeRestoredRevision({
+      pageId: "page-1",
+      content: null,
+      data: { title: "Marie — 1", nom: "Marie", salaire: 1 },
+      restoredFromId: "rev-1",
+      descriptor: automatic,
+    });
+    expect(written()).toEqual({
+      title: "Marie — 42000",
+      nom: "Marie",
+      salaire: 42000,
+    });
+  });
+});
+
+describe("the same writes, to whoever they answer to", () => {
+  it("lets the owner delete their page, and lets nobody else", async () => {
+    signedInAs("marie-durand");
+    await deletePageById("page-1");
+    expect(db.page.delete).toHaveBeenCalledWith({ where: { id: "page-1" } });
+  });
+
+  it("lets an administrator change an address, where the owner cannot", async () => {
+    signedInAs("marie-durand");
+    const rename = { oldSlug: "compte-rendu", newSlug: "cr" };
+    await expect(renamePageSlug("page-1", rename, new Map())).rejects.toThrow(
+      ADDRESS_REFUSED
+    );
+
+    signedInAs("wiki-admin", ["admins"]);
+    await renamePageSlug("page-1", rename, new Map());
+    expect(db.page.update).toHaveBeenCalledWith({
+      where: { id: "page-1" },
+      data: { slug: "cr" },
+    });
+  });
+});
+
+// The page-tag suggestion (issue #15) reads through the same clause every
+// other list reads through — not the unnest of ADR 0007, which would leave
+// the read filter behind (see lib/pages.ts listPageTags).
+describe("listPageTags", () => {
+  it("reads through the current read filter, ranked by frequency", async () => {
+    db.page.findMany.mockResolvedValue([
+      { tags: ["Atelier", "Atelier"] },
+      { tags: ["atelier"] },
+      { tags: ["Sport"] },
+    ]);
+    const result = await listPageTags();
+    expect(db.page.findMany).toHaveBeenCalledWith({
+      where: await currentReadableWhere(),
+      select: { tags: true },
+    });
+    expect(result).toEqual(["Atelier", "Sport"]);
+  });
+});
+
+// hideIfNoAccess (docs/permissions.md § Liens et boutons vers l'inaccessible,
+// issue #13): the check a link, a button or an iframe runs before deciding
+// whether to render at all.
+describe("isSlugReadable", () => {
+  it("reads a page open to everyone", async () => {
+    db.page.findUnique.mockResolvedValue({
+      ownerUsername: null,
+      readScope: "everyone",
+      writeScope: "everyone",
+      acls: [],
+    });
+    expect(await isSlugReadable("compte-rendu")).toBe(true);
+  });
+
+  it("refuses a page restricted to someone else", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await isSlugReadable("compte-rendu")).toBe(false);
+  });
+
+  it("reads a page whose owner is the current person", async () => {
+    signedInAs("marie-durand");
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await isSlugReadable("compte-rendu")).toBe(true);
+  });
+
+  it("reads a missing page — a dead link is page-lint's business, not this one's", async () => {
+    db.page.findUnique.mockResolvedValue(null);
+    expect(await isSlugReadable("nulle-part")).toBe(true);
+  });
+
+  it("reads an auth page whatever its own rights say", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await isSlugReadable("connexion")).toBe(true);
+    expect(db.page.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+// The one door components/wiki/{wiki-link,button,iframe}.tsx all ask through
+// before deciding whether to render at all — a link/button/iframe vanishes
+// only when every one of these holds.
+describe("hiddenIfNoAccess", () => {
+  it("never hides when the setting is off", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu", false)).toBe(false);
+  });
+
+  it("never hides an external target", async () => {
+    expect(
+      await hiddenIfNoAccess("https://exemple.org", true)
+    ).toBe(false);
+    expect(db.page.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("never hides an empty link", async () => {
+    expect(await hiddenIfNoAccess("", true)).toBe(false);
+  });
+
+  it("never hides a target that does not parse as a wiki href", async () => {
+    // Malformed rather than merely missing (isSlugReadable's own case): not
+    // this door's job to guess a slug out of it either.
+    expect(await hiddenIfNoAccess("javascript:alert(1)", true)).toBe(false);
+    expect(db.page.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("hides a restricted target the person may not read", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu", true)).toBe(true);
+  });
+
+  it("keeps a target the person may read", async () => {
+    signedInAs("marie-durand");
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu", true)).toBe(false);
+  });
+
+  it("keeps a handler href, judged on the page it names", async () => {
+    db.page.findUnique.mockResolvedValue(MARIES_PAGE);
+    expect(await hiddenIfNoAccess("compte-rendu/edit", true)).toBe(true);
+    expect(db.page.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { slug: "compte-rendu" } })
+    );
+  });
+});
+
+// /{slug}/raw (docs/permissions.md): born inside the door (ADR 0025), so its
+// own refusal and its own cut are exercised the same way as every other read.
+describe("getRawContent", () => {
+  const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;
+  const CREATED_AT = new Date("2026-01-05T10:00:00.000Z");
+  const EDITED_AT = new Date("2026-02-10T09:00:00.000Z");
+  const EVERYONE = { scope: "everyone", usernames: [], groupSlugs: [] };
+  const RESTRICTED = { scope: "restricted", usernames: [], groupSlugs: [] };
+  const EDITOR = { name: "Jean Martin", username: "jean-martin" };
+
+  /** A payroll form: a name anyone reads, a salary @Bureau's alone. */
+  const PAYROLL_SCHEMA = {
+    fields: [
+      { type: "title", name: "title", label: "Titre" },
+      { type: "text", name: "nom", label: "Nom" },
+      { type: "text", name: "salaire", label: "Salaire", readAcl: BUREAU, writeAcl: BUREAU },
+    ],
+  };
+
+  const OPEN_PAGE = {
+    ...MARIES_PAGE,
+    createdAt: CREATED_AT,
+    readScope: "everyone",
+  };
+
+  it("answers null on a slug nobody wrote", async () => {
+    db.page.findUnique.mockResolvedValue(null);
+    expect(await getRawContent("inconnue")).toBeNull();
+  });
+
+  it("refuses a page this person may not read", async () => {
+    db.page.findUnique.mockResolvedValue({
+      ...MARIES_PAGE,
+      createdAt: CREATED_AT,
+      form: null,
+    });
+    const raw = await getRawContent("compte-rendu");
+    expect(isRefused(raw!)).toBe(true);
+  });
+
+  const METADATA = {
+    "created-at": CREATED_AT,
+    owner: "Marie Durand",
+    "last-edited-at": EDITED_AT,
+    "last-edited-by": "Jean Martin",
+    "read-scope": EVERYONE,
+    "write-scope": RESTRICTED,
+  };
+
+  it("serves an MDX page's content, kind and metadata alongside it", async () => {
+    db.page.findUnique.mockResolvedValue({
+      ...OPEN_PAGE,
+      form: null,
+      current: { content: "# Bonjour", createdAt: EDITED_AT, author: EDITOR },
+    });
+    const raw = await getRawContent("compte-rendu");
+    expect(raw).toEqual({ kind: "page", content: "# Bonjour", metadata: METADATA });
+  });
+
+  it("serves a fiche's fields ordered by the form, form-id inside metadata, fields cut", async () => {
+    db.page.findUnique.mockResolvedValue({
+      ...OPEN_PAGE,
+      formId: "form-1",
+      form: { id: "form-1", slug: "paie", schema: PAYROLL_SCHEMA },
+      // Deliberately out of form order, to prove getRawContent rebuilds it —
+      // storage (jsonb) makes no promise about the order it hands back.
+      current: {
+        data: { salaire: 42000, title: "Paie", nom: "Marie" },
+        createdAt: EDITED_AT,
+        author: EDITOR,
+      },
+    });
+
+    const raw = await getRawContent("paie-marie");
+    expect(raw).toEqual({
+      kind: "entry",
+      fields: { title: "Paie", nom: "Marie" },
+      metadata: { "form-id": "paie", ...METADATA },
+    });
+    expect(
+      raw && "fields" in raw ? Object.keys(raw.fields) : []
+    ).toEqual(["title", "nom"]);
+    expect(
+      raw && "metadata" in raw ? Object.keys(raw.metadata) : []
+    ).toEqual(["form-id", ...Object.keys(METADATA)]);
+
+    signedInAs("jean-martin", ["bureau"]);
+    const seenByBureau = await getRawContent("paie-marie");
+    expect(
+      seenByBureau && "fields" in seenByBureau
+        ? Object.keys(seenByBureau.fields)
+        : []
+    ).toEqual(["title", "nom", "salaire"]);
+  });
+});

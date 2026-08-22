@@ -5,6 +5,7 @@
 // the automatic title and the entry template.
 
 import { z } from "zod";
+import { SCOPES } from "./permissions";
 import { SLUG_PATTERN } from "./slug";
 
 /** Palette of the 14 entry field types (docs/forms.md). */
@@ -45,8 +46,26 @@ export const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   title: "Titre de la fiche",
 };
 
+// One right as the `acl` widget poses it and as the descriptor stores it:
+// usernames and group slugs, never ids (ADR 0024). Shape only, like the
+// fields below — a name that has since gone is dropped when the default is
+// copied (ADR 0026), not refused at read, or a deleted account would shut its
+// form out of the very screen where the mistake gets fixed.
+// Readonly, so that what the descriptor holds and what `AccessRule` describes
+// are one type: the wiki's own defaults are written `as const` in
+// wiki.config.ts, and a mutable array would refuse the very copy ADR 0026 is
+// about.
+const accessRuleSchema = z.object({
+  scope: z.enum(SCOPES),
+  usernames: z.array(z.string()).readonly().optional(),
+  groupSlugs: z.array(z.string()).readonly().optional(),
+});
+
 // Common trunk (docs/forms.md): label · name (fixed identity, ADR 0014) ·
-// required · hint; placeholder on text-like types only.
+// required · hint; placeholder on text-like types only. Plus the two rights
+// a field poses on itself (docs/permissions.md § Champ), on every type
+// alike: a salary is a text field, an internal note a long one — what makes
+// them worth restricting is never their type.
 const fieldBase = z.object({
   label: z.string(),
   // Shape only: the slug format is an authoring rule (formAuthoringIssues),
@@ -57,6 +76,9 @@ const fieldBase = z.object({
   name: z.string(),
   required: z.boolean().optional(),
   hint: z.string().optional(),
+  /** Absent means unrestricted: a field is open until a rule says otherwise. */
+  readAcl: accessRuleSchema.optional(),
+  writeAcl: accessRuleSchema.optional(),
 });
 
 const textLikeBase = fieldBase.extend({
@@ -121,7 +143,9 @@ const formFieldSchema = z.discriminatedUnion("type", [
     stateField: z.string().optional(),
     geolocateButton: z.boolean().optional(),
   }),
-  /** Entry widget of the Page's tags (docs/forms.md): at most one per form. */
+  // A list of free keywords, stored in `data` like any other value. Nothing
+  // to do with the tags of the Page it is written on (ADR 0007): the two
+  // share an input widget and a look, and no more (docs/forms.md).
   fieldBase.extend({ type: z.literal("tags") }),
   fieldBase.extend({
     type: z.literal("customContent"),
@@ -142,6 +166,19 @@ const formFieldSchema = z.discriminatedUnion("type", [
 
 export const formDescriptorSchema = z.object({
   fields: z.array(formFieldSchema),
+  /**
+   * The « Accès » tab (docs/permissions.md § Formulaire : trois réglages,
+   * pas deux). Optional: a form saved before the tab existed carries none,
+   * and lib/form-rights.ts answers for it with the wiki's own defaults —
+   * exactly what would have been copied at its creation.
+   */
+  permissions: z
+    .object({
+      createEntry: accessRuleSchema,
+      defaultEntryRead: accessRuleSchema,
+      defaultEntryWrite: accessRuleSchema,
+    })
+    .optional(),
 });
 
 export type FormField = z.infer<typeof formFieldSchema>;
@@ -352,6 +389,41 @@ export function initialEntryValues(
   return values;
 }
 
+// A snapshot's keys, rebuilt in the form's own field order (docs/permissions.md
+// § /{slug}/raw): storage makes no promise here — Postgres's jsonb does not
+// preserve the order keys were written in — so anyone wanting the form's
+// order has to rebuild it, rather than trust what comes back from Prisma. A
+// key with no matching field (an orphan a schema change left behind,
+// docs/architecture.md's graceful degradation) rides at the end, in the order
+// it already had: it is still preserved, just not part of the form anymore.
+export function orderedEntryData(
+  descriptor: FormDescriptor,
+  data: EntryData
+): EntryData {
+  const ordered: EntryData = {};
+  for (const field of descriptor.fields) {
+    if (field.name in data) ordered[field.name] = data[field.name];
+  }
+  for (const [name, value] of Object.entries(data)) {
+    if (!(name in ordered)) ordered[name] = value;
+  }
+  return ordered;
+}
+
+// Every write site (createEntryPage, writeEntryRevision, a restore, the
+// title-recompute sweep, the seed) reaches the same two steps once it has a
+// title in hand: fold it into the values, then hand the result through
+// orderedEntryData. Each site still decides *whether* and *what* title to
+// compute — an empty gabarit, an unwritable field merged back in, a restore
+// falling back to the one already stored — only this common tail is shared.
+export function withTitleOrdered(
+  descriptor: FormDescriptor,
+  data: EntryData,
+  title: string
+): EntryData {
+  return orderedEntryData(descriptor, { ...data, title });
+}
+
 // The labels an automatic title draws from. The entry form hides the title
 // field in automatic mode, so "the title is empty" alone would be a dead
 // end: the refusal has to name the fields the author can actually fill.
@@ -447,16 +519,6 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
     });
   }
 
-  const tagsIndexes = descriptor.fields.flatMap((field, fieldIndex) =>
-    field.type === "tags" ? [fieldIndex] : []
-  );
-  for (const fieldIndex of tagsIndexes.slice(1)) {
-    issues.push({
-      fieldIndex,
-      message: "Un seul champ «\u00A0Mots-clés\u00A0» par formulaire.",
-    });
-  }
-
   descriptor.fields.forEach((field, fieldIndex) => {
     if (field.type === "title" && field.automatic && field.template) {
       for (const name of unknownFieldReferences(field.template, descriptor)) {
@@ -493,6 +555,18 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
   return issues.length > 0 ? { issues } : { descriptor };
 }
 
+// `metadata` is the one name `/{slug}/raw` (docs/permissions.md §
+// /{slug}/raw) cannot let a field carry: it is the key a fiche's own
+// metadata sits under, next to the field values — a field also named
+// `metadata` would collide with it, one silently overwriting the other.
+// `content` and `form-id` need no such rule: `getRawContent()` (lib/pages.ts)
+// tells a page from a fiche by `formId`/`form`, never by a `content` key a
+// field could spoof, and `form-id` itself now lives inside `metadata`, a
+// different object than a fiche's own fields. `title` needs none either —
+// the meta-schema already locks it to the one field of type "title"
+// (formFieldSchema).
+const RESERVED_FIELD_NAME = "metadata";
+
 // Rules checked when a form is *saved*, not when it is read. A descriptor
 // already in base has to keep parsing: getForm throws on one it cannot read,
 // which would shut the author out of the very screen where the mistake gets
@@ -502,7 +576,7 @@ export function parseFormDescriptor(raw: unknown): ParseFormResult {
 export function formAuthoringIssues(
   descriptor: FormDescriptor
 ): FormDescriptorIssue[] {
-  const issues: FormDescriptorIssue[] = [];
+  const issues: FormDescriptorIssue[] = [...restrictedFieldLeaks(descriptor)];
   descriptor.fields.forEach((field, fieldIndex) => {
     for (const setting of requiredSettings(field)) {
       const value = settingValue(field, setting.key);
@@ -516,10 +590,84 @@ export function formAuthoringIssues(
           fieldIndex,
           message: `L'identifiant «\u00A0${value}\u00A0» du champ «\u00A0${fieldName(field)}\u00A0» est invalide (minuscules, chiffres et tirets).`,
         });
+      } else if (setting.key === "name" && value === RESERVED_FIELD_NAME) {
+        issues.push({
+          fieldIndex,
+          message: `L'identifiant «\u00A0${value}\u00A0» est réservé à \`/{slug}/raw\` et ne peut pas nommer un champ.`,
+        });
       }
     }
   });
   return issues;
+}
+
+function restrictsReading(field: FormField): boolean {
+  return field.readAcl !== undefined && field.readAcl.scope !== "everyone";
+}
+
+function restrictsWriting(field: FormField): boolean {
+  return field.writeAcl !== undefined && field.writeAcl.scope !== "everyone";
+}
+
+/**
+ * The restrictions the wiki could not keep, refused when the form is saved
+ * rather than patched at render (docs/permissions.md § Champ). Two are about
+ * the title, and for one reason: a title is read — and written — where no
+ * right is ever consulted, so a restriction posed on it would be honoured
+ * nowhere. The third is about the mots-clés, which live on the Page and not
+ * in the snapshot (ADR 0007), and which the wiki lists wherever it lists
+ * pages.
+ *
+ * The settings panel offers none of the three, so a descriptor carrying one
+ * came in by hand: this is the guard rail behind the state made impossible.
+ */
+function restrictedFieldLeaks(
+  descriptor: FormDescriptor
+): FormDescriptorIssue[] {
+  const issues: FormDescriptorIssue[] = [];
+  descriptor.fields.forEach((field, fieldIndex) => {
+    if (field.type === "title") {
+      // Not merely a leak: an entry whose title nobody may read has no title
+      // at all (ADR 0020), and neither its slug nor its display survives that.
+      if (restrictsReading(field)) {
+        issues.push({
+          fieldIndex,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en lecture : il nomme la fiche partout dans le wiki.",
+        });
+      }
+      // A fiche is refused without a title, so whoever may not write one may
+      // not create a fiche at all — a form closed by a setting saying nothing
+      // of the sort.
+      if (restrictsWriting(field)) {
+        issues.push({
+          fieldIndex,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en écriture : sans lui, personne d'autre ne pourrait créer de fiche.",
+        });
+      }
+      issues.push(...automaticTitleLeaks(descriptor, field, fieldIndex));
+    }
+  });
+  return issues;
+}
+
+/** `{prenom} {salaire}` would publish the salary in the title, and in the URL. */
+function automaticTitleLeaks(
+  descriptor: FormDescriptor,
+  title: Extract<FormField, { type: "title" }>,
+  fieldIndex: number
+): FormDescriptorIssue[] {
+  if (!title.automatic || !title.template) return [];
+  const restricted = new Set(
+    descriptor.fields.filter(restrictsReading).map((field) => field.name)
+  );
+  return extractFieldReferences(title.template)
+    .filter((name) => restricted.has(name))
+    .map((name) => ({
+      fieldIndex,
+      message: `Le titre automatique référence un champ à lecture restreinte : «\u00A0${name}\u00A0».`,
+    }));
 }
 
 /**

@@ -202,6 +202,18 @@ describe("visibleFields", () => {
     expect(visibleFields(descriptor, {}, { ratio: "doc.pdf" })).not.toContain("height");
   });
 
+  // hideIfNoAccess's own showif (wiki-link.yaml, button.yaml,
+  // docs/permissions.md § Liens et boutons vers l'inaccessible): a negative
+  // lookahead reusing the same regex engine as externalModalWarning, so it
+  // hides the moment an author types "https://" — no separate condition kind.
+  it("hides behind a negative-lookahead regex on an external URL", () => {
+    const descriptor = withShowif({ ratio: "/^(?!https?:\\/\\/)/" });
+    expect(visibleFields(descriptor, {}, { ratio: "ma-page" })).toContain("height");
+    expect(
+      visibleFields(descriptor, {}, { ratio: "https://exemple.org" })
+    ).not.toContain("height");
+  });
+
   it("ANDs several showif entries", () => {
     const descriptor: ComponentDescriptor = {
       label: "Image",
@@ -516,6 +528,29 @@ describe("generateMarkdownLink", () => {
       "[equipe](equipe)"
     );
   });
+
+  it("annotates hideIfNoAccess only when checked", () => {
+    expect(
+      generateMarkdownLink(defaults, {
+        text: "Notre équipe",
+        link: "equipe",
+        hideIfNoAccess: true,
+      })
+    ).toBe("[Notre équipe](equipe){{ hideIfNoAccess: true }}");
+  });
+
+  it("combines both annotations when target and hideIfNoAccess both differ", () => {
+    expect(
+      generateMarkdownLink(defaults, {
+        text: "Notre équipe",
+        link: "equipe",
+        target: "modal",
+        hideIfNoAccess: true,
+      })
+    ).toBe(
+      "[Notre équipe](equipe){{ target: 'modal', hideIfNoAccess: true }}"
+    );
+  });
 });
 
 /* ------------------------------------------------------------------ *
@@ -590,10 +625,10 @@ describe("parseLiteral", () => {
   it("parses the canonical structured forms", () => {
     expect(parseLiteral('["a", "b"]')).toEqual({ value: ["a", "b"] });
     expect(
-      parseLiteral('[{ field: "type", title: "Type d\'acteur" }, { field: "commune" }]')
+      parseLiteral('[{ field: "type", title: "Type de structure" }, { field: "commune" }]')
     ).toEqual({
       value: [
-        { field: "type", title: "Type d'acteur" },
+        { field: "type", title: "Type de structure" },
         { field: "commune" },
       ],
     });
@@ -625,12 +660,12 @@ describe("parseLiteral", () => {
 describe("serializeLiteral", () => {
   it("writes the form a JS author would write, and reads it back", () => {
     const value: LiteralValue = [
-      { field: "type", title: "Type d'acteur", icon: "lucide:users" },
+      { field: "type", title: "Type de structure", icon: "lucide:users" },
       { field: "commune" },
     ];
     const written = serializeLiteral(value);
     expect(written).toBe(
-      '[{ field: "type", title: "Type d\'acteur", icon: "lucide:users" }, { field: "commune" }]'
+      '[{ field: "type", title: "Type de structure", icon: "lucide:users" }, { field: "commune" }]'
     );
     expect(parseLiteral(written)).toEqual({ value });
   });

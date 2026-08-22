@@ -5,22 +5,36 @@ import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/lib/component-descriptors";
 import { deleteFile } from "@/lib/files";
 import { restoredEntryValues } from "@/lib/entry-title";
-import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
+import {
+  type FormDescriptor,
+  parseFormDescriptor,
+  readEntryData,
+} from "@/lib/form-descriptor";
 import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/lib/mdx";
 import { type PageWarning, lintPageSource } from "@/lib/page-lint";
-import { prisma } from "@/lib/prisma";
-import { isValidSlug } from "@/lib/slug";
-import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import {
-  type SlugReferenceImpact,
-  countSlugReferenceImpact,
-  sweepSlugReferences,
-} from "@/lib/slug-rename-db";
+  personPermissions,
+  countPageSlugReferences,
+  deletePageById,
+  getPage,
+  getRevisionToRestore,
+  hasForm,
+  isRefused,
+  listAllPageSlugs,
+  renamePageSlug,
+  writePageContent,
+  writeRestoredRevision,
+} from "@/lib/pages";
+import {
+  ACCESS_DENIED,
+  ADDRESS_REFUSED,
+  refusalMessage,
+} from "@/lib/permissions";
+import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
+import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
+import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
-
-// MVP: no auth, everyone is "Anonyme" (see docs/architecture.md).
-const AUTHOR = "Anonyme";
 
 export type ActionError = { error: string };
 export type SaveResult = ActionError | { unchanged: true } | { saved: true };
@@ -35,12 +49,12 @@ export async function lintPage(
   content: string,
   slug?: string
 ): Promise<PageWarning[]> {
-  const [registry, builders, pages] = await Promise.all([
+  const [registry, builders, slugs] = await Promise.all([
     listWikiComponentNames(),
     loadComponentBuilders(),
-    prisma.page.findMany({ select: { slug: true } }),
+    listAllPageSlugs(),
   ]);
-  const existingSlugs = new Set(pages.map((page) => page.slug));
+  const existingSlugs = new Set(slugs);
   // A page may link to itself before its first save.
   if (slug) existingSlugs.add(slug);
   return lintPageSource(content, registry, builders, existingSlugs);
@@ -48,10 +62,6 @@ export async function lintPage(
 
 function normalizeTags(tags: string[]): string[] {
   return [...new Set(tags.map((tag) => tag.trim()).filter(Boolean))];
-}
-
-function sameTags(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((tag, index) => tag === b[index]);
 }
 
 export async function savePage(input: {
@@ -63,36 +73,22 @@ export async function savePage(input: {
   if (!isValidSlug(slug)) {
     return { error: `Slug invalide : «\u00A0${slug}\u00A0»` };
   }
+  // A page named after the reserved segment would be written and never open
+  // (ADR 0028): the route answers first, whatever the database holds.
+  const reserved = reservedSlugRefusal(slug);
+  if (reserved) return { error: reserved };
   const tags = normalizeTags(input.tags);
 
-  const existing = await prisma.page.findUnique({
-    where: { slug },
-    include: { current: true },
-  });
-
-  // Saving identical content must not grow the history (revisions are the
-  // content's history, ADR 0003). Nothing changed at all: tell the caller.
-  // Tags-only change: update the page — tags live outside revisions
-  // (ADR 0007), so none is minted.
-  if (existing && existing.current?.content === content) {
-    if (sameTags(existing.tags, tags)) {
-      return { unchanged: true };
-    }
-    await prisma.page.update({ where: { id: existing.id }, data: { tags } });
-  } else {
-    await prisma.$transaction(async (tx) => {
-      const page =
-        existing ?? (await tx.page.create({ data: { slug, ownerName: AUTHOR } }));
-
-      const revision = await tx.revision.create({
-        data: { pageId: page.id, content, authorName: AUTHOR },
-      });
-      await tx.page.update({
-        where: { id: page.id },
-        data: { currentRevisionId: revision.id, tags },
-      });
-    });
+  // The editor refuses long before this, so reaching it means the right went
+  // away between opening the page and saving it — a refusal to report, not an
+  // error boundary to fall into.
+  let result: { unchanged: boolean };
+  try {
+    result = await writePageContent({ slug, content, tags });
+  } catch (error) {
+    return { error: refusalMessage(error) };
   }
+  if (result.unchanged) return { unchanged: true };
 
   // Any page can feed the layout (menu, title…), so revalidate the whole tree.
   revalidatePath("/", "layout");
@@ -109,7 +105,7 @@ export async function countSlugReferences(
   slug: string
 ): Promise<SlugReferenceImpact> {
   const referenceProps = pageReferenceProps(await loadComponentBuilders());
-  return countSlugReferenceImpact(prisma, slug, referenceProps, "page");
+  return countPageSlugReferences(slug, referenceProps);
 }
 
 /**
@@ -131,11 +127,20 @@ export async function renamePage(
   if (newSlug === slug) {
     return { error: "La nouvelle adresse est identique à l'actuelle." };
   }
-  const page = await prisma.page.findUnique({ where: { slug } });
+  const reserved = reservedSlugRefusal(newSlug);
+  if (reserved) return { error: reserved };
+  const page = await getPage(slug);
   if (!page) {
     return { error: "Cette page n'existe pas." };
   }
-  if (await prisma.page.findUnique({ where: { slug: newSlug } })) {
+  // Read from the same ladder the bar draws itself from, and read here rather
+  // than from the catch below — which speaks for the rename's own failure, a
+  // unique-constraint race on the new slug. It comes before the clash test
+  // too, that being the one answer which says something about another page.
+  if (!(await personPermissions(page)).address) {
+    return { error: ADDRESS_REFUSED };
+  }
+  if (await getPage(newSlug)) {
     return { error: `L'adresse «\u00A0${newSlug}\u00A0» est déjà utilisée.` };
   }
 
@@ -143,20 +148,7 @@ export async function renamePage(
   const referenceProps = pageReferenceProps(await loadComponentBuilders());
 
   try {
-    // One transaction for the whole retcon: the wiki never observes a state
-    // where the page answers to the new slug but references still say the old.
-    await prisma.$transaction(
-      async (tx) => {
-        await tx.page.update({
-          where: { id: page.id },
-          data: { slug: newSlug },
-        });
-        await sweepSlugReferences(tx, rename, referenceProps, "page");
-      },
-      // A large wiki means many rewrites in one sweep; the default 5s is for
-      // hot-path transactions, this is a rare cold admin action.
-      { timeout: 60_000 }
-    );
+    await renamePageSlug(page.id, rename, referenceProps);
   } catch {
     // Most likely a unique-constraint race on the new slug.
     return {
@@ -172,13 +164,20 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   if (specialSlugs.includes(slug)) {
     return { error: "Les pages spéciales ne peuvent pas être supprimées." };
   }
-  const page = await prisma.page.findUnique({ where: { slug } });
+  const page = await getPage(slug);
   if (!page) {
     return { error: "Cette page n'existe pas." };
   }
 
-  // Hard delete (ADR 0008): revisions go with the page via onDelete: Cascade.
-  await prisma.page.delete({ where: { id: page.id } });
+  // The bar leaves the action out for anyone but the owner and the
+  // administrators, so reaching this means the page changed hands — or a
+  // direct call — and the refusal belongs in a toast, not on the error
+  // boundary.
+  try {
+    await deletePageById(page.id);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
 
   revalidatePath("/", "layout");
   // Server-action redirects bypass next.config redirects(): aim straight at
@@ -207,16 +206,27 @@ export async function discardUploadedFile(name: string): Promise<void> {
 function restoredEntryData(
   schema: unknown,
   data: Prisma.JsonValue | null
-): { data: Prisma.InputJsonValue | undefined; titleKept: boolean } {
-  if (data === null) return { data: undefined, titleKept: false }; // MDX page
-  const descriptor = schema ? parseFormDescriptor(schema).descriptor : null;
+): {
+  data: Prisma.InputJsonValue | undefined;
+  titleKept: boolean;
+  descriptor: FormDescriptor | null;
+} {
+  if (data === null) {
+    return { data: undefined, titleKept: false, descriptor: null }; // MDX page
+  }
+  const descriptor = schema ? parseFormDescriptor(schema).descriptor ?? null : null;
   if (!descriptor) {
-    return { data: data as Prisma.InputJsonValue, titleKept: false };
+    return {
+      data: data as Prisma.InputJsonValue,
+      titleKept: false,
+      descriptor: null,
+    };
   }
   const restored = restoredEntryValues(descriptor, readEntryData(data));
   return {
     data: restored.values as Prisma.InputJsonValue,
     titleKept: restored.titleKept,
+    descriptor,
   };
 }
 
@@ -232,34 +242,32 @@ export type RestoreResult =
 export async function restoreRevision(
   revisionId: string
 ): Promise<RestoreResult> {
-  const source = await prisma.revision.findUnique({
-    where: { id: revisionId },
-    include: { page: { include: { form: true } } },
-  });
+  const source = await getRevisionToRestore(revisionId);
   if (!source) {
     return { error: "Révision introuvable." };
   }
+  if (isRefused(source)) {
+    return { error: ACCESS_DENIED };
+  }
 
-  // A restore is a NEW revision labeled with its origin (ADR 0003/0009):
-  // history stays append-only, nothing is rewound. Copying both snapshot
-  // columns preserves the content-xor-data invariant (ADR 0014) for MDX
-  // pages and entries alike.
-  const restored = restoredEntryData(source.page.form?.schema, source.data);
-  await prisma.$transaction(async (tx) => {
-    const revision = await tx.revision.create({
-      data: {
-        pageId: source.pageId,
-        content: source.content,
-        data: restored.data ?? undefined,
-        authorName: AUTHOR,
-        restoredFromId: source.id,
-      },
+  const restored = restoredEntryData(
+    hasForm(source.page) ? source.page.form.schema : undefined,
+    source.data
+  );
+  // Restoring is a write (docs/permissions.md § Quel droit commande quelle
+  // action): the history stays readable to whoever may read the page, and the
+  // button that puts a revision back is offered to whoever may write it.
+  try {
+    await writeRestoredRevision({
+      pageId: source.pageId,
+      content: source.content,
+      data: restored.data ?? undefined,
+      restoredFromId: source.id,
+      descriptor: restored.descriptor,
     });
-    await tx.page.update({
-      where: { id: source.pageId },
-      data: { currentRevisionId: revision.id },
-    });
-  });
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
 
   revalidatePath("/", "layout");
   return { slug: source.page.slug, titleKept: restored.titleKept };

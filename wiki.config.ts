@@ -1,9 +1,18 @@
 // Typed config module (ADR 0004): nothing here is hot-editable in the MVP.
 // Operator-facing settings move to a `Settings` table once auth/admin lands.
 
+import type { AccessRule } from "@/lib/permissions";
+
 export interface WikiConfig {
   /** Target of the `/` redirect. */
   homeSlug: string;
+  /**
+   * Free sign-up, closed by default (docs/permissions.md § Naissance d'un
+   * compte): accounts are born of an invitation, and a wiki nobody has to
+   * moderate is not the common case. Opened here, a « Créer un compte »
+   * appears beside the sign-in form and the sign-up endpoint answers again.
+   */
+  openSignUp: boolean;
   /** Special pages whose content feeds the site layout. */
   layoutPages: {
     title: string;
@@ -12,8 +21,45 @@ export interface WikiConfig {
     header: string;
     footer: string;
   };
+  /**
+   * Special pages hosting an account screen (ADR 0028). Every screen of the
+   * wiki is a page, signing in included: these slugs are named here because
+   * the chrome and the mails have to link to them.
+   */
+  authPages: {
+    signIn: string;
+    signUp: string;
+    forgotPassword: string;
+    invitation: string;
+  };
   /** Special pages that feed no layout slot but are still reserved. */
   otherSpecialPages: string[];
+  /**
+   * The wiki's own rights (docs/permissions.md § Où s'appliquent les droits):
+   * who may create a page and a form, and what a page is born with. This file
+   * is the only place a human writes rights by hand, and the only one where no
+   * cascade can play — it names usernames and group slugs all the same, so
+   * that what it writes reads like what a screen shows (ADR 0024).
+   *
+   * The defaults are *copied* at creation, never linked (ADR 0026): changing
+   * one here touches nothing that already exists.
+   */
+  permissions: {
+    createPage: AccessRule;
+    /**
+     * Writing a page engages a page; creating a form engages a class of
+     * content — it shapes every fiche written with it, is named across the
+     * wiki, and its deletion takes its fiches along (ADR 0014). Hence a right
+     * of its own rather than a reading of createPage.
+     *
+     * A policy, not an invariant, so it is a rule and not a constant: unlike
+     * @Admins — which must never be empty, whatever anyone configures — who
+     * builds the forms is a matter of how a wiki is run, and it varies.
+     */
+    createForm: AccessRule;
+    defaultPageRead: AccessRule;
+    defaultPageWrite: AccessRule;
+  };
   icons: {
     /**
      * Embedded Iconify sets offered by the icon picker. Each name needs its
@@ -42,6 +88,7 @@ export interface WikiConfig {
 
 export const wikiConfig = {
   homeSlug: "page-principale",
+  openSignUp: false,
   layoutPages: {
     title: "page-titre",
     topMenu: "page-menu-haut",
@@ -49,8 +96,33 @@ export const wikiConfig = {
     header: "page-header",
     footer: "page-footer",
   },
-  // formulaires/fiches host the form-administration screens (ADR 0014).
-  otherSpecialPages: ["aide-memoire", "formulaires", "fiches"],
+  authPages: {
+    signIn: "connexion",
+    signUp: "inscription",
+    forgotPassword: "mot-de-passe-oublie",
+    invitation: "invitation",
+  },
+  // formulaires/fiches host the form-administration screens (ADR 0014),
+  // gerer-utilisateurs the accounts and groups ones and gerer-pages the rights
+  // of the whole wiki (docs/permissions.md).
+  otherSpecialPages: [
+    "aide-memoire",
+    "formulaires",
+    "fiches",
+    "gerer-utilisateurs",
+    "gerer-pages",
+  ],
+  // « Seulement » with an empty list reads as « son propriétaire et les
+  // administrateurs » — the shape a wiki where each author looks after what
+  // they wrote takes, and the one to widen first when it should be otherwise.
+  // On createForm, which is posed on the wiki and not on a subject, there is
+  // no owner to read: an empty list there means the administrators alone.
+  permissions: {
+    createPage: { scope: "authenticated" },
+    createForm: { scope: "restricted" },
+    defaultPageRead: { scope: "everyone" },
+    defaultPageWrite: { scope: "restricted" },
+  },
   icons: {
     sets: ["lucide"],
   },
@@ -82,5 +154,11 @@ export const wikiConfig = {
 export const specialSlugs: readonly string[] = [
   wikiConfig.homeSlug,
   ...Object.values(wikiConfig.layoutPages),
+  ...Object.values(wikiConfig.authPages),
   ...wikiConfig.otherSpecialPages,
 ];
+
+/** The wiki page an account screen lives on, as a link (`/connexion`). */
+export function authPagePath(page: keyof WikiConfig["authPages"]): string {
+  return `/${wikiConfig.authPages[page]}`;
+}

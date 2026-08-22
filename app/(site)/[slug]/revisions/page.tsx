@@ -3,19 +3,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EntryView } from "@/components/forms/entry-view";
+import { AccessRefused } from "@/components/page/access-refused";
 import { Prose } from "@/components/page/prose";
 import { CodeToggle } from "@/components/revisions/code-toggle";
 import { DiffView } from "@/components/revisions/diff-view";
 import { RestoreButton } from "@/components/revisions/restore-button";
 import { RevisionTimeline } from "@/components/revisions/timeline";
 import { Button } from "@/components/ui/button";
-import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
+import { readableForm } from "@/lib/field-rights-db";
 import { formatDateTime } from "@/lib/format";
+import { getFormById } from "@/lib/forms";
 import { renderMdx } from "@/lib/mdx";
-import { getPageWithRevisions } from "@/lib/pages";
-import { prisma } from "@/lib/prisma";
+import {
+  personCanWrite,
+  getPageWithRevisions,
+  isEntryPage,
+  isRefused,
+} from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { displayName } from "@/lib/username";
 
 export const dynamic = "force-dynamic";
 
@@ -49,25 +56,35 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   }
 
   const page = await getPageWithRevisions(slug);
-  if (!page || page.revisions.length === 0) {
+  if (!page) redirect(`/${slug}`);
+  // The history is a read action, so a refusal lands on the same screen the
+  // page itself would have shown — reached from its own address.
+  if (isRefused(page)) {
+    return <AccessRefused slug={slug} ownerName={page.ownerName} />;
+  }
+  if (page.revisions.length === 0) {
     redirect(`/${slug}`);
   }
 
   const query = await searchParams;
   const revisions = page.revisions; // oldest first
+  // Reading the history is a read action, putting a revision back is a write
+  // (docs/permissions.md § Quel droit commande quelle action): whoever may only
+  // read gets the whole screen, minus the button.
+  const writable = await personCanWrite(page);
 
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the
   // entry's default view (below).
-  const form = page.formId
-    ? await prisma.form.findUnique({ where: { id: page.formId } })
-    : null;
-  const entryDescriptor = form
-    ? parseFormDescriptor(form.schema).descriptor ?? null
-    : null;
+  const form = isEntryPage(page) ? await getFormById(page.formId) : null;
+  // The history is another way of reading a fiche, so the fields cut from its
+  // rendering are cut from every revision of it too (docs/permissions.md §
+  // Champ) — the JSON of a snapshot would otherwise hand over what the fiche
+  // itself withholds.
+  const seen = form ? await readableForm(form.schema) : null;
   const sourceOf = (revision: { content: string | null; data: unknown }) =>
-    entryDescriptor
-      ? JSON.stringify(readEntryData(revision.data), null, 2)
+    seen
+      ? JSON.stringify(seen.readableValues(revision.data), null, 2)
       : revision.content ?? "";
   const current =
     revisions.find((revision) => revision.id === page.currentRevisionId) ??
@@ -109,7 +126,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
         revisions={revisions.map((revision) => ({
           id: revision.id,
           createdAt: revision.createdAt,
-          authorName: revision.authorName,
+          authorName: displayName(revision.author),
           isCurrent: revision.id === current.id,
           isRestore: revision.restoredFromId !== null,
         }))}
@@ -121,7 +138,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
           <strong className="font-medium">
             {formatDateTime(selected.createdAt)}
           </strong>{" "}
-          par {selected.authorName ?? "Anonyme"}
+          par {displayName(selected.author)}
         </span>
         {selected.restoredFrom && (
           <span className="text-muted-foreground">
@@ -130,7 +147,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
           </span>
         )}
         <div className="ml-auto">
-          {selected.id !== current.id && (
+          {writable && selected.id !== current.id && (
             <RestoreButton revisionId={selected.id} />
           )}
         </div>
@@ -165,10 +182,10 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
             </pre>
           ) : (
             <article>
-              {entryDescriptor ? (
+              {seen ? (
                 <EntryView
-                  descriptor={entryDescriptor}
-                  data={readEntryData(selected.data)}
+                  descriptor={seen.readable}
+                  data={seen.readableValues(selected.data)}
                   linkTitles={{}}
                 />
               ) : (

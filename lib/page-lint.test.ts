@@ -145,7 +145,7 @@ describe("what would silently do nothing", () => {
   });
 });
 
-// Writing a link before creating its page is a wiki gesture, not a mistake:
+// Writing a link before creating its page is a wiki action, not a mistake:
 // the signal informs, the phrasing says "(encore)", and saving stays possible.
 describe("a link whose target page does not exist", () => {
   it("flags a wiki link to a missing page", () => {

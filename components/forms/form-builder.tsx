@@ -2,8 +2,9 @@
 
 // The FormBuilder (docs/forms.md, ADR 0014): builds a form's JSON descriptor
 // — palette of field types, a sortable canvas, a per-field settings panel,
-// and a template tab. The header name derives the form slug (fixed identity).
-// Saving validates through the shared engine (lib/form-descriptor) server-side.
+// a template tab and a rights tab. The header name derives the form slug
+// (fixed identity). Saving validates through the shared engine
+// (lib/form-descriptor) server-side.
 
 import {
   DndContext,
@@ -20,18 +21,43 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Loader2, Pencil, Plus, Save, Trash2 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import {
+  GripVertical,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   type FormDetail,
   type SaveFormResult,
+  applyEntryDefaults,
+  countEntryDefaults,
   countFormReferences,
   countTitleImpact,
   renameForm,
   saveForm,
 } from "@/app/form-actions";
+import { NO_FLOOR } from "@/components/fields/acl-input";
+import { Field } from "@/components/fields/field-widget";
+import { InfoNote } from "@/components/ui/info-note";
 import type { TitleRecomputeImpact } from "@/lib/entry-title-db";
+import {
+  type EntryRightsImpact,
+  type FormPermissions,
+  appliesNothing,
+  bornFormPermissions,
+  entryRightsNote,
+} from "@/lib/form-rights";
+import {
+  type AccessRule,
+  type AclDirectory,
+  FORM_EDIT_REFUSED,
+} from "@/lib/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -88,6 +114,14 @@ export type CanvasField = FormField & {
 let nextId = 0;
 const freshId = () => `field-${nextId++}`;
 
+/**
+ * Which button asked for a save. The title-recompute confirmation sits
+ * between the click and the write (ADR 0020), so what resumes on the other
+ * side of it has to be remembered — applying the defaults saves too, and must
+ * not come back as a plain save.
+ */
+type SaveIntent = "save" | "apply";
+
 // The default title field present in every new form (docs/forms.md). The
 // palette names the type explicitly ("Titre de la fiche"); the label stored
 // here is what an author fills in and a reader sees, where "Titre" suffices.
@@ -118,7 +152,10 @@ function toCanvas(descriptor: FormDescriptor): CanvasField[] {
 }
 
 // Strips the builder-only bookkeeping back to a plain descriptor for saving.
-function toDescriptor(fields: CanvasField[]): FormDescriptor {
+function toDescriptor(
+  fields: CanvasField[],
+  permissions: FormPermissions
+): FormDescriptor {
   return {
     fields: fields.map(({ _id, nameCustomized, persistedName, ...field }) => {
       void _id;
@@ -126,12 +163,14 @@ function toDescriptor(fields: CanvasField[]): FormDescriptor {
       void persistedName;
       return field;
     }),
+    permissions,
   };
 }
 
 export function FormBuilder({
   initial,
   forms,
+  directory,
   onSaved,
   onRenamed,
 }: {
@@ -139,11 +178,14 @@ export function FormBuilder({
   initial: FormDetail | null;
   /** Other forms, for the form-list and options-source pickers. */
   forms: { slug: string; name: string }[];
+  /** Who the « Accès » tab's lists may name. */
+  directory: AclDirectory;
   onSaved: (slug: string) => void;
   /** Called after « Changer l'identifiant », so the parent fixes its URL. */
   onRenamed?: (slug: string) => void;
 }) {
   const isNew = initial === null;
+  const canEdit = initial?.canEdit ?? true;
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugCustomized, setSlugCustomized] = useState(false);
@@ -154,10 +196,20 @@ export function FormBuilder({
     fields[0]?._id ?? null
   );
   const [template, setTemplate] = useState(initial?.template ?? "");
+  // A new form is born with the wiki's own three rules, copied (ADR 0026):
+  // the tab opens on them, and saving writes the copy.
+  const [permissions, setPermissions] = useState<FormPermissions>(
+    initial?.permissions ?? bornFormPermissions()
+  );
   /** Pending title recompute awaiting confirmation (ADR 0020). */
   const [titleImpact, setTitleImpact] = useState<TitleRecomputeImpact | null>(
     null
   );
+  /** Which save that confirmation is holding up, so it resumes the right one. */
+  const [titleIntent, setTitleIntent] = useState<SaveIntent>("save");
+  /** Pending « Appliquer ces accès… » awaiting confirmation. */
+  const [defaultsImpact, setDefaultsImpact] =
+    useState<EntryRightsImpact | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -246,7 +298,8 @@ export function FormBuilder({
     setTemplate((current) => renameFieldReferences(current, mapping) ?? current);
   }
 
-  async function persist() {
+  /** Saves, and says whether it went through — the callers that follow it care. */
+  async function persistOnly(): Promise<boolean> {
     // The staged renames (ADR 0017): every persisted field whose identifier
     // moved since load feeds the server's data-key retcon.
     const renames = fields.flatMap((field) =>
@@ -257,17 +310,22 @@ export function FormBuilder({
     const result: SaveFormResult = await saveForm({
       slug,
       name,
-      schema: toDescriptor(fields),
+      schema: toDescriptor(fields, permissions),
       template,
       isNew,
       renames,
     });
-    if (result.ok) {
-      toast.success("Formulaire enregistré.");
-      onSaved(slug);
-    } else {
+    if (!result.ok) {
       reportIssues(result.issues);
+      return false;
     }
+    return true;
+  }
+
+  async function persist() {
+    if (!(await persistOnly())) return;
+    toast.success("Formulaire enregistré.");
+    onSaved(slug);
   }
 
   function reportIssues(issues: FormDescriptorIssue[]) {
@@ -279,32 +337,87 @@ export function FormBuilder({
     }
   }
 
+  /** Saves, then rewrites the rights of the form's fiches from its defaults. */
+  async function persistAndApply() {
+    if (!(await persistOnly())) return;
+    const result = await applyEntryDefaults(slug, permissions);
+    if (result) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Formulaire enregistré, accès appliqués aux fiches.");
+    onSaved(slug);
+  }
+
+  /**
+   * What every save waits on, whichever button asked for it: an unfinished
+   * form, then a title recompute the admin has to accept. False means
+   * something stopped it — either reported, or now sitting behind a modal
+   * that will resume it, which is why the intent travels with the count.
+   */
+  async function clearedToSave(intent: SaveIntent): Promise<boolean> {
+    const descriptor = toDescriptor(fields, permissions);
+    // Refuse an unfinished form before anything else. The title-recompute
+    // confirmation below would otherwise announce entries being rewritten
+    // by a save the server is about to turn down — and it is a modal, so
+    // the refusal would arrive only after the admin had accepted it. Same
+    // engine as saveForm's own verdict (ADR 0015); the server still owns
+    // the decision, this only spares a confirmation that leads nowhere.
+    const issues = formAuthoringIssues(descriptor);
+    if (issues.length > 0) {
+      reportIssues(issues);
+      return false;
+    }
+    // Changing the automatic title's template — or switching it on —
+    // rewrites the stored title of every entry (ADR 0020). The server
+    // owns the detection and returns null when this save leaves the
+    // titles alone; otherwise the admin sees the count first.
+    if (!isNew) {
+      const impact = await countTitleImpact(slug, descriptor);
+      if (impact && impact.updated + impact.skipped > 0) {
+        setTitleIntent(intent);
+        setTitleImpact(impact);
+        return false;
+      }
+    }
+    return true;
+  }
+
   function save() {
     startTransition(async () => {
-      const descriptor = toDescriptor(fields);
-      // Refuse an unfinished form before anything else. The title-recompute
-      // confirmation below would otherwise announce entries being rewritten
-      // by a save the server is about to turn down — and it is a modal, so
-      // the refusal would arrive only after the admin had accepted it. Same
-      // engine as saveForm's own verdict (ADR 0015); the server still owns
-      // the decision, this only spares a confirmation that leads nowhere.
-      const issues = formAuthoringIssues(descriptor);
-      if (issues.length > 0) {
-        reportIssues(issues);
+      if (await clearedToSave("save")) await persist();
+    });
+  }
+
+  /**
+   * Applying the defaults to the fiches already there (docs/permissions.md §
+   * Défauts): the one path from the defaults to what already exists. It counts
+   * against the rules the tab shows rather than those in base — the action
+   * saves the form on its way, so what the confirmation announces is what it is
+   * about to hold, and the two cannot disagree.
+   */
+  function askToApply() {
+    startTransition(async () => {
+      const counted = await countEntryDefaults(slug, permissions);
+      if ("error" in counted) {
+        toast.error(counted.error);
         return;
       }
-      // Changing the automatic title's template — or switching it on —
-      // rewrites the stored title of every entry (ADR 0020). The server
-      // owns the detection and returns null when this save leaves the
-      // titles alone; otherwise the admin sees the count first.
-      if (!isNew) {
-        const impact = await countTitleImpact(slug, descriptor);
-        if (impact && impact.updated + impact.skipped > 0) {
-          setTitleImpact(impact);
-          return;
-        }
+      if (counted.impact === null) {
+        toast.error("Ce formulaire n'existe plus.");
+        return;
       }
-      await persist();
+      setDefaultsImpact(counted.impact);
+    });
+  }
+
+  // Accepted the numbers: the save the action drags along still passes the
+  // checks a plain save does, so a gabarit changed in the same sitting cannot
+  // rewrite every title on the quiet.
+  function applyDefaults() {
+    setDefaultsImpact(null);
+    startTransition(async () => {
+      if (await clearedToSave("apply")) await persistAndApply();
     });
   }
 
@@ -326,13 +439,21 @@ export function FormBuilder({
               onChange={(event) => onNameChange(event.target.value)}
             />
           </div>
-          <Button onClick={save} disabled={isPending}>
-            {isPending ? <Loader2 className="animate-spin" /> : <Save />}
-            Enregistrer
-          </Button>
+          {/* Editing a form's definition is its owner's or an administrator's
+              (docs/permissions.md): what the person cannot do is left out of
+              the header rather than greyed out, and the note says why. */}
+          {canEdit ? (
+            <Button onClick={save} disabled={isPending}>
+              {isPending ? <Loader2 className="animate-spin" /> : <Save />}
+              Enregistrer
+            </Button>
+          ) : (
+            <InfoNote className="max-w-80">{FORM_EDIT_REFUSED}</InfoNote>
+          )}
         </div>
         <FormIdentity
           isNew={isNew}
+          canEdit={canEdit}
           slug={slug}
           onChange={onSlugChange}
           onBlur={onSlugBlur}
@@ -344,6 +465,7 @@ export function FormBuilder({
         <TabsList>
           <TabsTrigger value="fields">Champs</TabsTrigger>
           <TabsTrigger value="template">Gabarit</TabsTrigger>
+          <TabsTrigger value="rights">Accès</TabsTrigger>
         </TabsList>
 
         <TabsContent value="fields">
@@ -388,6 +510,14 @@ export function FormBuilder({
                   otherFields={fields.filter((f) => f._id !== selected._id)}
                   forms={otherForms}
                   formSlug={initial?.slug ?? null}
+                  directory={directory}
+                  // Live, from the « Accès » tab: narrowing what a fiche
+                  // shows narrows what its fields may be opened to, in the
+                  // same sitting and without a save in between.
+                  entryDefaults={{
+                    read: permissions.defaultEntryRead,
+                    write: permissions.defaultEntryWrite,
+                  }}
                   referenceCounts={countFieldReferenceUses(
                     fields,
                     template,
@@ -412,6 +542,19 @@ export function FormBuilder({
             onChange={setTemplate}
           />
         </TabsContent>
+
+        <TabsContent value="rights">
+          <RightsEditor
+            permissions={permissions}
+            directory={directory}
+            // No fiche exists yet to apply anything to, and the form itself
+            // is not in base: the button appears once there is something for
+            // it to reach.
+            onApply={isNew || !canEdit ? undefined : askToApply}
+            applying={isPending}
+            onChange={setPermissions}
+          />
+        </TabsContent>
       </Tabs>
 
       <AlertDialog
@@ -433,8 +576,10 @@ export function FormBuilder({
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
+                const resume =
+                  titleIntent === "apply" ? persistAndApply : persist;
                 setTitleImpact(null);
-                startTransition(persist);
+                startTransition(resume);
               }}
             >
               Enregistrer et recalculer
@@ -442,6 +587,160 @@ export function FormBuilder({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={defaultsImpact !== null}
+        onOpenChange={(open) => !open && setDefaultsImpact(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Appliquer ces accès aux fiches existantes ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {defaultsImpact && (
+                <ImpactSentences {...entryRightsNote(defaultsImpact)} />
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            {/* The button reads the same count the sentences do: it stays out
+                of reach rather than reporting a success over fiches it would
+                not have touched. */}
+            <AlertDialogAction
+              disabled={
+                defaultsImpact !== null && appliesNothing(defaultsImpact)
+              }
+              onClick={applyDefaults}
+            >
+              Enregistrer et appliquer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+/** What the count announces: the headline, then what it sets aside. */
+function ImpactSentences({
+  headline,
+  lines,
+}: {
+  headline: string;
+  lines: string[];
+}) {
+  return (
+    <>
+      {headline}
+      {lines.map((line) => (
+        <Fragment key={line}>
+          <br />
+          {line}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
+/**
+ * The « Accès » tab (docs/permissions.md § Formulaire : trois réglages, pas
+ * deux). Three settings and not two: creating a fiche and modifying one
+ * already there are distinct rights, and confusing them would break « chacun
+ * propose un événement, chacun ne modifie que le sien ».
+ *
+ * A tab rather than a strip at the foot of the canvas, which is the target of
+ * the drag & drop.
+ */
+function RightsEditor({
+  permissions,
+  directory,
+  onApply,
+  applying,
+  onChange,
+}: {
+  permissions: FormPermissions;
+  directory: AclDirectory;
+  /** Absent on a new form, and on one the person may not save. */
+  onApply?: () => void;
+  applying: boolean;
+  onChange: (permissions: FormPermissions) => void;
+}) {
+  function set(patch: Partial<FormPermissions>) {
+    onChange({ ...permissions, ...patch });
+  }
+
+  // Two boxes rather than one with two rules inside it. A rule separates
+  // peers, so a card holding the creation rule, the defaults and the action
+  // made three of them — and the action, sitting under the last rule, could
+  // be read as applying the first. What contains a thing says what it belongs
+  // to more surely than what it sits next to, so each subject gets its own
+  // frame and the action is inside the one whose title names what it applies.
+  return (
+    // Tighter between the frames than inside them: their padding already sets
+    // them apart, so an equal gap on top of it read as a hole.
+    <div className="grid max-w-2xl gap-2">
+      <div className="rounded-lg border p-4">
+        <Field
+          id="form-create-acl"
+          spec={{ type: "acl", label: "Qui peut créer une fiche ?" }}
+          value={permissions.createEntry}
+          environment={{ directory, aclFloor: NO_FLOOR }}
+          onChange={(value) => set({ createEntry: value as AccessRule })}
+        />
+      </div>
+
+      <div className="grid gap-4 rounded-lg border p-4">
+        <div>
+          <p className="text-sm font-medium">
+            Accès par défaut d&apos;une fiche
+          </p>
+          <InfoNote className="mt-1">
+            Appliqué uniquement à la création d&apos;une fiche. Les fiches
+            existantes ne sont pas modifiées.
+          </InfoNote>
+        </div>
+        <Field
+          id="form-read-acl"
+          spec={{ type: "acl", label: "Qui peut la voir ?" }}
+          value={permissions.defaultEntryRead}
+          environment={{ directory, aclFloor: NO_FLOOR }}
+          onChange={(value) => set({ defaultEntryRead: value as AccessRule })}
+        />
+        <Field
+          id="form-write-acl"
+          spec={{ type: "acl", label: "Qui peut la modifier ?" }}
+          value={permissions.defaultEntryWrite}
+          environment={{ directory, aclFloor: NO_FLOOR }}
+          onChange={(value) => set({ defaultEntryWrite: value as AccessRule })}
+        />
+        {/* Behind a separator, and deliberately: the two settings above are
+            saved by « Enregistrer » like anything else, and an action glued
+            to them would suggest they only take effect through it. Inside the
+            box now, so the rule separates without detaching. */}
+        {onApply && (
+          <div className="flex flex-wrap items-center gap-3 border-t pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={applying}
+              onClick={onApply}
+            >
+              {applying ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <ShieldCheck />
+              )}
+              Appliquer aux fiches existantes
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Applique les accès par défaut à toutes les fiches existantes. Le
+              nombre de fiches concernées est affiché avant confirmation.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -566,12 +865,15 @@ function CanvasRow({
 // and only « Changer » can move it (the ADR 0016 retcon dialog).
 function FormIdentity({
   isNew,
+  canEdit,
   slug,
   onChange,
   onBlur,
   onRenamed,
 }: {
   isNew: boolean;
+  /** Owner or administrator: « Changer » is theirs alone, like the save. */
+  canEdit: boolean;
   slug: string;
   onChange: (slug: string) => void;
   /** Leaving the input empty re-derives the slug from the name. */
@@ -585,29 +887,31 @@ function FormIdentity({
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
           {slug}
         </code>
-        <RenameSlugDialog
-          trigger={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-7 gap-1 px-2 text-xs"
-            >
-              <Pencil className="size-3.5" />
-              Changer
-            </Button>
-          }
-          title="Changer l'identifiant du formulaire"
-          currentLabel="Identifiant actuel"
-          current={slug}
-          inputLabel="Nouvel identifiant"
-          confirmLabel="Changer l'identifiant"
-          searchingText="Recherche des utilisations de cet identifiant…"
-          impactSentence={formImpactSentence}
-          fetchImpact={() => countFormReferences(slug)}
-          rename={(newSlug) => renameForm(slug, newSlug)}
-          onRenamed={onRenamed}
-        />
+        {canEdit && (
+          <RenameSlugDialog
+            trigger={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1 px-2 text-xs"
+              >
+                <Pencil className="size-3.5" />
+                Changer
+              </Button>
+            }
+            title="Changer l'identifiant du formulaire"
+            currentLabel="Identifiant actuel"
+            current={slug}
+            inputLabel="Nouvel identifiant"
+            confirmLabel="Changer l'identifiant"
+            searchingText="Recherche des utilisations de cet identifiant…"
+            impactSentence={formImpactSentence}
+            fetchImpact={() => countFormReferences(slug)}
+            rename={(newSlug) => renameForm(slug, newSlug)}
+            onRenamed={onRenamed}
+          />
+        )}
       </div>
     );
   }

@@ -1,0 +1,344 @@
+"use client";
+
+// The action by lot on the rights (docs/permissions.md § gerer-pages): two
+// intentions in one modal, each keeping its description whether it is selected
+// or not — what the other one would do is exactly what one needs to read
+// before choosing. « Donner accès » is preselected: of the two, it is the one
+// that destroys nothing.
+//
+// The count carries the explanation, and it is what makes the action
+// understandable: on a page already open to everyone, the named group has
+// access and there is nothing to add — said, rather than promised as a change.
+
+import { UsersRound } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
+import {
+  describeGrantTarget,
+  giveAccess,
+  replaceRights,
+} from "@/app/pages-admin-actions";
+import { AclInput, NO_FLOOR, PrincipalBox } from "@/components/fields/acl-input";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { InfoNote } from "@/components/ui/info-note";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  type BulkIntent,
+  type GrantTarget,
+  type RightsReplacement,
+  BULK_INTENTS,
+  grantAddsNothing,
+  grantNote,
+  grantTally,
+  lotSelected,
+  lotSubject,
+  nothingToReplace,
+  replacementNote,
+} from "@/lib/bulk-rights";
+import { type MemberRef, refGroupSlug, refUsername } from "@/lib/groups";
+import type { ManagedPage } from "@/lib/pages";
+import {
+  type AccessRule,
+  type AclDirectory,
+  type PermKind,
+  type PrincipalList,
+  PERM_KINDS,
+} from "@/lib/permissions";
+
+const NOBODY: PrincipalList = { usernames: [], groupSlugs: [] };
+const EMPTY_GRANT: Record<PermKind, PrincipalList> = {
+  READ: NOBODY,
+  WRITE: NOBODY,
+};
+
+/** The rule a sense falls back on the moment it stops being « Ne pas changer ». */
+const FIRST_RULE: AccessRule = { scope: "restricted" };
+
+// Under « Donner accès » the field says what it does — an access added to
+// pages — rather than what the wiki would end up holding: the count below it
+// then reads as the continuation of the same sentence.
+const SENSE_LABELS: Record<PermKind, { grant: string; replace: string }> = {
+  READ: {
+    grant: "Ajouter l'accès en lecture",
+    replace: "Qui peut voir ces pages ?",
+  },
+  WRITE: {
+    grant: "Ajouter l'accès en écriture",
+    replace: "Qui peut les modifier ?",
+  },
+};
+
+export function BulkRightsDialog({
+  pages,
+  directory,
+  onApplied,
+}: {
+  pages: ManagedPage[];
+  directory: AclDirectory;
+  /** Called once the lot has been written: the list is stale from here. */
+  onApplied: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [intent, setIntent] = useState<BulkIntent>(BULK_INTENTS[0].value);
+  const [grant, setGrant] = useState(EMPTY_GRANT);
+  const [replacement, setReplacement] = useState<RightsReplacement>({});
+  const [applying, startApplying] = useTransition();
+  const targets = useGrantTargets(grant);
+
+  const subject = lotSubject(pages.length);
+  // Out of reach until the action would write something: naming only people
+  // the lot already lets in is a click that would report a success over pages
+  // it never touched. The button reads what the notes above it announce.
+  const nothingChosen =
+    intent === "grant"
+      ? grantAddsNothing(pages, namedTargets(grant, targets))
+      : nothingToReplace(replacement);
+
+  function reset(next: boolean) {
+    setOpen(next);
+    if (next) return;
+    setIntent(BULK_INTENTS[0].value);
+    setGrant(EMPTY_GRANT);
+    setReplacement({});
+  }
+
+  function apply() {
+    startApplying(async () => {
+      const slugs = pages.map((page) => page.slug);
+      // One call for the two senses: they are one action, and the door
+      // refuses the lot whole rather than leaving half of it written.
+      const refused =
+        intent === "grant"
+          ? await giveAccess(slugs, {
+              READ: refsOf(grant.READ),
+              WRITE: refsOf(grant.WRITE),
+            })
+          : await replaceRights(slugs, replacement);
+      if (refused) {
+        toast.error(refused.error);
+        return;
+      }
+      reset(false);
+      toast.success(
+        intent === "grant"
+          ? `L'accès a été ajouté sur ${subject}.`
+          : `Les droits de ${subject} ont été remplacés.`
+      );
+      onApplied();
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={reset}>
+      <DialogTrigger asChild>
+        {/* Named and dressed like the « Accès » of the action bar: it is the
+            same action, taken on dozens of pages instead of one, and a
+            reader who learnt it on a page must recognise it here. */}
+        <Button type="button" variant="outline" size="sm">
+          <UsersRound />
+          Modifier les accès…
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Modifier les accès</DialogTitle>
+          {/* The lot is in the description rather than in the title: what is
+              about to be touched is the one thing to read twice, and it is
+              worth a count in the sentence rather than a noun in a heading. */}
+          <DialogDescription>
+            Les modifications s&apos;appliqueront {lotSelected(pages.length)}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <RadioGroup
+          value={intent}
+          onValueChange={(value) => setIntent(value as BulkIntent)}
+          className="grid gap-3"
+        >
+          {BULK_INTENTS.map((choice) => (
+            <div key={choice.value} className="flex items-start gap-2">
+              <RadioGroupItem
+                value={choice.value}
+                id={`intent-${choice.value}`}
+                className="mt-1"
+              />
+              <div className="grid gap-0.5">
+                <Label htmlFor={`intent-${choice.value}`} className="font-medium">
+                  {choice.label}
+                </Label>
+                {/* Kept visible unselected: choosing between the two is
+                    choosing between what they do. */}
+                <p className="text-xs text-muted-foreground">
+                  {choice.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </RadioGroup>
+
+        <div className="grid gap-5 border-t pt-4">
+          {PERM_KINDS.map((kind) =>
+            intent === "grant" ? (
+              <div key={kind} className="grid gap-2">
+                <Label>{SENSE_LABELS[kind].grant}</Label>
+                <PrincipalBox
+                  value={grant[kind]}
+                  directory={directory}
+                  onChange={(value) =>
+                    setGrant((current) => ({ ...current, [kind]: value }))
+                  }
+                />
+                {refsOf(grant[kind]).map((ref) => {
+                  const target = targets[keyOf(ref)];
+                  if (!target) return null;
+                  const note = grantNote(
+                    grantTally(pages, kind, target),
+                    kind,
+                    target
+                  );
+                  return (
+                    <InfoNote key={keyOf(ref)}>
+                      {note.headline}
+                      <NoteLines lines={note.lines} />
+                    </InfoNote>
+                  );
+                })}
+              </div>
+            ) : (
+              <div key={kind} className="grid gap-2">
+                <Label>{SENSE_LABELS[kind].replace}</Label>
+                <AclInput
+                  id={`bulk-${kind.toLowerCase()}`}
+                  value={replacement[kind] ?? FIRST_RULE}
+                  directory={directory}
+                  // The lot poses one right for pages whose owners differ, so
+                  // no owner can be shown locked; what the note says of the
+                  // administrators holds for every page of it all the same.
+                  floor={NO_FLOOR}
+                  unposed={{
+                    label: "Ne pas changer",
+                    selected: replacement[kind] === undefined,
+                    onSelect: () => setReplacement((current) => ({ ...current, [kind]: undefined })),
+                  }}
+                  onChange={(rule) =>
+                    setReplacement((current) => ({ ...current, [kind]: rule }))
+                  }
+                />
+              </div>
+            )
+          )}
+        </div>
+
+        {intent === "replace" && <ReplacementNote pages={pages.length} replacement={replacement} />}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => reset(false)}>
+            Annuler
+          </Button>
+          <Button onClick={apply} disabled={nothingChosen || applying}>
+            Appliquer
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * What « Remplacer » is about to cost, sense by sense — including the sense it
+ * leaves alone, which is the half nobody would otherwise be sure of.
+ */
+function ReplacementNote({
+  pages,
+  replacement,
+}: {
+  pages: number;
+  replacement: RightsReplacement;
+}) {
+  const note = replacementNote(pages, replacement);
+  return (
+    <InfoNote>
+      {note.headline}
+      <NoteLines lines={note.lines} />
+    </InfoNote>
+  );
+}
+
+/**
+ * The breakdown under a note's sentence. Spans rather than a list: InfoNote is
+ * a paragraph, and a <ul> inside one is invalid HTML the browser undoes as it
+ * parses — which is a hydration error, not a matter of taste.
+ */
+function NoteLines({ lines }: { lines: string[] }) {
+  return (
+    <span className="mt-1 grid gap-0.5">
+      {lines.map((line) => (
+        <span key={line}>{line}</span>
+      ))}
+    </span>
+  );
+}
+
+/**
+ * Who each sense names, as the counts read them. A principal still being
+ * resolved is absent, so the button waits for it rather than promising an
+ * addition nobody has worked out yet.
+ */
+function namedTargets(
+  grant: Record<PermKind, PrincipalList>,
+  targets: Record<string, GrantTarget>
+): Record<PermKind, GrantTarget[]> {
+  return {
+    READ: refsOf(grant.READ).flatMap((ref) => targets[keyOf(ref)] ?? []),
+    WRITE: refsOf(grant.WRITE).flatMap((ref) => targets[keyOf(ref)] ?? []),
+  };
+}
+
+/** A named principal, as the picker hands it over and the count reads it. */
+function refsOf(list: PrincipalList): MemberRef[] {
+  return [
+    ...list.usernames.map((username) => ({ username })),
+    ...list.groupSlugs.map((groupSlug) => ({ groupSlug })),
+  ];
+}
+
+/** One key per named principal, kept apart so a person and a group may share a name. */
+function keyOf(ref: MemberRef): string {
+  const username = refUsername(ref);
+  return username === null ? `#${refGroupSlug(ref)}` : `@${username}`;
+}
+
+/**
+ * The targets the notes count with, resolved as they are named: which groups
+ * reach a person, and which hold a group, is what « y donne déjà accès »
+ * rests on — and the browser knows nothing of the nesting. Once resolved a
+ * target is kept, so ticking pages recounts without asking again.
+ */
+function useGrantTargets(
+  grant: Record<PermKind, PrincipalList>
+): Record<string, GrantTarget> {
+  const [targets, setTargets] = useState<Record<string, GrantTarget>>({});
+
+  useEffect(() => {
+    const named = [...refsOf(grant.READ), ...refsOf(grant.WRITE)];
+    for (const ref of named) {
+      if (keyOf(ref) in targets) continue;
+      describeGrantTarget(ref).then((target) => {
+        if (!target) return;
+        setTargets((current) => ({ ...current, [keyOf(ref)]: target }));
+      });
+    }
+  }, [grant, targets]);
+
+  return targets;
+}

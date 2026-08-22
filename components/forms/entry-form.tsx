@@ -6,8 +6,9 @@
 // the same schema validates server-side (form-actions.saveEntry).
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Save } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Loader2, Lock, Save } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
@@ -17,12 +18,14 @@ import { Field } from "@/components/fields/field-widget";
 import { SlugInlineEdit } from "@/components/slug/slug-input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { DESTINATION_PARAM } from "@/lib/destination";
 import {
   type EntryData,
   deriveEntrySchema,
   initialEntryValues,
 } from "@/lib/form-descriptor";
 import { slugify } from "@/lib/slug";
+import { authPagePath } from "@/wiki.config";
 import { formSourcedFields, toWidgetSpec } from "./field-adapter";
 
 export function EntryForm({
@@ -33,8 +36,70 @@ export function EntryForm({
   /** Called after a successful create; defaults to navigating to the entry. */
   onCreated?: (slug: string) => void;
 }) {
+  // A form the person may not add to is shown with its motif and a follow-up
+  // rather than hidden (docs/permissions.md § Ce que voit qui n'a pas le
+  // droit): a block of content that vanished would read as a page that failed
+  // to load, and leave the reader nothing to do about it. The three doors
+  // share this component, so all three refuse the same way.
+  if (form.slug === null && form.creationRefusal !== null) {
+    return (
+      <CreationRefused reason={form.creationRefusal} signedIn={form.signedIn} />
+    );
+  }
+  return <EntryFields form={form} onCreated={onCreated} />;
+}
+
+/** The motif, and the one thing a visitor can do about it. */
+function CreationRefused({
+  reason,
+  signedIn,
+}: {
+  reason: string;
+  signedIn: boolean;
+}) {
+  const pathname = usePathname();
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-md border border-dashed px-4 py-3 text-sm text-muted-foreground">
+      <Lock className="size-4 shrink-0" aria-hidden />
+      <span className="flex-1">{reason}</span>
+      {/* Offered only to a visitor: someone already signed in has nothing to
+          gain from signing in again, and the button would read as a promise. */}
+      {!signedIn && (
+        <Button asChild variant="outline" size="sm">
+          <Link
+            href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
+          >
+            Se connecter
+          </Link>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function EntryFields({
+  form,
+  onCreated,
+}: {
+  form: EntryFormData;
+  onCreated?: (slug: string) => void;
+}) {
   const router = useRouter();
-  const schema = useMemo(() => deriveEntrySchema(form.schema), [form.schema]);
+  // Derived from what this person may *fill*, which is the schema the server
+  // validates against too — one source of truth (ADR 0015). The greyed fields
+  // are left out: they are on screen and disabled, so asking them for a value
+  // would refuse a save over a field whose emptiness is not the author's to
+  // fix, and the server ignores what comes back on them anyway.
+  const schema = useMemo(
+    () =>
+      deriveEntrySchema({
+        ...form.schema,
+        fields: form.schema.fields.filter(
+          (field) => !(field.name in form.readOnly)
+        ),
+      }),
+    [form.schema, form.readOnly]
+  );
   const isEdit = form.slug !== null;
 
   const {
@@ -139,6 +204,7 @@ export function EntryForm({
             />
           );
         }
+        const refusal = form.readOnly[field.name];
         const controller = (
           <Controller
             name={field.name}
@@ -157,21 +223,26 @@ export function EntryForm({
                 // would show the stored value again.
                 onChange={(value) => rhf.onChange(value ?? "")}
                 error={errors[field.name]?.message as string | undefined}
-                environment={{ entryValues }}
+                environment={{ entryValues, formSlug: form.formSlug }}
               />
             )}
           />
+        );
+        const widget = refusal ? (
+          <ReadOnlyField reason={refusal}>{controller}</ReadOnlyField>
+        ) : (
+          controller
         );
         // The identifier row sits right under the (manual) title field.
         if (field.type === "title" && identity) {
           return (
             <Fragment key={field.name}>
-              {controller}
+              {widget}
               {identity}
             </Fragment>
           );
         }
-        return <Fragment key={field.name}>{controller}</Fragment>;
+        return <Fragment key={field.name}>{widget}</Fragment>;
       })}
 
       {/* No title widget when it is automatic: the row closes the form. */}
@@ -184,6 +255,32 @@ export function EntryForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * A field this person may see but not fill (docs/permissions.md § Champ):
+ * shown greyed, with the motif its rule was posed in. Made unreachable by a
+ * `fieldset`, which disables every control it holds — the keyboard included,
+ * where a dimmed-looking widget would still take a caret. Hiding it instead
+ * would leave the fiche looking incomplete, and the value is on screen: what
+ * is missing is the right to move it.
+ */
+function ReadOnlyField({
+  reason,
+  children,
+}: {
+  reason: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <fieldset disabled className="grid min-w-0 gap-1.5 opacity-70">
+      {children}
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Lock className="size-3.5 shrink-0" aria-hidden />
+        {reason}
+      </p>
+    </fieldset>
   );
 }
 

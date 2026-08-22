@@ -4,7 +4,7 @@ Les paramètres composites d'`<EntriesView>` (filtres, colonnes, tris proposés,
 
 ```mdx
 <EntriesView form={["associations", "evenements"]} view="grid"
-  filters={[{ field: "type", title: "Type d'acteur", icon: "lucide:users" }, { field: "commune" }]} />
+  filters={[{ field: "type", title: "Type de structure", icon: "lucide:users" }, { field: "commune" }]} />
 ```
 
 ## Contexte

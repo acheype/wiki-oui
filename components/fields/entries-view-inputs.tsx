@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  SELECT_NONE,
   Select,
   SelectContent,
   SelectItem,
@@ -193,8 +194,8 @@ export function ViewPickerTiles({
  * form-field — selector over the chosen forms' fields
  * ------------------------------------------------------------------ */
 
-// Radix Select refuses an empty item value: a sentinel stands for "none".
-const NONE = "∅";
+// « Aucun » stands for the empty string here: no caption field, no filter.
+const NONE = SELECT_NONE;
 
 function PartialBadge({ carriers }: { carriers?: string[] }) {
   if (!carriers) return null;
@@ -683,7 +684,7 @@ export function IconMappingInput({
 }
 
 /* ------------------------------------------------------------------ *
- * form-list multiple — one selector, then an add gesture per extra form
+ * form-list multiple — one selector, then an add action per extra form
  * ------------------------------------------------------------------ */
 
 export function MultiFormListInput({
@@ -699,9 +700,9 @@ export function MultiFormListInput({
 }) {
   const forms = useForms();
   const slugs = toFormSlugs(value);
-  // Empty selectors appended by the add gesture live here, not in the prop:
+  // Empty selectors appended by the add action live here, not in the prop:
   // the value only ever holds picked forms. The single-form case (95 %) sees
-  // one plain select — adding is a gesture, not a mode (docs/entries-view.md).
+  // one plain select — adding is a action, not a mode (docs/entries-view.md).
   const [pendingRows, setPendingRows] = useState(0);
   const shown = [...slugs, ...Array<string>(Math.max(pendingRows, slugs.length === 0 ? 1 : 0)).fill("")];
 

@@ -53,10 +53,18 @@ export type LinkInfo = Range & {
   text: string;
   href: string;
   target: LinkTarget;
+  /** docs/permissions.md § Liens et boutons vers l'inaccessible. */
+  hideIfNoAccess: boolean;
 };
 
 const LINK_MARKDOWN = /^\[([^\]]*)\]\(\s*<?([^)>\s]*)>?\s*\)/;
-const TARGET_ANNOTATION = /^\{\{\s*target:\s*'(_blank|modal)'\s*\}\}/;
+// The trailing mdx-annotations {{ … }} block (ADR 0006), matched whole so the
+// pencil's replace range swallows every key it holds — not just `target`: a
+// key left outside that range would survive untouched, duplicated the moment
+// generateMarkdownLink rewrites it into a fresh annotation of its own.
+const LINK_ANNOTATION = /^\{\{([^}]*)\}\}/;
+const TARGET_KEY = /target:\s*'(_blank|modal)'/;
+const HIDE_IF_NO_ACCESS_KEY = /hideIfNoAccess:\s*true/;
 
 export function linkAtCursor(state: EditorState): LinkInfo | null {
   const range = state.selection.main;
@@ -73,14 +81,16 @@ export function linkAtCursor(state: EditorState): LinkInfo | null {
       const match = state.sliceDoc(node.from, node.to).match(LINK_MARKDOWN);
       if (!match) return null;
       const after = state
-        .sliceDoc(node.to, Math.min(node.to + 60, state.doc.length))
-        .match(TARGET_ANNOTATION);
+        .sliceDoc(node.to, Math.min(node.to + 80, state.doc.length))
+        .match(LINK_ANNOTATION);
+      const annotation = after?.[1] ?? "";
       return {
         from: node.from,
         to: node.to + (after?.[0].length ?? 0),
         text: match[1],
         href: match[2],
-        target: (after?.[1] as LinkTarget | undefined) ?? "self",
+        target: (TARGET_KEY.exec(annotation)?.[1] as LinkTarget | undefined) ?? "self",
+        hideIfNoAccess: HIDE_IF_NO_ACCESS_KEY.test(annotation),
       };
     }
   }

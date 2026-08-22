@@ -4,13 +4,21 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DoubleClickToEdit } from "@/components/page/double-click-to-edit";
 import { EntryContent } from "@/components/forms/entry-content";
+import { AccessRefused } from "@/components/page/access-refused";
 import { PageActions } from "@/components/page/page-actions";
 import { Prose } from "@/components/page/prose";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/lib/mdx";
-import { getPageWithCurrent } from "@/lib/pages";
+import {
+  personCanCreatePage,
+  personPermissions,
+  getPageWithCurrent,
+  isEntryPage,
+  isRefused,
+} from "@/lib/pages";
 import { isValidSlug } from "@/lib/slug";
+import { displayName } from "@/lib/username";
 
 // Wiki content is edited live; never serve a build-time snapshot.
 export const dynamic = "force-dynamic";
@@ -36,16 +44,25 @@ export default async function ShowPage({ params }: Props) {
 
   const page = await getPageWithCurrent(slug);
   if (!page) {
-    return <PageNotYetCreated slug={slug} />;
+    return (await personCanCreatePage()) ? (
+      <PageNotYetCreated slug={slug} />
+    ) : (
+      <PageNotFound slug={slug} />
+    );
   }
+  if (isRefused(page)) {
+    return <AccessRefused slug={slug} ownerName={page.ownerName} />;
+  }
+
+  const permissions = await personPermissions(page);
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageActions slug={slug} tags={page.tags} />
+      <PageActions slug={slug} tags={page.tags} permissions={permissions} />
       {/* flex-1: a short entry's blank area stays double-clickable. */}
-      <DoubleClickToEdit slug={slug} className="flex-1">
+      <DoubleClickToEdit slug={slug} enabled={permissions.write} className="flex-1">
         <article>
-          {page.formId ? (
+          {isEntryPage(page) ? (
             <EntryContent formId={page.formId} rawData={page.current?.data} />
           ) : (
             <Prose>{await renderMdx(page.current?.content ?? "")}</Prose>
@@ -54,10 +71,25 @@ export default async function ShowPage({ params }: Props) {
       </DoubleClickToEdit>
       <p className="mt-10 border-t pt-3 text-xs text-muted-foreground">
         Créée le {formatDateTime(page.createdAt)} par{" "}
-        {page.ownerName ?? "Anonyme"}
+        {displayName(page.owner)}
         {page.current &&
           ` · dernière modification le ${formatDateTime(page.current.createdAt)}`}
       </p>
+    </div>
+  );
+}
+
+// The same address, to someone the wiki does not let create pages: the offer
+// to create it would be the one thing they cannot take up (docs/permissions.md
+// § Ce que voit qui n'a pas le droit — an action nobody can take informs
+// nobody), so what is left is the plain fact that there is nothing here.
+function PageNotFound({ slug }: { slug: string }) {
+  return (
+    <div className="mx-auto flex max-w-md flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-16 text-center">
+      <FilePlus2 className="size-8 text-muted-foreground" aria-hidden />
+      <h1 className="text-lg font-semibold">
+        La page «&nbsp;{slug}&nbsp;» n&apos;existe pas
+      </h1>
     </div>
   );
 }

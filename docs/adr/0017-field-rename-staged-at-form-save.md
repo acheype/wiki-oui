@@ -4,7 +4,7 @@ Contrairement aux adresses de pages et aux identifiants de formulaires (ADR 0016
 
 ## Contexte
 
-L'identifiant d'un champ (`name`) est la clé de ses valeurs dans les snapshots `data`, la cible des références `{champ}` (gabarit, titre automatique) et des liaisons de géocodage (`streetField`…). Le rendre renommable pose une question que pages et formulaires n'avaient pas : le geste vit **dans le FormBuilder**, dont l'enregistrement écrase le schéma entier (pas d'historique de Form, ADR 0014). Un renommage immédiat devrait soit écrire le schéma entier (enregistrant prématurément tout le canvas non sauvegardé), soit inventer une seconde voie d'écriture partielle du schéma. Les deux cassent l'unité transactionnelle du builder : Enregistrer est sa seule écriture.
+L'identifiant d'un champ (`name`) est la clé de ses valeurs dans les snapshots `data`, la cible des références `{champ}` (gabarit, titre automatique) et des liaisons de géocodage (`streetField`…). Le rendre renommable pose une question que pages et formulaires n'avaient pas : l'action vit **dans le FormBuilder**, dont l'enregistrement écrase le schéma entier (pas d'historique de Form, ADR 0014). Un renommage immédiat devrait soit écrire le schéma entier (enregistrant prématurément tout le canvas non sauvegardé), soit inventer une seconde voie d'écriture partielle du schéma. Les deux cassent l'unité transactionnelle du builder : Enregistrer est sa seule écriture.
 
 ## Décision
 

@@ -39,6 +39,9 @@ export function toWidgetSpec(
     spec.geolocateButton = field.geolocateButton;
   }
   if (field.type === "customContent") spec.entryContent = field.entryContent;
+  // The widget's own name, to look its already-used values up (issue #15) —
+  // no other field type needs it, so it stays out of the general shape above.
+  if (field.type === "tags") spec.name = field.name;
   return spec;
 }
 

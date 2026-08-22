@@ -43,3 +43,12 @@ properties:
     type: text
     showif:
       external: true
+  hideIfNoAccess:
+    label: Masquer si la page n'est pas accessible
+    hint: Sinon le cadre reste affiché, et informera que le contenu n'est pas
+      accessible.
+    type: checkbox
+    default: false
+    advanced: true
+    showif:
+      external: false

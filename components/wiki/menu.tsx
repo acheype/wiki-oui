@@ -70,6 +70,7 @@ const BUTTON_PROP_NAMES: (keyof ButtonProps)[] = [
   "fullWidth",
   "newWindow",
   "popup",
+  "hideIfNoAccess",
 ];
 
 function isButtonElement(node: ReactNode): node is ReactElement<ButtonProps> {
@@ -89,10 +90,11 @@ function meaningfulChildren(node: ReactNode): ReactNode[] {
 function parseList(list: ElementWithChildren): MenuItem[] {
   return meaningfulChildren(list.props.children)
     .filter((child): child is ElementWithChildren => isTag(child, "li"))
-    .map(parseItem);
+    .map(parseItem)
+    .filter((item): item is MenuItem => item !== null);
 }
 
-function parseItem(li: ElementWithChildren): MenuItem {
+function parseItem(li: ElementWithChildren): MenuItem | null {
   // Loose lists wrap the item's inline content in a paragraph: unwrap it.
   const nodes = meaningfulChildren(li.props.children).flatMap((node) =>
     isTag(node, "p") ? meaningfulChildren(node.props.children) : [node]
@@ -101,12 +103,27 @@ function parseItem(li: ElementWithChildren): MenuItem {
     (node) => isTag(node, "ul") || isTag(node, "ol")
   ) as ElementWithChildren[];
   const label = nodes.filter((node) => !sublists.includes(node as ElementWithChildren));
+  const children = sublists.flatMap(parseList);
+
+  // hideIfNoAccess emptying a bullet, recursively (docs/permissions.md §
+  // Liens et boutons vers l'inaccessible): a link or a button it held
+  // resolved to null before this module ever saw it (wiki-link.tsx,
+  // button.tsx), so meaningfulChildren already dropped it from `label`. A
+  // leaf with no sublist of its own is judged by that alone. A parent — one
+  // that *had* a sublist — is judged by whether any of it survived the same
+  // recursive call that built `children` above: a dropdown trigger promising
+  // an empty panel is worse than no trigger, so its own label does not save
+  // it either.
+  const emptied =
+    sublists.length > 0 ? children.length === 0 : label.length === 0;
+  if (emptied) return null;
+
   const navigates = label.some(
     (node) =>
       isWikiLinkElement(node) ||
       (isButtonElement(node) && Boolean(node.props.link))
   );
-  return { label, navigates, children: sublists.flatMap(parseList) };
+  return { label, navigates, children };
 }
 
 const barItemClass =

@@ -14,7 +14,7 @@ Deux bénéfices de bord : chaque révision fige le titre qu'elle affichait vrai
 
 ## Conséquences
 
-**Recalcul de masse.** Deux gestes admin invalident les titres stockés : modifier le gabarit, et activer le mode automatique. À l'enregistrement du formulaire, derrière une confirmation qui annonce les nombres, chaque fiche dont le titre change effectivement gagne une **nouvelle révision** — l'historique reste en ajout seul (ADR 0003) et aucun titre saisi à la main n'est détruit. La désactivation du mode automatique ne déclenche rien.
+**Recalcul de masse.** Deux actions admin invalident les titres stockés : modifier le gabarit, et activer le mode automatique. À l'enregistrement du formulaire, derrière une confirmation qui annonce les nombres, chaque fiche dont le titre change effectivement gagne une **nouvelle révision** — l'historique reste en ajout seul (ADR 0003) et aucun titre saisi à la main n'est détruit. La désactivation du mode automatique ne déclenche rien.
 
 Cette réécriture n'est **pas** celle de l'ADR 0017 : un renommage de champ retouche la *représentation* et doit donc parcourir tout l'historique en place, sous peine de le rendre illisible ; un recalcul de titre change ce que la fiche **dit** et ne touche donc que l'état courant, sous peine de le rendre faux.
 

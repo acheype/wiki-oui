@@ -10,7 +10,7 @@ import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import { listFormChoices } from "@/app/form-actions";
+import { listFormChoices, listUsedFieldValues } from "@/app/form-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -32,11 +32,19 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import type { FieldType, FileFamily, PropValue } from "@/lib/component-descriptor";
+import {
+  type FieldType,
+  type FileFamily,
+  type PropValue,
+  propKindFits,
+} from "@/lib/component-descriptor";
 import type { FormFieldType } from "@/lib/form-descriptor";
+import type { AccessRule, AclDirectory, AclFloor } from "@/lib/permissions";
 import type { PseudoField } from "@/lib/pseudo-fields";
+import { suggestValues } from "@/lib/suggested-values";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { NO_FLOOR, AclInput } from "./acl-input";
 import {
   ColorMappingInput,
   EntryFieldChips,
@@ -48,6 +56,10 @@ import {
 } from "./entries-view-inputs";
 import { IconPicker } from "./icon-picker";
 import type { MapViewValue } from "./map-view-input";
+import {
+  SuggestionPopover,
+  useSuggestions,
+} from "./suggestion-popover";
 import { TagsInput } from "./tags-input";
 import { UploadInput } from "./upload-input";
 import { useDebouncedJson } from "./use-debounced-json";
@@ -91,6 +103,8 @@ export interface FieldWidgetSpec {
   icons?: Record<string, string>;
   /** file-list: restricts the combobox to one family (ADR 0012). */
   family?: FileFamily;
+  /** tags: the field's own name, to look its used values up. */
+  name?: string;
   /** form-list/form-field: one name, or an array of names (ADR 0019). */
   multiple?: boolean;
   /** form-field/field-rows: sibling field holding the chosen form slug(s). */
@@ -122,12 +136,18 @@ export interface FieldWidgetSpec {
 }
 
 /** What a widget can hold: component props stay scalar, entry values go richer. */
-export type FieldValue = PropValue | string[] | { lat: number; lng: number };
+export type FieldValue =
+  | PropValue
+  | string[]
+  | { lat: number; lng: number }
+  | AccessRule;
 
 /** Ambient data some widgets list from (injected by the envelope). */
 export interface FieldEnvironment {
   /** Wiki page slugs, for page-list suggestions. */
   allSlugs?: string[];
+  /** The form a tags field belongs to, for its already-used values. */
+  formSlug?: string;
   /** Existing forms, for the form-list selector. */
   forms?: { slug: string; name: string }[];
   /** Live sibling entry values, for geocoding bound address fields. */
@@ -136,6 +156,10 @@ export interface FieldEnvironment {
   // options depend on another field of the same modal — form-field reading
   // `formFrom`, mappings reading `fieldFrom` (ADR 0018).
   siblingValues?: Record<string, unknown>;
+  /** Who an `acl` list may name: the people and groups of the wiki. */
+  directory?: AclDirectory;
+  /** Who an `acl` list always allows, whatever it holds: the subject's floor. */
+  aclFloor?: AclFloor;
 }
 
 const EMPTY_ENVIRONMENT: FieldEnvironment = {};
@@ -382,8 +406,11 @@ export function FieldWidget({
       );
     case "tags":
       return (
-        <TagsInput
+        <EntryTagsInput
+          id={id}
           tags={toStringArray(value)}
+          formSlug={environment.formSlug}
+          fieldName={spec.name}
           onChange={onChange}
         />
       );
@@ -475,6 +502,16 @@ export function FieldWidget({
           onChange={onChange}
         />
       );
+    case "acl":
+      return (
+        <AclInput
+          id={id}
+          value={asRule(value)}
+          directory={environment.directory}
+          floor={environment.aclFloor ?? NO_FLOOR}
+          onChange={onChange}
+        />
+      );
     // text-like inputs: text (and its number subtype), url, email, title.
     default:
       return (
@@ -526,6 +563,15 @@ function isGeoPoint(value: FieldValue): value is { lat: number; lng: number } {
 
 function isMapView(value: FieldValue): value is MapViewValue {
   return isGeoPoint(value) && typeof (value as { zoom?: unknown }).zoom === "number";
+}
+
+// An empty widget starts on the narrowest scope, so an author who says
+// nothing has said « le propriétaire et les administrateurs seulement » —
+// the one starting point a forgotten field cannot open the wiki with.
+function asRule(value: FieldValue): AccessRule {
+  return propKindFits("rule", value)
+    ? (value as unknown as AccessRule)
+    : { scope: "restricted" };
 }
 
 function inputType(spec: FieldWidgetSpec): string {
@@ -634,8 +680,9 @@ function DateInput({
   );
 }
 
-// Input + suggestion chips, shared by page-list and file-list: free text
-// stays accepted, candidates are suggested while typing.
+// One free-text field with the shared floating list of what already exists,
+// worn by page-list and file-list: typing stays free, picking replaces the
+// value outright — where a keyword field would add one more chip.
 function SuggestionInput({
   id,
   value,
@@ -649,47 +696,41 @@ function SuggestionInput({
   candidates: string[];
   onChange: (value: PropValue) => void;
 }) {
-  const suggestions = useMemo(() => {
-    const query = value.trim().toLowerCase();
-    return candidates
-      .filter((name) => name.includes(query) && name !== query)
-      .slice(0, 6);
-  }, [value, candidates]);
+  const items = useMemo(
+    () => suggestValues({ candidates, draft: value, placed: [] }),
+    [candidates, value]
+  );
+  const suggestions = useSuggestions({
+    items,
+    onPick: (picked) => onChange(picked),
+    closeOnPick: true,
+  });
 
   return (
-    <>
+    <SuggestionPopover suggestions={suggestions} optionClassName="font-mono">
       <Input
+        {...suggestions.comboboxProps}
         id={id}
         value={value}
         autoComplete="off"
         placeholder={placeholder}
-        onChange={(event) =>
-          onChange(event.target.value === "" ? undefined : event.target.value)
-        }
+        onChange={(event) => {
+          suggestions.openList();
+          onChange(event.target.value === "" ? undefined : event.target.value);
+        }}
+        onKeyDown={(event) => suggestions.handleKeyDown(event)}
+        onFocus={suggestions.openList}
+        onBlur={suggestions.closeList}
       />
-      {suggestions.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {suggestions.map((name) => (
-            <Button
-              key={name}
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="h-6 rounded-full px-2 font-mono text-xs"
-              onClick={() => onChange(name)}
-            >
-              {name}
-            </Button>
-          ))}
-        </div>
-      )}
-    </>
+    </SuggestionPopover>
   );
 }
 
 const NO_CANDIDATES: string[] = [];
 
-// Wiki pages (ADR 0006): no suggestions on an empty query or an external URL.
+// Wiki pages (ADR 0006), most recently touched first (lib/pages.ts
+// listPageSlugs). An address that has left the wiki silences the panel:
+// offering local slugs against « https://… » would answer another question.
 function PageListInput({
   id,
   value,
@@ -701,10 +742,7 @@ function PageListInput({
   allSlugs: string[];
   onChange: (value: PropValue) => void;
 }) {
-  const candidates =
-    value.trim() === "" || isExternalHref(value.trim())
-      ? NO_CANDIDATES
-      : allSlugs;
+  const candidates = isExternalHref(value.trim()) ? NO_CANDIDATES : allSlugs;
   return (
     <SuggestionInput
       id={id}
@@ -729,12 +767,17 @@ function FileListInput({
   family?: FileFamily;
   onChange: (value: PropValue) => void;
 }) {
-  const data = useDebouncedJson<{ files: { name: string }[] }>(
-    `/api/files${family ? `?family=${family}` : ""}`,
-    0
-  );
+  const data = useDebouncedJson<{
+    files: { name: string; modifiedAt: string }[];
+  }>(`/api/files${family ? `?family=${family}` : ""}`, 0);
+  // Newest upload first: one names a file in a component right after
+  // dropping it in, and the library has no frequency to rank by.
   const files = useMemo(
-    () => data?.files.map((file) => file.name) ?? NO_CANDIDATES,
+    () =>
+      data?.files
+        .map((file) => file)
+        .sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt))
+        .map((file) => file.name) ?? NO_CANDIDATES,
     [data]
   );
 
@@ -744,6 +787,50 @@ function FileListInput({
       value={value}
       placeholder="nom-du-fichier.ext"
       candidates={files}
+      onChange={onChange}
+    />
+  );
+}
+
+/**
+ * A « Mots-clés » field's TagsInput, fetching its already-used values at the
+ * first focus (issue #15). Not injected up front the way a page's tags are:
+ * <EntryForm> slots into any page, and every render would sweep the form's
+ * entries whether or not anyone was about to type.
+ */
+function EntryTagsInput({
+  id,
+  tags,
+  formSlug,
+  fieldName,
+  onChange,
+}: {
+  id: string;
+  tags: string[];
+  formSlug?: string;
+  fieldName?: string;
+  onChange: (value: FieldValue) => void;
+}) {
+  const [candidates, setCandidates] = useState<string[]>([]);
+  const [asked, setAsked] = useState(false);
+
+  useEffect(() => {
+    if (!asked || !formSlug || !fieldName) return;
+    let live = true;
+    listUsedFieldValues(formSlug, fieldName).then(
+      (values) => live && setCandidates(values)
+    );
+    return () => {
+      live = false;
+    };
+  }, [asked, formSlug, fieldName]);
+
+  return (
+    <TagsInput
+      id={id}
+      tags={tags}
+      candidates={candidates}
+      onFocus={() => setAsked(true)}
       onChange={onChange}
     />
   );

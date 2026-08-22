@@ -65,3 +65,12 @@ properties:
     advanced: true
     showif:
       float: none
+  hideIfNoAccess:
+    label: Masquer si la page n'est pas accessible
+    hint: Sinon le bouton reste visible, et au clic, la page informera que le
+      contenu n'est pas accessible.
+    type: checkbox
+    default: false
+    advanced: true
+    showif:
+      link: /^(?!https?:\/\/)/

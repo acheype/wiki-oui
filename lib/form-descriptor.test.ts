@@ -7,6 +7,7 @@ import {
   extractFieldReferences,
   formAuthoringIssues,
   initialEntryValues,
+  orderedEntryData,
   parseFormDescriptor,
   substituteFieldReferences,
   unknownFieldReferences,
@@ -80,21 +81,16 @@ describe("parseFormDescriptor", () => {
     });
   });
 
-  it("rejects a second tags field", () => {
+  // The « one per form » rule went with the coupling to Page.tags: a
+  // « Mots-clés » field is now an ordinary field of the fiche, and a form may
+  // hold as many as it has kinds of keyword.
+  it("accepts several tags fields", () => {
     const descriptor = contactDescriptor();
     descriptor.fields.push(
-      { type: "tags", name: "mots-cles", label: "Mots-clés" },
-      { type: "tags", name: "themes", label: "Thèmes" }
+      { type: "tags", name: "themes", label: "Thèmes" },
+      { type: "tags", name: "publics", label: "Publics" }
     );
-    const result = parseFormDescriptor(descriptor);
-    expect(result).toEqual({
-      issues: [
-        {
-          fieldIndex: 3,
-          message: "Un seul champ «\u00A0Mots-clés\u00A0» par formulaire.",
-        },
-      ],
-    });
+    expect(parseFormDescriptor(descriptor).descriptor).toBeDefined();
   });
 
   it("accepts an automatic title whose template references existing fields", () => {
@@ -208,6 +204,40 @@ describe("parseFormDescriptor", () => {
         },
       ],
     });
+  });
+
+  // The « Accès » tab writes into the same descriptor as the canvas
+  // (docs/permissions.md § Formulaire), so what it poses has to survive the
+  // round trip Zod puts every save through — an object stripped on the way in
+  // would look exactly like defaults that never got copied.
+  it("keeps the three rights the « Accès » tab poses", () => {
+    const descriptor = contactDescriptor();
+    descriptor.permissions = {
+      createEntry: { scope: "authenticated" },
+      defaultEntryRead: { scope: "everyone" },
+      defaultEntryWrite: { scope: "restricted", groupSlugs: ["bureau"] },
+    };
+    expect(parseFormDescriptor(descriptor).descriptor?.permissions).toEqual(
+      descriptor.permissions
+    );
+  });
+
+  it("reads back a form saved before the tab existed", () => {
+    const parsed = parseFormDescriptor(contactDescriptor());
+    expect(parsed.descriptor?.permissions).toBeUndefined();
+    expect(parsed.issues).toBeUndefined();
+  });
+
+  it("refuses a scope the vocabulary does not have", () => {
+    const descriptor = {
+      ...contactDescriptor(),
+      permissions: {
+        createEntry: { scope: "admins" },
+        defaultEntryRead: { scope: "everyone" },
+        defaultEntryWrite: { scope: "everyone" },
+      },
+    };
+    expect(parseFormDescriptor(descriptor).descriptor).toBeUndefined();
   });
 });
 
@@ -504,6 +534,47 @@ describe("initialEntryValues", () => {
   });
 });
 
+// docs/permissions.md § /{slug}/raw: storage makes no order promise (jsonb),
+// so a snapshot's keys are rebuilt in the form's own order wherever that
+// order has to be relied on — this is the one function that does it.
+describe("orderedEntryData", () => {
+  const descriptor: FormDescriptor = {
+    fields: [
+      { type: "title", name: "title", label: "Titre de la fiche" },
+      { type: "text", name: "prenom", label: "Prénom" },
+      { type: "text", name: "nom", label: "Nom" },
+    ],
+  };
+
+  it("reorders a snapshot to the form's own field order", () => {
+    expect(
+      orderedEntryData(descriptor, { nom: "Durand", title: "Marie Durand", prenom: "Marie" })
+    ).toEqual({ title: "Marie Durand", prenom: "Marie", nom: "Durand" });
+    expect(
+      Object.keys(
+        orderedEntryData(descriptor, { nom: "Durand", title: "Marie Durand", prenom: "Marie" })
+      )
+    ).toEqual(["title", "prenom", "nom"]);
+  });
+
+  // A schema that moved on leaves a value behind (docs/architecture.md's
+  // graceful degradation): kept, not dropped, just no longer part of the form.
+  it("keeps a value no field claims, trailing in its own order", () => {
+    const data = { ancien: "valeur orpheline", title: "Marie Durand", autre: "aussi" };
+    expect(Object.keys(orderedEntryData(descriptor, data))).toEqual([
+      "title",
+      "ancien",
+      "autre",
+    ]);
+  });
+
+  it("leaves out a field the snapshot never carried", () => {
+    expect(Object.keys(orderedEntryData(descriptor, { title: "Marie" }))).toEqual([
+      "title",
+    ]);
+  });
+});
+
 describe("computeAutomaticTitle", () => {
   it("returns the manual title value when the title is not automatic", () => {
     const descriptor = contactDescriptor();
@@ -604,6 +675,30 @@ describe("formAuthoringIssues", () => {
     expect(formAuthoringIssues(withTitle({ name: "" }))).toEqual([]);
   });
 
+  // metadata is the key a fiche's own metadata sits under, next to its
+  // field values (docs/permissions.md § /{slug}/raw) — a field carrying
+  // that same name would collide with it, so it is refused here, before
+  // such a descriptor can ever be saved.
+  it("refuses a field named metadata, reserved by /{slug}/raw", () => {
+    expect(formAuthoringIssues(withField({ name: "metadata" }))).toEqual([
+      {
+        fieldIndex: 1,
+        message: "L'identifiant « metadata » est réservé à `/{slug}/raw` et ne peut pas nommer un champ.",
+      },
+    ]);
+  });
+
+  // Neither needs the same guard: getRawContent() (lib/pages.ts) tells a
+  // page from a fiche by formId/form, never by a "content" key a field
+  // could spoof, and form-id now lives inside metadata, a different object
+  // than a fiche's own fields — so a field can freely carry either name.
+  it.each(["content", "form-id"])(
+    "accepts a field named %s — no longer a /{slug}/raw collision",
+    (name) => {
+      expect(formAuthoringIssues(withField({ name }))).toEqual([]);
+    }
+  );
+
   it.each([
     ["absent", {}],
     ["empty", { template: "" }],
@@ -636,6 +731,87 @@ describe("formAuthoringIssues", () => {
     expect(formAuthoringIssues(withField({ label: "", name: "" }))).toHaveLength(
       2
     );
+  });
+
+  // The two leaks a field's rights open, refused at the form's save rather
+  // than patched at render (docs/permissions.md § Champ) — a title is read
+  // where no right is ever consulted: the URL, the menus, every list.
+  describe("the two leaks of a restricted field", () => {
+    const restricted = { scope: "restricted", groupSlugs: ["bureau"] } as const;
+
+    it("refuses an automatic title referencing a read-restricted field", () => {
+      const descriptor = withField({ readAcl: restricted });
+      descriptor.fields[0] = {
+        ...descriptor.fields[0],
+        automatic: true,
+        template: "{prenom}",
+      } as FormDescriptor["fields"][number];
+      expect(formAuthoringIssues(descriptor)).toEqual([
+        {
+          fieldIndex: 0,
+          message:
+            "Le titre automatique référence un champ à lecture restreinte : «\u00A0prenom\u00A0».",
+        },
+      ]);
+    });
+
+    it("accepts an automatic title referencing an open field", () => {
+      expect(
+        formAuthoringIssues(withTitle({ automatic: true, template: "{prenom}" }))
+      ).toEqual([]);
+    });
+
+    // A restricted writing is another matter: the title stays visible, which
+    // is the whole of what the invariant asks.
+    it("accepts an automatic title referencing a write-restricted field", () => {
+      const descriptor = withField({ writeAcl: restricted });
+      descriptor.fields[0] = {
+        ...descriptor.fields[0],
+        automatic: true,
+        template: "{prenom}",
+      } as FormDescriptor["fields"][number];
+      expect(formAuthoringIssues(descriptor)).toEqual([]);
+    });
+
+    it.each([
+      ["authenticated" as const, {}],
+      ["restricted" as const, { groupSlugs: ["bureau"] }],
+    ])("refuses a title field restricted to %s readers", (scope, list) => {
+      expect(formAuthoringIssues(withTitle({ readAcl: { scope, ...list } }))).toEqual([
+        {
+          fieldIndex: 0,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en lecture : il nomme la fiche partout dans le wiki.",
+        },
+      ]);
+    });
+
+    // The panel offers neither setting on the title, so a descriptor carrying
+    // one was written by hand — and this is what stands between it and a form
+    // whose fiches nobody but @Bureau could ever create.
+    it("refuses a title field restricted to some writers", () => {
+      expect(formAuthoringIssues(withTitle({ writeAcl: restricted }))).toEqual([
+        {
+          fieldIndex: 0,
+          message:
+            "Le titre de la fiche ne peut pas être restreint en écriture : sans lui, personne d'autre ne pourrait créer de fiche.",
+        },
+      ]);
+    });
+
+    // A « Mots-clés » field carries its value in the snapshot like any other
+    // (docs/forms.md): both its senses restrict, and neither is refused.
+    it("accepts a restricted tags field, both senses", () => {
+      const descriptor = contactDescriptor();
+      descriptor.fields.push({
+        type: "tags",
+        name: "mots-cles",
+        label: "Mots-clés",
+        readAcl: restricted,
+        writeAcl: restricted,
+      });
+      expect(formAuthoringIssues(descriptor)).toEqual([]);
+    });
   });
 });
 

@@ -69,7 +69,7 @@ export function lintPageSource(
     const node = rawNode as MdxJsxNode;
 
     // A wiki link whose target has no page yet (ADR 0016): a legitimate
-    // gesture (write the link, create the page later), so the author is
+    // action (write the link, create the page later), so the author is
     // informed, never blocked — and a rename that raced an open editor
     // becomes visible instead of silently reintroducing a dead slug.
     if (node.type === "link" || node.type === "definition") {
@@ -273,6 +273,8 @@ function propMisfit(kind: PropKind, value: unknown): string | null {
       return 'attend un objet { valeur: "…" }, par exemple {{ oui: "#16a34a" }}.';
     case "area":
       return "attend un objet { lat, lng, zoom } fait de nombres.";
+    case "rule":
+      return 'attend un droit, par exemple {{ scope: "restricted", groupSlugs: ["bureau"] }}.';
   }
 }
 

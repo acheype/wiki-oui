@@ -16,7 +16,11 @@ import {
   insertionState,
   type BuilderDialogState,
 } from "./component-builder";
-import { emitsMarkdownLink, type Range } from "@/lib/component-descriptor";
+import {
+  emitsMarkdownLink,
+  type PropValue,
+  type Range,
+} from "@/lib/component-descriptor";
 import { goToLine, insertSnippet, replaceSnippet } from "./commands";
 import {
   cursorTools,
@@ -35,6 +39,7 @@ export function PageEditor({
   initialContent,
   initialTags,
   allSlugs,
+  allTags,
   builders,
   isNew,
 }: {
@@ -42,6 +47,8 @@ export function PageEditor({
   initialContent: string;
   initialTags: string[];
   allSlugs: string[];
+  /** The wiki's page tags this person can read, for suggestion (issue #15). */
+  allTags: string[];
   builders: ComponentBuilderSpec[];
   isNew: boolean;
 }) {
@@ -71,7 +78,12 @@ export function PageEditor({
       builders,
       onEditLink: (info: LinkInfo) =>
         openWikiLinkBuilder(
-          { text: info.text, link: info.href, target: info.target },
+          {
+            text: info.text,
+            link: info.href,
+            target: info.target,
+            hideIfNoAccess: info.hideIfNoAccess,
+          },
           { from: info.from, to: info.to }
         ),
       onEditComponent: (info: ComponentInfo) =>
@@ -93,7 +105,7 @@ export function PageEditor({
   function openBuilder(
     spec: ComponentBuilderSpec | undefined,
     missingSpecLabel: string,
-    values: Record<string, string | undefined>,
+    values: Record<string, PropValue>,
     range?: Range
   ) {
     if (!spec) {
@@ -115,7 +127,7 @@ export function PageEditor({
   // The wiki-link builder (emits markdown-link) has its own doors: the
   // toolbar link button and the anchored link pencil (docs/component-builder.md).
   function openWikiLinkBuilder(
-    values: Record<string, string | undefined>,
+    values: Record<string, PropValue>,
     range?: Range
   ) {
     openBuilder(
@@ -265,7 +277,14 @@ export function PageEditor({
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Tag className="size-4 shrink-0" aria-hidden />
-        <TagsInput tags={tags} onChange={setTags} />
+        {/* The tag icon carries the meaning for the eye; the field needs
+            its own name for a screen reader, having no <label> of its own. */}
+        <TagsInput
+          ariaLabel="Tags de la page"
+          tags={tags}
+          candidates={allTags}
+          onChange={setTags}
+        />
       </div>
 
       {warnings.length > 0 && (

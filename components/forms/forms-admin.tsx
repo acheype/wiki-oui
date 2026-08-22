@@ -12,11 +12,14 @@ import { toast } from "sonner";
 import {
   type FormDetail,
   type FormSummary,
+  canAddForm,
   deleteForm,
   getForm,
   listForms,
   listFormChoices,
+  listRightsDirectory,
 } from "@/app/form-actions";
+import { type AclDirectory, CREATE_FORM_REFUSED } from "@/lib/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useDirectKeyboard } from "@/components/ui/use-direct-keyboard";
 import { formatDateTime } from "@/lib/format";
 import { FormBuilder } from "./form-builder";
 
@@ -50,28 +54,19 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
   const [forms, setForms] = useState<FormSummary[] | null>(null);
   const [filter, setFilter] = useState("");
   const [toDelete, setToDelete] = useState<FormSummary | null>(null);
+  // Creating a form is the wiki's own rule (docs/permissions.md § Où
+  // s'appliquent les droits): the button is absent when the person has not got
+  // it, never greyed out.
+  const [canCreate, setCanCreate] = useState(false);
   const filterRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
     listForms().then(setForms);
+    canAddForm().then(setCanCreate);
   }, []);
 
-  // Direct-keyboard filter (docs/forms.md): typing anywhere fills the filter
-  // without clicking it first.
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key.length !== 1) return;
-      const active = document.activeElement;
-      if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
-        return;
-      }
-      filterRef.current?.focus();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  useDirectKeyboard(filterRef);
 
   const visible = (forms ?? []).filter((form) =>
     form.name.toLowerCase().includes(filter.trim().toLowerCase())
@@ -96,12 +91,14 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex-1 text-lg font-semibold">Formulaires</h1>
-        <Button asChild>
-          <Link href="?nouveau">
-            <Plus />
-            Nouveau formulaire
-          </Link>
-        </Button>
+        {canCreate && (
+          <Button asChild>
+            <Link href="?nouveau">
+              <Plus />
+              Nouveau formulaire
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Input
@@ -134,28 +131,37 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
                   le {formatDateTime(form.createdAt)}
                 </p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/fiches?nouvelle&formulaire=${form.slug}`}>
-                  <FilePlus2 />
-                  Nouvelle fiche
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpen(`?id=${form.slug}`)}
-              >
-                <Pencil />
-                Éditer
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={`Supprimer ${form.name}`}
-                onClick={() => setToDelete(form)}
-              >
-                <Trash2 />
-              </Button>
+              {/* An offer nobody can take up informs nobody: a row shows the
+                  permissions this person has, and leaves the others out
+                  (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
+              {form.canCreateEntry && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={`/fiches?nouvelle&formulaire=${form.slug}`}>
+                    <FilePlus2 />
+                    Nouvelle fiche
+                  </Link>
+                </Button>
+              )}
+              {form.canEdit && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onOpen(`?id=${form.slug}`)}
+                  >
+                    <Pencil />
+                    Éditer
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={`Supprimer ${form.name}`}
+                    onClick={() => setToDelete(form)}
+                  >
+                    <Trash2 />
+                  </Button>
+                </>
+              )}
             </li>
           ))}
         </ul>
@@ -200,19 +206,31 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
   const router = useRouter();
   const [initial, setInitial] = useState<FormDetail | null>(null);
   const [forms, setForms] = useState<{ slug: string; name: string }[]>([]);
+  const [directory, setDirectory] = useState<AclDirectory>({
+    people: [],
+    groups: [],
+  });
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // ?nouveau is a URL anyone can type, and the button that leads to it is
+  // already gone for whoever lacks the right: the screen answers the same
+  // refusal the door would, rather than an empty builder that fails on save.
+  const [refused, setRefused] = useState(false);
 
   useEffect(() => {
     let live = true;
     Promise.all([
       editSlug ? getForm(editSlug) : Promise.resolve(null),
       listFormChoices(),
-    ]).then(([form, choices]) => {
+      listRightsDirectory(editSlug),
+      editSlug ? Promise.resolve(true) : canAddForm(),
+    ]).then(([form, choices, people, allowed]) => {
       if (!live) return;
       if (editSlug && !form) setNotFound(true);
+      setRefused(!allowed);
       setInitial(form);
       setForms(choices);
+      setDirectory(people);
       setLoading(false);
     });
     return () => {
@@ -222,6 +240,16 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
 
   if (loading) {
     return <p className="text-sm text-muted-foreground">Chargement…</p>;
+  }
+  if (refused) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">{CREATE_FORM_REFUSED}</p>
+        <Button asChild variant="outline" className="w-fit">
+          <Link href="/formulaires">Retour à la liste</Link>
+        </Button>
+      </div>
+    );
   }
   if (notFound) {
     return (
@@ -247,6 +275,7 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
       <FormBuilder
         initial={initial}
         forms={forms}
+        directory={directory}
         onSaved={() => router.push("/formulaires")}
         // replace, not push: the old ?id= no longer answers, going "back" to
         // it would only show « introuvable ». BuilderScreen refetches but the

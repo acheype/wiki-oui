@@ -5,6 +5,8 @@ import {
   type EntryData,
   type FormDescriptor,
   computeAutomaticTitle,
+  orderedEntryData,
+  withTitleOrdered,
 } from "./form-descriptor";
 
 interface TitleMode {
@@ -20,7 +22,7 @@ function titleMode(descriptor: FormDescriptor): TitleMode {
 }
 
 /**
- * Two admin gestures invalidate the stored titles: editing the template, and
+ * Two admin permissions invalidate the stored titles: editing the template, and
  * switching the title to automatic. Switching it back to manual does not —
  * the last computed title simply becomes an editable value, already
  * prefilled by initialEntryValues.
@@ -55,6 +57,6 @@ export function restoredEntryValues(
 ): { values: EntryData; titleKept: boolean } {
   const title = computeAutomaticTitle(descriptor, values);
   return title.trim() === ""
-    ? { values, titleKept: true }
-    : { values: { ...values, title }, titleKept: false };
+    ? { values: orderedEntryData(descriptor, values), titleKept: true }
+    : { values: withTitleOrdered(descriptor, values, title), titleKept: false };
 }

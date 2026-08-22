@@ -13,13 +13,15 @@ import { PrismaClient } from "../lib/generated/prisma/client";
 import {
   computeAutomaticTitle,
   parseFormDescriptor,
+  withTitleOrdered,
 } from "../lib/form-descriptor";
+import { bornFormPermissions } from "../lib/form-rights";
+import { storedRights } from "../lib/permissions";
 import { specialSlugs, wikiConfig } from "../wiki.config";
 import { formSeeds } from "./seed/forms";
 import { pageSeeds, topMenuContent } from "./seed/pages";
 import { entrySeeds, IMAGE_ASSETS } from "./seed/entries";
 
-const AUTHOR = "Anonyme";
 const ASSETS_DIR = path.join(__dirname, "seed/assets");
 const FILES_DIR = path.join(process.cwd(), "files");
 
@@ -59,6 +61,8 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
     - [Bandeau](page-header)
     - [Pied de page](page-footer)
     - [Formulaires](formulaires)
+    - [Utilisateurs](gerer-utilisateurs)
+    - [Pages et droits](gerer-pages)
 </Menu>
 `,
 
@@ -75,6 +79,34 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
 `,
 
   fiches: `<EntriesAdmin />
+`,
+
+  // Both halves of the accounts screen, stacked (docs/permissions.md § Les
+  // écrans) — the components themselves refuse to render for anyone but an
+  // administrator, so the page needs no special status of its own.
+  "gerer-utilisateurs": `<UsersAdmin />
+
+<GroupsAdmin />
+`,
+
+  // The rights of the whole wiki, and the action by lot that changes them
+  // (docs/permissions.md § gerer-pages).
+  "gerer-pages": `<PagesAdmin />
+`,
+
+  // The account screens, hosted by pages like every other screen (ADR 0028).
+  // Each page holds nothing but its component: the form draws its own title,
+  // and anything written above it would sit over the screen.
+  [wikiConfig.authPages.signIn]: `<SignIn />
+`,
+
+  [wikiConfig.authPages.signUp]: `<SignUp />
+`,
+
+  [wikiConfig.authPages.forgotPassword]: `<ForgotPassword />
+`,
+
+  [wikiConfig.authPages.invitation]: `<Invitation />
 `,
 
   "aide-memoire": `# Aide-mémoire
@@ -151,8 +183,28 @@ Les autres ne sont pas affichées — \`<script>\`, \`<style>\`, \`<form>\`, \`<
 `,
 };
 
+// Writing is `authenticated` rather than the configured default: seeded pages
+// have no owner, so a default of « seulement » would ship the aide-mémoire and
+// the sandbox closed to everyone but an administrator.
+//
+// No « seulement » list either: it can only name accounts and groups, and at
+// seed time none exists.
+const SEEDED_RIGHTS = {
+  readScope: storedRights(
+    wikiConfig.permissions.defaultPageRead,
+    wikiConfig.permissions.defaultPageWrite
+  ).readScope,
+  writeScope: "authenticated",
+} as const;
+
 // Shared two-step creation (docs/architecture.md): the current-revision
 // pointer can only be set once the revision row exists.
+//
+// Seeded content is born without an owner — the seed writes before anyone can
+// be a person acting, and it stays free of BetterAuth (ADR 0023). The
+// installation screen then takes the special pages under its account (ADR
+// 0027); the example pages keep none, so demonstration content has no false
+// owner.
 async function createMdxPage(
   prisma: PrismaClient,
   slug: string,
@@ -161,15 +213,10 @@ async function createMdxPage(
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
     const page = await tx.page.create({
-      data: { slug, ownerName: AUTHOR, ...(createdAt && { createdAt }) },
+      data: { slug, ...SEEDED_RIGHTS, ...(createdAt && { createdAt }) },
     });
     const revision = await tx.revision.create({
-      data: {
-        pageId: page.id,
-        content,
-        authorName: AUTHOR,
-        ...(createdAt && { createdAt }),
-      },
+      data: { pageId: page.id, content, ...(createdAt && { createdAt }) },
     });
     await tx.page.update({
       where: { id: page.id },
@@ -181,16 +228,19 @@ async function createMdxPage(
 async function createEntryPage(
   prisma: PrismaClient,
   formId: string,
+  formName: string,
   slug: string,
   data: Prisma.InputJsonValue,
   createdAt: Date
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    // Same default as lib/pages.ts: the form's name, not the fiche's own
+    // `tags` field (docs/forms.md § Mots-clés ≠ tags de Page).
     const page = await tx.page.create({
-      data: { slug, ownerName: AUTHOR, formId, createdAt },
+      data: { slug, formId, tags: [formName], createdAt, ...SEEDED_RIGHTS },
     });
     const revision = await tx.revision.create({
-      data: { pageId: page.id, data, authorName: AUTHOR, createdAt },
+      data: { pageId: page.id, data, createdAt },
     });
     await tx.page.update({
       where: { id: page.id },
@@ -259,8 +309,12 @@ async function main() {
       data: {
         slug: form.slug,
         name: form.name,
-        schema: form.schema as unknown as Prisma.InputJsonValue,
-        ownerName: AUTHOR,
+        // Born with the wiki's own three rules, copied and never linked (ADR
+        // 0026) — the same stamp saveForm puts on a form the builder creates.
+        schema: {
+          ...form.schema,
+          permissions: bornFormPermissions(),
+        } as unknown as Prisma.InputJsonValue,
       },
     });
     console.log(`+ formulaire ${form.slug}`);
@@ -306,11 +360,18 @@ async function main() {
     }
     const createdAt = new Date();
     createdAt.setUTCDate(createdAt.getUTCDate() + entry.daysOffset);
+    // Ordered by the form's own fields (docs/permissions.md § /{slug}/raw),
+    // like every other writer — title lands wherever the form's own title
+    // field sits, never forced to the front.
+    const data = descriptor
+      ? withTitleOrdered(descriptor, entry.data, title)
+      : { ...entry.data, title };
     await createEntryPage(
       prisma,
       form.id,
+      form.name,
       entry.slug,
-      { ...entry.data, title } as Prisma.InputJsonValue,
+      data as Prisma.InputJsonValue,
       createdAt
     );
     console.log(`+ fiche ${entry.slug}`);

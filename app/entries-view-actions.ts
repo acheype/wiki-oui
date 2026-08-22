@@ -9,13 +9,17 @@
 import { listEntryFieldChoices } from "@/app/form-actions";
 import type { EntryFieldChoice } from "@/lib/entry-fields";
 import type { ViewEntry } from "@/lib/entries-view";
-import { parseFormDescriptor, readEntryData } from "@/lib/form-descriptor";
-import { prisma } from "@/lib/prisma";
+import { readEntryData } from "@/lib/form-descriptor";
+import { readableForm } from "@/lib/field-rights-db";
+import { listFormsWithEntries } from "@/lib/forms";
+import { personPermissions } from "@/lib/pages";
+import type { PagePermissions } from "@/lib/permissions";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
   sampleEntries,
 } from "@/lib/sample-entries";
 import { TEXT_SEARCH_TYPES } from "@/lib/entries-view";
+import { displayName } from "@/lib/username";
 
 export interface EntriesViewQuery {
   /** Chosen form slugs, in the author's order. */
@@ -38,6 +42,13 @@ export interface EntriesViewData {
   sample: boolean;
   /** slug → name of the chosen forms ($form labels). */
   formNames: Record<string, string>;
+  /**
+   * slug → what the person may do to that entry, for the views that offer a
+   * action per row. Beside the entries rather than inside them: what a view
+   * searches, sorts and filters on is the entry's own values, and a right is
+   * not one of them.
+   */
+  permissions: Record<string, PagePermissions>;
 }
 
 export async function getEntriesViewData(
@@ -53,6 +64,7 @@ export async function getEntriesViewData(
       entries: sampleEntries(FALLBACK_SAMPLE_DESCRIPTOR, today),
       sample: true,
       formNames: {},
+      permissions: {},
     };
   }
 
@@ -69,31 +81,30 @@ export async function getEntriesViewData(
   );
   const keptNames = new Set(kept.map((choice) => choice.name));
 
-  const forms = await prisma.form.findMany({
-    where: { slug: { in: query.forms } },
-    include: {
-      entries: { include: { current: true }, orderBy: { createdAt: "desc" } },
-    },
-  });
+  const forms = await listFormsWithEntries(query.forms);
   const bySlug = new Map(forms.map((form) => [form.slug, form]));
   const ordered = query.forms.flatMap((slug) => bySlug.get(slug) ?? []);
   const formNames = Object.fromEntries(
     ordered.map((form) => [form.slug, form.name])
   );
 
-  const entries: ViewEntry[] = ordered.flatMap((form) =>
-    form.entries.map((page) => {
+  // Cut form by form, where `kept` is the union over the chosen ones: a name
+  // readable on one of them is not thereby readable on the next
+  // (docs/permissions.md § Champ). A form whose descriptor no longer parses
+  // reads as « no field »: the union was built from the ones that do.
+  const seenForms = await Promise.all(
+    ordered.map(async (form) => (await readableForm(form.schema))?.readableNames)
+  );
+  const entries: ViewEntry[] = ordered.flatMap((form, index) => {
+    const readable = seenForms[index] ?? new Set<string>();
+    return form.entries.map((page) => {
       const data = readEntryData(page.current?.data);
       const values: Record<string, unknown> = {};
       for (const [name, value] of Object.entries(data)) {
-        if (keptNames.has(name)) values[name] = value;
+        if (keptNames.has(name) && readable.has(name)) values[name] = value;
       }
-      // The Page's tags mirror the tags field but the Page is the source of
-      // truth (docs/forms.md): serve them under the form's tags field name.
-      const tagsField = kept.find((choice) => choice.type === "tags");
-      if (tagsField) values[tagsField.name] = page.tags;
       values.$form = form.slug;
-      values.$owner = page.ownerName ?? "Anonyme";
+      values.$owner = displayName(page.owner);
       values.$createdAt = page.createdAt.toISOString();
       values.$editedAt = (page.current?.createdAt ?? page.createdAt).toISOString();
       const title = data.title;
@@ -102,22 +113,34 @@ export async function getEntriesViewData(
         title: typeof title === "string" ? title : page.slug,
         values,
       };
-    })
-  );
+    });
+  });
 
   // Forms chosen but still empty: samples over the first form's real schema,
-  // so the preview matches the fields the author configured.
+  // so the preview matches the fields the author configured — cut like the
+  // rest, so that a restricted field is not even named by an invented value.
   if (entries.length === 0 && ordered.length > 0) {
-    const parsed = parseFormDescriptor(ordered[0].schema);
-    if (parsed.descriptor) {
+    const seen = await readableForm(ordered[0].schema);
+    if (seen) {
       return {
         fields: kept,
-        entries: sampleEntries(parsed.descriptor, today, ordered[0].slug),
+        entries: sampleEntries(seen.readable, today, ordered[0].slug),
         sample: true,
         formNames,
+        permissions: {},
       };
     }
   }
 
-  return { fields: kept, entries, sample: false, formNames };
+  // Decided here rather than in the row: the person is resolved once for the
+  // request (lib/permissions-db), and the rules are pure — so a formful of
+  // entries costs the loop and nothing else.
+  const permissions: Record<string, PagePermissions> = {};
+  for (const form of ordered) {
+    for (const page of form.entries) {
+      permissions[page.slug] = await personPermissions(page);
+    }
+  }
+
+  return { fields: kept, entries, sample: false, formNames, permissions };
 }

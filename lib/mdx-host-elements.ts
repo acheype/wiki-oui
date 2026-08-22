@@ -35,10 +35,10 @@ export const WIKI_HOST_ELEMENTS: ReadonlySet<string> = new Set([
   "a", "img", "picture", "source",
   // iframe is in because embedding another site is not typed, it is *pasted*:
   // YouTube, OpenStreetMap and umap all hand out a ready-made snippet, and
-  // refusing the tag would break that gesture for no security gain. The tag's
+  // refusing the tag would break that action for no security gain. The tag's
   // whole risk is `srcdoc`, refused by name in mdx-literal-props.ts; a
   // cross-origin `src` is walled off by the same-origin policy. <Embed> covers
-  // the other gesture — no snippet in hand, just a URL — and adds sandbox,
+  // the other action — no snippet in hand, just a URL — and adds sandbox,
   // https and a title, which a pasted tag cannot be made to carry.
   "iframe",
 ]);
