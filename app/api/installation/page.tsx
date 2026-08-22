@@ -6,7 +6,7 @@ import { InstallationForm } from "@/modules/settings/ui/installation-form";
 // to browse yet, and its menu would lead nowhere.
 //
 // Under /api like the ComponentBuilder preview, and for the same reason: a
-// screen that must answer before any page exists cannot be a page, and the
+// service that must answer before any page exists cannot be a page, and the
 // reserved segment is the only place that is not a slug (ADR 0028). Nobody
 // reads this address — the rewrite keeps whatever the visitor asked for.
 export const dynamic = "force-dynamic";

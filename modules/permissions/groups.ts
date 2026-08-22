@@ -41,7 +41,7 @@ export interface InheritedGroup {
 
 /**
  * What a membership names, as the table holds it: a person or a group, never
- * both. One shape from the screen to the door, so nothing translates it on
+ * both. One shape from the system page to the door, so nothing translates it on
  * the way.
  */
 export type MemberRef = { username: string } | { groupSlug: string };
@@ -177,7 +177,7 @@ export function inheritedGroups(
   return inherited;
 }
 
-/** Between two groups of a way down, as every screen writes it. */
+/** Between two groups of a way down, as every system page writes it. */
 export const PATH_SEPARATOR = " › ";
 
 /** A group, as every message writes it: its name behind an @. */
@@ -210,7 +210,7 @@ const PROTECTED_GROUP = groupLabel(ADMINS_GROUP.name);
 
 /**
  * Why this group refuses to be renamed, or null when it may be. The refusal
- * names the group: a screen shows several at a time, and « ce groupe » would
+ * names the group: a system page shows several at a time, and « ce groupe » would
  * leave the reader to work out which one answered.
  */
 export function groupRenameRefusal(slug: string): string | null {
@@ -241,7 +241,7 @@ export function groupDeletionImpact(
 /**
  * Why this member cannot be taken out, or null when they may go. Only
  * @Admins ever refuses: a wiki whose administrators' group is empty is one
- * nobody can take back — the installation screen is a one-way door (ADR
+ * nobody can take back — the installation service is a one-way door (ADR
  * 0027), so it will not hand it over a second time.
  */
 export function memberRemovalRefusal(group: {
@@ -257,7 +257,7 @@ export function memberRemovalRefusal(group: {
 /**
  * What the toast says once a direct membership is gone but the nesting keeps
  * the person in. The removal did happen — this is not a refusal, it is the
- * screen refusing to let the chip's disappearance say more than it means.
+ * system page refusing to let the chip's disappearance say more than it means.
  */
 export function stillMemberMessage(
   name: string,
@@ -309,7 +309,7 @@ export function nestingCycleMessage(names: readonly string[]): string {
  *
  * Breadth first, so the way shown is the shortest one; a group reached twice
  * keeps the first. A cycle cannot be saved, but one already in the database
- * must not hang the screen that would let an administrator undo it.
+ * must not hang the system page that would let an administrator undo it.
  */
 export function nestedGroupPaths(
   nestings: readonly Nesting[],

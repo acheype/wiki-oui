@@ -73,7 +73,7 @@ export async function getPage(slug: string) {
 /**
  * A page with the form it is an entry of, null form for an MDX page. The
  * current revision's author rides along for `/{slug}/raw`'s `last-edited-by`
- * — the only reader of it, the other caller (the edit screen) ignoring it.
+ * — the only reader of it, the other caller (the edit view) ignoring it.
  */
 export async function getPageWithForm(slug: string) {
   const page = await prisma.page.findUnique({

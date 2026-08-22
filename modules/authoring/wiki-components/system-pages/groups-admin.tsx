@@ -3,8 +3,8 @@ import { AdminOnly } from "@/modules/permissions/admin-only";
 import { GroupsAdmin as GroupsAdminScreen } from "@/modules/permissions/groups-admin";
 
 // Built-in component rendered by the `gerer-utilisateurs` special page
-// (docs/permissions.md § Les écrans), below <UsersAdmin />. Creating and
-// editing a group is an administrator's action in v0.5, so the whole screen
+// (docs/permissions.md § Les pages système), below <UsersAdmin />. Creating and
+// editing a group is an administrator's action in v0.5, so the whole system page
 // is behind the same gate as the users list.
 export function GroupsAdmin() {
   return (

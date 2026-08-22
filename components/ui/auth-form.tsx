@@ -4,7 +4,7 @@ import { useId, useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// What the five authentication screens share — installation, connexion,
+// What the five authentication interfaces share — installation, connexion,
 // invitation, réinitialisation, inscription: the submit-and-report plumbing,
 // and the two fields they all draw the same way.
 
@@ -33,7 +33,7 @@ export function useAuthForm(
 }
 
 /**
- * The password field of every screen where one is chosen — invitation, reset
+ * The password field of every system page where one is chosen — invitation, reset
  * and free sign-up. Uncontrolled, like the rest of what these forms read: the
  * value is the browser's until it is submitted, which is also what lets a
  * password manager fill it.
@@ -70,7 +70,7 @@ export function NewPasswordField({
   );
 }
 
-/** What an action refused, in the one place both screens show it. */
+/** What an action refused, in the one place both system pages show it. */
 export function AuthFormError({ error }: { error: string | undefined }) {
   if (!error) return null;
   return (

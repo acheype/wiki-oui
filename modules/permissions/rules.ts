@@ -23,7 +23,7 @@ export const ADMINS_GROUP = { slug: "admins", name: "Admins" } as const;
 /**
  * The floor every action on an account or a membership stops at: a wiki
  * whose administrators have all gone is one nobody can take back, since the
- * installation screen is a one-way door (ADR 0027). One sentence, because it
+ * installation service is a one-way door (ADR 0027). One sentence, because it
  * is one rule — removing the last member of @Admins, disabling them and
  * deleting them are three ways to the same place.
  */
@@ -31,7 +31,7 @@ export const LAST_ADMIN_REFUSAL = "Ce wiki doit garder au moins un administrateu
 
 /**
  * A signed-in person as the interface names them. The display name signs
- * contributions, the identifier is what the account screens link to — and
+ * contributions, the identifier is what the account system pages link to — and
  * the email is in neither, it belongs to gerer-utilisateurs alone.
  */
 export interface Identity {
@@ -328,7 +328,7 @@ function isEverything(clause: Prisma.PageWhereInput): boolean {
 
 /**
  * What a list filters on: what the person may read, plus the handful of pages
- * that answer to everyone whatever is posed on them (the account screens —
+ * that answer to everyone whatever is posed on them (the account system pages —
  * signing in has to work where the content refuses).
  */
 export function listReadableWhere(
@@ -558,7 +558,7 @@ function joinNames(names: readonly string[]): string {
 }
 
 /**
- * What handing pages over means for whoever receives them, as the two screens
+ * What handing pages over means for whoever receives them, as the two views
  * that offer it say it — the « Accès » modal on one page, `gerer-pages` on a
  * lot. Written out both ways rather than built from a count: at one page the
  * pronoun agrees with it too, and assembling the pieces is what once produced
@@ -581,7 +581,7 @@ export function ownerTransferWarning(total: number): string {
 }
 
 /**
- * Who looks after the page, as a screen states it. A page with no owner says
+ * Who looks after the page, as a view states it. A page with no owner says
  * « Anonyme » rather than saying nothing: the absence is itself the
  * information — it is what leaves the page to the administrators alone — and
  * a line that disappears reads as a screen that failed to load it.
@@ -595,7 +595,7 @@ export function ownerLine(ownerName: string | null): string {
 }
 
 /**
- * What the access layer throws when a write reaches it anyway. The screens
+ * What the access layer throws when a write reaches it anyway. The views
  * hide what they cannot offer, so nobody reads these in the ordinary course
  * — they are the backstop for a direct call to a Server Action.
  */
@@ -633,7 +633,7 @@ export const UPLOAD_REFUSED =
   "Vous n'avez pas le droit de déposer un fichier sur ce wiki.";
 
 /**
- * That refusal, as the screen that asked can show it. A Server Action that
+ * That refusal, as the view that asked can show it. A Server Action that
  * let it through would land on the error boundary, where a right that went
  * away between opening a page and saving it reads as a crash.
  */

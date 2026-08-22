@@ -7,7 +7,7 @@ import { authPagePath } from "@/wiki.config";
 // A block of content nobody else may see is shown with its reason and a way
 // on (docs/permissions.md § Ce que voit qui n'a pas le droit) — unlike an
 // action, which is simply hidden: an offer that cannot be taken informs
-// nobody, but a screen that vanished leaves the page looking broken.
+// nobody, but a block that vanished leaves the page looking broken.
 export async function AdminOnly({ children }: { children: React.ReactNode }) {
   if (await isCurrentAdmin()) return <>{children}</>;
 

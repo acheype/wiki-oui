@@ -50,7 +50,7 @@ export const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
 // usernames and group slugs, never ids (ADR 0024). Shape only, like the
 // fields below — a name that has since gone is dropped when the default is
 // copied (ADR 0026), not refused at read, or a deleted account would shut its
-// form out of the very screen where the mistake gets fixed.
+// form out of the very system page where the mistake gets fixed.
 // Readonly, so that what the descriptor holds and what `AccessRule` describes
 // are one type: the wiki's own defaults are written `as const` in
 // wiki.config.ts, and a mutable array would refuse the very copy ADR 0026 is
@@ -570,7 +570,7 @@ const RESERVED_FIELD_NAME = "metadata";
 
 // Rules checked when a form is *saved*, not when it is read. A descriptor
 // already in base has to keep parsing: getForm throws on one it cannot read,
-// which would shut the author out of the very screen where the mistake gets
+// which would shut the author out of the very system page where the mistake gets
 // fixed. So a rule that only tightens what may be created belongs here, next
 // to saveForm's other authoring checks — never in parseFormDescriptor, whose
 // verdict is retroactive over everything already stored.

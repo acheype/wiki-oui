@@ -1,11 +1,11 @@
-// The first-visit screen that creates the administrator account (ADR 0027).
-// Shared by the screen, its Server Action and the proxy that guards it, so
+// The first-visit service that creates the administrator account (ADR 0027).
+// Shared by the service, its Server Action and the proxy that guards it, so
 // nothing here may reach the database or BetterAuth.
 
 import { API_SEGMENT } from "@/lib/slug";
 
 /**
- * A real route, not a wiki page (ADR 0028): the screen must answer before any
+ * A real route, not a wiki page (ADR 0028): the service must answer before any
  * page can be read, and stops answering the day the wiki is installed. It
  * hides under the one reserved segment rather than taking `/installation`,
  * which stays a slug like any other — the proxy rewrites whatever address was
@@ -22,5 +22,5 @@ export const INSTALLATION_PATH = `/${API_SEGMENT}/installation`;
  */
 export const INSTALLER = { name: "Wiki Admin", username: "wiki-admin" } as const;
 
-/** BetterAuth's own floor, restated here so the screen can announce it. */
+/** BetterAuth's own floor, restated here so the service can announce it. */
 export const MIN_PASSWORD_LENGTH = 8;

@@ -143,7 +143,7 @@ function identityRefusal(input: {
  * What the `invitation` page draws, decided by the token its URL carries: an
  * invitation asks for a name, an identifier and a password, a reset only for
  * a password, and a spent link for nothing at all. A read through a Server
- * Action like the other built-in screens (ADR 0014) — the page is MDX, so its
+ * Action like the other built-in system pages (ADR 0014) — the page is MDX, so its
  * component only meets the query string client-side. No person to check: the
  * token is the whole credential, and reading it does not spend it.
  */
@@ -193,11 +193,11 @@ export async function resetPasswordLink(input: {
 
 /**
  * « Mot de passe oublié ». The answer never varies about the address: whether
- * it is known is not this screen's to reveal, and an administrator remains
+ * it is known is not this system page's to reveal, and an administrator remains
  * the way through for a wiki with no SMTP. What it does report is whether a
  * mail could leave at all — the same verdict for every address, since one
  * with no account makes the wiki prove it could have sent (modules/accounts/mailer.ts).
- * Only the failure travels back, never its detail: the screen is open to
+ * Only the failure travels back, never its detail: the system page is open to
  * anyone, and the reason names hosts and accounts.
  */
 export async function requestPasswordLink(

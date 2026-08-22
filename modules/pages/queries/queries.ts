@@ -44,9 +44,9 @@ import { wikiConfig } from "@/wiki.config";
 export type Decidable = PageRights & { slug: string; owner: { name: string } | null };
 
 /**
- * The four account screens answer to everyone, whatever right is posed on
- * them (docs/permissions.md § Les écrans): signing in has to work exactly
- * where the content refuses, and the refusal screen's own « Se connecter »
+ * The four account system pages answer to everyone, whatever right is posed on
+ * them (docs/permissions.md § Les pages système): signing in has to work exactly
+ * where the content refuses, and the refusal view's own « Se connecter »
  * would otherwise lead to a second refusal. Read by the single-page check and
  * by the list clause alike, so the two cannot drift apart.
  */
@@ -61,7 +61,7 @@ export async function ifReadable<T extends Decidable>(
   return { refused: true, ownerName: page.owner?.name ?? null };
 }
 
-/** The backstop of every content write; the screens refuse long before it. */
+/** The backstop of every content write; the views refuse long before it. */
 export async function assertCanWrite(page: PageRights): Promise<void> {
   if (!canWrite(await currentPerson(), page)) throw new Error(WRITE_REFUSED);
 }

@@ -13,8 +13,9 @@ import { readDescriptorSource } from "./descriptor-source";
 // in wiki-components/ describes the builder of its co-located .tsx component
 // (docs/component-builder.md). Same regime as the registry (mdx.tsx):
 // presence in the folder is the whitelist, loading fails fast and loud.
-// Screens have no descriptor and never get one, so this never looks in
-// wiki-components/screens/ — the plain .yaml filter already excludes it.
+// System pages have no descriptor and never get one, so this never looks
+// in wiki-components/system-pages/ — the plain .yaml filter already
+// excludes it.
 
 export interface ComponentBuilderSpec {
   /** Kebab file base, e.g. "file-link"; the authoritative on-disk identity. */

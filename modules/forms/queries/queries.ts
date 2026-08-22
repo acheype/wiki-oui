@@ -27,7 +27,7 @@ export async function assertFormStructuring(form: OwnedForm): Promise<void> {
   throw new Error(FORM_EDIT_REFUSED);
 }
 
-/** The same read, from the identifier a screen holds. */
+/** The same read, from the identifier a view holds. */
 export async function ownerOf(formId: string): Promise<OwnedForm> {
   return prisma.form.findUniqueOrThrow({
     where: { id: formId },

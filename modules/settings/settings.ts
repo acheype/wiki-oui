@@ -11,9 +11,9 @@ const SETTINGS_ROW = 1;
 let installedOnce = false;
 
 /**
- * Has this wiki ever been installed? The guard of the installation screen is
+ * Has this wiki ever been installed? The guard of the installation service is
  * this flag, deliberately not "does an administrator exist?" (ADR 0027):
- * emptying @Admins must not reopen the screen and hand the wiki over.
+ * emptying @Admins must not reopen the service and hand the wiki over.
  */
 export async function isInstalled(): Promise<boolean> {
   if (installedOnce) return true;

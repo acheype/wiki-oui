@@ -15,7 +15,7 @@ import { authPagePath } from "@/wiki.config";
 // One field for the email and the identifier: the wiki knows which one it
 // received (modules/accounts/username.ts), so nobody has to.
 //
-// The screen is a wiki page (ADR 0028), which knows nothing of the query
+// This system page is a wiki page (ADR 0028), which knows nothing of the query
 // string it was called with — so where the visitor was heading is read here,
 // client-side, like every other state the URL carries.
 export function SignInForm({
@@ -105,7 +105,7 @@ export function SignInForm({
   );
 }
 
-/** Carries where the visitor was heading across to the other screen. */
+/** Carries where the visitor was heading across to the other system page. */
 function destinationLink(path: string, destination?: string): string {
   return destination
     ? `${path}?${DESTINATION_PARAM}=${encodeURIComponent(destination)}`

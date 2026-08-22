@@ -1,11 +1,12 @@
 "use server";
 
-// Server Actions of the accounts screen (docs/permissions.md § Les écrans).
-// Reading them is an administrator's action — email addresses are shown here
-// and nowhere else — and the check lives behind the door, in
-// modules/accounts/queries/queries.ts, so none of these can forget it.
+// Server Actions of the accounts system page (docs/permissions.md § Les
+// pages système). Reading them is an administrator's action — email
+// addresses are shown here and nowhere else — and the check lives behind
+// the door, in modules/accounts/queries/queries.ts, so none of these can
+// forget it.
 //
-// The two at the end are the exception, and are not called from that screen:
+// The two at the end are the exception, and are not called from that system page:
 // erasing one's own account belongs to the person, not to an administrator's
 // goodwill, and it can reach no account but the one signed in.
 
@@ -48,9 +49,9 @@ export async function listInvitations(): Promise<PendingInvitation[]> {
 }
 
 /**
- * Whether the wiki can send a link itself. The screens ask before they act:
- * with SMTP the link is on its way, without it the administrator is the
- * delivery — and both flows end on the same acceptance screen.
+ * Whether the wiki can send a link itself. The system pages ask before they
+ * act: with SMTP the link is on its way, without it the administrator is the
+ * delivery — and both flows end on the same acceptance page.
  */
 export async function canSendMail(): Promise<boolean> {
   return isMailerConfigured();

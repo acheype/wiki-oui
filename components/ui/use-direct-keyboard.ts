@@ -3,7 +3,7 @@
 import { type RefObject, useEffect } from "react";
 
 // La frappe directe (docs/forms.md): typing anywhere fills the filter without
-// clicking it first. Shared by the three screens that head a list with one —
+// clicking it first. Shared by the three system pages that head a list with one —
 // les formulaires, les comptes et les pages — since the rule for when the
 // keyboard belongs to the filter and when it does not is one rule.
 export function useDirectKeyboard(

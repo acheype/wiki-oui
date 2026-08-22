@@ -41,7 +41,7 @@ import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/
 // (OwnedForm, assertFormStructuring, ownerOf) nothing outside the module
 // needs. Unlike lib/pages.ts, this door was small enough to stay one file.
 
-/** Whether the screens offer those permissions at all, or simply leave them out. */
+/** Whether the system pages offer those permissions at all, or simply leave them out. */
 export async function personCanEditForm(form: OwnedForm): Promise<boolean> {
   return ownsSubject(await currentPerson(), form.ownerUsername);
 }

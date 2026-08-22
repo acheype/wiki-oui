@@ -3,7 +3,7 @@
 // live next door in field-rights.ts — the pairing this project uses throughout
 // (permissions, slug-rename, field-rename, entry-title).
 //
-// Five screens read a form to show it: the fiche, its history, the entry form,
+// Five views read a form to show it: the fiche, its history, the entry form,
 // the entry views and their field pickers. Each of them wants the same thing
 // said once — the descriptor as this person may see it — so it is said here,
 // with the person resolved rather than passed in (ADR 0025): an argument can be

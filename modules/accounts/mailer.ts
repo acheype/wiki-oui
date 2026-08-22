@@ -9,7 +9,7 @@ import {
 // Sending a link by mail (docs/permissions.md § Naissance d'un compte). SMTP
 // is a delivery mode, never a dependency: with it the wiki sends the link,
 // without it the administrator copies it and hands it over as they wish —
-// and what the person then goes through is the same screen either way. So
+// and what the person then goes through is the same system page either way. So
 // nothing here ever decides whether a action succeeded; it only says what
 // became of the delivery.
 
@@ -17,7 +17,7 @@ import {
 // than a connection string: what an operator has in hand is a host, a port
 // and an account — a URL asks them to assemble it, and to percent-encode a
 // password whose @ or / would otherwise break it silently. These settings
-// move to the configuration screen the day `Settings` grows (ADR 0027).
+// move to the configuration system page the day `Settings` grows (ADR 0027).
 interface SmtpSettings {
   host: string;
   port: number;
@@ -55,7 +55,7 @@ function sender(): string | undefined {
   return process.env.SMTP_FROM?.trim() || undefined;
 }
 
-/** Whether the wiki can send at all — what the invitation screens announce. */
+/** Whether the wiki can send at all — what the invitation system pages announce. */
 export function isMailerConfigured(): boolean {
   return Boolean(smtpSettings() && sender());
 }
@@ -71,7 +71,7 @@ function transport(settings: SmtpSettings): Transporter {
 
 /**
  * Delivers a link, or says why it did not. A failure is reported rather than
- * thrown: the link exists, the invitation stands, and the screen falls back
+ * thrown: the link exists, the invitation stands, and the system page falls back
  * on what it can always do — show it to be copied.
  */
 export async function sendAccountLink(mail: {

@@ -23,7 +23,7 @@ export const auth = betterAuth({
     // No SMTP is required to run a wiki (docs/permissions.md): a forgotten
     // password is answered by a link an administrator can also hand over.
     requireEmailVerification: false,
-    // The floor the installation screen announces, applied where it is
+    // The floor the installation service announces, applied where it is
     // enforced, so the two cannot drift apart.
     minPasswordLength: MIN_PASSWORD_LENGTH,
   },

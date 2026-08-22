@@ -2,8 +2,8 @@
 
 // « Mot de passe oublié » (docs/permissions.md § Naissance d'un compte): the
 // same single-use link as an invitation, asked for by the person themselves.
-// The answer never varies — whether the address is known is not this screen's
-// to say — and on a wiki with no SMTP the screen says so plainly instead of
+// The answer never varies — whether the address is known is not this system
+// page's to say — and on a wiki with no SMTP the system page says so plainly instead of
 // promising a mail nobody will send.
 //
 // A wiki whose SMTP is configured but broken says so too, rather than send
@@ -11,7 +11,7 @@
 // about the address: the server is asked either way (modules/accounts/mailer.ts). No
 // technical detail here — a stranger can do nothing with « 535 Auth failed »
 // but learn about the host, so the sentence points at an administrator, who
-// reads the reason on their own screens and in the logs.
+// reads the reason on their own system pages and in the logs.
 
 import { KeyRound, MailWarning } from "lucide-react";
 import Link from "next/link";

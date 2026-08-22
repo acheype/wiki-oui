@@ -88,7 +88,7 @@ async function openLink(
     create: { email, tokenHash, expiresAt, groupSlug },
     update: { tokenHash, expiresAt, groupSlug },
   });
-  // The screen that accepts the link is the `invitation` wiki page, so the
+  // The system page that accepts the link is the `invitation` wiki page, so the
   // token travels as a query parameter: a segment behind the slug would be
   // read as a page handler (ADR 0028).
   const path = `${authPagePath("invitation")}?${INVITATION_TOKEN_PARAM}=${token}`;
@@ -124,7 +124,7 @@ export interface UserRow extends Identity {
 /**
  * The people of the wiki with their groups, direct and inherited — the
  * accounts list of `gerer-utilisateurs`. Administrators only: it is the one
- * screen where email addresses are shown.
+ * system page where email addresses are shown.
  */
 export async function listUsersWithGroups(): Promise<UserRow[]> {
   await assertAdmin();
@@ -320,7 +320,7 @@ export async function createResetLink(
 /**
  * « Mot de passe oublié », asked by whoever is at the keyboard — no person, so
  * no check, and deliberately no answer about the address either: the link
- * goes to it or nowhere, and the screen says the same thing in both cases.
+ * goes to it or nowhere, and the system page says the same thing in both cases.
  * Returning it would let anyone harvest a reset link for an address they
  * merely guessed.
  *
@@ -344,14 +344,14 @@ export async function requestPasswordReset(
 
 // --- accepting a link ---------------------------------------------------------
 
-/** What the link's screen must know to draw itself. */
+/** What the link's system page must know to draw itself. */
 export interface AccountLinkTarget {
   email: string;
   /** An invitation creates the account; a reset only changes its password. */
   purpose: LinkPurpose;
-  /** The group the invitation adds to, named for the screen to announce it. */
+  /** The group the invitation adds to, named for the system page to announce it. */
   group: NamedGroup | null;
-  /** The account the reset is for, so the screen can greet it by name. */
+  /** The account the reset is for, so the system page can greet it by name. */
   name: string | null;
 }
 
@@ -482,7 +482,7 @@ export async function resetPasswordWithLink(input: {
     });
   } catch {
     // The password did change; only the courtesy of arriving signed in did
-    // not. The sign-in screen is one click away and will take it.
+    // not. The sign-in system page is one click away and will take it.
     return null;
   }
   return null;

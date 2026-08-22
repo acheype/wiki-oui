@@ -1,5 +1,5 @@
 // The end of an account (docs/permissions.md § Fin d'un compte): the two
-// permissions an administrator has, and what the screen says about them. Pure
+// permissions an administrator has, and what the system page says about them. Pure
 // and client-safe, like modules/permissions/groups.ts beside it — modules/accounts/queries/queries.ts loads
 // what these functions need and writes their verdict back.
 
@@ -25,7 +25,7 @@ export type AccountFilter = "all" | AccountStatus;
 export const ACCOUNT_DISABLED_MESSAGE =
   "Ce compte est désactivé. Contactez un administrateur.";
 
-/** The code that carries the refusal out of BetterAuth and into the screen. */
+/** The code that carries the refusal out of BetterAuth and into the system page. */
 export const ACCOUNT_DISABLED_CODE = "ACCOUNT_DISABLED";
 
 /** The radio row above the list, in the order the spec draws it. */
@@ -46,7 +46,7 @@ export function matchesAccountFilter(
 /** An administrator's action on one account, as the refusals read it. */
 export interface AccountAction {
   username: string;
-  /** Who is acting: an administrator, since nobody else reaches this screen. */
+  /** Who is acting: an administrator, since nobody else reaches this system page. */
   personUsername: string | null;
   /** The target is the last administrator who could still sign in. */
   lastAdmin: boolean;
@@ -68,7 +68,7 @@ export function disableRefusal(action: AccountAction): string | null {
  * Why this account cannot be erased, or null when it can. Erasing one's own
  * is a right, not an accident (RGPD, droit à l'effacement) — so nothing
  * stands in its way but the wiki's one invariant: an administrator has to
- * hand the wiki on before they go, since the installation screen will not
+ * hand the wiki on before they go, since the installation service will not
  * give it back (ADR 0027).
  */
 export function deleteRefusal(action: AccountAction): string | null {
@@ -130,7 +130,7 @@ export const OWN_ERASURE_NOTICE = [
   "Ces contenus, eux, restent sur le wiki : votre départ ne les emporte pas.",
 ];
 
-/** And what it does not do, on the screen where someone erases another. */
+/** And what it does not do, on the system page where someone erases another. */
 export const ERASURE_KEEPS_CONTENT =
   "Les pages et l'historique subsistent dans tous les cas : seule la signature change.";
 

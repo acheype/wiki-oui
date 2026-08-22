@@ -1,9 +1,9 @@
 "use client";
 
 // Where every single-use link lands (docs/permissions.md § Naissance d'un
-// compte). One screen for the three needs it serves: what it offers is
-// decided by the token, and the token travels in the query string because the
-// screen is a wiki page — behind a page slug, a segment is a handler (ADR
+// compte). One system page for the three needs it serves: what it offers is
+// decided by the token, and the token travels in the query string because this
+// system page is a wiki page — behind a page slug, a segment is a handler (ADR
 // 0028). Nobody is signed in here, so the token is the whole credential.
 
 import Link from "next/link";
@@ -57,7 +57,7 @@ export function InvitationScreen() {
 }
 
 /**
- * Expired, already used, or never issued — the screen does not tell those
+ * Expired, already used, or never issued — the system page does not tell those
  * apart. It would only teach whoever is holding a link they should not have,
  * and the way forward is the same in all three cases: ask for another.
  */

@@ -8,7 +8,7 @@
 // A refusal says what the server answered, behind a disclosure: the person
 // reading is the one who configured the SMTP settings, and « Invalid login:
 // 535 » is what tells them which of the five is wrong. Nobody else ever sees
-// this — the screens open to strangers say the neutral sentence instead.
+// this — the system pages open to strangers say the neutral sentence instead.
 
 import { AlertTriangle, Check, Copy } from "lucide-react";
 import { useState } from "react";

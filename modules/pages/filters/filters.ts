@@ -1,7 +1,7 @@
 // How `gerer-pages` reads its list (docs/permissions.md § gerer-pages): the
 // search, the Tout/Pages/Fiches filter and the formulaire filter, kept here
-// rather than in the screen because the selection follows them — acting on a
-// page one has filtered out is the surprise that screen exists to avoid, and a
+// rather than in the system page because the selection follows them — acting on a
+// page one has filtered out is the surprise that system page exists to avoid, and a
 // tick surviving the filter that hid it is a bug the eye does not catch.
 
 // hasForm/isEntryPage from modules/pages/entry-page.ts, not

@@ -2,7 +2,7 @@
 
 L'équivalent de la gestion des droits de YesWiki, refondue pour tenir sans documentation : un seul mode de paramétrage, des comportements généralisés, et une interface qui se suffit à elle-même.
 
-ADR [0023](adr/0023-betterauth-authentifie-wikioui-autorise.md) (frontière authentification/autorisation), [0024](adr/0024-droits-par-username-et-slug.md) (ce que stockent les droits), [0025](adr/0025-couche-acces-gardee-par-eslint.md) (où le contrôle s'applique), [0026](adr/0026-defauts-recopies-jamais-lies.md) (les défauts se recopient), [0027](adr/0027-installation-drapeau-irreversible.md) (l'amorçage), [0028](adr/0028-tout-ecran-est-une-page.md) (les écrans sont des pages). Glossaire : [`../CONTEXT.md`](../CONTEXT.md).
+ADR [0023](adr/0023-betterauth-authentifie-wikioui-autorise.md) (frontière authentification/autorisation), [0024](adr/0024-droits-par-username-et-slug.md) (ce que stockent les droits), [0025](adr/0025-couche-acces-gardee-par-eslint.md) (où le contrôle s'applique), [0026](adr/0026-defauts-recopies-jamais-lies.md) (les défauts se recopient), [0027](adr/0027-installation-drapeau-irreversible.md) (l'amorçage), [0028](adr/0028-tout-ecran-est-une-page.md) (une page système est une page). Glossaire : [`../CONTEXT.md`](../CONTEXT.md).
 
 ## Le modèle en deux phrases
 
@@ -50,7 +50,7 @@ Créer l'invitation  →  /invitation?jeton=…   (14 jours, usage unique)
                         │
         ┌───────────────┼───────────────────────┐
    SMTP configuré   envoi refusé           pas de SMTP
-   le serveur       l'écran le dit,        l'admin copie le lien
+   le serveur       la page le dit,        l'admin copie le lien
    l'envoie         message du serveur     et le transmet comme il veut
                     en détail + journaux
 ```
@@ -59,17 +59,17 @@ Le jeton voyage en **paramètre**, jamais en segment : la page `invitation` est 
 
 La personne choisit son nom affiché, son identifiant et son mot de passe. **Une seule primitive pour trois besoins** : invitation, « mot de passe oublié », et réinitialisation déclenchée par un administrateur. Le SMTP n'est donc jamais une dépendance de fonctionnement, seulement un confort d'acheminement.
 
-**Un envoi qui échoue se dit.** Un SMTP mal réglé ne se remarquait pas : l'écran annonçait un courriel parti. Désormais l'échec est annoncé partout où il se produit, et le **détail** — ce que le serveur a répondu — va à qui peut le corriger :
+**Un envoi qui échoue se dit.** Un SMTP mal réglé ne se remarquait pas : la page annonçait un courriel parti. Désormais l'échec est annoncé partout où il se produit, et le **détail** — ce que le serveur a répondu — va à qui peut le corriger :
 
 | Qui regarde | Ce qu'il voit |
 | --- | --- |
 | Un administrateur (invitation, lien de mot de passe) | « L'envoi a échoué » **et** le message du serveur, replié sous « Détail de l'erreur d'envoi », avec les six réglages à vérifier |
 | Une personne sur « mot de passe oublié » | « Le courriel n'est pas parti — prévenez un administrateur », sans détail : il ne nommerait que des hôtes et des comptes à qui ne peut rien en faire |
-| Personne (envoi de nuit, lot) | La ligne `[wikioui] SMTP — …` dans les journaux du serveur, seule trace quand il n'y a pas d'écran |
+| Personne (envoi de nuit, lot) | La ligne `[wikioui] SMTP — …` dans les journaux du serveur, seule trace quand personne n'est devant un écran |
 
 Le « mot de passe oublié » garde son silence sur l'adresse : quand elle ne porte aucun compte, le wiki **vérifie tout de même** qu'il aurait pu envoyer, si bien que la réponse est la même pour toutes les adresses et n'apprend à personne lesquelles existent.
 
-Les réglages d'envoi sont six variables d'environnement (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) plutôt qu'une chaîne de connexion : c'est ce que donne un hébergeur de messagerie, et un mot de passe ne s'y encode pas. Elles descendront dans `Settings` avec l'écran de configuration.
+Les réglages d'envoi sont six variables d'environnement (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`) plutôt qu'une chaîne de connexion : c'est ce que donne un hébergeur de messagerie, et un mot de passe ne s'y encode pas. Elles descendront dans `Settings` avec la page système de configuration.
 
 **Invitation en masse** : un champ qui digère ce qui sort d'un client mail — virgules, points-virgules, retours à la ligne et la forme `Nom <adresse>`. Doublons fusionnés, adresses déjà titulaires d'un compte ou d'une invitation signalées sans être recréées. Un sélecteur « Ajouter aussi au groupe » évite la corvée qui suit toujours.
 
@@ -87,11 +87,11 @@ Un contenu sans propriétaire ni auteur identifié s'affiche **« Anonyme »**, 
 
 Une page sans propriétaire n'est modifiable que par les administrateurs — conséquence mécanique de l'invariant, sans règle supplémentaire.
 
-### Écran d'installation
+### Service d'installation
 
-Tant que le wiki n'a **jamais été installé**, toute adresse affiche l'écran d'installation (ADR 0027). C'est le seul écran qui ne soit pas une page — il doit répondre avant qu'aucune page ne soit lisible — et il n'a pas d'adresse à lui pour autant : il vit sous le segment réservé (`/api/installation`) et le proxy y **réécrit** ce qui a été demandé, si bien que le visiteur garde son adresse et que le slug `installation` reste libre pour une page (ADR 0028). Le jour où le drapeau est posé, l'écran cesse de répondre. L'écran impose le nom affiché **Wiki Admin** et l'identifiant **`wiki-admin`** — convention identique sur toutes les installations WikiOui — et ne demande que l'email et le mot de passe. Il crée le compte, l'ajoute à `@Admins`, lui attribue les pages spéciales, et pose `Settings.installedAt`.
+Tant que le wiki n'a **jamais été installé**, toute adresse affiche le service d'installation (ADR 0027). Contrairement à une page système, ce n'est pas une page : il doit répondre avant qu'aucune page ne soit lisible — et il n'a pas d'adresse à lui pour autant : il vit sous le segment réservé (`/api/installation`) et le proxy y **réécrit** ce qui a été demandé, si bien que le visiteur garde son adresse et que le slug `installation` reste libre pour une page (ADR 0028). Le jour où le drapeau est posé, le service cesse de répondre. Le service impose le nom affiché **Wiki Admin** et l'identifiant **`wiki-admin`** — convention identique sur toutes les installations WikiOui — et ne demande que l'email et le mot de passe. Il crée le compte, l'ajoute à `@Admins`, lui attribue les pages spéciales, et pose `Settings.installedAt`.
 
-La condition est **irréversible** : vider `@Admins` ne rouvre pas l'écran. Reprendre la main sans administrateur exige un accès à la machine, pas une requête HTTP.
+La condition est **irréversible** : vider `@Admins` ne rouvre pas le service. Reprendre la main sans administrateur exige un accès à la machine, pas une requête HTTP.
 
 ## Groupes
 
@@ -103,7 +103,7 @@ Un groupe porte un **nom affiché** et un **slug** dérivé de lui à la créati
 
 Créer et modifier un groupe est réservé aux administrateurs en v0.5.
 
-Les **groupes effectifs** d'une personne (imbrication résolue) sont résolus **en mémoire**, une fois par requête HTTP, mémoïsés par le `cache()` de React — le motif déjà employé par `lib/pages.ts`. Deux requêtes suffisent : les appartenances directes de la personne, et les arêtes groupe→groupe, peu nombreuses par nature. La clôture est alors une fonction pure (`lib/groups.ts`), et ce sont les mêmes arêtes qui répondent au refus de cycle et au « via @Bureau › @Trésorerie » des écrans — là où une requête récursive n'aurait donné que la liste. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
+Les **groupes effectifs** d'une personne (imbrication résolue) sont résolus **en mémoire**, une fois par requête HTTP, mémoïsés par le `cache()` de React — le motif déjà employé par `lib/pages.ts`. Deux requêtes suffisent : les appartenances directes de la personne, et les arêtes groupe→groupe, peu nombreuses par nature. La clôture est alors une fonction pure (`lib/groups.ts`), et ce sont les mêmes arêtes qui répondent au refus de cycle et au « via @Bureau › @Trésorerie » des pages système — là où une requête récursive n'aurait donné que la liste. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
 
 ## Le droit
 
@@ -213,7 +213,7 @@ Le plafond se dit dans le **libellé de la question**, pas dans une note sous le
 
 Le plafond ne commande que ce qui est **offert**. Une règle posée avant que l'onglet ne soit resserré garde sa portée et reste affichée — sinon le bouton radio n'aurait plus rien de coché — et elle n'accorde rien de plus pour autant : le droit de la fiche répond en premier, et qui ne peut pas ouvrir la fiche n'atteint jamais le champ. Rien n'est donc à rattraper en base ; c'est « Appliquer aux fiches existantes » qui porte les défauts jusqu'à l'existant, comme pour le reste.
 
-**Une seule porte pour la coupe en lecture.** Cinq écrans montrent un formulaire — la fiche, son historique, le formulaire de saisie, les vues de fiches et leurs sélecteurs de champs. Ils passent tous par `readableForm()` (`lib/field-rights-db.ts`), qui résout la personne elle-même plutôt que de la recevoir (ADR 0025) et rend d'un coup ce dont ils ont besoin : le descripteur coupé, ses noms, les champs grisés, de quoi couper un snapshot — et le descripteur entier, que le gabarit doit garder pour rendre en chaîne vide un `{salaire}` qu'il nomme. La coupe en **écriture**, elle, reste à la porte de la Page (`writeEntryRevision`), là où elle garde.
+**Une seule porte pour la coupe en lecture.** Cinq vues montrent un formulaire — la fiche, son historique, le formulaire de saisie, les vues de fiches et leurs sélecteurs de champs. Ils passent tous par `readableForm()` (`lib/field-rights-db.ts`), qui résout la personne elle-même plutôt que de la recevoir (ADR 0025) et rend d'un coup ce dont ils ont besoin : le descripteur coupé, ses noms, les champs grisés, de quoi couper un snapshot — et le descripteur entier, que le gabarit doit garder pour rendre en chaîne vide un `{salaire}` qu'il nomme. La coupe en **écriture**, elle, reste à la porte de la Page (`writeEntryRevision`), là où elle garde.
 
 Cinq points que l'écriture de ce chantier a tranchés :
 
@@ -303,11 +303,11 @@ Le paramètre ne concerne **pas** les liens vers une page inexistante — erreur
 
 Une `<Iframe>` sur une page inaccessible rend le même bloc, en version compacte : `WikiFrame` auto-dimensionne, le cadre se réduit tout seul (ADR 0022).
 
-## Les écrans
+## Les pages système
 
 Deux **pages spéciales** seedées de plus, dont le contenu appelle des composants intégrés — même philosophie que `formulaires` et `fiches`. Elles rejoignent la roue crantée de `page-rapide-haut`.
 
-Les quatre écrans de comptes en sont aussi : `connexion` (`<SignIn />`), `inscription` (`<SignUp />`), `mot-de-passe-oublie` (`<ForgotPassword />`) et `invitation` (`<Invitation />`) — tout écran est une page (ADR 0028), l'installation exceptée — et elle-même n'occupe aucun slug. Elles portent le chrome du site comme n'importe quelle page : on se connecte **dans** le wiki. Deux conséquences à tenir quand les droits de lecture arriveront : ces quatre pages restent **lisibles par tout le monde** quel que soit le droit posé dessus (la connexion doit répondre là où le contenu refuse), et l'inscription libre étant fermée par défaut, `inscription` affiche alors où trouver un compte plutôt qu'un formulaire inutilisable.
+Les quatre pages système de comptes en sont aussi : `connexion` (`<SignIn />`), `inscription` (`<SignUp />`), `mot-de-passe-oublie` (`<ForgotPassword />`) et `invitation` (`<Invitation />`) — une page système est une page comme les autres (ADR 0028), l'installation exceptée, qui est un service et non une page système — et elle-même n'occupe aucun slug. Elles portent le chrome du site comme n'importe quelle page : on se connecte **dans** le wiki. Deux conséquences à tenir quand les droits de lecture arriveront : ces quatre pages restent **lisibles par tout le monde** quel que soit le droit posé dessus (la connexion doit répondre là où le contenu refuse), et l'inscription libre étant fermée par défaut, `inscription` affiche alors où trouver un compte plutôt qu'un formulaire inutilisable.
 
 ### `gerer-utilisateurs`
 
@@ -367,7 +367,7 @@ gerer-pages                                        247 pages
 2 sélectionnées   [ Modifier les accès… ]  [ Changer le propriétaire… ]
 ```
 
-Le marqueur `⌗Formulaire` distingue une fiche d'une page sans colonne de plus. Nommer un formulaire dit **Fiches** tout seul, et revenir à *Tout* ou à *Pages* relâche le formulaire : les deux contrôles posent une seule question à deux niveaux de précision, et atteindre les fiches d'un formulaire reste à un clic. La sélection **se rétrécit avec les filtres** — agir sur une page qu'on a masquée est la surprise que cet écran existe pour éviter. Une seule liste ici, donc elle prend la **frappe directe** comme celle des formulaires ; la barre d'espace en est exclue, puisqu'elle appartient aux cases à cocher.
+Le marqueur `⌗Formulaire` distingue une fiche d'une page sans colonne de plus. Nommer un formulaire dit **Fiches** tout seul, et revenir à *Tout* ou à *Pages* relâche le formulaire : les deux contrôles posent une seule question à deux niveaux de précision, et atteindre les fiches d'un formulaire reste à un clic. La sélection **se rétrécit avec les filtres** — agir sur une page qu'on a masquée est la surprise que cette page système existe pour éviter. Une seule liste ici, donc elle prend la **frappe directe** comme celle des formulaires ; la barre d'espace en est exclue, puisqu'elle appartient aux cases à cocher.
 
 **L'action par lot porte deux intentions**, dans une seule modale, chacune avec sa description visible même non sélectionnée :
 
@@ -426,7 +426,7 @@ Le second temps est irréductiblement en mémoire : les droits par champ vivent 
 
 ### `/{slug}/raw`
 
-Handler (l'équivalent du `/raw` de YesWiki). Miroir de `/api/render` — un service d'API dont la réponse est du HTML est porté par une `page.tsx` nue ; un handler de page dont la réponse n'est pas un écran est porté par un `route.ts`.
+Handler (l'équivalent du `/raw` de YesWiki). Miroir de `/api/render` — un service d'API dont la réponse est du HTML est porté par une `page.tsx` nue ; un handler de page dont la réponse n'est pas une page est porté par un `route.ts`.
 
 Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `lib/pages.ts`), et **filtre les champs non lisibles avant de sérialiser** : sans ça, il court-circuiterait les droits par champ, qui n'existent qu'au rendu.
 
@@ -546,7 +546,7 @@ Le wiki reste donc exactement aussi ouvert qu'avant la migration : ce sont les m
 - **Limitation de débit et anti-abus** (pages, fiches et fichiers ensemble) — la v0.5 ne crée pas ce risque, elle donne le moyen de le fermer par les droits ; un wiki laissé ouvert reste exposé.
 - **Droits sur les fichiers.** Le pool reste public : un fichier est accessible à qui connaît son adresse, quels que soient les droits de la page qui l'affiche. Les droits viendront avec la table des fichiers, qui naîtra pour la **galerie de gestion des fichiers** — le widget `acl` existera déjà.
 - **Changer l'identifiant d'un groupe**, l'action de renommage de l'ADR 0016 appliqué à un slug de groupe : la cascade SQL suit les appartenances, mais pas le JSON des formulaires — c'est le même balayage applicatif que la suppression, à étendre une fois celui-ci en place. En v0.5, seul le nom affiché d'un groupe change.
-- **« Demander l'accès »** depuis l'écran de refus : suppose un canal de notification et une file de demandes.
+- **« Demander l'accès »** depuis l'interface de refus : suppose un canal de notification et une file de demandes.
 - **Commentaires**, avec leurs mentions `@username` dans du texte — celles-là relèveront de l'ADR 0016 et de sa réécriture de références, le texte ne se traitant pas comme une relation.
-- **SMTP et droits par défaut en base**, quand `Settings` s'étoffera ; l'écran d'installation les accueillera sans être réécrit.
+- **SMTP et droits par défaut en base**, quand `Settings` s'étoffera ; le service d'installation les accueillera sans être réécrit.
 - **Row-Level Security** : la garantie la plus forte, écartée pour son coût de déploiement (transactions interactives, second rôle Postgres, politiques hors de Prisma Migrate) — voir ADR 0025.

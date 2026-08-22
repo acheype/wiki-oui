@@ -1,6 +1,6 @@
 "use client";
 
-// FormsAdmin (docs/forms.md, ADR 0014): the form-administration screen behind
+// FormsAdmin (docs/forms.md, ADR 0014): the form-administration system page behind
 // the `formulaires` special page. A client component that reads its state
 // from the URL (?nouveau, ?id=slug) and loads data through Server Actions.
 
@@ -213,7 +213,7 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   // ?nouveau is a URL anyone can type, and the button that leads to it is
-  // already gone for whoever lacks the right: the screen answers the same
+  // already gone for whoever lacks the right: the system page answers the same
   // refusal the door would, rather than an empty builder that fails on save.
   const [refused, setRefused] = useState(false);
 

@@ -175,7 +175,7 @@ export async function createEntryPage(input: {
   // No merge here, where an edit has one: the merge protects the values a
   // revision already holds (docs/permissions.md § Champ), and a fiche being
   // born holds none. Its author owns it, and the fields they may not fill are
-  // absent from their screen.
+  // absent from their view.
   const author = await currentUsername();
   const born = await bornWith(
     permissions.defaultEntryRead,

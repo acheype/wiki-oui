@@ -38,7 +38,7 @@ export function formatShortDateTime(date: Date): string {
 }
 
 // « 1 page », « 12 pages » — the French agreement, singular at zero and one,
-// plural from two. One rule, so one place: the screens that count things
+// plural from two. One rule, so one place: the system pages that count things
 // (comptes, invitations, impact d'une suppression) all say it through here.
 export function plural(total: number, one: string, many: string): string {
   return `${total} ${total > 1 ? many : one}`;

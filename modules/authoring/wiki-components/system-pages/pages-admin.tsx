@@ -2,9 +2,9 @@ import { PagesAdmin as PagesAdminScreen } from "@/modules/pages/pages-admin";
 import { AdminOnly } from "@/modules/permissions/admin-only";
 
 // Built-in component rendered by the `gerer-pages` special page
-// (docs/permissions.md § Les écrans). It reads nothing from the URL, so no
+// (docs/permissions.md § Les pages système). It reads nothing from the URL, so no
 // Suspense boundary is needed at the render seam.
-// `not-prose`: an app screen inside an MDX page owns its spacing, the host
+// `not-prose`: an app system page inside an MDX page owns its spacing, the host
 // page's typographic margins must not reach it.
 export function PagesAdmin() {
   return (

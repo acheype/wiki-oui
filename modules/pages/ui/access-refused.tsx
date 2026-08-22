@@ -20,7 +20,7 @@ export async function AccessRefused({
 }: {
   slug: string;
   ownerName: string | null;
-  /** The refusal of a write, on the rare screen reached without the right. */
+  /** The refusal of a write, on the rare view reached without the right. */
   message?: string;
   /**
    * A smaller box for a small frame: `/{slug}/iframe`'s own render, which is

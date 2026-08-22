@@ -9,7 +9,7 @@ import {
 import { LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
 
 describe("ACCOUNT_FILTERS", () => {
-  it("offers the four the screen shows, in the order it shows them", () => {
+  it("offers the four the system page shows, in the order it shows them", () => {
     expect(ACCOUNT_FILTERS.map((filter) => filter.label)).toEqual([
       "Tous",
       "Actifs",

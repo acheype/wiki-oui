@@ -1,6 +1,6 @@
 "use client";
 
-// GroupsAdmin (docs/permissions.md § Les écrans): the groups half of the
+// GroupsAdmin (docs/permissions.md § Les pages système): the groups half of the
 // `gerer-utilisateurs` special page. State lives in the URL — `?groupe=slug`
 // opens an editor — so the ways in named all over the wiki are real links.
 // The ordinary search field is deliberate: two lists cannot share the

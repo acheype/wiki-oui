@@ -57,7 +57,7 @@ describe("parseAddressList", () => {
 });
 
 describe("expiresIn", () => {
-  it("gives an invitation the fortnight the screen announces", () => {
+  it("gives an invitation the fortnight the system page announces", () => {
     const created = new Date("2026-07-28T10:00:00Z");
     expect(expiresIn(created, INVITATION_LIFETIME_DAYS)).toEqual(
       new Date("2026-08-11T10:00:00Z")

@@ -41,7 +41,7 @@ import {
 // The rights of one page, and of the wiki as a whole: everything
 // modules/pages/content.ts, modules/pages/revisions.ts and
 // modules/pages/entries.ts need to decide who reads or writes what, plus the
-// administration screens' own bulk actions. Part of ADR 0025's door.
+// administration system pages' own bulk actions. Part of ADR 0025's door.
 //
 // PUBLIC_IDENTITY, ACL_ROWS, WITH_RIGHTS, COLD_ADMIN_TRANSACTION_TIMEOUT_MS
 // and currentReadableWhere live here rather than in modules/pages/queries/queries.ts
@@ -56,7 +56,7 @@ import {
 
 /**
  * What the wiki says about a person beside a contribution: the display name,
- * and the identifier the account screens link to. Never the email — it is
+ * and the identifier the account system pages link to. Never the email — it is
  * shown in gerer-utilisateurs and nowhere else (docs/permissions.md).
  *
  * A live reference, not a name frozen at write time (ADR 0024): renaming an
@@ -73,8 +73,8 @@ export const ACL_ROWS = {
 
 /**
  * What deciding on a page needs, plus the name a refusal would print. Shared
- * with modules/forms/queries.ts, which loads entries by the formful: a screen
- * that offers a action per row has to know the rights of every one of them.
+ * with modules/forms/queries.ts, which loads entries by the formful: a system
+ * page that offers a action per row has to know the rights of every one of them.
  */
 export const WITH_RIGHTS = {
   owner: PUBLIC_IDENTITY,
@@ -100,7 +100,7 @@ export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
 
 /**
  * What a refused read hands back instead of the page. A distinct shape rather
- * than null, for two reasons: the refusal screen has to name whoever looks
+ * than null, for two reasons: the refusal view has to name whoever looks
  * after the page, and a caller that forgets the case gets a type error rather
  * than a wiki that quietly answers « cette page n'existe pas encore ».
  */
@@ -125,14 +125,14 @@ export async function personCanCreatePage(): Promise<boolean> {
   return isAdmin(person) || ruleAllows(person, wikiConfig.permissions.createPage);
 }
 
-/** Whether the screens offer a action or simply leave it out. */
+/** Whether the system pages offer a action or simply leave it out. */
 export async function personCanWrite(page: PageRights): Promise<boolean> {
   return canWrite(await currentPerson(), page);
 }
 
 /**
- * What the action bar may offer at all — the three rungs at once, so a screen
- * asks the question once and cannot answer half of it. What it does not get
+ * What the action bar may offer at all — the three rungs at once, so a system
+ * page asks the question once and cannot answer half of it. What it does not get
  * is absent from the bar, never greyed out: an offer nobody can take up
  * informs nobody (docs/permissions.md § Ce que voit qui n'a pas le droit).
  */
@@ -203,13 +203,13 @@ export async function setPageRights(
   });
 }
 
-// `gerer-pages` (docs/permissions.md § Les écrans): the state of the rights of
-// every page on one screen, and a decision applied to dozens of them at once
-// without wondering what has just been broken. Reading it is an
-// administrator's action — it names the owner of everything and what each
-// page is open to — so the check is at the door, like the accounts screen.
+// `gerer-pages` (docs/permissions.md § Les pages système): the state of the
+// rights of every page on one system page, and a decision applied to dozens
+// of them at once without wondering what has just been broken. Reading it is
+// an administrator's action — it names the owner of everything and what each
+// page is open to — so the check is at the door, like the accounts system page.
 
-/** A line of the management screen: what it shows, and what it decides on. */
+/** A line of the management system page: what it shows, and what it decides on. */
 export interface ManagedPage extends PageRights {
   slug: string;
   owner: Identity | null;
@@ -404,7 +404,7 @@ export async function transferPageOwnership(
   const page = await structuredPage(slug, TRANSFER_REFUSED);
   // Whom the client names is checked before it reaches the column: an unknown
   // username would come back as a foreign-key failure, and the refusal a
-  // screen prints has to be one this wiki wrote.
+  // view prints has to be one this wiki wrote.
   const known = await existingPrincipals({
     usernames: [toUsername],
     groupSlugs: [],

@@ -1,6 +1,6 @@
 "use client";
 
-// UsersAdmin (docs/permissions.md § Les écrans): the accounts half of the
+// UsersAdmin (docs/permissions.md § Les pages système): the accounts half of the
 // `gerer-utilisateurs` special page. It takes the direct keyboard — typing
 // anywhere fills the filter — which is why the groups list below keeps an
 // ordinary search field: two lists cannot share the keyboard.

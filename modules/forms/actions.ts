@@ -1,6 +1,6 @@
 "use server";
 
-// Server Actions of the form-administration screens (ADR 0014): the admin
+// Server Actions of the form-administration system pages (ADR 0014): the admin
 // components are client-side and read their data through actions too — same
 // transport as mutations, no URL. Validation happens here with the same
 // engine the FormBuilder uses client-side (modules/forms/form-descriptor).
@@ -159,7 +159,7 @@ export async function listRightsDirectory(
   return allowed ? listDirectory() : { people: [], groups: [] };
 }
 
-/** Whether the screens offer « Nouveau formulaire » at all. */
+/** Whether the system pages offer « Nouveau formulaire » at all. */
 export async function canAddForm(): Promise<boolean> {
   return personCanCreateForm();
 }
@@ -208,7 +208,7 @@ export interface SaveFormInput {
   name: string;
   schema: unknown;
   template: string | null;
-  /** True from the ?nouveau screen: refuses to overwrite an existing slug. */
+  /** True from the ?nouveau view: refuses to overwrite an existing slug. */
   isNew: boolean;
   /** Staged field-identifier renames (ADR 0017): persisted name → new name. */
   renames?: FieldRename[];
@@ -281,7 +281,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     },
     template: input.template === "" ? null : input.template,
   };
-  // The screens leave out what they cannot offer, so reaching the refusal
+  // The system pages leave out what they cannot offer, so reaching the refusal
   // means the right went away between opening the builder and saving it: an
   // issue to report in the toast, not an error boundary to fall into.
   try {
@@ -642,7 +642,7 @@ export async function getEntryForm(
   if (entrySlug) {
     const page = await getPageWithCurrent(entrySlug);
     // A refused read reads as « no such entry » here: the caller is the entry
-    // form, and the refusal screen has already answered on the way in.
+    // form, and the refusal view has already answered on the way in.
     if (!page || isRefused(page) || page.formId !== form.id) return null;
     values = seen.readableValues(page.current?.data);
     slug = page.slug;
@@ -660,7 +660,7 @@ export async function getEntryForm(
   };
 }
 
-/** Whether a screen offers « Nouvelle fiche » for this form at all. */
+/** Whether a system page offers « Nouvelle fiche » for this form at all. */
 export async function canAddEntry(formSlug: string): Promise<boolean> {
   const form = await getFormBySlug(formSlug);
   return form !== null && personCanCreateEntry(form);
@@ -731,7 +731,7 @@ export async function saveEntry(
     ? input.slug
     : slugify(title);
   // The reserved segment is taken like an existing page is (ADR 0028): the
-  // entry would be written and never open, so the screen asks for another.
+  // entry would be written and never open, so the view asks for another.
   if (!isValidSlug(slug) || reservedSlugRefusal(slug)) {
     return { ok: false, slugCollision: true };
   }

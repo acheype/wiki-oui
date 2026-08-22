@@ -5,7 +5,7 @@
 // derived from it — personalisable here, frozen afterwards, since it is what
 // the rights, the ownership and the history point at (ADR 0024).
 //
-// Shared by the invitation screen and the free sign-up one, so that the two
+// Shared by the invitation system page and the free sign-up one, so that the two
 // ways in produce accounts nothing tells apart afterwards.
 
 import { useId, useState } from "react";

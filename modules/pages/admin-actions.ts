@@ -17,19 +17,19 @@ import {
 } from "@/modules/pages/rights";
 import { type AclDirectory, refusalMessage } from "@/modules/permissions/rules";
 
-// Server Actions of `gerer-pages` (docs/permissions.md § Les écrans). Reading
+// Server Actions of `gerer-pages` (docs/permissions.md § Les pages système). Reading
 // the list and acting on a lot are both an administrator's permissions, and the
 // check lives behind the door in modules/pages/queries/queries.ts, so none of these
 // can forget it.
 //
 // Refusals travel as values rather than as throws: across the Server Action
 // boundary a throw becomes a render error, where a right that went away
-// between opening the screen and acting reads as a crash.
+// between opening the system page and acting reads as a crash.
 
 export type PagesAdminError = { error: string };
 
 /**
- * What the screen draws itself from. The directory rides along because the
+ * What the system page draws itself from. The directory rides along because the
  * list needs it to read a rule back — a « seulement » holds usernames and
  * group slugs (ADR 0024), and a column showing those would be unreadable.
  */

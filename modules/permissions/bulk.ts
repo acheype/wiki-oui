@@ -95,7 +95,7 @@ export function alreadyGrants(
 /**
  * How a sentence names what is selected: one page is « la page », since its
  * count says nothing anybody cannot see, and a lot is its number. Written once
- * because every screen of the lot says it — the title, the two confirmations
+ * because every system page of the lot says it — the title, the two confirmations
  * and the toasts.
  */
 export function lotSubject(total: number): string {

@@ -54,7 +54,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
 
   const page = await getPageWithRevisions(slug);
   if (!page) redirect(`/${slug}`);
-  // The history is a read action, so a refusal lands on the same screen the
+  // The history is a read action, so a refusal lands on the same view the
   // page itself would have shown — reached from its own address.
   if (isRefused(page)) {
     return <AccessRefused slug={slug} ownerName={page.ownerName} />;
@@ -67,7 +67,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   const revisions = page.revisions; // oldest first
   // Reading the history is a read action, putting a revision back is a write
   // (docs/permissions.md § Quel droit commande quelle action): whoever may only
-  // read gets the whole screen, minus the button.
+  // read gets the whole page, minus the button.
   const writable = await personCanWrite(page);
 
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views

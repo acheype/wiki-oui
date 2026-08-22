@@ -1,7 +1,7 @@
 "use client";
 
 // PagesAdmin (docs/permissions.md § gerer-pages): the state of the rights of
-// the whole wiki on one screen, and a decision applied to dozens of pages at
+// the whole wiki on one system page, and a decision applied to dozens of pages at
 // once without wondering what has just been broken.
 //
 // The list is the whole of it — searching, the two filters and the selection
@@ -85,7 +85,7 @@ export function PagesAdmin() {
   /**
    * The selection narrows with the list: a tick one can no longer see is a
    * decision one can no longer take back, and acting on a page one has
-   * filtered out is the surprise this screen exists to avoid.
+   * filtered out is the surprise this system page exists to avoid.
    */
   function narrow(next: Partial<Criteria>) {
     const narrowed = coherent(criteria, next);

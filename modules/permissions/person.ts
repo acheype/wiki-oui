@@ -63,7 +63,7 @@ export async function isCurrentAdmin(): Promise<boolean> {
 const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";
 
 /**
- * The check every action of the two administration screens passes, at the
+ * The check every action of the two administration system pages passes, at the
  * door rather than in each caller (ADR 0025) — groups-queries.ts and
  * modules/accounts/queries/queries.ts both ask for it by name.
  */

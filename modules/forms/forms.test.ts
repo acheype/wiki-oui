@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
 
-// What a screen announces and what it then shows have to be filtered the same
+// What a system page announces and what it then shows have to be filtered the same
 // way. Nothing held that: the count of `formulaires` read one clause and the
 // list it heads read another, and for months every administrator was told
 // « 0 fiche » over six — a wrong number is not an exception anyone notices,
@@ -48,7 +48,7 @@ beforeEach(() => {
   db.form.findMany.mockResolvedValue([]);
 });
 
-describe("the count of a screen and the list it heads", () => {
+describe("the count of a system page and the list it heads", () => {
   const people: [string, { username: string | null; groupSlugs: string[] }][] = [
     ["a visitor", { username: null, groupSlugs: [] }],
     ["an ordinary user", { username: "jean-martin", groupSlugs: ["bureau"] }],
@@ -82,7 +82,7 @@ describe("the count of a screen and the list it heads", () => {
   });
 });
 
-// Creating a form was open to anyone who could reach the screen, which on a
+// Creating a form was open to anyone who could reach the system page, which on a
 // wiki that had closed its pages was still every signed-in member: a form
 // shapes every fiche written with it and takes them all with it when it goes
 // (ADR 0014), so it is the wiki's own rule that decides — and the check is

@@ -3,7 +3,7 @@ import { isRefused } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 
 // /{slug}/raw, the equivalent of YesWiki's /raw (docs/permissions.md): a
-// handler whose response is text rather than a screen is a route.ts (a
+// handler whose response is text rather than a page is a route.ts (a
 // service dressed as a page.tsx renders HTML, per /api/render), living beside
 // edit/ and revisions/ under the same [slug]. All the deciding — the right to
 // read, the fields a fiche withholds, the order and shape of what comes

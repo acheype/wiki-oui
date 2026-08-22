@@ -1,7 +1,7 @@
 // What one field of a form decides about who sees it and who fills it
 // (docs/permissions.md § Champ : la fusion, et deux fuites colmatées). Pure,
 // like permissions.ts and form-rights.ts next door: the settings panel poses
-// the two rules, the screens read them back to know what to leave out, and
+// the two rules, the views read them back to know what to leave out, and
 // the write applies the second one again on the server — where it is the only
 // application that counts.
 //

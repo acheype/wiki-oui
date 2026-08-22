@@ -70,13 +70,14 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
 }
 
 // Component registry (ADR 0002, ADR 0029): every .tsx file in
-// wiki-components/ or its screens/ is callable from page content — presence
-// in either folder IS the whitelist. Each file must export a component named
-// as the PascalCase of its file name (button.tsx → Button). A co-located
-// descriptor (button.yaml) only affects the editor's component menu, never
-// what may render — screens have none and still render.
+// wiki-components/ or its system-pages/ is callable from page content —
+// presence in either folder IS the whitelist. Each file must export a
+// component named as the PascalCase of its file name (button.tsx →
+// Button). A co-located descriptor (button.yaml) only affects the
+// editor's component menu, never what may render — system pages have
+// none and still render.
 const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "modules/authoring/wiki-components");
-const SCREENS_DIR = path.join(WIKI_COMPONENTS_DIR, "screens");
+const SYSTEM_PAGES_DIR = path.join(WIKI_COMPONENTS_DIR, "system-pages");
 
 let registryCache: Promise<MDXComponents> | undefined;
 
@@ -93,8 +94,8 @@ function loadWikiComponents(): Promise<MDXComponents> {
  */
 export async function listWikiComponentNames(): Promise<string[]> {
   const flat = await readdir(WIKI_COMPONENTS_DIR);
-  const screens = await readdir(SCREENS_DIR);
-  return [...flat, ...screens]
+  const systemPages = await readdir(SYSTEM_PAGES_DIR);
+  return [...flat, ...systemPages]
     .filter((file) => file.endsWith(".tsx"))
     .map((file) => pascalCase(file.slice(0, -".tsx".length)));
 }
@@ -102,14 +103,14 @@ export async function listWikiComponentNames(): Promise<string[]> {
 async function buildRegistry(): Promise<MDXComponents> {
   const registry: MDXComponents = {};
   await loadInto(registry, await readdir(WIKI_COMPONENTS_DIR), "wiki-components");
-  await loadInto(registry, await readdir(SCREENS_DIR), "wiki-components/screens");
+  await loadInto(registry, await readdir(SYSTEM_PAGES_DIR), "wiki-components/system-pages");
   return registry;
 }
 
 async function loadInto(
   registry: MDXComponents,
   files: string[],
-  relativeDir: "wiki-components" | "wiki-components/screens",
+  relativeDir: "wiki-components" | "wiki-components/system-pages",
 ): Promise<void> {
   for (const file of files) {
     if (!file.endsWith(".tsx")) continue;
@@ -119,7 +120,7 @@ async function loadInto(
     const mod =
       relativeDir === "wiki-components"
         ? await import(`./wiki-components/${base}.tsx`)
-        : await import(`./wiki-components/screens/${base}.tsx`);
+        : await import(`./wiki-components/system-pages/${base}.tsx`);
     if (typeof mod[name] !== "function") {
       throw new Error(
         `modules/authoring/${relativeDir}/${file} must export a component named ${name}`,

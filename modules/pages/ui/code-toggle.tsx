@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
 // The rendered ↔ source switch of the Aperçu view (ADR 0009), carried in the
-// URL so the whole revisions screen stays server-rendered.
+// URL so the whole revisions view stays server-rendered.
 export function CodeToggle() {
   const router = useRouter();
   const pathname = usePathname();

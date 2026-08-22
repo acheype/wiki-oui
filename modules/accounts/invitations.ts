@@ -11,7 +11,7 @@ import { plural } from "@/lib/format";
 export const INVITATION_LIFETIME_DAYS = 14;
 
 /**
- * The query parameter the link carries its token in. The screen that accepts
+ * The query parameter the link carries its token in. The system page that accepts
  * it is a wiki page (ADR 0028), and what follows the slug of a page is one of
  * its handlers — so the token can only travel in the query string.
  */
@@ -27,8 +27,8 @@ export const RESET_LIFETIME_DAYS = 1;
 /**
  * Why a mail did not leave, or null when it did — the delivery, never the
  * action: an invitation whose mail failed is an invitation all the same, and
- * the screen falls back on the link it can always show. Declared here rather
- * than in modules/accounts/mailer.ts so the screens can name it without pulling an SMTP
+ * the system page falls back on the link it can always show. Declared here rather
+ * than in modules/accounts/mailer.ts so the system pages can name it without pulling an SMTP
  * client into the browser.
  *
  * `detail` is what the server answered. It is shown to an administrator, who
@@ -122,7 +122,7 @@ export interface InvitationReport {
 }
 
 /**
- * What the screen reads back after a bulk invitation: one line per thing that
+ * What the system page reads back after a bulk invitation: one line per thing that
  * happened, and none for what did not. Addresses are named — a count alone
  * would leave the administrator to work out which of forty they must chase.
  */

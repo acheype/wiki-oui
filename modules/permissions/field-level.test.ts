@@ -92,7 +92,7 @@ describe("a restricted field", () => {
   });
 });
 
-describe("what a screen is handed", () => {
+describe("what a view is handed", () => {
   it("leaves an unreadable field out of the descriptor, order kept", () => {
     expect(names(readableDescriptor(VISITOR, payroll()).fields)).toEqual([
       "title",

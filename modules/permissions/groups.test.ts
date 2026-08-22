@@ -177,7 +177,7 @@ describe("the protection of @Admins", () => {
 });
 
 // « La retirer avertit qu'elle reste membre par imbrication » — removing the
-// chip did what it said, and the toast keeps the screen honest about the
+// chip did what it said, and the toast keeps the interface honest about the
 // person still being there.
 describe("stillMemberMessage", () => {
   it("names the way the person keeps in by", () => {
@@ -188,7 +188,7 @@ describe("stillMemberMessage", () => {
 });
 
 // The group editor keeps what can be changed apart from what can only be
-// observed (docs/permissions.md § Les écrans): direct members are chips with
+// observed (docs/permissions.md § Les pages système): direct members are chips with
 // a ×, inherited ones are read-only lines carrying the way in.
 describe("inheritedMembers", () => {
   const memberships = [
@@ -249,7 +249,7 @@ describe("inheritedGroups", () => {
 });
 
 // Refusing a action on the protected group names it: « ce groupe » leaves
-// the reader to work out which one, on a screen that shows several.
+// the reader to work out which one, on a system page that shows several.
 describe("the permissions @Admins refuses", () => {
   it("names the group it will not let be renamed", () => {
     expect(groupRenameRefusal(ADMINS_GROUP.slug)).toBe(

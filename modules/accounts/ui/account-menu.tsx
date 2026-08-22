@@ -68,7 +68,7 @@ export function AccountMenu({
           <DropdownMenuSeparator />
           {/* The erasure belongs to the person, not to an administrator's
               goodwill (RGPD), and this menu is the only place every account
-              reaches — v0.5 has no profile screen yet. */}
+              reaches — v0.5 has no profile system page yet. */}
           <DropdownMenuItem
             variant="destructive"
             onSelect={() => setErasing(true)}

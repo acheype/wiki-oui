@@ -1,6 +1,6 @@
 "use client";
 
-// The editor of one group (docs/permissions.md § Les écrans). What can be
+// The editor of one group (docs/permissions.md § Les pages système). What can be
 // changed and what can only be observed do not mix: direct members are chips
 // with a ×, the people held through nesting are read-only lines carrying the
 // way they come in by — and that way is clickable, since it is where one goes
@@ -474,7 +474,7 @@ function DeleteGroupButton({
             nomment. Les comptes, eux, restent.
             {/* Deleting a group also drops every right that names it, by
                 cascade — a consequence that reaches well beyond the group
-                screen, so it is counted and said before the click. */}
+                system page, so it is counted and said before the click. */}
             {impact && <span className="mt-2 block">{impact}</span>}
           </AlertDialogDescription>
         </AlertDialogHeader>

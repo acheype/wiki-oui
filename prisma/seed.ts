@@ -72,7 +72,7 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
   [wikiConfig.layoutPages.footer]: `Propulsé par **WikiOui**.
 `,
 
-  // The admin screens live in the wiki (ADR 0014): a special page whose
+  // The admin system pages live in the wiki (ADR 0014): a special page whose
   // default content calls the built-in component. Editable, hence breakable
   // by edition — re-editing the page repairs it.
   formulaires: `<FormsAdmin />
@@ -81,8 +81,8 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
   fiches: `<EntriesAdmin />
 `,
 
-  // Both halves of the accounts screen, stacked (docs/permissions.md § Les
-  // écrans) — the components themselves refuse to render for anyone but an
+  // Both halves of the accounts system page, stacked (docs/permissions.md §
+  // Les pages système) — the components themselves refuse to render for anyone but an
   // administrator, so the page needs no special status of its own.
   "gerer-utilisateurs": `<UsersAdmin />
 
@@ -94,9 +94,10 @@ Si vous voulez vous exercer sereinement, essayez de modifier la page [bac à sab
   "gerer-pages": `<PagesAdmin />
 `,
 
-  // The account screens, hosted by pages like every other screen (ADR 0028).
-  // Each page holds nothing but its component: the form draws its own title,
-  // and anything written above it would sit over the screen.
+  // The account system pages, hosted by pages like every other system page
+  // (ADR 0028). Each page holds nothing but its component: the form draws
+  // its own title, and anything written above it would sit over the system
+  // page.
   [wikiConfig.authPages.signIn]: `<SignIn />
 `,
 
@@ -202,7 +203,7 @@ const SEEDED_RIGHTS = {
 //
 // Seeded content is born without an owner — the seed writes before anyone can
 // be a person acting, and it stays free of BetterAuth (ADR 0023). The
-// installation screen then takes the special pages under its account (ADR
+// installation service then takes the special pages under its account (ADR
 // 0027); the example pages keep none, so demonstration content has no false
 // owner.
 async function createMdxPage(

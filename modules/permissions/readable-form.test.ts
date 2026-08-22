@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// The five screens that show a form read it through one door now. What holds
+// The five views that show a form read it through one door now. What holds
 // here is that the door resolves the person itself: passing one is what a
 // caller can forget, and a forgotten person reads as a visitor — the one
 // mistake that fails open.

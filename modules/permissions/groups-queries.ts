@@ -27,7 +27,7 @@ import { prisma } from "@/lib/prisma";
 //
 // The nesting is resolved in memory, not by a recursive query: the same edges
 // answer the person's effective groups, the cycle refusal and the « via
-// @Bureau › @Trésorerie » of the screens. Group-to-group edges are few — one
+// @Bureau › @Trésorerie » of the system pages. Group-to-group edges are few — one
 // per nesting in the whole wiki — where user memberships are many.
 
 /** What a person's line and a group's chip need to name someone. */
@@ -137,7 +137,7 @@ export interface NamedGroup {
   name: string;
 }
 
-/** Every person of the wiki, as a screen names them. */
+/** Every person of the wiki, as a system page names them. */
 async function listPeople(): Promise<Identity[]> {
   const users = await prisma.user.findMany({
     ...PERSON,
@@ -215,7 +215,7 @@ export async function groupDisplayNames(
 }
 
 /**
- * The same names, kept beside the slugs that asked for them: a screen wording
+ * The same names, kept beside the slugs that asked for them: a system page wording
  * several rules at once — the fields of a form, each with its own — has to put
  * each name back where it came from, which an alphabetical list cannot do.
  */
@@ -231,7 +231,7 @@ export async function groupNamesBySlug(
   );
 }
 
-/** A group's display name from its slug, for the paths screens print. */
+/** A group's display name from its slug, for the paths system pages print. */
 export function groupNames(groups: NamedGroup[]): Map<string, string> {
   return new Map(groups.map((group) => [group.slug, group.name]));
 }
@@ -360,7 +360,7 @@ export async function getGroupDetail(
   };
 }
 
-/** Turns the slug paths of the pure module into what a screen can print. */
+/** Turns the slug paths of the pure module into what a system page can print. */
 function namePeople(
   members: InheritedMember[],
   people: Identity[],
@@ -380,7 +380,7 @@ function namePeople(
 
 /**
  * Creates @Admins around its first member, the account the installation
- * screen just made (ADR 0027). Idempotent, so a retried installation
+ * service just made (ADR 0027). Idempotent, so a retried installation
  * converges instead of failing halfway — and person-free, since it runs
  * before anyone can be an administrator.
  */

@@ -3,7 +3,7 @@
 // The far end of an invitation (docs/permissions.md § Naissance d'un compte).
 // Whoever holds the link names themselves and chooses a password — the
 // address is the invitation's, not theirs to change, and no administrator
-// ever saw the password. The screen is the same whether the link arrived by
+// ever saw the password. This system page is the same whether the link arrived by
 // mail or was pasted into a chat by hand.
 
 import { UserRoundPlus } from "lucide-react";

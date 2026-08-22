@@ -17,7 +17,7 @@ export type InstallError = { error: string };
  * back out through the nextCookies plugin. On a second attempt the account is
  * already there, and signing in is both the way to converge and the proof
  * that the person retrying is the one who started: an installation that
- * failed after creating the account must not brick the wiki behind a screen
+ * failed after creating the account must not brick the wiki behind a service
  * that refuses forever, nor let a passer-by finish it.
  */
 async function signUpOrSignInInstaller(
@@ -46,7 +46,7 @@ async function signUpOrSignInInstaller(
  * closes this door for good. Marking last is what makes a failed attempt
  * retryable — and the steps before it converge rather than duplicate.
  *
- * The screen only asks for an email and a password: the display name and the
+ * The service only asks for an email and a password: the display name and the
  * identifier are imposed, so every WikiOui installation looks alike.
  */
 export async function installWiki(input: {
