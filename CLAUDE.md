@@ -4,7 +4,23 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 
 ## Invariants
 
-- **Tout écran est une page WikiOui** (ADR 0028) : un écran neuf est une **page spéciale** (slug dans `wiki.config.ts`, seedée, réservée) dont le contenu appelle un **composant intégré** de `components/wiki/` — jamais une route dans `app/`. Ce dont l'écran a besoin voyage en **query string** (`?suite=`, `?jeton=`) : derrière le slug d'une page, un segment est un handler. Une seule exception, `/api` — le segment réservé, qui abrite aussi les deux écrans ne pouvant pas être des pages (aperçu du ComponentBuilder, écran d'installation atteint par réécriture). Le test `app/routes.test.ts` remonte une erreur si un dossier de plus apparaît sous `app/`.
+- **Une page système est une page comme les autres** (ADR 0028) : c'est une **page spéciale** — slug réservé dans `wiki.config.ts`, seedée, non supprimable ni renommable — jamais une route dans `app/`. N'importe quelle page peut appeler un composant intégré (ADR 0002) ; ce n'est donc pas ce qui distingue une page système, c'est son slug réservé. Ses composants, sans descripteur, vivent dans `modules/authoring/wiki-components/system-pages/`. Ce dont elle a besoin voyage en **query string** (`?suite=`, `?jeton=`) : derrière le slug d'une page, un segment est un handler. Une seule exception, `/api` — le segment réservé, qui abrite aussi les deux services qui ne peuvent pas être des pages (aperçu du ComponentBuilder, installation initiale atteinte par réécriture). Le test `app/routes.test.ts` remonte une erreur si un dossier de plus apparaît sous `app/`.
+- **Le code est rangé par concept du domaine, et la profondeur dit la visibilité** (ADR 0029) : `modules/<concept>/`, un dossier par concept de `CONTEXT.md`. `app/` ne garde que les routes, `components/ui/` que les primitives shadcn, `lib/` que les utilitaires sans concept. Un gabarit unique par module : `queries.ts` (les appels Prisma — jamais importé ailleurs, niché dans son propre sous-dossier `queries/` pour que ce soit garanti par la profondeur, pas par son nom), `<sujet>.ts` (un sujet du module), `actions.ts` (les Server Actions), `rules.ts` (les règles pures), `ui/` (les composants React du module), `<chantier>/` (un sous-sujet à deux moitiés, ex. `rules.ts` + `sweep.ts`). Un fichier **racine** s'importe depuis n'importe quel module ; un fichier de **sous-dossier** ne s'importe que depuis son propre module — sauf `ui/`, que `app/` seul peut composer depuis l'extérieur. Une règle ESLint (`wikioui/module-seam`) le garde.
+
+## Carte des modules
+
+Une ligne par module : ce qu'il possède, quel ADR le gouverne. L'arborescence répond à « quel dossier » ; cette carte répond à « qu'y a-t-il dedans ».
+
+| Module | Possède | ADR |
+| --- | --- | --- |
+| `pages` | `Page` : contenu, révisions, droits, fiches liées, `WikiFrame` | 0025 |
+| `forms` | `Form` : descripteur, rendu de fiche, titre automatique, renommage de champ | 0014 |
+| `permissions` | Rôles, groupes, ACL, droits par défaut, niveaux page/formulaire/champ | 0023, 0024, 0026 |
+| `accounts` | `Account` (BetterAuth), identités, invitations, mailer | 0023 |
+| `entries-view` | `<EntriesView>`, ses neuf vues et leurs règles | 0018 |
+| `authoring` | Sandbox MDX, registre de composants, ComponentBuilder, éditeur | 0002, 0013 |
+| `files` | Fichiers uploadés : stockage, redimensionnement | 0012 |
+| `settings` | `Settings` : drapeau d'installation, paramétrage global | 0027 |
 
 ## Conventions de code
 

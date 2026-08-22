@@ -299,7 +299,7 @@ Présent sur **`wiki-link.yaml`**, **`button.yaml`** (« le bouton » dans le `h
 
 `<Menu>` **ignore une puce devenue vide**, récursivement : un parent dont tous les enfants ont disparu disparaît aussi. En annotation markdown, la valeur est obligatoire (`{{ hideIfNoAccess: true }}`) : l'annotation est un objet littéral, et le bac à sable n'accepte que des littéraux statiques (ADR 0002).
 
-Le paramètre ne concerne **pas** les liens vers une page inexistante — erreur d'écriture que `lib/page-lint.ts` signale déjà, et que masquer reviendrait à cacher.
+Le paramètre ne concerne **pas** les liens vers une page inexistante — erreur d'écriture que `modules/pages/lint.ts` signale déjà, et que masquer reviendrait à cacher.
 
 Une `<Iframe>` sur une page inaccessible rend le même bloc, en version compacte : `WikiFrame` auto-dimensionne, le cadre se réduit tout seul (ADR 0022).
 
