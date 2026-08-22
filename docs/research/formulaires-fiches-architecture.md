@@ -1,6 +1,6 @@
 # Formulaires & fiches — bibliothèque et architecture
 
-> **Note (2026-07-13)** : les décisions ont depuis été affinées et figées — voir les ADR [0014](../adr/0014-formulaires-et-fiches.md) et [0015](../adr/0015-shared-field-renderer-zod.md) et la spec [`docs/forms.md`](../forms.md), qui prévalent en cas d'écart (notamment : suppression d'un formulaire en **cascade** et non `Restrict`, écrans d'admin en **pages spéciales** et non routes dédiées, gabarit `{champ}` à accolades simples).
+> **Note (2026-07-13)** : les décisions ont depuis été affinées et figées — voir les ADR [0014](../adr/0014-forms-and-entries.md) et [0015](../adr/0015-shared-field-renderer-zod.md) et la spec [`docs/forms.md`](../forms.md), qui prévalent en cas d'écart (notamment : suppression d'un formulaire en **cascade** et non `Restrict`, écrans d'admin en **pages spéciales** et non routes dédiées, gabarit `{champ}` à accolades simples).
 
 **Date : 2026-07-12.** Question posée : *ajouter la fonctionnalité Bazar de YesWiki (renommée **Formulaires**, ses instances devenant des **fiches**). Quelle bibliothèque WYSIWYG de construction de formulaires est adaptée à la stack ? Comment stocker et rendre les fiches ?* Référence YeswWiki : <https://yeswiki.net/?doc#/docs/fr/bazar>.
 

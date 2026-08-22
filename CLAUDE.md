@@ -10,7 +10,7 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 
 Une ligne par module : ce qu'il possède, quelle doc en détaille le fonctionnement, quel ADR le gouverne. L'arborescence répond à « quel dossier » ; cette carte répond à « qu'y a-t-il dedans ».
 
-| Module | Possède | Doc | ADR |
+| Module | Gère | Doc | ADR |
 | --- | --- | --- | --- |
 | `pages` | `Page` : contenu, révisions, droits, fiches liées, `WikiFrame` | [`forms.md`](docs/forms.md), [`permissions.md`](docs/permissions.md) | 0025 |
 | `forms` | `Form` : descripteur, rendu de fiche, titre automatique, renommage de champ | [`forms.md`](docs/forms.md), [`permissions.md`](docs/permissions.md) | 0014 |

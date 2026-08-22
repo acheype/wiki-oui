@@ -44,7 +44,7 @@ Composants couverts en v0.2 : **`Button`** (le bouton intégré), **`Image`**, *
 
 ## v0.3 — Formulaires & fiches
 
-L'équivalent de **BazaR** : un **formulaire** définit une structure de champs, une **fiche** en est une instance saisie. ADR [0014](adr/0014-formulaires-et-fiches.md) (modèle) et [0015](adr/0015-shared-field-renderer-zod.md) (renderer partagé + Zod) ; spécification complète : [`forms.md`](forms.md).
+L'équivalent de **BazaR** : un **formulaire** définit une structure de champs, une **fiche** en est une instance saisie. ADR [0014](adr/0014-forms-and-entries.md) (modèle) et [0015](adr/0015-shared-field-renderer-zod.md) (renderer partagé + Zod) ; spécification complète : [`forms.md`](forms.md).
 
 **Le modèle en deux phrases.** *Un formulaire n'est pas une page* : c'est une définition (entité `Form`, écrite à l'exécution par le FormBuilder, jamais historisée — enregistrer écrase). *Une fiche est une page* : `Page.formId` renseigné, contenu porté par un snapshot JSON `data` sur la `Revision` au lieu du MDX `content` — slug, URL, révisions, restauration, tags et suppression sont la machinerie existante, pas une seconde. Supprimer un formulaire emporte ses fiches (cascade, confirmation annonçant le nombre) ; un schéma qui bouge **dégrade gracieusement** (clé orpheline préservée mais ignorée, champ nouveau vide) plutôt que de se versionner.
 
@@ -84,7 +84,7 @@ Trois chantiers hors périmètre initial :
 
 ## v0.5 — Utilisateurs & droits
 
-La gestion des droits de YesWiki, refondue pour tenir sans documentation. ADR [0023](adr/0023-betterauth-authentifie-wikioui-autorise.md) à [0028](adr/0028-tout-ecran-est-une-page.md) ; spécification complète : [`permissions.md`](permissions.md).
+La gestion des droits de YesWiki, refondue pour tenir sans documentation. ADR [0023](adr/0023-betterauth-authenticates-wikioui-authorizes.md) à [0028](adr/0028-system-pages-are-pages.md) ; spécification complète : [`permissions.md`](permissions.md).
 
 **Le modèle en deux phrases.** *BetterAuth authentifie, WikiOui autorise* (ADR 0023) : la bibliothèque sait qui vous êtes, elle ne sait rien de ce que vous avez le droit de faire — ni le plugin `admin` (qui imposerait un champ `role` là où l'administration est une **appartenance** au groupe `@Admins`) ni `organization` (qui n'imbrique pas les groupes et ignore nos portées) ne sont utilisés ; seul `username` l'est, parce qu'il relève de l'authentification. *Un droit est une **portée**, éventuellement complétée d'une liste* : tout le monde · les personnes connectées · seulement — le propriétaire et les administrateurs étant toujours autorisés, et ne figurant donc jamais dans la liste.
 
@@ -138,7 +138,7 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 11. [Classes utilitaires auteurs = liste blanche safelistée](adr/0011-author-utility-classes-safelist.md)
 12. [Fichiers uploadés : le répertoire `files/` fait foi](adr/0012-files-directory-is-source-of-truth.md)
 13. [Descripteur ComponentBuilder : YAML seul, vérifié par signature](adr/0013-yaml-only-descriptor-verified-by-signature.md)
-14. [Formulaires & fiches : un formulaire n'est pas une page, une fiche en est une](adr/0014-formulaires-et-fiches.md)
+14. [Formulaires & fiches : un formulaire n'est pas une page, une fiche en est une](adr/0014-forms-and-entries.md)
 15. [Renderer de champs partagé, Zod comme contrat runtime](adr/0015-shared-field-renderer-zod.md)
 16. [Renommer un slug réécrit toutes les références, sans redirection](adr/0016-slug-rename-rewrites-references.md)
 17. [Le renommage d'un identifiant de champ est différé à l'enregistrement](adr/0017-field-rename-staged-at-form-save.md)
@@ -147,13 +147,13 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 20. [Le titre automatique d'une fiche est calculé à l'écriture](adr/0020-automatic-title-stored-at-write.md)
 21. [Déploiement Docker : standalone, migrate au démarrage, seed une fois](adr/0021-docker-standalone-migrate-seed-on-start.md)
 22. [Rendu chrome-free : handler `/{slug}/iframe` et brique `WikiFrame`](adr/0022-chrome-free-iframe-handler-and-wikiframe.md)
-23. [BetterAuth authentifie, WikiOui autorise](adr/0023-betterauth-authentifie-wikioui-autorise.md)
-24. [Les droits désignent un `username` et un `groupSlug`, jamais un id](adr/0024-droits-par-username-et-slug.md)
-25. [Le contrôle des droits passe par une couche d'accès unique, gardée par ESLint](adr/0025-couche-acces-gardee-par-eslint.md)
-26. [Un droit par défaut se recopie à la création, il ne se lie jamais](adr/0026-defauts-recopies-jamais-lies.md)
-27. [Le service d'installation est gardé par un drapeau irréversible](adr/0027-installation-drapeau-irreversible.md)
-28. [Une page système est une page comme les autres ; `/api` est le seul segment réservé](adr/0028-tout-ecran-est-une-page.md)
-29. [Le code est rangé par concept du domaine, et la profondeur dit la visibilité](adr/0029-modules-par-concept-du-domaine.md)
+23. [BetterAuth authentifie, WikiOui autorise](adr/0023-betterauth-authenticates-wikioui-authorizes.md)
+24. [Les droits désignent un `username` et un `groupSlug`, jamais un id](adr/0024-permissions-by-username-and-slug.md)
+25. [Le contrôle des droits passe par une couche d'accès unique, gardée par ESLint](adr/0025-access-layer-protected-by-eslint.md)
+26. [Un droit par défaut se recopie à la création, il ne se lie jamais](adr/0026-defaults-copied-never-linked.md)
+27. [Le service d'installation est gardé par un drapeau irréversible](adr/0027-installation-flag-irreversible.md)
+28. [Une page système est une page comme les autres ; `/api` est le seul segment réservé](adr/0028-system-pages-are-pages.md)
+29. [Le code est rangé par concept du domaine, et la profondeur dit la visibilité](adr/0029-modules-by-domain-concept.md)
 
 ## Points validés avant code
 

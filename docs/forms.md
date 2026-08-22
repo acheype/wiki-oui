@@ -1,6 +1,6 @@
 # Formulaires & fiches (spec WikiOui v0.3)
 
-Reprise de la fonctionnalité **Bazar** de YesWiki : un **formulaire** définit une structure de champs ; une **fiche** est une instance saisie via ce formulaire. Décisions de fond dans les ADR [0014](adr/0014-formulaires-et-fiches.md) (modèle) et [0015](adr/0015-shared-field-renderer-zod.md) (renderer partagé + Zod) ; analyse préalable dans [`research/formulaires-fiches-architecture.md`](research/formulaires-fiches-architecture.md). La table de migration depuis l'ancien format YesWiki (`***`) est dans [`reference/yeswiki-form-migration.md`](reference/yeswiki-form-migration.md).
+Reprise de la fonctionnalité **Bazar** de YesWiki : un **formulaire** définit une structure de champs ; une **fiche** est une instance saisie via ce formulaire. Décisions de fond dans les ADR [0014](adr/0014-forms-and-entries.md) (modèle) et [0015](adr/0015-shared-field-renderer-zod.md) (renderer partagé + Zod) ; analyse préalable dans [`research/formulaires-fiches-architecture.md`](research/formulaires-fiches-architecture.md). La table de migration depuis l'ancien format YesWiki (`***`) est dans [`reference/yeswiki-form-migration.md`](reference/yeswiki-form-migration.md).
 
 ## Le modèle en deux phrases
 

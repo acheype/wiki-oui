@@ -2,7 +2,7 @@
 
 L'équivalent de la gestion des droits de YesWiki, refondue pour tenir sans documentation : un seul mode de paramétrage, des comportements généralisés, et une interface qui se suffit à elle-même.
 
-ADR [0023](adr/0023-betterauth-authentifie-wikioui-autorise.md) (frontière authentification/autorisation), [0024](adr/0024-droits-par-username-et-slug.md) (ce que stockent les droits), [0025](adr/0025-couche-acces-gardee-par-eslint.md) (où le contrôle s'applique), [0026](adr/0026-defauts-recopies-jamais-lies.md) (les défauts se recopient), [0027](adr/0027-installation-drapeau-irreversible.md) (l'amorçage), [0028](adr/0028-tout-ecran-est-une-page.md) (une page système est une page). Glossaire : [`../CONTEXT.md`](../CONTEXT.md).
+ADR [0023](adr/0023-betterauth-authenticates-wikioui-authorizes.md) (frontière authentification/autorisation), [0024](adr/0024-permissions-by-username-and-slug.md) (ce que stockent les droits), [0025](adr/0025-access-layer-protected-by-eslint.md) (où le contrôle s'applique), [0026](adr/0026-defaults-copied-never-linked.md) (les défauts se recopient), [0027](adr/0027-installation-flag-irreversible.md) (l'amorçage), [0028](adr/0028-system-pages-are-pages.md) (une page système est une page). Glossaire : [`../CONTEXT.md`](../CONTEXT.md).
 
 ## Le modèle en deux phrases
 
