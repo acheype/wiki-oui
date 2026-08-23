@@ -295,11 +295,10 @@ function valueAt(raw: unknown, nodePath: readonly PropertyKey[]): unknown {
 // loader with an explicit message. The YAML ↔ component match is a separate
 // pass (verify.ts, dev + build only).
 export function validateDescriptor(
-  name: string,
+  source: string,
   raw: unknown,
   lineOf?: LineLookup
 ): ComponentDescriptor {
-  const source = `modules/authoring/wiki-components/${name}.yaml`;
   // Prefixes the message with the file and, when known, the first of the
   // candidate paths that resolves to a line — so it points at the offending
   // key (e.g. the `type:` line), falling back to the field, then the file.

@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { LineCounter, isMap, isScalar, parseDocument } from "yaml";
 import type { LineLookup } from "./descriptor";
+import { readWikiComponentFile } from "./registry/scan";
 
 // Reads a co-located descriptor YAML *with source positions* (ADR 0013): the
 // raw parsed data for the meta-schema (ADR 0015 — typing happens at
@@ -9,18 +8,16 @@ import type { LineLookup } from "./descriptor";
 // to point at the exact offending line. Shared by the loader (structural
 // checks) and the signature verifier (dev + build).
 
-const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "modules/authoring/wiki-components");
-
 export interface DescriptorSource {
   raw: unknown;
   lineOf: LineLookup;
 }
 
-export async function readDescriptorSource(base: string): Promise<DescriptorSource> {
-  const text = await readFile(
-    path.join(WIKI_COMPONENTS_DIR, `${base}.yaml`),
-    "utf8"
-  );
+export async function readDescriptorSource(
+  module: string,
+  base: string
+): Promise<DescriptorSource> {
+  const text = await readWikiComponentFile(module, `${base}.yaml`);
   const lineCounter = new LineCounter();
   const doc = parseDocument(text, { lineCounter });
   return {

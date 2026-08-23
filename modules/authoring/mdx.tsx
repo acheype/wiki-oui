@@ -1,5 +1,3 @@
-import { readdir } from "node:fs/promises";
-import path from "node:path";
 import { compileMDX } from "next-mdx-remote/rsc";
 import { mdxAnnotations } from "mdx-annotations";
 import remarkGfm from "remark-gfm";
@@ -14,6 +12,7 @@ import {
   normalizePastedHtmlAttributes,
 } from "@/modules/authoring/host-elements";
 import { allowLiteralPropsOnly } from "@/modules/authoring/literal-props";
+import { listWikiComponentFiles, wikiComponentBaseName } from "./registry/scan";
 import { WikiLink } from "./wiki-components/wiki-link";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote appends its
@@ -69,16 +68,13 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
   }
 }
 
-// Component registry (ADR 0002, ADR 0029): every .tsx file in
-// wiki-components/ or its system-pages/ is callable from page content —
-// presence in either folder IS the whitelist. Each file must export a
-// component named as the PascalCase of its file name (button.tsx →
-// Button). A co-located descriptor (button.yaml) only affects the
-// editor's component menu, never what may render — system pages have
+// Component registry (ADR 0002, ADR 0029): every .tsx file found under each
+// module's wiki-components/ (registry/scan.ts) is callable from page
+// content — presence in one of those folders IS the whitelist. Each file
+// must export a component named as the PascalCase of its file name
+// (button.tsx → Button). A co-located descriptor (button.yaml) only affects
+// the editor's component menu, never what may render — system pages have
 // none and still render.
-const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "modules/authoring/wiki-components");
-const SYSTEM_PAGES_DIR = path.join(WIKI_COMPONENTS_DIR, "system-pages");
-
 let registryCache: Promise<MDXComponents> | undefined;
 
 function loadWikiComponents(): Promise<MDXComponents> {
@@ -93,41 +89,66 @@ function loadWikiComponents(): Promise<MDXComponents> {
  * exists, and must not drag every wiki component into its graph.
  */
 export async function listWikiComponentNames(): Promise<string[]> {
-  const flat = await readdir(WIKI_COMPONENTS_DIR);
-  const systemPages = await readdir(SYSTEM_PAGES_DIR);
-  return [...flat, ...systemPages]
-    .filter((file) => file.endsWith(".tsx"))
-    .map((file) => pascalCase(file.slice(0, -".tsx".length)));
+  const files = await listWikiComponentFiles(".tsx");
+  return files.map(({ base }) => pascalCase(wikiComponentBaseName(base)));
 }
 
 async function buildRegistry(): Promise<MDXComponents> {
   const registry: MDXComponents = {};
-  await loadInto(registry, await readdir(WIKI_COMPONENTS_DIR), "wiki-components");
-  await loadInto(registry, await readdir(SYSTEM_PAGES_DIR), "wiki-components/system-pages");
+  for (const { module, base } of await listWikiComponentFiles(".tsx")) {
+    const name = pascalCase(wikiComponentBaseName(base));
+    const mod = await loadWikiComponentModule(module, base);
+    if (typeof mod[name] !== "function") {
+      throw new Error(
+        `modules/${module}/wiki-components/${base}.tsx must export a component named ${name}`,
+      );
+    }
+    if (registry[name]) {
+      throw new Error(`<${name}> is claimed by two modules — rename one of the files`);
+    }
+    registry[name] = mod[name] as React.ComponentType;
+  }
   return registry;
 }
 
-async function loadInto(
-  registry: MDXComponents,
-  files: string[],
-  relativeDir: "wiki-components" | "wiki-components/system-pages",
-): Promise<void> {
-  for (const file of files) {
-    if (!file.endsWith(".tsx")) continue;
-    const base = file.slice(0, -".tsx".length);
-    const name = pascalCase(base);
-    // The extension keeps the bundler's directory scan to .tsx files only.
-    const mod =
-      relativeDir === "wiki-components"
-        ? await import(`./wiki-components/${base}.tsx`)
-        : await import(`./wiki-components/system-pages/${base}.tsx`);
-    if (typeof mod[name] !== "function") {
-      throw new Error(
-        `modules/authoring/${relativeDir}/${file} must export a component named ${name}`,
-      );
-    }
-    registry[name] = mod[name];
+// One import() expression per module, each with a single, one-level-deep
+// variable (`base`, a bare file name — no "/" inside it): Vite's dynamic-
+// import-vars analysis only resolves that exact shape, throwing "Unknown
+// variable dynamic import" at runtime on anything else (two variables, or a
+// variable holding a nested path) even though Vitest's warning stays silent
+// about it. Worse, webpack (Next build) needs the target folder to exist at
+// all — `Can't resolve '../permissions/wiki-components/'` — so a module is
+// only listed here once its wiki-components/ folder is real. Grows one entry
+// per step of issue #19 as components move in (steps 3-6, 7-8); today only
+// authoring's is populated.
+const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, unknown>>> = {
+  authoring: (base) => import(`../authoring/wiki-components/${base}.tsx`),
+};
+
+const SYSTEM_PAGES_PREFIX = "system-pages/";
+
+// Transitional (issue #19 step 10 removes it): the nine system pages still
+// nest one level under modules/authoring/wiki-components/system-pages/,
+// which MODULE_LOADERS can't reach — its `base` must be a bare file name,
+// and these carry a "system-pages/" prefix instead.
+function loadAuthoringSystemPage(base: string): Promise<Record<string, unknown>> {
+  return import(`../authoring/wiki-components/system-pages/${base}.tsx`);
+}
+
+function loadWikiComponentModule(
+  module: string,
+  base: string
+): Promise<Record<string, unknown>> {
+  if (module === "authoring" && base.startsWith(SYSTEM_PAGES_PREFIX)) {
+    return loadAuthoringSystemPage(base.slice(SYSTEM_PAGES_PREFIX.length));
   }
+  const loader = MODULE_LOADERS[module];
+  if (!loader) {
+    throw new Error(
+      `modules/${module}/wiki-components/${base}.tsx: no registry loader for module "${module}"`
+    );
+  }
+  return loader(base);
 }
 
 // The compiled MDX throws at render time on any component missing from the

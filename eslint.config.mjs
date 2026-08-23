@@ -86,6 +86,13 @@ const moduleSeamRule = {
         const fromApp = path.relative(process.cwd(), filename).split(path.sep).join("/").startsWith("app/");
         if (fromApp) return; // the sole exemption: app/ composes a module's ui/
       }
+      const relative = path.relative(process.cwd(), filename).split(path.sep).join("/");
+      // The registry loader reaches every module's wiki-components/ (ADR 0002):
+      // it names no module, it loads whatever the folders hold — a plugin loader,
+      // not a dependency. Listed by file so a second reader shows in the diff,
+      // the way ADR 0025's access-layer list works.
+      const REGISTRY_LOADERS = ["modules/authoring/mdx.tsx"];
+      if (target.first === "wiki-components" && REGISTRY_LOADERS.includes(relative)) return;
       context.report({
         node,
         message: `modules/${target.module}/${target.first} is private (ADR 0029) — import a root file of the module instead.`,

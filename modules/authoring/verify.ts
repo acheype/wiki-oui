@@ -526,12 +526,12 @@ export async function verifyDescriptorSignatures(
   const errors: string[] = [];
   const warnings: string[] = [];
   for (const spec of tagEmitters) {
-    const relativeFile = `modules/authoring/wiki-components/${spec.base}.tsx`;
+    const relativeFile = `modules/${spec.module}/wiki-components/${spec.base}.tsx`;
     const sourceFile = project.addSourceFileAtPath(
       path.join(process.cwd(), relativeFile)
     );
     const signature = extractSignature(sourceFile, spec.name, relativeFile);
-    const { lineOf } = await readDescriptorSource(spec.base);
+    const { lineOf } = await readDescriptorSource(spec.module, spec.base);
     const result = checkSignature(spec.name, spec.descriptor, signature, lineOf);
     errors.push(...result.errors);
     warnings.push(...result.warnings);

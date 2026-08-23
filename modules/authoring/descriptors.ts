@@ -1,5 +1,3 @@
-import { readdir, stat } from "node:fs/promises";
-import path from "node:path";
 import {
   type ComponentDescriptor,
   type PropDefaults,
@@ -8,16 +6,19 @@ import {
   validateDescriptor,
 } from "./descriptor";
 import { readDescriptorSource } from "./descriptor-source";
+import { listWikiComponentFiles, statWikiComponentFile } from "./registry/scan";
 
 // Server-side loader of the ComponentBuilder descriptors: every .yaml file
-// in wiki-components/ describes the builder of its co-located .tsx component
-// (docs/component-builder.md). Same regime as the registry (mdx.tsx):
-// presence in the folder is the whitelist, loading fails fast and loud.
-// System pages have no descriptor and never get one, so this never looks
-// in wiki-components/system-pages/ — the plain .yaml filter already
-// excludes it.
+// in a module's wiki-components/ describes the builder of its co-located
+// .tsx component (docs/component-builder.md). Same regime as the registry
+// (mdx.tsx): presence in one of those folders is the whitelist, loading
+// fails fast and loud. System pages have no descriptor and never get one,
+// so this never picks up modules/authoring/wiki-components/system-pages/ —
+// the plain .yaml filter already excludes it.
 
 export interface ComponentBuilderSpec {
+  /** The module owning the component (ADR 0029). */
+  module: string;
   /** Kebab file base, e.g. "file-link"; the authoritative on-disk identity. */
   base: string;
   /** Component tag name, e.g. "Button" (PascalCase of the file base). */
@@ -26,8 +27,6 @@ export interface ComponentBuilderSpec {
   /** Omission-rule defaults, derived from the descriptor (ADR 0013). */
   defaults: PropDefaults;
 }
-
-const WIKI_COMPONENTS_DIR = path.join(process.cwd(), "modules/authoring/wiki-components");
 
 let cache: Promise<ComponentBuilderSpec[]> | undefined;
 let devStamp: string | undefined;
@@ -53,27 +52,31 @@ async function loadWithFileInvalidation(): Promise<ComponentBuilderSpec[]> {
   return cache;
 }
 
+// Stamps every module's wiki-components/ (not just one), so editing a
+// descriptor or component in any module invalidates the dev cache — a
+// single-folder stamp would silently miss the others.
 async function componentsDirStamp(): Promise<string> {
-  const files = await readdir(WIKI_COMPONENTS_DIR);
+  const yamlFiles = await listWikiComponentFiles(".yaml");
+  const tsxFiles = await listWikiComponentFiles(".tsx");
+  const entries = [
+    ...yamlFiles.map((file) => ({ ...file, extension: ".yaml" as const })),
+    ...tsxFiles.map((file) => ({ ...file, extension: ".tsx" as const })),
+  ].sort((a, b) =>
+    `${a.module}/${a.base}${a.extension}`.localeCompare(`${b.module}/${b.base}${b.extension}`)
+  );
   const stamps = await Promise.all(
-    files
-      .filter((file) => file.endsWith(".yaml") || file.endsWith(".tsx"))
-      .sort()
-      .map(async (file) => {
-        const { mtimeMs, size } = await stat(path.join(WIKI_COMPONENTS_DIR, file));
-        return `${file}:${mtimeMs}:${size}`;
-      })
+    entries.map(async ({ module, base, extension }) => {
+      const { mtimeMs, size } = await statWikiComponentFile(module, base, extension);
+      return `${module}/${base}${extension}:${mtimeMs}:${size}`;
+    })
   );
   return stamps.join("\n");
 }
 
 async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
-  const files = await readdir(WIKI_COMPONENTS_DIR);
+  const files = await listWikiComponentFiles(".yaml");
   const specs = await Promise.all(
-    files
-      .filter((file) => file.endsWith(".yaml"))
-      .sort()
-      .map((file) => buildSpec(file.slice(0, -".yaml".length)))
+    files.map(({ module, base }) => buildSpec(module, base))
   );
   // Signature check on editor load, in dev only (ADR 0013): a YAML ↔ component
   // drift throws here, surfacing on the Next error overlay. The dynamic import
@@ -85,11 +88,12 @@ async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
   return specs;
 }
 
-async function buildSpec(base: string): Promise<ComponentBuilderSpec> {
-  const { raw, lineOf } = await readDescriptorSource(base);
+async function buildSpec(module: string, base: string): Promise<ComponentBuilderSpec> {
+  const { raw, lineOf } = await readDescriptorSource(module, base);
   // Meta-schema parse (ADR 0015): raw unknown in, typed descriptor out.
-  const descriptor = validateDescriptor(base, raw, lineOf);
+  const descriptor = validateDescriptor(`modules/${module}/wiki-components/${base}.yaml`, raw, lineOf);
   return {
+    module,
     base,
     name: pascalCase(base),
     descriptor,
