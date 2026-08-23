@@ -23,11 +23,6 @@ async function accountsFiles(extension: ".tsx" | ".yaml"): Promise<string[]> {
 async function authoringFiles(extension: ".tsx" | ".yaml"): Promise<string[]> {
   return namesIn(path.join(process.cwd(), "modules/authoring/wiki-components"), extension);
 }
-// Transitional (issue #19 step 10 removes it): the nine system pages still
-// nest one level under here until they move into their own module.
-async function authoringSystemPagesFiles(extension: ".tsx" | ".yaml"): Promise<string[]> {
-  return namesIn(path.join(process.cwd(), "modules/authoring/wiki-components/system-pages"), extension);
-}
 async function entriesViewFiles(extension: ".tsx" | ".yaml"): Promise<string[]> {
   return namesIn(path.join(process.cwd(), "modules/entries-view/wiki-components"), extension);
 }
@@ -70,12 +65,11 @@ export async function listWikiComponentFiles(
   extension: ".tsx" | ".yaml"
 ): Promise<WikiComponentFile[]> {
   const found: WikiComponentFile[] = [];
-  const push = (module: string, bases: string[], prefix = ""): void => {
-    for (const base of bases) found.push({ module, base: `${prefix}${base}` });
+  const push = (module: string, bases: string[]): void => {
+    for (const base of bases) found.push({ module, base });
   };
   push("accounts", await accountsFiles(extension));
   push("authoring", await authoringFiles(extension));
-  push("authoring", await authoringSystemPagesFiles(extension), "system-pages/");
   push("entries-view", await entriesViewFiles(extension));
   push("files", await filesFiles(extension));
   push("forms", await formsFiles(extension));
@@ -85,17 +79,11 @@ export async function listWikiComponentFiles(
   return found.sort((a, b) => a.base.localeCompare(b.base));
 }
 
-/** The component tag name a wiki component base resolves to: the PascalCase
- * of its file name alone, ignoring any sub-folder the base carries. */
-export function wikiComponentBaseName(base: string): string {
-  return base.slice(base.lastIndexOf("/") + 1);
-}
-
 // Same constraint as above, for the two other places that reach into a
-// module's wiki-components/ by name: descriptor-source.ts's readFile (never
-// system-pages/ — fact: no .yaml lives there) and descriptors.ts's stat (both
-// extensions, system-pages/ included, for the dev cache stamp). Each module
-// gets its own function again, path written inline, for the same reason.
+// module's wiki-components/ by name: descriptor-source.ts's readFile and
+// descriptors.ts's stat (both extensions, for the dev cache stamp). Each
+// module gets its own function again, path written inline, for the same
+// reason.
 async function readAccounts(relative: string): Promise<string> {
   return readFile(path.join(process.cwd(), "modules/accounts/wiki-components", relative), "utf8");
 }
@@ -121,7 +109,7 @@ async function readSettings(relative: string): Promise<string> {
   return readFile(path.join(process.cwd(), "modules/settings/wiki-components", relative), "utf8");
 }
 
-/** Reads `<module>/wiki-components/<relative>` (never under system-pages/). */
+/** Reads `<module>/wiki-components/<relative>`. */
 export function readWikiComponentFile(module: string, relative: string): Promise<string> {
   switch (module) {
     case "accounts":
@@ -153,9 +141,6 @@ async function statAccounts(relative: string): Promise<Stats> {
 async function statAuthoring(relative: string): Promise<Stats> {
   return stat(path.join(process.cwd(), "modules/authoring/wiki-components", relative));
 }
-async function statAuthoringSystemPages(relative: string): Promise<Stats> {
-  return stat(path.join(process.cwd(), "modules/authoring/wiki-components/system-pages", relative));
-}
 async function statEntriesView(relative: string): Promise<Stats> {
   return stat(path.join(process.cwd(), "modules/entries-view/wiki-components", relative));
 }
@@ -175,18 +160,12 @@ async function statSettings(relative: string): Promise<Stats> {
   return stat(path.join(process.cwd(), "modules/settings/wiki-components", relative));
 }
 
-const SYSTEM_PAGES_PREFIX = "system-pages/";
-
-/** Stats `<module>/wiki-components/<base><extension>`, `base` possibly
- * carrying the transitional "system-pages/" prefix (issue #19 step 10). */
+/** Stats `<module>/wiki-components/<base><extension>`. */
 export function statWikiComponentFile(
   module: string,
   base: string,
   extension: ".tsx" | ".yaml"
 ): Promise<Stats> {
-  if (module === "authoring" && base.startsWith(SYSTEM_PAGES_PREFIX)) {
-    return statAuthoringSystemPages(`${base.slice(SYSTEM_PAGES_PREFIX.length)}${extension}`);
-  }
   const relative = `${base}${extension}`;
   switch (module) {
     case "accounts":

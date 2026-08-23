@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getEntryForm } from "@/modules/forms/actions";
-import { PageEditor } from "@/modules/authoring/page-editor";
+import { PageEditor } from "@/modules/authoring/ui/page-editor";
 import { EntryEdit } from "@/modules/forms/ui/entry-edit";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { loadComponentBuilders } from "@/modules/authoring/descriptors";

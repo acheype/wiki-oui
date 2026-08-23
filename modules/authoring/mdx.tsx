@@ -12,7 +12,7 @@ import {
   normalizePastedHtmlAttributes,
 } from "@/modules/authoring/host-elements";
 import { allowLiteralPropsOnly } from "@/modules/authoring/literal-props";
-import { listWikiComponentFiles, wikiComponentBaseName } from "./registry/scan";
+import { listWikiComponentFiles } from "./registry/scan";
 import { WikiLink } from "@/modules/pages/wiki-components/wiki-link";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote appends its
@@ -90,13 +90,13 @@ function loadWikiComponents(): Promise<MDXComponents> {
  */
 export async function listWikiComponentNames(): Promise<string[]> {
   const files = await listWikiComponentFiles(".tsx");
-  return files.map(({ base }) => pascalCase(wikiComponentBaseName(base)));
+  return files.map(({ base }) => pascalCase(base));
 }
 
 async function buildRegistry(): Promise<MDXComponents> {
   const registry: MDXComponents = {};
   for (const { module, base } of await listWikiComponentFiles(".tsx")) {
-    const name = pascalCase(wikiComponentBaseName(base));
+    const name = pascalCase(base);
     const mod = await loadWikiComponentModule(module, base);
     if (typeof mod[name] !== "function") {
       throw new Error(
@@ -118,11 +118,11 @@ async function buildRegistry(): Promise<MDXComponents> {
 // variable holding a nested path) even though Vitest's warning stays silent
 // about it. Worse, webpack (Next build) needs the target folder to exist at
 // all — `Can't resolve '../permissions/wiki-components/'` — so a module is
-// only listed here once its wiki-components/ folder is real. Grows one entry
-// per step of issue #19 as components move in (steps 3-6, 7-8).
+// only listed here once its wiki-components/ folder is real — authoring's
+// emptied out at the end of issue #19 (its wiki components all moved to the
+// module of their concept) and stays out of this map until it holds one again.
 const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, unknown>>> = {
   accounts: (base) => import(`../accounts/wiki-components/${base}.tsx`),
-  authoring: (base) => import(`../authoring/wiki-components/${base}.tsx`),
   "entries-view": (base) => import(`../entries-view/wiki-components/${base}.tsx`),
   files: (base) => import(`../files/wiki-components/${base}.tsx`),
   forms: (base) => import(`../forms/wiki-components/${base}.tsx`),
@@ -130,23 +130,10 @@ const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, un
   permissions: (base) => import(`../permissions/wiki-components/${base}.tsx`),
 };
 
-const SYSTEM_PAGES_PREFIX = "system-pages/";
-
-// Transitional (issue #19 step 10 removes it): the nine system pages still
-// nest one level under modules/authoring/wiki-components/system-pages/,
-// which MODULE_LOADERS can't reach — its `base` must be a bare file name,
-// and these carry a "system-pages/" prefix instead.
-function loadAuthoringSystemPage(base: string): Promise<Record<string, unknown>> {
-  return import(`../authoring/wiki-components/system-pages/${base}.tsx`);
-}
-
 function loadWikiComponentModule(
   module: string,
   base: string
 ): Promise<Record<string, unknown>> {
-  if (module === "authoring" && base.startsWith(SYSTEM_PAGES_PREFIX)) {
-    return loadAuthoringSystemPage(base.slice(SYSTEM_PAGES_PREFIX.length));
-  }
   const loader = MODULE_LOADERS[module];
   if (!loader) {
     throw new Error(

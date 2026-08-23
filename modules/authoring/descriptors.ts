@@ -12,9 +12,8 @@ import { listWikiComponentFiles, statWikiComponentFile } from "./registry/scan";
 // in a module's wiki-components/ describes the builder of its co-located
 // .tsx component (docs/component-builder.md). Same regime as the registry
 // (mdx.tsx): presence in one of those folders is the whitelist, loading
-// fails fast and loud. System pages have no descriptor and never get one,
-// so this never picks up modules/authoring/wiki-components/system-pages/ —
-// the plain .yaml filter already excludes it.
+// fails fast and loud. System pages have no descriptor and never get one —
+// the plain .yaml filter already excludes them.
 
 export interface ComponentBuilderSpec {
   /** The module owning the component (ADR 0029). */

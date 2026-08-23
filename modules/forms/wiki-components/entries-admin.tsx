@@ -7,7 +7,7 @@
 import { FilePlus2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   type EntryFormData,
   type EntrySummary,
@@ -17,9 +17,23 @@ import {
 } from "@/modules/forms/actions";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
-import { EntryForm } from "./entry-form";
+import { EntryForm } from "../entry-form";
 
+// Built-in component rendered by the `fiches` special page (ADR 0014). The
+// system page reads the URL via useSearchParams, hence the Suspense boundary.
+// `not-prose`: an app system page inside an MDX page must escape the host page's
+// typographic margins, so entry creation here matches /{slug}/edit exactly.
 export function EntriesAdmin() {
+  return (
+    <div className="not-prose">
+      <Suspense>
+        <EntriesAdminScreen />
+      </Suspense>
+    </div>
+  );
+}
+
+function EntriesAdminScreen() {
   const params = useSearchParams();
   const formSlug = params.get("formulaire") ?? undefined;
 
