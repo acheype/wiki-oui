@@ -6,7 +6,7 @@
 
 // hasForm/isEntryPage from modules/pages/entry-page.ts, not
 // modules/pages/content.ts: this module is read by a Client Component
-// (modules/pages/pages-admin.tsx), and modules/pages/content.ts carries
+// (modules/pages/ui/pages-admin.tsx), and modules/pages/content.ts carries
 // server-only imports (ADR 0025) a client bundle cannot take on, even for a
 // function that never touches them.
 import { hasForm, isEntryPage } from "@/modules/pages/entry-page";

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { EntryContent } from "@/modules/forms/ui/entry-content";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { Prose } from "@/components/ui/prose";
-import { WikiFrameResizeEmitter } from "@/modules/pages/wiki-frame-emitter";
+import { WikiFrameResizeEmitter } from "@/modules/pages/ui/wiki-frame-emitter";
 import { readEntryData } from "@/modules/forms/form-descriptor";
 import { firstHeadingText, renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
