@@ -265,7 +265,7 @@ describe("verifyDescriptorSignatures (shipped components)", () => {
 describe("checkSignature — structured types", () => {
   function entriesSignature(): ComponentSignature {
     return {
-      file: "modules/authoring/wiki-components/entries-view.tsx",
+      file: "modules/entries-view/wiki-components/entries-view.tsx",
       props: {
         form: { tsOptional: false, type: { kind: "string-or-strings" } },
         view: {

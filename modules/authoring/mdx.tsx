@@ -122,6 +122,7 @@ async function buildRegistry(): Promise<MDXComponents> {
 // per step of issue #19 as components move in (steps 3-6, 7-8).
 const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, unknown>>> = {
   authoring: (base) => import(`../authoring/wiki-components/${base}.tsx`),
+  "entries-view": (base) => import(`../entries-view/wiki-components/${base}.tsx`),
   files: (base) => import(`../files/wiki-components/${base}.tsx`),
   forms: (base) => import(`../forms/wiki-components/${base}.tsx`),
   pages: (base) => import(`../pages/wiki-components/${base}.tsx`),

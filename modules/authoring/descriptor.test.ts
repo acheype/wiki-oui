@@ -808,14 +808,14 @@ describe("tagToBuilderState — refined expression rule (ADR 0019)", () => {
 describe("validateDescriptor — the six new types (ADR 0018)", () => {
   it("accepts the EntriesView-shaped descriptor", () => {
     expect(() =>
-      validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", entriesDescriptor())
+      validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", entriesDescriptor())
     ).not.toThrow();
   });
 
   it("rejects a view-picker without a default among its options", () => {
     const descriptor = entriesDescriptor();
     descriptor.properties.view.default = "carousel";
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).toThrow(
       /view-picker field "view" needs a default among its options/
     );
   });
@@ -823,7 +823,7 @@ describe("validateDescriptor — the six new types (ADR 0018)", () => {
   it("rejects a view-picker icon aimed at an unknown option", () => {
     const descriptor = entriesDescriptor();
     descriptor.properties.view.icons = { carousel: "lucide:images" };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).toThrow(
       /declares an icon for unknown option "carousel"/
     );
   });
@@ -831,7 +831,7 @@ describe("validateDescriptor — the six new types (ADR 0018)", () => {
   it("rejects a form-field reading its forms from an unknown sibling", () => {
     const descriptor = entriesDescriptor();
     descriptor.properties.colorField.formFrom = "nowhere";
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).toThrow(
       /reads its forms from unknown sibling "nowhere"/
     );
   });
@@ -839,7 +839,7 @@ describe("validateDescriptor — the six new types (ADR 0018)", () => {
   it("requires the default `form` sibling when formFrom is omitted", () => {
     const descriptor = entriesDescriptor();
     delete descriptor.properties.form;
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).toThrow(
       /reads its forms from unknown sibling "form"/
     );
   });
@@ -847,12 +847,12 @@ describe("validateDescriptor — the six new types (ADR 0018)", () => {
   it("rejects a mapping without fieldFrom, or aimed at a non form-field", () => {
     const missing = entriesDescriptor();
     delete missing.properties.colors.fieldFrom;
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", missing)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", missing)).toThrow(
       /needs "fieldFrom" pointing at a sibling form-field, got nothing/
     );
     const wrong = entriesDescriptor();
     wrong.properties.colors.fieldFrom = "view";
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", wrong)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", wrong)).toThrow(
       /points "fieldFrom" at "view", which is not a form-field/
     );
   });
@@ -860,7 +860,7 @@ describe("validateDescriptor — the six new types (ADR 0018)", () => {
   it("rejects aliased fields not kept apart by showif", () => {
     const descriptor = entriesDescriptor();
     delete descriptor.properties.display.showif;
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).toThrow(
       /all emit prop "entryDisplay", so each needs a showif/
     );
   });
@@ -896,13 +896,13 @@ describe("prefill — choice-driven sibling seeding (docs/entries-view.md)", () 
   it("accepts a prefill aimed at known options and fields", () => {
     const descriptor = entriesDescriptor();
     descriptor.properties.view.prefill = { grid: { colorField: "type" } };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).not.toThrow();
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).not.toThrow();
   });
 
   it("rejects a prefill for an unknown option", () => {
     const descriptor = entriesDescriptor();
     descriptor.properties.view.prefill = { carousel: { colorField: "type" } };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).toThrow(
       /declares a prefill for unknown option "carousel"/
     );
   });
@@ -910,7 +910,7 @@ describe("prefill — choice-driven sibling seeding (docs/entries-view.md)", () 
   it("rejects a prefill targeting an unknown field", () => {
     const descriptor = entriesDescriptor();
     descriptor.properties.view.prefill = { grid: { nowhere: "x" } };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/entries-view.yaml", descriptor)).toThrow(
+    expect(() => validateDescriptor("modules/entries-view/wiki-components/entries-view.yaml", descriptor)).toThrow(
       /prefill of "view" targets unknown field "nowhere"/
     );
   });
