@@ -121,6 +121,7 @@ async function buildRegistry(): Promise<MDXComponents> {
 // only listed here once its wiki-components/ folder is real. Grows one entry
 // per step of issue #19 as components move in (steps 3-6, 7-8).
 const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, unknown>>> = {
+  accounts: (base) => import(`../accounts/wiki-components/${base}.tsx`),
   authoring: (base) => import(`../authoring/wiki-components/${base}.tsx`),
   "entries-view": (base) => import(`../entries-view/wiki-components/${base}.tsx`),
   files: (base) => import(`../files/wiki-components/${base}.tsx`),

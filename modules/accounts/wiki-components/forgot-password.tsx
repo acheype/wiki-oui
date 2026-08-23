@@ -1,4 +1,4 @@
-import { ForgotPasswordForm } from "@/modules/accounts/forgot-password-form";
+import { ForgotPasswordForm } from "../ui/forgot-password-form";
 import { isMailerConfigured } from "@/modules/accounts/mailer";
 
 // Built-in component rendered by the `mot-de-passe-oublie` special page (ADR

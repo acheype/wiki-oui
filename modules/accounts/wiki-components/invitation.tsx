@@ -8,7 +8,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { readInvitation } from "@/modules/accounts/auth-actions";
 import { AcceptInvitationForm } from "@/modules/accounts/ui/accept-invitation-form";
 import { ResetPasswordForm } from "@/modules/accounts/ui/reset-password-form";
@@ -17,7 +17,21 @@ import type { AccountLinkTarget } from "@/modules/accounts/queries/queries";
 import { INVITATION_TOKEN_PARAM } from "@/modules/accounts/invitations";
 import { authPagePath } from "@/wiki.config";
 
-export function InvitationScreen() {
+// Built-in component rendered by the `invitation` special page (ADR 0028):
+// where an invitation, a « mot de passe oublié » and an administrator's reset
+// all land. This system page reads its token from the query string, hence the
+// Suspense boundary.
+export function Invitation() {
+  return (
+    <div className="not-prose mx-auto w-full max-w-sm py-6">
+      <Suspense>
+        <InvitationScreen />
+      </Suspense>
+    </div>
+  );
+}
+
+function InvitationScreen() {
   const token = useSearchParams().get(INVITATION_TOKEN_PARAM) ?? "";
   // undefined while the link is being read, null once it proved worthless.
   const [target, setTarget] = useState<AccountLinkTarget | null | undefined>();

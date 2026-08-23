@@ -3,14 +3,29 @@
 import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useId } from "react";
+import { Suspense, useId } from "react";
 import { signIn } from "@/modules/accounts/auth-actions";
 import { AuthFormError, useAuthForm } from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DESTINATION_PARAM } from "@/lib/destination";
-import { authPagePath } from "@/wiki.config";
+import { authPagePath, wikiConfig } from "@/wiki.config";
+
+// Built-in component rendered by the `connexion` special page (ADR 0028):
+// signing in is a system page of the wiki, hosted by a page like everything else.
+// The form reads ?suite= itself, hence the Suspense boundary at the seam.
+// `not-prose` and the narrow column: an app system page inside an MDX page owns
+// its width and its spacing.
+export function SignIn() {
+  return (
+    <div className="not-prose mx-auto w-full max-w-sm py-6">
+      <Suspense>
+        <SignInForm openSignUp={wikiConfig.openSignUp} />
+      </Suspense>
+    </div>
+  );
+}
 
 // One field for the email and the identifier: the wiki knows which one it
 // received (modules/accounts/username.ts), so nobody has to.
@@ -18,7 +33,7 @@ import { authPagePath } from "@/wiki.config";
 // This system page is a wiki page (ADR 0028), which knows nothing of the query
 // string it was called with — so where the visitor was heading is read here,
 // client-side, like every other state the URL carries.
-export function SignInForm({
+function SignInForm({
   openSignUp,
 }: {
   /** Free sign-up: the « Créer un compte » below appears only where it is on. */

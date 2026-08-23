@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { AdminOnly } from "@/modules/permissions/admin-only";
-import { UsersAdmin as UsersAdminScreen } from "@/modules/accounts/users-admin";
+import { UsersAdmin as UsersAdminScreen } from "../ui/users-admin";
 
 // Built-in component rendered by the `gerer-utilisateurs` special page
 // (docs/permissions.md § Les pages système). This system page reads the URL via
