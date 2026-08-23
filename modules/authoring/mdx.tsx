@@ -127,6 +127,7 @@ const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, un
   files: (base) => import(`../files/wiki-components/${base}.tsx`),
   forms: (base) => import(`../forms/wiki-components/${base}.tsx`),
   pages: (base) => import(`../pages/wiki-components/${base}.tsx`),
+  permissions: (base) => import(`../permissions/wiki-components/${base}.tsx`),
 };
 
 const SYSTEM_PAGES_PREFIX = "system-pages/";
