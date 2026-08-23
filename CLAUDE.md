@@ -4,7 +4,7 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 
 ## Organisation en modules
 
-**Le code est rangé par concept du domaine, et la profondeur dit la visibilité** (ADR 0029) : `modules/<concept>/`, un dossier par concept de `CONTEXT.md`. `app/` ne garde que les routes, `components/ui/` que les primitives shadcn, `lib/` que les utilitaires sans concept. Un gabarit unique par module : `queries.ts` (les appels Prisma — jamais importé ailleurs, niché dans son propre sous-dossier `queries/` pour que ce soit garanti par la profondeur, pas par son nom), `<sujet>.ts` (un sujet du module), `actions.ts` (les Server Actions), `rules.ts` (les règles pures), `ui/` (les composants React du module), `<chantier>/` (un sous-sujet à deux moitiés, ex. `rules.ts` + `sweep.ts`). Un fichier **racine** s'importe depuis n'importe quel module ; un fichier de **sous-dossier** ne s'importe que depuis son propre module — sauf `ui/`, que `app/` seul peut composer depuis l'extérieur. Une règle ESLint (`wikioui/module-seam`) le garde.
+**Le code est rangé par concept du domaine, et la profondeur dit la visibilité** (ADR 0029) : `modules/<concept>/`, un dossier par concept de `CONTEXT.md`. `app/` ne garde que les routes, `components/ui/` que les primitives shadcn, `lib/` que les utilitaires sans concept. Un gabarit unique par module : `queries.ts` (les appels Prisma — jamais importé ailleurs, niché dans son propre sous-dossier `queries/` pour que ce soit garanti par la profondeur, pas par son nom), `<sujet>.ts` (un sujet du module), `actions.ts` (les Server Actions), `rules.ts` (les règles pures), `ui/` (les composants React du module), `wiki-components/` (les composants wiki du module, quand il en a — le registre de l'ADR 0002, balayé par `modules/authoring/registry/scan.ts`), `<chantier>/` (un sous-sujet à deux moitiés, ex. `rules.ts` + `sweep.ts`). Un fichier **racine** s'importe depuis n'importe quel module ; un fichier de **sous-dossier** ne s'importe que depuis son propre module — sauf `ui/`, que `app/` seul peut composer depuis l'extérieur, et `wiki-components/`, que `modules/authoring/mdx.tsx` seul peut atteindre depuis l'extérieur en tant que chargeur du registre. Une règle ESLint (`wikioui/module-seam`) le garde.
 
 ## Carte des modules
 
@@ -17,7 +17,7 @@ Une ligne par module : ce qu'il possède, quelle doc en détaille le fonctionnem
 | `permissions` | Rôles, groupes, ACL, droits par défaut, niveaux page/formulaire/champ | [`permissions.md`](docs/permissions.md) | 0023, 0024, 0026 |
 | `accounts` | `Account` (BetterAuth), identités, invitations, mailer | [`permissions.md`](docs/permissions.md) | 0023 |
 | `entries-view` | `<EntriesView>`, ses neuf vues et leurs règles | [`entries-view.md`](docs/entries-view.md) | 0018 |
-| `authoring` | Sandbox MDX, registre de composants, ComponentBuilder, éditeur | [`component-builder.md`](docs/component-builder.md) | 0002, 0013 |
+| `authoring` | Sandbox MDX, pipeline du registre de composants, ComponentBuilder, éditeur | [`component-builder.md`](docs/component-builder.md) | 0002, 0013 |
 | `files` | Fichiers uploadés : stockage, redimensionnement | — | 0012 |
 | `settings` | `Settings` : drapeau d'installation, paramétrage global | [`permissions.md`](docs/permissions.md) | 0027 |
 

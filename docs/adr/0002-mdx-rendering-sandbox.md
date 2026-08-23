@@ -22,7 +22,7 @@ Les deux premiers échappaient au bridage parce que ce sont des balises, pas du 
 
 Pipeline MDX (`next-mdx-remote` + remark-gfm + mdx-annotations) avec :
 
-- **Registre de composants = répertoire `/components/wiki` + fichier de configuration.** Tout composant `.tsx` de ce répertoire est appelable depuis le contenu ; toute balise hors registre n'est pas rendue. Un descripteur co-localisé (`button.yaml`) ne joue que sur le menu « Composants » de l'éditeur, jamais sur l'autorisation de rendu.
+- **Registre de composants = les dossiers `modules/*/wiki-components/`.** Tout composant `.tsx` de l'un de ces dossiers est appelable depuis le contenu (`modules/authoring/registry/scan.ts` les balaie tous, ADR 0029) ; toute balise hors registre n'est pas rendue. Un descripteur co-localisé (`button.yaml`) ne joue que sur le menu « Composants » de l'éditeur, jamais sur l'autorisation de rendu.
 - **`import` / `export` désactivés d'office** (`useDynamicImport: false` ⇒ `removeImportsExportsPlugin` du vendeur).
 - **Expressions JS de contenu supprimées** (`{variable}`, `{func()}` dans le texte) : une page est de la donnée, pas un programme.
 - **Expressions d'attribut réduites à une liste blanche de littéraux statiques** (`lib/mdx-literal-props.ts`) : nombre, chaîne, booléen, `null`, gabarit sans trou, et tableaux/objets composés uniquement de ceux-là. Tout le reste — identifiant, appel, accès membre, gabarit à trou, spread `{...x}` — est retiré de l'arbre.

@@ -2,7 +2,7 @@
 
 Le **ComponentBuilder** est l'interface de paramétrage autogénérée d'un composant (voir [`../CONTEXT.md`](../CONTEXT.md)) : la modale qui permet d'insérer le composant dans une page et de rééditer une occurrence existante — aperçu du rendu en haut, champs en dessous. Ce document spécifie comment elle est construite, à partir de deux sources :
 
-- le **descripteur** : le fichier YAML co-localisé avec le composant (`modules/authoring/wiki-components/button.yaml` à côté de `button.tsx`), qui décrit les champs de la modale — types, visibilité conditionnelle et **valeurs par défaut** ;
+- le **descripteur** : le fichier YAML co-localisé avec le composant (`modules/pages/wiki-components/button.yaml` à côté de `button.tsx` — chaque module porte le `wiki-components/` de son concept, ADR 0029), qui décrit les champs de la modale — types, visibilité conditionnelle et **valeurs par défaut** ;
 - le **composant `.tsx`** lui-même, qui fournit l'aperçu (via le vrai pipeline de rendu). Il n'expose rien au builder : c'est un composant React ordinaire, client ou serveur (ADR 0013).
 
 Le descripteur ne joue **jamais** sur l'autorisation de rendu (ADR 0002) : sa présence ajoute le composant au menu « Composants » de l'éditeur, rien d'autre.
@@ -106,9 +106,9 @@ Deux familles de checks, **complémentaires** — la signature ne remplace qu'*u
 
 `default` est vérifié **en type et en dérive** (il pilote l'omission → il doit égaler le défaut du composant) ; `value`, pré-remplissage toujours écrit, **en type seulement** — il a le droit de différer.
 
-**Surfaçage uniforme, par `throw`** (pas de bandeau) : structurel comme signature `throw`ent un message clair, préfixé du **fichier et de la ligne** exacts — `modules/authoring/wiki-components/button.yaml:20` pointe la clé fautive (le `type:`, le `default:`…) ; un constat de signature ajoute en plus la ligne du composant (`… (modules/authoring/wiki-components/button.tsx:78)`). Le structurel tourne partout ; le signature en **dev** (chargement de l'éditeur) et au **build** (`prebuild`). En **dev**, l'overlay d'erreur Next s'affiche sur la page — le développeur voit *pourquoi*, corrige, sauve. Au **build**, le `prebuild` échoue. En **prod**, le structurel reste fail-fast, le signature est absent (`ts-morph` est une *devDependency* hors bundle ; un build vert garantit la cohérence). Le seul avertissement (`default` non vérifiable) part en `console.warn`, non bloquant. Le rendu correct, lui, reste couvert par l'aperçu live de la modale (vrai pipeline).
+**Surfaçage uniforme, par `throw`** (pas de bandeau) : structurel comme signature `throw`ent un message clair, préfixé du **fichier et de la ligne** exacts — `modules/pages/wiki-components/button.yaml:20` pointe la clé fautive (le `type:`, le `default:`…) ; un constat de signature ajoute en plus la ligne du composant (`… (modules/pages/wiki-components/button.tsx:78)`). Le structurel tourne partout ; le signature en **dev** (chargement de l'éditeur) et au **build** (`prebuild`). En **dev**, l'overlay d'erreur Next s'affiche sur la page — le développeur voit *pourquoi*, corrige, sauve. Au **build**, le `prebuild` échoue. En **prod**, le structurel reste fail-fast, le signature est absent (`ts-morph` est une *devDependency* hors bundle ; un build vert garantit la cohérence). Le seul avertissement (`default` non vérifiable) part en `console.warn`, non bloquant. Le rendu correct, lui, reste couvert par l'aperçu live de la modale (vrai pipeline).
 
-**Coût en dev, mémoïsé.** La vérification de signature (résolution de types ts-morph) coûte plusieurs secondes ; pour ne pas la payer à chaque chargement de l'éditeur, `modules/authoring/descriptors.ts` met le résultat en cache, invalidé par une empreinte mtime+taille des `.yaml`/`.tsx` de `modules/authoring/wiki-components/`. Éditer un descripteur ou un composant re-déclenche donc la vérification sans redémarrage ; seul un changement dans une constante importée d'**en dehors** du dossier passe inaperçu (redémarrer le dev server dans ce cas rare).
+**Coût en dev, mémoïsé.** La vérification de signature (résolution de types ts-morph) coûte plusieurs secondes ; pour ne pas la payer à chaque chargement de l'éditeur, `modules/authoring/descriptors.ts` met le résultat en cache, invalidé par une empreinte mtime+taille des `.yaml`/`.tsx` de **tous** les `wiki-components/` (un par module qui en possède, ADR 0029). Éditer un descripteur ou un composant re-déclenche donc la vérification sans redémarrage ; seul un changement dans une constante importée d'**en dehors** du dossier passe inaperçu (redémarrer le dev server dans ce cas rare).
 
 ### `showif` : visibilité conditionnelle
 
@@ -134,7 +134,7 @@ Une valeur littérale ambiguë (le texte `notNull`, une valeur commençant par `
 Par défaut, un builder émet la **balise JSX** de son composant (`<Button … />`) et sait la re-parser. Un descripteur peut déclarer une autre cible avec la clé `emits` ; la seule alternative est le lien markdown :
 
 ```yaml
-# modules/authoring/wiki-components/wiki-link.yaml
+# modules/pages/wiki-components/wiki-link.yaml
 emits: markdown-link      # émet [texte](cible){{ target: '…' }} au lieu de <WikiLink …/>
 ```
 
