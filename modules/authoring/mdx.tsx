@@ -123,6 +123,7 @@ async function buildRegistry(): Promise<MDXComponents> {
 const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, unknown>>> = {
   authoring: (base) => import(`../authoring/wiki-components/${base}.tsx`),
   files: (base) => import(`../files/wiki-components/${base}.tsx`),
+  forms: (base) => import(`../forms/wiki-components/${base}.tsx`),
   pages: (base) => import(`../pages/wiki-components/${base}.tsx`),
 };
 
