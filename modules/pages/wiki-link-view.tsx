@@ -8,7 +8,7 @@ import type { WikiLinkProps } from "./wiki-components/wiki-link";
 // for the same reason: hideIfNoAccess needs a server-side read of the current
 // person's rights, and this view is also rendered directly by two callers
 // that must stay free of that server-only import —
-// authoring/wiki-components/image.tsx's clickable image, and
+// files/wiki-components/image.tsx's clickable image, and
 // ui/button-view.tsx's plain navigating link ("use client", ADR 0013's icon
 // hybrid). Kept at the module's root, not ui/, so image.tsx can reach it too
 // (ADR 0029: a root file is a module's public interface). wiki-link.tsx

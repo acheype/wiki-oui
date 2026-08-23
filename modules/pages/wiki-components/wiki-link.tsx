@@ -8,7 +8,7 @@ import { WikiLinkView } from "../wiki-link-view";
 // (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13)
 // before deciding whether to render at all, then delegates every other prop
 // — target included — to wiki-link-view.tsx, kept at the module's root
-// (not ui/) so authoring/wiki-components/image.tsx can reach it too (ADR
+// (not ui/) so files/wiki-components/image.tsx can reach it too (ADR
 // 0029: a root file is a module's public interface). Same split as
 // Button/ButtonView (button.tsx), for the same reason: the check needs a
 // server-side read of the current person's rights, which the view has no
