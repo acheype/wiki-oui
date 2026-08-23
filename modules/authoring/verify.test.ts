@@ -12,7 +12,7 @@ import {
 // A coherent button-like signature to mutate per case.
 function buttonSignature(): ComponentSignature {
   return {
-    file: "modules/authoring/wiki-components/button.tsx",
+    file: "modules/pages/wiki-components/button.tsx",
     props: {
       text: { tsOptional: true, type: { kind: "string" } },
       link: { tsOptional: true, type: { kind: "string" } },
@@ -59,7 +59,7 @@ describe("checkSignature", () => {
     descriptor.properties.colour = { label: "Couleur", type: "text" };
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'modules/authoring/wiki-components/button.yaml: field "colour" is not a prop of <Button> (modules/authoring/wiki-components/button.tsx)'
+      'modules/pages/wiki-components/button.yaml: field "colour" is not a prop of <Button> (modules/pages/wiki-components/button.tsx)'
     );
   });
 
@@ -70,7 +70,7 @@ describe("checkSignature", () => {
     signature.props.link.tsOptional = false; // required in TS, no default
     const { errors } = checkSignature("Button", descriptor, signature);
     expect(errors).toContain(
-      'modules/authoring/wiki-components/button.yaml: field "link" must set "required: true" — prop "link" is required at runtime in <Button> (modules/authoring/wiki-components/button.tsx)'
+      'modules/pages/wiki-components/button.yaml: field "link" must set "required: true" — prop "link" is required at runtime in <Button> (modules/pages/wiki-components/button.tsx)'
     );
   });
 
@@ -79,7 +79,7 @@ describe("checkSignature", () => {
     descriptor.properties.newWindow.type = "text";
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'modules/authoring/wiki-components/button.yaml: field "newWindow" (type text) does not match prop "newWindow": boolean in <Button> (modules/authoring/wiki-components/button.tsx)'
+      'modules/pages/wiki-components/button.yaml: field "newWindow" (type text) does not match prop "newWindow": boolean in <Button> (modules/pages/wiki-components/button.tsx)'
     );
   });
 
@@ -90,7 +90,7 @@ describe("checkSignature", () => {
     delete descriptor.properties.color.default;
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'modules/authoring/wiki-components/button.yaml: field "color" (type text) faces the enum prop "default" | "primary" of <Button>; use type: list (modules/authoring/wiki-components/button.tsx)'
+      'modules/pages/wiki-components/button.yaml: field "color" (type text) faces the enum prop "default" | "primary" of <Button>; use type: list (modules/pages/wiki-components/button.tsx)'
     );
   });
 
@@ -99,7 +99,7 @@ describe("checkSignature", () => {
     descriptor.properties.color.options = { default: "Défaut", brand: "Marque" };
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      "modules/authoring/wiki-components/button.yaml: list field \"color\" option \"brand\" is outside <Button>'s prop union (default, primary) (modules/authoring/wiki-components/button.tsx)"
+      "modules/pages/wiki-components/button.yaml: list field \"color\" option \"brand\" is outside <Button>'s prop union (default, primary) (modules/pages/wiki-components/button.tsx)"
     );
   });
 
@@ -108,7 +108,7 @@ describe("checkSignature", () => {
     descriptor.properties.color.default = "brand";
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      "modules/authoring/wiki-components/button.yaml: list field \"color\" default \"brand\" is outside <Button>'s prop union (default, primary) (modules/authoring/wiki-components/button.tsx)"
+      "modules/pages/wiki-components/button.yaml: list field \"color\" default \"brand\" is outside <Button>'s prop union (default, primary) (modules/pages/wiki-components/button.tsx)"
     );
   });
 
@@ -117,7 +117,7 @@ describe("checkSignature", () => {
     descriptor.properties.newWindow.default = true;
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      "modules/authoring/wiki-components/button.yaml: field \"newWindow\" default true differs from <Button>'s default false (modules/authoring/wiki-components/button.tsx)"
+      "modules/pages/wiki-components/button.yaml: field \"newWindow\" default true differs from <Button>'s default false (modules/pages/wiki-components/button.tsx)"
     );
   });
 
@@ -127,7 +127,7 @@ describe("checkSignature", () => {
     delete signature.props.newWindow.destructuringDefault;
     const { errors } = checkSignature("Button", descriptor, signature);
     expect(errors).toContain(
-      "modules/authoring/wiki-components/button.yaml: field \"newWindow\" default false differs from <Button>'s default undefined (modules/authoring/wiki-components/button.tsx)"
+      "modules/pages/wiki-components/button.yaml: field \"newWindow\" default false differs from <Button>'s default undefined (modules/pages/wiki-components/button.tsx)"
     );
   });
 
@@ -136,7 +136,7 @@ describe("checkSignature", () => {
     descriptor.properties.text.value = 42;
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'modules/authoring/wiki-components/button.yaml: field "text" value 42 does not fit prop "text": string in <Button> (modules/authoring/wiki-components/button.tsx)'
+      'modules/pages/wiki-components/button.yaml: field "text" value 42 does not fit prop "text": string in <Button> (modules/pages/wiki-components/button.tsx)'
     );
   });
 
@@ -147,7 +147,7 @@ describe("checkSignature", () => {
     const { errors, warnings } = checkSignature("Button", descriptor, signature);
     expect(errors).toEqual([]);
     expect(warnings).toContain(
-      "modules/authoring/wiki-components/button.yaml: field \"color\" default is computed at runtime in <Button> and cannot be verified (modules/authoring/wiki-components/button.tsx)"
+      "modules/pages/wiki-components/button.yaml: field \"color\" default is computed at runtime in <Button> and cannot be verified (modules/pages/wiki-components/button.tsx)"
     );
   });
 
@@ -160,7 +160,7 @@ describe("checkSignature", () => {
       path.join(".") === "properties.newWindow.default" ? 44 : undefined;
     const { errors } = checkSignature("Button", descriptor, signature, lineOf);
     expect(errors).toContain(
-      "modules/authoring/wiki-components/button.yaml:44: field \"newWindow\" default true differs from <Button>'s default false (modules/authoring/wiki-components/button.tsx:81)"
+      "modules/pages/wiki-components/button.yaml:44: field \"newWindow\" default true differs from <Button>'s default false (modules/pages/wiki-components/button.tsx:81)"
     );
   });
 
@@ -250,7 +250,7 @@ describe("verifyDescriptorSignatures (shipped components)", () => {
     button.descriptor.properties.color.default = "success";
     try {
       await expect(verifyDescriptorSignatures(specs)).rejects.toThrow(
-        /modules\/authoring\/wiki-components\/button\.yaml:\d+: field "color" default "success" differs from <Button>'s default "primary" \(modules\/authoring\/wiki-components\/button\.tsx:\d+\)/
+        /modules\/pages\/wiki-components\/button\.yaml:\d+: field "color" default "success" differs from <Button>'s default "primary" \(modules\/pages\/wiki-components\/button\.tsx:\d+\)/
       );
     } finally {
       button.descriptor.properties.color.default = original;

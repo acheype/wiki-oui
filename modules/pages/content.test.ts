@@ -126,7 +126,7 @@ describe("isSlugReadable", () => {
   });
 });
 
-// The one door modules/authoring/wiki-components/{wiki-link,button,iframe}.tsx all ask through
+// The one door modules/pages/wiki-components/{wiki-link,button,iframe}.tsx all ask through
 // before deciding whether to render at all — a link/button/iframe vanishes
 // only when every one of these holds.
 describe("hiddenIfNoAccess", () => {

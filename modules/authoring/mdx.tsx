@@ -13,7 +13,7 @@ import {
 } from "@/modules/authoring/host-elements";
 import { allowLiteralPropsOnly } from "@/modules/authoring/literal-props";
 import { listWikiComponentFiles, wikiComponentBaseName } from "./registry/scan";
-import { WikiLink } from "./wiki-components/wiki-link";
+import { WikiLink } from "@/modules/pages/wiki-components/wiki-link";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote appends its
 // own plugins AFTER ours, so mdx-annotations consumes its {{ … }} expressions
@@ -119,10 +119,10 @@ async function buildRegistry(): Promise<MDXComponents> {
 // about it. Worse, webpack (Next build) needs the target folder to exist at
 // all — `Can't resolve '../permissions/wiki-components/'` — so a module is
 // only listed here once its wiki-components/ folder is real. Grows one entry
-// per step of issue #19 as components move in (steps 3-6, 7-8); today only
-// authoring's is populated.
+// per step of issue #19 as components move in (steps 3-6, 7-8).
 const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, unknown>>> = {
   authoring: (base) => import(`../authoring/wiki-components/${base}.tsx`),
+  pages: (base) => import(`../pages/wiki-components/${base}.tsx`),
 };
 
 const SYSTEM_PAGES_PREFIX = "system-pages/";

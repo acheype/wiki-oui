@@ -17,7 +17,7 @@ import { isWikiHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 import { ModalLink } from "./modal-link";
-import { WikiLinkView } from "./wiki-link-view";
+import { WikiLinkView } from "../wiki-link-view";
 import type { ButtonColor, ButtonProps } from "../wiki-components/button";
 
 // One entry per palette color, enforced by the compiler: either a shadcn

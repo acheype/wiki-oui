@@ -11,9 +11,10 @@ import { Menu } from "./wiki-components/menu";
 // hidden item leaves is built by hand here rather than through renderMdx —
 // see mdx-menu.test.tsx for the plumbing that produces it for real.
 //
-// Kept out of wiki-components/ on purpose: mdx.tsx's registry loader treats
-// every .tsx file there (including a *.test.tsx) as a component to serve, so
-// a test file sitting in that folder would itself become an unresolvable tag.
+// Kept out of wiki-components/ on purpose: mdx.tsx's registry loader (via
+// registry/scan.ts) treats every .tsx file in a module's wiki-components/
+// (including a *.test.tsx) as a component to serve, so a test file sitting
+// in that folder would itself become an unresolvable tag.
 
 // A component-typed link, not a bare `<a>`: isWikiLinkElement (menu.tsx)
 // only recognizes a component element by shape, the same way WikiLink's own

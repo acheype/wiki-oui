@@ -1,7 +1,7 @@
 import { PassThrough } from "node:stream";
 import { renderToPipeableStream } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { renderMdx } from "./mdx";
+import { renderMdx } from "@/modules/authoring/mdx";
 
 // The wiring behind a hideIfNoAccess link vanishing from a page's actual MDX
 // (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13):

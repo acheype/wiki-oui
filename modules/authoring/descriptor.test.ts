@@ -39,22 +39,22 @@ describe("validateDescriptor", () => {
   it("accepts an extra field with no default: structural validation ignores props", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.colour = { label: "Couleur", type: "text" };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).not.toThrow();
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).not.toThrow();
   });
 
   // The loader edge (ADR 0015): raw parsed YAML goes in, the typed
   // descriptor comes out — no cast.
   it("returns the typed descriptor parsed from raw unknown data", () => {
     const raw: unknown = JSON.parse(JSON.stringify(buttonDescriptor()));
-    expect(validateDescriptor("modules/authoring/wiki-components/button.yaml", raw)).toEqual(buttonDescriptor());
+    expect(validateDescriptor("modules/pages/wiki-components/button.yaml", raw)).toEqual(buttonDescriptor());
   });
 
   it("rejects a descriptor without label or properties", () => {
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", { properties: {} })).toThrow(
-      'modules/authoring/wiki-components/button.yaml: a descriptor needs at least "label" and "properties"'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", { properties: {} })).toThrow(
+      'modules/pages/wiki-components/button.yaml: a descriptor needs at least "label" and "properties"'
     );
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", { label: "Bouton" })).toThrow(
-      'modules/authoring/wiki-components/button.yaml: a descriptor needs at least "label" and "properties"'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", { label: "Bouton" })).toThrow(
+      'modules/pages/wiki-components/button.yaml: a descriptor needs at least "label" and "properties"'
     );
   });
 
@@ -65,24 +65,24 @@ describe("validateDescriptor", () => {
     };
     const lineOf = (path: (string | number)[]) =>
       path.join(".") === "properties.text" ? 6 : undefined;
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", raw, lineOf)).toThrow(
-      /^modules\/authoring\/wiki-components\/button\.yaml:6: /
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", raw, lineOf)).toThrow(
+      /^modules\/pages\/wiki-components\/button\.yaml:6: /
     );
   });
 
   it("rejects a list field whose default is not one of its options", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.default = "brand";
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).toThrow(
-      'modules/authoring/wiki-components/button.yaml: list field "color" needs a default among its options (default, primary), got "brand"'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).toThrow(
+      'modules/pages/wiki-components/button.yaml: list field "color" needs a default among its options (default, primary), got "brand"'
     );
   });
 
   it("rejects a list field without a default (strict policy)", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.default = undefined;
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).toThrow(
-      'modules/authoring/wiki-components/button.yaml: list field "color" needs a default among its options (default, primary), got undefined'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).toThrow(
+      'modules/pages/wiki-components/button.yaml: list field "color" needs a default among its options (default, primary), got undefined'
     );
   });
 
@@ -90,8 +90,8 @@ describe("validateDescriptor", () => {
     const descriptor = buttonDescriptor();
     // @ts-expect-error -- a YAML typo lands here untyped
     descriptor.properties.text.type = "chekbox";
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).toThrow(
-      'modules/authoring/wiki-components/button.yaml: field "text" has unknown type "chekbox"'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).toThrow(
+      'modules/pages/wiki-components/button.yaml: field "text" has unknown type "chekbox"'
     );
   });
 
@@ -99,24 +99,24 @@ describe("validateDescriptor", () => {
     const descriptor = buttonDescriptor();
     // @ts-expect-error -- a YAML typo lands here untyped
     descriptor.emits = "markdown";
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).toThrow(
-      'modules/authoring/wiki-components/button.yaml: unknown emits target "markdown" (the only alternative is markdown-link)'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).toThrow(
+      'modules/pages/wiki-components/button.yaml: unknown emits target "markdown" (the only alternative is markdown-link)'
     );
   });
 
   it("rejects an invalid showif regex at load time", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.showif = { text: "/(/" };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).toThrow(
-      'modules/authoring/wiki-components/button.yaml: showif of "color" holds an invalid regex for "text": /(/'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).toThrow(
+      'modules/pages/wiki-components/button.yaml: showif of "color" holds an invalid regex for "text": /(/'
     );
   });
 
   it("rejects a showif pointing at an unknown field", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.color.showif = { size: "notNull" };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).toThrow(
-      'modules/authoring/wiki-components/button.yaml: showif of "color" points at unknown field "size"'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).toThrow(
+      'modules/pages/wiki-components/button.yaml: showif of "color" points at unknown field "size"'
     );
   });
 
@@ -128,15 +128,15 @@ describe("validateDescriptor", () => {
       // @ts-expect-error -- a YAML typo lands here untyped
       family: "images",
     };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).toThrow(
-      'modules/authoring/wiki-components/button.yaml: file-list field "text" has unknown family "images" (image, pdf, other)'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).toThrow(
+      'modules/pages/wiki-components/button.yaml: file-list field "text" has unknown family "images" (image, pdf, other)'
     );
   });
 
   it("accepts a divider without a default: it emits no prop", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.appearance = { label: "Apparence", type: "divider" };
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor)).not.toThrow();
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor)).not.toThrow();
   });
 
   it("points the message at the offending line when a lookup is given", () => {
@@ -147,8 +147,8 @@ describe("validateDescriptor", () => {
     // of `color` sits on line 20.
     const lineOf = (path: (string | number)[]) =>
       path.join(".") === "properties.color.type" ? 20 : undefined;
-    expect(() => validateDescriptor("modules/authoring/wiki-components/button.yaml", descriptor, lineOf)).toThrow(
-      'modules/authoring/wiki-components/button.yaml:20: field "color" has unknown type "lst"'
+    expect(() => validateDescriptor("modules/pages/wiki-components/button.yaml", descriptor, lineOf)).toThrow(
+      'modules/pages/wiki-components/button.yaml:20: field "color" has unknown type "lst"'
     );
   });
 });
