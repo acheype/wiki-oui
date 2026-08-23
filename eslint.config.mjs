@@ -101,6 +101,11 @@ const moduleSeamRule = {
       ExportAllDeclaration(node) {
         if (typeof node.source?.value === "string") check(node, node.source.value);
       },
+      ImportExpression(node) {
+        if (node.source?.type === "Literal" && typeof node.source.value === "string") {
+          check(node, node.source.value);
+        }
+      },
     };
   },
 };
