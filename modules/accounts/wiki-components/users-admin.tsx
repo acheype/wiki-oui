@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { AdminOnly } from "@/modules/permissions/admin-only";
-import { UsersAdmin as UsersAdminScreen } from "../ui/users-admin";
+import { UsersAdmin as UsersAdminView } from "../ui/users-admin";
 
 // Built-in component rendered by the `gerer-utilisateurs` special page
 // (docs/permissions.md § Les pages système). This system page reads the URL via
@@ -12,7 +12,7 @@ export function UsersAdmin() {
     <div className="not-prose">
       <AdminOnly>
         <Suspense>
-          <UsersAdminScreen />
+          <UsersAdminView />
         </Suspense>
       </AdminOnly>
     </div>

@@ -25,13 +25,13 @@ export function Invitation() {
   return (
     <div className="not-prose mx-auto w-full max-w-sm py-6">
       <Suspense>
-        <InvitationScreen />
+        <InvitationView />
       </Suspense>
     </div>
   );
 }
 
-function InvitationScreen() {
+function InvitationView() {
   const token = useSearchParams().get(INVITATION_TOKEN_PARAM) ?? "";
   // undefined while the link is being read, null once it proved worthless.
   const [target, setTarget] = useState<AccountLinkTarget | null | undefined>();

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { AdminOnly } from "@/modules/permissions/admin-only";
-import { GroupsAdmin as GroupsAdminScreen } from "../ui/groups-admin";
+import { GroupsAdmin as GroupsAdminView } from "../ui/groups-admin";
 
 // Built-in component rendered by the `gerer-utilisateurs` special page
 // (docs/permissions.md § Les pages système), below <UsersAdmin />. Creating and
@@ -11,7 +11,7 @@ export function GroupsAdmin() {
     <div className="not-prose mt-8">
       <AdminOnly>
         <Suspense>
-          <GroupsAdminScreen />
+          <GroupsAdminView />
         </Suspense>
       </AdminOnly>
     </div>

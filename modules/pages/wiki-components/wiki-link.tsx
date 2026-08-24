@@ -4,7 +4,8 @@ import { WikiLinkView } from "../wiki-link-view";
 // The builder fields (text, link, target, hideIfNoAccess) map to the
 // markdown link it emits (ADR 0006), not directly to these render props; its
 // defaults live in wiki-link.yaml (ADR 0013). This is the `a` the MDX
-// pipeline actually renders (lib/mdx.tsx): it resolves hideIfNoAccess
+// pipeline actually renders (modules/authoring/mdx.tsx, which takes it from
+// the registry rather than importing it): it resolves hideIfNoAccess
 // (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13)
 // before deciding whether to render at all, then delegates every other prop
 // — target included — to wiki-link-view.tsx, kept at the module's root

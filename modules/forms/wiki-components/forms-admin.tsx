@@ -45,22 +45,22 @@ export function FormsAdmin() {
   return (
     <div className="not-prose">
       <Suspense>
-        <FormsAdminScreen />
+        <FormsAdminView />
       </Suspense>
     </div>
   );
 }
 
-function FormsAdminScreen() {
+function FormsAdminView() {
   const params = useSearchParams();
   const router = useRouter();
 
   if (params.has("nouveau")) {
-    return <BuilderScreen editSlug={null} />;
+    return <BuilderView editSlug={null} />;
   }
   const editSlug = params.get("id");
   if (editSlug !== null) {
-    return <BuilderScreen editSlug={editSlug} />;
+    return <BuilderView editSlug={editSlug} />;
   }
   return <FormsList onOpen={(url) => router.push(url)} />;
 }
@@ -217,7 +217,7 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
   );
 }
 
-function BuilderScreen({ editSlug }: { editSlug: string | null }) {
+function BuilderView({ editSlug }: { editSlug: string | null }) {
   const router = useRouter();
   const [initial, setInitial] = useState<FormDetail | null>(null);
   const [forms, setForms] = useState<{ slug: string; name: string }[]>([]);
@@ -293,7 +293,7 @@ function BuilderScreen({ editSlug }: { editSlug: string | null }) {
         directory={directory}
         onSaved={() => router.push("/formulaires")}
         // replace, not push: the old ?id= no longer answers, going "back" to
-        // it would only show « introuvable ». BuilderScreen refetches but the
+        // it would only show « introuvable ». BuilderView refetches but the
         // builder stays mounted, so unsaved canvas edits survive.
         onRenamed={(slug) => router.replace(`/formulaires?id=${slug}`)}
       />

@@ -27,18 +27,18 @@ export function EntriesAdmin() {
   return (
     <div className="not-prose">
       <Suspense>
-        <EntriesAdminScreen />
+        <EntriesAdminView />
       </Suspense>
     </div>
   );
 }
 
-function EntriesAdminScreen() {
+function EntriesAdminView() {
   const params = useSearchParams();
   const formSlug = params.get("formulaire") ?? undefined;
 
   if (params.has("nouvelle") && formSlug) {
-    return <NewEntryScreen formSlug={formSlug} />;
+    return <NewEntryView formSlug={formSlug} />;
   }
   return <EntriesList formSlug={formSlug} />;
 }
@@ -114,7 +114,7 @@ function EntriesList({ formSlug }: { formSlug?: string }) {
   );
 }
 
-function NewEntryScreen({ formSlug }: { formSlug: string }) {
+function NewEntryView({ formSlug }: { formSlug: string }) {
   const router = useRouter();
   const [form, setForm] = useState<EntryFormData | null>(null);
   const [notFound, setNotFound] = useState(false);

@@ -1,4 +1,4 @@
-import { PagesAdmin as PagesAdminScreen } from "../ui/pages-admin";
+import { PagesAdmin as PagesAdminView } from "../ui/pages-admin";
 import { AdminOnly } from "@/modules/permissions/admin-only";
 
 // Built-in component rendered by the `gerer-pages` special page
@@ -10,7 +10,7 @@ export function PagesAdmin() {
   return (
     <div className="not-prose">
       <AdminOnly>
-        <PagesAdminScreen />
+        <PagesAdminView />
       </AdminOnly>
     </div>
   );
