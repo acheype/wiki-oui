@@ -1,3 +1,4 @@
+import { pascalCase } from "../descriptor";
 import {
   WIKI_COMPONENT_MODULES,
   type WikiComponentModule,
@@ -10,6 +11,40 @@ export type { WikiComponentModule } from "./sources";
 export interface WikiComponentFile {
   module: WikiComponentModule;
   base: string;
+}
+
+/**
+ * Where a wiki component sits, spelled the way every message spells it. The
+ * literal paths inside sources.ts cannot go through here — build-time tracing
+ * only understands them written out at the fs call site — but nothing a
+ * human reads has that excuse.
+ */
+export function wikiComponentPath(
+  module: WikiComponentModule,
+  base: string,
+  extension: ".tsx" | ".yaml"
+): string {
+  return `modules/${module}/wiki-components/${base}${extension}`;
+}
+
+/**
+ * The tag name two modules both claim, worded once. A tag resolves to exactly
+ * one component (ADR 0002), and both guards say so identically: the prebuild
+ * gate (scripts/verify-descriptors.ts) catches it before a build ships, the
+ * registry build (mdx.tsx) before a page renders in dev, where no cache hides
+ * it. Null when every name is claimed once.
+ */
+export function tagCollisionMessage(files: WikiComponentFile[]): string | null {
+  const claims = new Map<string, WikiComponentModule>();
+  for (const { module, base } of files) {
+    const name = pascalCase(base);
+    const owner = claims.get(name);
+    if (owner && owner !== module) {
+      return `<${name}> is claimed by two modules: ${owner} and ${module} — rename one of the files`;
+    }
+    claims.set(name, module);
+  }
+  return null;
 }
 
 const MODULES = Object.entries(WIKI_COMPONENT_MODULES) as [

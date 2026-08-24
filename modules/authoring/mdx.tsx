@@ -12,8 +12,12 @@ import {
   normalizePastedHtmlAttributes,
 } from "@/modules/authoring/host-elements";
 import { allowLiteralPropsOnly } from "@/modules/authoring/literal-props";
-import { listWikiComponentFiles, loadWikiComponentModule } from "./registry/scan";
-import { WikiLink } from "@/modules/pages/wiki-components/wiki-link";
+import {
+  listWikiComponentFiles,
+  loadWikiComponentModule,
+  tagCollisionMessage,
+  wikiComponentPath,
+} from "./registry/scan";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote appends its
 // own plugins AFTER ours, so mdx-annotations consumes its {{ … }} expressions
@@ -33,12 +37,23 @@ import { WikiLink } from "@/modules/pages/wiki-components/wiki-link";
 export async function renderMdx(source: string): Promise<React.ReactNode> {
   try {
     const registry = await loadWikiComponents();
+    // Every markdown link renders as <WikiLink> (ADR 0006), taken from the
+    // registry rather than imported: the registry is this file's one way into
+    // a module's wiki-components/, and the `a` mapping is not an exception to
+    // that. Absent, it would silently fall back to a bare <a>, losing the
+    // hideIfNoAccess resolution — so say so instead.
+    const wikiLink = registry.WikiLink;
+    if (!wikiLink) {
+      throw new Error(
+        "wiki-link.tsx is missing from the registry — every markdown link renders through <WikiLink>",
+      );
+    }
     const { content } = await compileMDX({
       source,
       components: {
         ...unknownComponentsMuted(source),
         ...registry,
-        a: WikiLink,
+        a: wikiLink,
       },
       options: {
         blockJS: false,
@@ -94,17 +109,18 @@ export async function listWikiComponentNames(): Promise<string[]> {
 }
 
 async function buildRegistry(): Promise<MDXComponents> {
+  const files = await listWikiComponentFiles(".tsx");
+  const collision = tagCollisionMessage(files);
+  if (collision) throw new Error(collision);
+
   const registry: MDXComponents = {};
-  for (const { module, base } of await listWikiComponentFiles(".tsx")) {
+  for (const { module, base } of files) {
     const name = pascalCase(base);
     const mod = await loadWikiComponentModule(module, base);
     if (typeof mod[name] !== "function") {
       throw new Error(
-        `modules/${module}/wiki-components/${base}.tsx must export a component named ${name}`,
+        `${wikiComponentPath(module, base, ".tsx")} must export a component named ${name}`,
       );
-    }
-    if (registry[name]) {
-      throw new Error(`<${name}> is claimed by two modules — rename one of the files`);
     }
     registry[name] = mod[name] as React.ComponentType;
   }

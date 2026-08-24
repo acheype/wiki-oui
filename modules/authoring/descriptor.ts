@@ -295,7 +295,10 @@ function valueAt(raw: unknown, nodePath: readonly PropertyKey[]): unknown {
 // loader with an explicit message. The YAML ↔ component match is a separate
 // pass (verify.ts, dev + build only).
 export function validateDescriptor(
-  source: string,
+  /** The descriptor's own path, e.g. "modules/pages/wiki-components/button.yaml".
+   * Not the MDX `source` every other function here takes — this one names a
+   * file, and only ever to prefix an error message with it. */
+  yamlPath: string,
   raw: unknown,
   lineOf?: LineLookup
 ): ComponentDescriptor {
@@ -305,9 +308,9 @@ export function validateDescriptor(
   const at = (...candidates: (string | number)[][]): string => {
     for (const candidate of candidates) {
       const line = lineOf?.(candidate);
-      if (line !== undefined) return `${source}:${line}`;
+      if (line !== undefined) return `${yamlPath}:${line}`;
     }
-    return source;
+    return yamlPath;
   };
 
   const result = componentDescriptorSchema.safeParse(raw);

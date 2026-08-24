@@ -10,6 +10,7 @@ import {
   type WikiComponentModule,
   listWikiComponentFiles,
   readWikiComponentFile,
+  wikiComponentPath,
 } from "./registry/scan";
 
 // Server-side loader of the ComponentBuilder descriptors: every .yaml file
@@ -47,7 +48,7 @@ export function loadComponentBuilders(): Promise<ComponentBuilderSpec[]> {
 // server restarts. A rejected promise stays cached on purpose: same sources,
 // same error on the overlay, and fixing the file invalidates the stamp.
 async function loadWithFileInvalidation(): Promise<ComponentBuilderSpec[]> {
-  const stamp = await componentsDirStamp();
+  const stamp = await wikiComponentsStamp();
   if (!cache || stamp !== devStamp) {
     devStamp = stamp;
     cache = buildSpecs();
@@ -55,13 +56,12 @@ async function loadWithFileInvalidation(): Promise<ComponentBuilderSpec[]> {
   return cache;
 }
 
-// Stamps every module's wiki-components/ (not just one), so editing a
-// descriptor or component in any module invalidates the dev cache — a
-// single-folder stamp would silently miss the others. The stamp is the file
-// contents themselves rather than a mtime/size pair: same cost at this size
-// (a few dozen small files, dev only), and it never mistakes a `touch` for an
-// edit nor an edit that keeps the byte count for no change at all.
-async function componentsDirStamp(): Promise<string> {
+// Stamps the wiki components of every module, not one folder's, so editing a
+// descriptor or component anywhere invalidates the dev cache. The stamp is the
+// file contents themselves rather than a mtime/size pair: same cost at this
+// size (a few dozen small files, dev only), and it never mistakes a `touch`
+// for an edit nor an edit that keeps the byte count for no change at all.
+async function wikiComponentsStamp(): Promise<string> {
   const yamlFiles = await listWikiComponentFiles(".yaml");
   const tsxFiles = await listWikiComponentFiles(".tsx");
   const entries = [
@@ -100,7 +100,11 @@ async function buildSpec(
 ): Promise<ComponentBuilderSpec> {
   const { raw, lineOf } = await readDescriptorSource(module, base);
   // Meta-schema parse (ADR 0015): raw unknown in, typed descriptor out.
-  const descriptor = validateDescriptor(`modules/${module}/wiki-components/${base}.yaml`, raw, lineOf);
+  const descriptor = validateDescriptor(
+    wikiComponentPath(module, base, ".yaml"),
+    raw,
+    lineOf
+  );
   return {
     module,
     base,

@@ -17,6 +17,7 @@ import {
 } from "./descriptor";
 import type { ComponentBuilderSpec } from "./descriptors";
 import { readDescriptorSource } from "./descriptor-source";
+import { wikiComponentPath } from "./registry/scan";
 
 // Signature verification (ADR 0013): does each YAML descriptor still match
 // its component? We parse the component *source* (never import it, so a
@@ -63,7 +64,7 @@ export interface PropSignature {
 }
 
 export interface ComponentSignature {
-  /** Component source path, e.g. "modules/authoring/wiki-components/button.tsx" (for messages). */
+  /** Component source path, e.g. "modules/pages/wiki-components/button.tsx" (for messages). */
   file: string;
   props: Record<string, PropSignature>;
 }
@@ -526,7 +527,7 @@ export async function verifyDescriptorSignatures(
   const errors: string[] = [];
   const warnings: string[] = [];
   for (const spec of tagEmitters) {
-    const relativeFile = `modules/${spec.module}/wiki-components/${spec.base}.tsx`;
+    const relativeFile = wikiComponentPath(spec.module, spec.base, ".tsx");
     const sourceFile = project.addSourceFileAtPath(
       path.join(process.cwd(), relativeFile)
     );
