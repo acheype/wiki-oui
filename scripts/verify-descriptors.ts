@@ -1,21 +1,13 @@
 // Build gate (ADR 0013): fails `pnpm build` when a ComponentBuilder descriptor
-// drifts from its component. Runs in prod-like env, so the loader's dev-only
-// signature check is off here and we invoke it explicitly.
+// drifts from its component, or when two modules claim the same tag (ADR 0002).
+// Runs in prod-like env, so the loader's dev-only checks are off here and we
+// invoke them explicitly. Both checks live in modules/authoring/verify.ts —
+// this file only orders them and reports.
 import { loadComponentBuilders } from "../modules/authoring/descriptors";
 import {
-  listWikiComponentFiles,
-  tagCollisionMessage,
-} from "../modules/authoring/registry/scan";
-import { verifyDescriptorSignatures } from "../modules/authoring/verify";
-
-// A tag name can only ever resolve to one module's component. mdx.tsx's
-// buildRegistry raises the very same message at first render in dev, where
-// there is no cache to hide behind; this is that check's build-time twin,
-// catching a collision before it ever reaches a page.
-async function verifyNoTagCollisions(): Promise<void> {
-  const collision = tagCollisionMessage(await listWikiComponentFiles(".tsx"));
-  if (collision) throw new Error(collision);
-}
+  verifyDescriptorSignatures,
+  verifyNoTagCollisions,
+} from "../modules/authoring/verify";
 
 async function main() {
   await verifyNoTagCollisions();

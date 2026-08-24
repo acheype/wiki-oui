@@ -49,10 +49,27 @@ function moduleOfFile(filename) {
   return match ? match[1] : null;
 }
 
-// "@/modules/<name>/<rest…>" -> { module, first segment, root or not }; null
-// for anything else (a bare specifier, a relative import, another alias).
-function moduleImportTarget(source) {
-  const match = /^@\/modules\/([^/]+)\/(.+)$/.exec(source);
+// A specifier -> { module, first segment, root or not }; null when it lands
+// outside modules/ (a package, another alias). Both spellings the repo uses
+// resolve here: the "@/modules/…" alias, and a relative path resolved against
+// the importing file. Relative used to be skipped, which made the seam blind
+// to exactly the file that crosses it most — registry/sources.ts reaches every
+// module's wiki-components/ through `../../<module>/wiki-components/…`.
+// `source` may be a template literal's static prefix, hence the trailing
+// slash kept through path.join, which would otherwise drop it and make
+// "…/wiki-components/" read as a root file named "wiki-components".
+function moduleImportTarget(source, filename) {
+  let relative;
+  if (source.startsWith("@/")) {
+    relative = source.slice(2);
+  } else if (source.startsWith(".")) {
+    const dir = path.dirname(path.relative(process.cwd(), filename));
+    const joined = path.join(dir, source).split(path.sep).join("/");
+    relative = source.endsWith("/") ? `${joined}/` : joined;
+  } else {
+    return null; // a bare specifier: a package, not our code
+  }
+  const match = /^modules\/([^/]+)\/(.+)$/.exec(relative);
   if (!match) return null;
   const [, targetModule, rest] = match;
   const segments = rest.split("/");
@@ -77,9 +94,9 @@ const moduleSeamRule = {
   },
   create(context) {
     function check(node, source) {
-      const target = moduleImportTarget(source);
-      if (!target) return;
       const filename = context.filename;
+      const target = moduleImportTarget(source, filename);
+      if (!target) return;
       if (moduleOfFile(filename) === target.module) return; // inside the module: no seam here
       if (target.isRoot) return; // a root file: this is a module's public interface
       if (target.first === "ui") {
@@ -87,11 +104,13 @@ const moduleSeamRule = {
         if (fromApp) return; // the sole exemption: app/ composes a module's ui/
       }
       const relative = path.relative(process.cwd(), filename).split(path.sep).join("/");
-      // The registry loader reaches every module's wiki-components/ (ADR 0002):
-      // it names no module, it loads whatever the folders hold — a plugin loader,
-      // not a dependency. Listed by file so a second reader shows in the diff,
-      // the way ADR 0025's access-layer list works.
-      const REGISTRY_LOADERS = ["modules/authoring/mdx.tsx"];
+      // The registry's source table (ADR 0002) reaches into every module's
+      // wiki-components/. It does name those modules — it is the table of them
+      // — but it depends on none: it imports no symbol, only whatever component
+      // the folder happens to hold. That is the registry itself, not a module
+      // leaning on another's internals. Listed by file so a second reader shows
+      // in the diff, the way ADR 0025's access-layer list works.
+      const REGISTRY_LOADERS = ["modules/authoring/registry/sources.ts"];
       if (target.first === "wiki-components" && REGISTRY_LOADERS.includes(relative)) return;
       context.report({
         node,
@@ -109,6 +128,16 @@ const moduleSeamRule = {
         if (typeof node.source?.value === "string") check(node, node.source.value);
       },
       ImportExpression(node) {
+        // A template literal is how a loader spells a path it computes
+        // (`../../pages/wiki-components/${base}.tsx`). Its first quasi is the
+        // static prefix, which already names the module and the sub-folder —
+        // everything the seam judges. Reading only Literal here left every
+        // such import unseen.
+        if (node.source?.type === "TemplateLiteral") {
+          const prefix = node.source.quasis[0]?.value?.cooked;
+          if (typeof prefix === "string") check(node, prefix);
+          return;
+        }
         if (node.source?.type === "Literal" && typeof node.source.value === "string") {
           check(node, node.source.value);
         }

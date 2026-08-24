@@ -1,3 +1,4 @@
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 import {
   Node,
@@ -17,7 +18,12 @@ import {
 } from "./descriptor";
 import type { ComponentBuilderSpec } from "./descriptors";
 import { readDescriptorSource } from "./descriptor-source";
-import { wikiComponentPath } from "./registry/scan";
+import {
+  listWikiComponentFiles,
+  tagCollisionMessage,
+  wikiComponentPath,
+} from "./registry/scan";
+import { WIKI_COMPONENT_MODULES } from "./registry/sources";
 
 // Signature verification (ADR 0013): does each YAML descriptor still match
 // its component? We parse the component *source* (never import it, so a
@@ -507,6 +513,47 @@ function resolveLiteral(node: Node): DestructuringDefault {
 }
 
 // --- orchestration ----------------------------------------------------------
+
+// Refuses two modules claiming the same tag: a tag resolves to exactly one
+// component (ADR 0002). mdx.tsx's buildRegistry raises the identical message
+// at first render in dev, where no cache hides it; this is that check's
+// build-time twin, run by the prebuild gate before a build can ship.
+//
+// It lives here rather than in the gate script so the seam stays honest:
+// registry/scan.ts is private to this module (ADR 0029), and scripts/ is not
+// in it. The gate already imports this file for its sibling check.
+export async function verifyNoTagCollisions(): Promise<void> {
+  await verifyEveryWikiComponentsFolderIsListed();
+  const collision = tagCollisionMessage(await listWikiComponentFiles(".tsx"));
+  if (collision) throw new Error(collision);
+}
+
+// A wiki-components/ folder in a module the source table does not list is
+// scanned by nobody: its components never register, and the collision check
+// above never sees them either — the tag simply renders nothing, in silence.
+// The table is the whitelist (ADR 0002) and stays hand-written for build-trace
+// reasons (ADR 0029), so this is the one thing that can go wrong with it, and
+// it says so out loud at prebuild.
+async function verifyEveryWikiComponentsFolderIsListed(): Promise<void> {
+  const modulesDir = path.join(process.cwd(), "modules");
+  const listed = new Set<string>(Object.keys(WIKI_COMPONENT_MODULES));
+  const unlisted: string[] = [];
+  for (const entry of await readdir(modulesDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || listed.has(entry.name)) continue;
+    try {
+      await readdir(path.join(modulesDir, entry.name, "wiki-components"));
+      unlisted.push(entry.name);
+    } catch {
+      // No wiki-components/ here, which is what most modules look like.
+    }
+  }
+  if (unlisted.length > 0) {
+    throw new Error(
+      `${unlisted.join(", ")}: has a wiki-components/ folder but is missing from ` +
+        `WIKI_COMPONENT_MODULES (modules/authoring/registry/sources.ts) — its components would never render`
+    );
+  }
+}
 
 // Verifies every tag emitter (markdown-link emitters have structural checks
 // only — ADR 0013). Throws with all inconsistencies collected; warns (non
