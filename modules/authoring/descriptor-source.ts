@@ -1,6 +1,6 @@
 import { LineCounter, isMap, isScalar, parseDocument } from "yaml";
 import type { LineLookup } from "./descriptor";
-import { readWikiComponentFile } from "./registry/scan";
+import { type WikiComponentModule, readWikiComponentFile } from "./registry/scan";
 
 // Reads a co-located descriptor YAML *with source positions* (ADR 0013): the
 // raw parsed data for the meta-schema (ADR 0015 — typing happens at
@@ -14,7 +14,7 @@ export interface DescriptorSource {
 }
 
 export async function readDescriptorSource(
-  module: string,
+  module: WikiComponentModule,
   base: string
 ): Promise<DescriptorSource> {
   const text = await readWikiComponentFile(module, `${base}.yaml`);

@@ -12,7 +12,7 @@ import {
   normalizePastedHtmlAttributes,
 } from "@/modules/authoring/host-elements";
 import { allowLiteralPropsOnly } from "@/modules/authoring/literal-props";
-import { listWikiComponentFiles } from "./registry/scan";
+import { listWikiComponentFiles, loadWikiComponentModule } from "./registry/scan";
 import { WikiLink } from "@/modules/pages/wiki-components/wiki-link";
 
 // Renders wiki MDX inside the sandbox (ADR 0002). next-mdx-remote appends its
@@ -109,38 +109,6 @@ async function buildRegistry(): Promise<MDXComponents> {
     registry[name] = mod[name] as React.ComponentType;
   }
   return registry;
-}
-
-// One import() expression per module, each with a single, one-level-deep
-// variable (`base`, a bare file name — no "/" inside it): Vite's dynamic-
-// import-vars analysis only resolves that exact shape, throwing "Unknown
-// variable dynamic import" at runtime on anything else (two variables, or a
-// variable holding a nested path) even though Vitest's warning stays silent
-// about it. Worse, webpack (Next build) needs the target folder to exist at
-// all — `Can't resolve '../permissions/wiki-components/'` — so a module is
-// only listed here once its wiki-components/ folder is real — authoring's
-// emptied out at the end of issue #19 (its wiki components all moved to the
-// module of their concept) and stays out of this map until it holds one again.
-const MODULE_LOADERS: Record<string, (base: string) => Promise<Record<string, unknown>>> = {
-  accounts: (base) => import(`../accounts/wiki-components/${base}.tsx`),
-  "entries-view": (base) => import(`../entries-view/wiki-components/${base}.tsx`),
-  files: (base) => import(`../files/wiki-components/${base}.tsx`),
-  forms: (base) => import(`../forms/wiki-components/${base}.tsx`),
-  pages: (base) => import(`../pages/wiki-components/${base}.tsx`),
-  permissions: (base) => import(`../permissions/wiki-components/${base}.tsx`),
-};
-
-function loadWikiComponentModule(
-  module: string,
-  base: string
-): Promise<Record<string, unknown>> {
-  const loader = MODULE_LOADERS[module];
-  if (!loader) {
-    throw new Error(
-      `modules/${module}/wiki-components/${base}.tsx: no registry loader for module "${module}"`
-    );
-  }
-  return loader(base);
 }
 
 // The compiled MDX throws at render time on any component missing from the

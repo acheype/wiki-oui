@@ -6,7 +6,11 @@ import {
   validateDescriptor,
 } from "./descriptor";
 import { readDescriptorSource } from "./descriptor-source";
-import { listWikiComponentFiles, statWikiComponentFile } from "./registry/scan";
+import {
+  type WikiComponentModule,
+  listWikiComponentFiles,
+  readWikiComponentFile,
+} from "./registry/scan";
 
 // Server-side loader of the ComponentBuilder descriptors: every .yaml file
 // in a module's wiki-components/ describes the builder of its co-located
@@ -17,7 +21,7 @@ import { listWikiComponentFiles, statWikiComponentFile } from "./registry/scan";
 
 export interface ComponentBuilderSpec {
   /** The module owning the component (ADR 0029). */
-  module: string;
+  module: WikiComponentModule;
   /** Kebab file base, e.g. "file-link"; the authoritative on-disk identity. */
   base: string;
   /** Component tag name, e.g. "Button" (PascalCase of the file base). */
@@ -53,7 +57,10 @@ async function loadWithFileInvalidation(): Promise<ComponentBuilderSpec[]> {
 
 // Stamps every module's wiki-components/ (not just one), so editing a
 // descriptor or component in any module invalidates the dev cache — a
-// single-folder stamp would silently miss the others.
+// single-folder stamp would silently miss the others. The stamp is the file
+// contents themselves rather than a mtime/size pair: same cost at this size
+// (a few dozen small files, dev only), and it never mistakes a `touch` for an
+// edit nor an edit that keeps the byte count for no change at all.
 async function componentsDirStamp(): Promise<string> {
   const yamlFiles = await listWikiComponentFiles(".yaml");
   const tsxFiles = await listWikiComponentFiles(".tsx");
@@ -65,8 +72,8 @@ async function componentsDirStamp(): Promise<string> {
   );
   const stamps = await Promise.all(
     entries.map(async ({ module, base, extension }) => {
-      const { mtimeMs, size } = await statWikiComponentFile(module, base, extension);
-      return `${module}/${base}${extension}:${mtimeMs}:${size}`;
+      const text = await readWikiComponentFile(module, `${base}${extension}`);
+      return `${module}/${base}${extension}\n${text}`;
     })
   );
   return stamps.join("\n");
@@ -87,7 +94,10 @@ async function buildSpecs(): Promise<ComponentBuilderSpec[]> {
   return specs;
 }
 
-async function buildSpec(module: string, base: string): Promise<ComponentBuilderSpec> {
+async function buildSpec(
+  module: WikiComponentModule,
+  base: string
+): Promise<ComponentBuilderSpec> {
   const { raw, lineOf } = await readDescriptorSource(module, base);
   // Meta-schema parse (ADR 0015): raw unknown in, typed descriptor out.
   const descriptor = validateDescriptor(`modules/${module}/wiki-components/${base}.yaml`, raw, lineOf);
