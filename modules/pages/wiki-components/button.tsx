@@ -35,7 +35,7 @@ export type ButtonProps = {
 };
 
 // Built-in component (CONTEXT.md), and the registry entry the MDX pipeline
-// calls (ADR 0002, lib/mdx.tsx). A plain Server Component on purpose (ADR
+// calls (ADR 0002, modules/authoring/mdx.tsx). A plain Server Component on purpose (ADR
 // 0013 icon hybrid's other half): resolving hideIfNoAccess needs a
 // server-side read of the current person's rights, which the interactive
 // button (ui/button-view.tsx, "use client") has no door to. Rendered
@@ -44,7 +44,7 @@ export type ButtonProps = {
 // inaccessible button never reaches the flight payload at all — the tree
 // <Menu> parses already has the hole in it (menu.tsx).
 //
-// Defaults live here, not in ButtonView: lib/verify-descriptors.ts reads them
+// Defaults live here, not in ButtonView: modules/authoring/verify.ts reads them
 // straight off this exported function's destructuring to check them against
 // button.yaml (ADR 0013), the file/component pairing it matches by name.
 export async function Button({

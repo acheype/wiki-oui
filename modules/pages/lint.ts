@@ -35,7 +35,7 @@ export interface PageWarning {
 
 /**
  * The warnings a source raises against the registry and the descriptors.
- * Pure: callers inject what they loaded (`lib/mdx.tsx`, `component-descriptors`).
+ * Pure: callers inject what they loaded (`modules/authoring/mdx.tsx`, `component-descriptors`).
  */
 export function lintPageSource(
   source: string,

@@ -39,7 +39,8 @@ import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/
 // Split at the door like modules/pages/ was (ADR 0029): this file is the
 // public API, modules/forms/queries/queries.ts holds the three private pieces
 // (OwnedForm, assertFormStructuring, ownerOf) nothing outside the module
-// needs. Unlike lib/pages.ts, this door was small enough to stay one file.
+// needs. Where the Page door had to split into four subjects, this one was
+// small enough to stay a single file.
 
 /** Whether the system pages offer those permissions at all, or simply leave them out. */
 export async function personCanEditForm(form: OwnedForm): Promise<boolean> {

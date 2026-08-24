@@ -152,9 +152,9 @@ export function isBlankMdx(source: string): boolean {
 // The plain text of the first heading in MDX source, or null when there is
 // none (or the source does not parse). An MDX page has no stored title, so
 // this names it — for the embedded frame's accessible name (WCAG H64), see
-// app/(bare)/[slug]/iframe. Parsing to mdast (like lib/page-lint,
-// lib/slug-rename) means a `#` inside a code fence or a `{{ }}` annotation is
-// never mistaken for a heading.
+// app/(bare)/[slug]/iframe. Parsing to mdast (like modules/pages/lint.ts,
+// lib/slug-rename.ts) means a `#` inside a code fence or a `{{ }}` annotation
+// is never mistaken for a heading.
 export function firstHeadingText(source: string): string | null {
   let tree: unknown;
   try {

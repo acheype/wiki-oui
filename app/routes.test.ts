@@ -27,7 +27,8 @@ describe("app/", () => {
     expect(
       folders,
       "One more system page is a wiki page (ADR 0028), not a route: add a special " +
-        "page to wiki.config.ts and a built-in component to components/wiki/."
+        "page to wiki.config.ts and a built-in component to the wiki-components/ " +
+        "of the module its concept belongs to (ADR 0029)."
     ).toEqual(ROUTE_FOLDERS);
   });
 });

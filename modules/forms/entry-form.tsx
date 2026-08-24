@@ -217,7 +217,7 @@ function EntryFields({
                 // An entry value has a single empty spelling, "" — the one
                 // initialEntryValues writes. The shared widgets clear to
                 // `undefined` instead, the ComponentBuilder's "prop absent"
-                // (its omission rule, lib/component-descriptor generateTag);
+                // (its omission rule, modules/authoring/descriptor.ts generateTag);
                 // react-hook-form reads that `undefined` as "no value here"
                 // and serves the field's default back, so an emptied field
                 // would show the stored value again.

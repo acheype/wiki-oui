@@ -55,7 +55,7 @@ export function isAllowedHostElement(name: string): boolean {
 
 // Drops refused tags, children and all — a <script> without its body is still
 // a <script>. Silent here, like the rest of the sandbox: the author is told at
-// save time instead (lib/page-lint.ts), the only moment a page has an author.
+// save time instead (modules/pages/lint.ts), the only moment a page has an author.
 export function allowListedHostElementsOnly() {
   return function hostElementSandbox() {
     return (tree: unknown) => {
@@ -69,7 +69,7 @@ export function allowListedHostElementsOnly() {
           return;
         }
         // A null name is a fragment (<>…</>); a capitalized one is a
-        // component, which the registry gates instead (lib/mdx.tsx).
+        // component, which the registry gates instead (mdx.tsx).
         const name = node.name;
         if (!name || !isHostElement(name)) return;
         if (isAllowedHostElement(name)) return;

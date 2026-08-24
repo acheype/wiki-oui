@@ -40,7 +40,7 @@ const REFUSED_PROP_NAMES = new Set([
 
 // A factory returning the remark plugin: unified calls the plugin, and the
 // plugin returns the transformer. Refusals are dropped in silence here — the
-// author is told at save time instead (lib/page-lint.ts), the only moment a
+// author is told at save time instead (modules/pages/lint.ts), the only moment a
 // page has an author to tell.
 export function allowLiteralPropsOnly() {
   return function attributeSandbox() {
@@ -88,7 +88,7 @@ export function allowLiteralPropsOnly() {
  * or `false` stays distinguishable from "not a literal". The estree of an
  * attribute expression is a Program wrapping one expression statement.
  *
- * Shared with the save-time report (lib/page-lint.ts): the sandbox asks
+ * Shared with the save-time report (modules/pages/lint.ts): the sandbox asks
  * whether the value survives, the report asks what it will be — one traversal
  * answers both, so they can never drift apart.
  */

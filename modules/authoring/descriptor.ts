@@ -52,7 +52,7 @@ export type PropKind =
 // Exhaustive on purpose (no `default`): a new field type must state what its
 // prop holds, or the compiler objects. The save-time report leans on this to
 // tell an author that `width="abc"` or `whiteBorder="false"` will not do what
-// they wrote (lib/page-lint.ts).
+// they wrote (modules/pages/lint.ts).
 export function propKind(
   field: Pick<DescriptorField, "type" | "multiple">
 ): PropKind {
@@ -87,7 +87,7 @@ export function propKind(
 }
 
 /** Does a decoded literal fit what a kind's prop can hold? The save-time
- * report words the complaint (lib/page-lint.ts); the inverse mapping uses the
+ * report words the complaint (modules/pages/lint.ts); the inverse mapping uses the
  * same yardstick to decide whether a structured literal is re-editable. */
 export function propKindFits(kind: PropKind, value: unknown): boolean {
   switch (kind) {
@@ -182,7 +182,7 @@ const descriptorFieldSchema = z.object({
     .optional(),
   // Omission-rule reference (ADR 0013): the prop is dropped from the MDX
   // when equal to this, and an absent prop re-edits with it. Must equal the
-  // component's destructuring default (verified by lib/verify-descriptors).
+  // component's destructuring default (verified by verify.ts).
   default: propValueSchema.optional(),
   /** Insertion pre-fill; the prop is always written, even when unchanged. */
   value: propValueSchema.optional(),
@@ -248,7 +248,7 @@ export function fieldProp(field: string, spec: DescriptorField): string {
 
 // Resolves a descriptor path (e.g. ["properties","color","type"]) to its
 // 1-based line in the YAML source, or undefined when unknown. Built from the
-// parsed document by the loader (lib/descriptor-source.ts); error messages use
+// parsed document by the loader (descriptor-source.ts); error messages use
 // it to point at the exact offending line. Absent = no line shown (e.g. a
 // descriptor built by hand in a test).
 export type LineLookup = (path: (string | number)[]) => number | undefined;
@@ -720,7 +720,7 @@ function matchBraces(source: string): string | null {
 }
 
 // Decodes a brace expression when it is a static literal (ADR 0019): the
-// values the sandbox itself lets through (lib/mdx-literal-props.ts), parsed
+// values the sandbox itself lets through (literal-props.ts), parsed
 // here from source text since the builder works outside any MDX compilation.
 // A top-level `null` reads as "no value" — the prop falls back to its default.
 function decodeLiteral(expression: string): { value: PropValue } | null {

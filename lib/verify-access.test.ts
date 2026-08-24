@@ -5,7 +5,7 @@ import { scanAccessGuards } from "./verify-access";
 // Builds an in-memory project with a stand-in modules/permissions/rules.ts
 // (the three primitives) plus whatever modules/pages/content.ts-shaped source
 // the test provides — the same in-memory pattern
-// lib/verify-descriptors.test.ts uses for cross-file resolution.
+// modules/authoring/verify.test.ts uses for cross-file resolution.
 function projectWith(pagesSource: string, extraFiles: Record<string, string> = {}) {
   const project = new Project({ useInMemoryFileSystem: true });
   project.createSourceFile(
