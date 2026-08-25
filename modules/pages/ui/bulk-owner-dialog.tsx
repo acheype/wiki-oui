@@ -9,7 +9,7 @@ import { KeyRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { handPagesOver } from "@/modules/pages/admin-actions";
-import { PersonPicker } from "@/modules/permissions/person-picker";
+import { PersonPicker } from "@/modules/pages/ui/person-picker";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,11 +23,11 @@ import {
 import { InfoNote } from "@/components/ui/info-note";
 import { lotSubject } from "@/modules/permissions/bulk";
 import type { ManagedPage } from "@/modules/pages/rights";
+import type { Identity } from "@/modules/permissions/rules";
 import {
-  type Identity,
   ownerTransferNote,
   ownerTransferWarning,
-} from "@/modules/permissions/rules";
+} from "@/modules/pages/ui/labels";
 
 export function BulkOwnerDialog({
   pages,

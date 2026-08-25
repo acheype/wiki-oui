@@ -23,12 +23,40 @@ import {
   type AclFloor,
   type PrincipalList,
   type Scope,
+  ADMINS_GROUP,
   SCOPES,
-  SCOPE_LABELS,
-  aclFloorLabels,
   aclFloorPrincipals,
-  alwaysAllowedNote,
 } from "@/modules/permissions/rules";
+
+// The words this widget puts on the model, and its only reader (issue #20).
+// They live here rather than beside the rules because a label is not a rule:
+// it says nothing about who may do what, and moving one changes only what is
+// on this screen.
+
+/** How each scope reads in the widget, in the order it offers them. */
+export const SCOPE_LABELS: Record<Scope, string> = {
+  everyone: "Tout le monde",
+  authenticated: "Les personnes connectées",
+  restricted: "Seulement",
+};
+
+/** The floor as the widget shows it, locked. */
+export function aclFloorLabels(floor: AclFloor): {
+  people: string[];
+  groups: string[];
+} {
+  return {
+    people: floor.owner === null ? [] : [`${floor.owner.name} (propriétaire)`],
+    groups: [`@${ADMINS_GROUP.name}`],
+  };
+}
+
+/** The invariant the missing « Administrateurs » scope would have hidden. */
+export function alwaysAllowedNote(floor: AclFloor): string {
+  return floor.owner === null
+    ? "Les administrateurs ont toujours accès, et ne peuvent pas être retirés."
+    : "Le propriétaire et les administrateurs ont toujours accès, et ne peuvent pas être retirés.";
+}
 
 const EMPTY_DIRECTORY: AclDirectory = { people: [], groups: [] };
 /** The floor of a subject with no owner to name — the wiki's own defaults. */

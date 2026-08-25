@@ -2,8 +2,9 @@
 
 // Naming one person out of the whole wiki: a search field and the list under
 // it, the shape « Transmettre la propriété » takes on a page and on a lot
-// alike. Its own file because both permissions hand a page over, and they must
-// not name people two different ways.
+// alike. Its own file because both views hand a page over, and they must not
+// name people two different ways. Both are in this folder, which is why it is
+// here and not in modules/permissions/ (issue #20).
 
 import { UserRound } from "lucide-react";
 import { useState } from "react";

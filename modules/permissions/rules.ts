@@ -1,7 +1,11 @@
 // The vocabulary of authorization (docs/permissions.md): what a right is, who
-// is acting, how a right reads back, what a page stores it as, and what
-// someone without it is told. Public to the whole wiki, and deliberately
-// unable to decide anything.
+// is acting, how a right reads back, and what a page stores it as. Public to
+// the whole wiki, and deliberately unable to decide anything.
+//
+// No French here beyond the refusals a Server Action throws: a label belongs
+// to the one view that shows it (issue #20), so SCOPE_LABELS lives in
+// acl-input.tsx, the owner lines in modules/pages/ui/labels.ts and the scope
+// refusal in modules/forms/refusal.ts.
 //
 // The decisions themselves — canRead, canWrite, ownsPage and the `where`
 // clauses — are one folder down, in decide/rules.ts, private by their depth
@@ -10,9 +14,6 @@
 //
 // The model in two sentences: BetterAuth authenticates, WikiOui authorizes
 // (ADR 0023); and a right is a scope, optionally completed by a list.
-
-import { plural } from "@/lib/format";
-import { ANONYMOUS } from "@/modules/accounts/username";
 
 /**
  * The administrators' group. Administration is a membership, never a `role`
@@ -52,13 +53,6 @@ export interface Identity {
  */
 export const SCOPES = ["everyone", "authenticated", "restricted"] as const;
 export type Scope = (typeof SCOPES)[number];
-
-/** How each scope reads in the widget, in the order it offers them. */
-export const SCOPE_LABELS: Record<Scope, string> = {
-  everyone: "Tout le monde",
-  authenticated: "Les personnes connectées",
-  restricted: "Seulement",
-};
 
 /**
  * The scopes a rule may take when it stands under another — a field's, under
@@ -227,47 +221,6 @@ export function knownEntries(
   );
 }
 
-/**
- * A rule as a column of a list has room for it (docs/permissions.md §
- * gerer-pages): where the widget poses a right, this reads one back at a
- * glance, over hundreds of lines. The floor is what an empty « seulement »
- * list means — « eux seuls » — so the summary names it rather than showing
- * nothing, which would read as « personne ».
- */
-export function ruleSummary(
-  rule: AccessRule,
-  floor: AclFloor,
-  directory: AclDirectory
-): string {
-  switch (rule.scope) {
-    case "everyone":
-      return "Tous";
-    case "authenticated":
-      return "Connectés";
-    case "restricted": {
-      const nameOfPerson = new Map(
-        directory.people.map((person) => [person.username, person.name])
-      );
-      const nameOfGroup = new Map(
-        directory.groups.map((group) => [group.slug, group.name])
-      );
-      const named = [
-        ...(rule.usernames ?? []).map(
-          (username) => nameOfPerson.get(username) ?? username
-        ),
-        ...(rule.groupSlugs ?? []).map(
-          (slug) => `@${nameOfGroup.get(slug) ?? slug}`
-        ),
-      ];
-      if (named.length === 0) {
-        return floor.owner === null ? `@${ADMINS_GROUP.name}` : "Le propriétaire";
-      }
-      const others = named.length - 1;
-      return others === 0 ? named[0] : `${named[0]} +${others}`;
-    }
-  }
-}
-
 /** Who an `acl` list may name: the people and groups of the wiki. */
 export interface AclDirectory {
   people: Identity[];
@@ -278,17 +231,6 @@ export interface AclDirectory {
 export interface AclFloor {
   /** Null when the subject has no owner: the wiki's defaults, an erased account. */
   owner: Identity | null;
-}
-
-/** The floor as the widget shows it, locked. */
-export function aclFloorLabels(floor: AclFloor): {
-  people: string[];
-  groups: string[];
-} {
-  return {
-    people: floor.owner === null ? [] : [`${floor.owner.name} (propriétaire)`],
-    groups: [`@${ADMINS_GROUP.name}`],
-  };
 }
 
 /**
@@ -335,13 +277,6 @@ export function withoutCovered(
   );
 }
 
-/** The invariant the missing « Administrateurs » scope would have hidden. */
-export function alwaysAllowedNote(floor: AclFloor): string {
-  return floor.owner === null
-    ? "Les administrateurs ont toujours accès, et ne peuvent pas être retirés."
-    : "Le propriétaire et les administrateurs ont toujours accès, et ne peuvent pas être retirés.";
-}
-
 // --- what someone without the right is told ----------------------------------
 
 /**
@@ -350,78 +285,6 @@ export function alwaysAllowedNote(floor: AclFloor): string {
  * someone reached the page from a link that names it.
  */
 export const ACCESS_DENIED = "Vous n'avez pas accès à cette page.";
-
-/**
- * Why a rule refuses, in the words the scope was posed in. Two things read it,
- * and they are the two the general rule (docs/permissions.md § Ce que voit qui
- * n'a pas le droit) leaves on screen rather than hiding: the `<EntryForm>` an
- * person may not add to, and a field they may see but not fill. Both are shown
- * with their motif — a block that vanished would read as a page that failed to
- * load, and a field that vanished as a fiche someone forgot to fill in.
- *
- * The named groups arrive resolved to their display names — « @Bureau », not
- * `bureau`, since a slug says nothing to whoever reads the refusal. The people
- * a « seulement » names stay unsaid: naming them would publish who is on the
- * wiki to a visitor, where a group is already how the wiki talks about itself
- * in public.
- */
-export function scopeRefusal(
-  rule: AccessRule,
-  groupNames: readonly string[]
-): string | null {
-  switch (rule.scope) {
-    case "everyone":
-      return null; // refuses nobody, so there is nothing to word
-    case "authenticated":
-      return "Réservé aux personnes connectées.";
-    case "restricted":
-      return groupNames.length === 0
-        ? "Réservé aux personnes autorisées."
-        : `Réservé à ${joinNames(groupNames.map((name) => `@${name}`))}.`;
-  }
-}
-
-function joinNames(names: readonly string[]): string {
-  if (names.length <= 1) return names.join("");
-  return `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
-}
-
-/**
- * What handing pages over means for whoever receives them, as the two views
- * that offer it say it — the « Accès » modal on one page, `gerer-pages` on a
- * lot. Written out both ways rather than built from a count: at one page the
- * pronoun agrees with it too, and assembling the pieces is what once produced
- * « 1 page passeront sous la responsabilité ».
- */
-export function ownerTransferNote(total: number): string {
-  return total === 1
-    ? "La personne choisie deviendra responsable de cette page. Elle pourra la voir, la modifier et définir qui peut y accéder."
-    : `La personne choisie deviendra responsable de ces ${plural(total, "page", "pages")}. Elle pourra les voir, les modifier et définir qui peut y accéder.`;
-}
-
-/**
- * And what it means for whoever gives them: transmettre la propriété est sans
- * retour (docs/permissions.md § Quel droit commande quelle action), so the
- * confirmation says so before the click rather than after it.
- */
-export function ownerTransferWarning(total: number): string {
-  const subject = total === 1 ? "cette page" : "ces pages";
-  return `Une fois le transfert effectué, seul le nouveau propriétaire, ou un administrateur, pourra transférer à nouveau la propriété de ${subject}.`;
-}
-
-/**
- * Who looks after the page, as a view states it. A page with no owner says
- * « Anonyme » rather than saying nothing: the absence is itself the
- * information — it is what leaves the page to the administrators alone — and
- * a line that disappears reads as a screen that failed to load it.
- *
- * The widget's floor stays silent about them all the same: a locked
- * « Anonyme » chip beside the administrators would promise access to
- * somebody, where the whole point is that there is nobody.
- */
-export function ownerLine(ownerName: string | null): string {
-  return `Propriétaire : ${ownerName ?? ANONYMOUS}`;
-}
 
 /**
  * What the access layer throws when a write reaches it anyway. The views

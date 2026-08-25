@@ -7,6 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import type { Form } from "@/lib/generated/prisma/client";
+import { scopeRefusal } from "@/modules/forms/refusal";
 import {
   type EntryData,
   type FormDescriptor,
@@ -79,7 +80,6 @@ import {
 import {
   type AclDirectory,
   refusalMessage,
-  scopeRefusal,
 } from "@/modules/permissions/rules";
 import { currentPerson, currentIdentity } from "@/modules/permissions/person";
 import { isValidSlug, reservedSlugRefusal, slugify } from "@/lib/slug";
