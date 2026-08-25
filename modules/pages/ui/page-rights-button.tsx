@@ -19,14 +19,13 @@ import { OwnerTransfer } from "@/modules/pages/ui/owner-transfer";
 import { signInLockout } from "@/modules/pages/ui/labels";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SignInLockoutDescription } from "@/modules/pages/ui/sign-in-lockout";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -152,15 +151,23 @@ export function PageRightsButton({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Fermer l&apos;accès à cette page&nbsp;?</AlertDialogTitle>
-            <AlertDialogDescription className="whitespace-pre-line">
-              {lockout?.message}
-            </AlertDialogDescription>
+            {lockout && <SignInLockoutDescription lockout={lockout} />}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={save} disabled={saving}>
+            {/* Red, like every other confirmation that cannot be walked back
+                (gerer-utilisateurs): the eye must find the safe answer without
+                reading the labels. */}
+            <Button
+              variant="destructive"
+              disabled={saving}
+              onClick={() => {
+                setConfirming(false);
+                save();
+              }}
+            >
               Enregistrer quand même
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

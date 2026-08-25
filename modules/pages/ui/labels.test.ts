@@ -94,6 +94,7 @@ describe("ruleSummary", () => {
 // click.
 describe("signInLockout", () => {
   const LOT = ["compte-rendu", "connexion", "annuaire"];
+  const CLOSED = { scope: "restricted" } as const;
 
   it("says nothing while the read stays open to everyone", () => {
     expect(signInLockout(LOT, { scope: "everyone" })).toBeNull();
@@ -103,111 +104,91 @@ describe("signInLockout", () => {
     expect(signInLockout(LOT, undefined)).toBeNull();
   });
 
+  // "authenticated" narrows the read just as "restricted" does — only
+  // "everyone" leaves the page open to unauthenticated visitors.
+  it("warns as soon as the read narrows, not only when restricted", () => {
+    const lockout = signInLockout(LOT, { scope: "authenticated" });
+    expect(lockout).not.toBeNull();
+    expect(lockout?.slugs).toEqual(["connexion"]);
+  });
+
   it("says nothing about a lot that holds no account page", () => {
-    expect(
-      signInLockout(["compte-rendu", "annuaire"], { scope: "authenticated" })
-    ).toBeNull();
+    expect(signInLockout(["compte-rendu", "annuaire"], CLOSED)).toBeNull();
   });
 
   // Three of the four account pages lock the wiki, not four. Free sign-up is
   // closed by default and opens no way back into an account that exists.
   it("says nothing about the free sign-up page", () => {
-    expect(signInLockout(["inscription"], { scope: "restricted" })).toBeNull();
+    expect(signInLockout(["inscription"], CLOSED)).toBeNull();
   });
 
-  // Every recovery link lands on `invitation`, a forgotten password as much as
-  // an invitation (modules/accounts/access/guards.ts) — closing it closes the
-  // only way back for whoever has lost their password.
-  it("warns about the page every recovery link lands on", () => {
-    expect(signInLockout(["invitation"], { scope: "restricted" })?.message).toContain(
-      "récupérer"
+  // Each page is described for what it does, not for what it links to.
+  it("says of the sign-in page only that one signs in on it", () => {
+    const lockout = signInLockout(["connexion"], CLOSED);
+    expect(lockout?.purpose).toBe("La page «\u00A0connexion\u00A0» sert à se connecter.");
+    expect(lockout?.consequence).toBe(
+      "Désactiver sa lecture empêchera les utilisateurs non connectés de se connecter"
     );
   });
 
-  it("warns about the page that asks for a reset", () => {
-    expect(
-      signInLockout(["mot-de-passe-oublie"], { scope: "restricted" })
-    ).not.toBeNull();
-  });
-
-  // Each page is described for what it does, not for what it links to:
-  // `connexion` offers a link to the recovery page, it recovers nothing.
-  it("says of the sign-in page only that one signs in on it", () => {
-    const warning = signInLockout(["connexion"], { scope: "restricted" })?.message;
-    expect(warning).toContain("sert à se connecter.");
-    expect(warning).not.toContain("récupérer");
-  });
-
-  // The two recovery pages do not do the same thing: requestPasswordReset
-  // refuses an address with no account, so `mot-de-passe-oublie` never
-  // activates one — only `invitation` does, every link landing there.
+  // requestPasswordReset refuses an address with no account, so
+  // `mot-de-passe-oublie` never activates one — only `invitation` does, every
+  // link landing there.
   it("says of the reset page that it recovers, and nothing more", () => {
-    const warning = signInLockout(["mot-de-passe-oublie"], {
-      scope: "restricted",
-    })?.message;
-    expect(warning).toContain("sert à récupérer un compte.");
+    const lockout = signInLockout(["mot-de-passe-oublie"], CLOSED);
+    expect(lockout?.purpose).toContain("sert à récupérer un compte.");
     // « Désactiver sa lecture » holds the word, so the phrase is what counts.
-    expect(warning).not.toContain("ou activer");
-    expect(warning).not.toContain("d'activer");
+    expect(lockout?.purpose).not.toContain("ou activer");
+    expect(lockout?.consequence).not.toContain("d'activer");
   });
 
   it("says of the invitation page that it recovers or activates", () => {
-    const warning = signInLockout(["invitation"], { scope: "restricted" })?.message;
-    expect(warning).toContain("récupérer ou activer un compte");
-    expect(warning).not.toContain("se connecter");
+    const lockout = signInLockout(["invitation"], CLOSED);
+    expect(lockout?.purpose).toContain("récupérer ou activer un compte");
+    expect(lockout?.consequence).toContain("de récupérer ou d'activer leur compte");
+  });
+
+  // The two sentences only `connexion` earns: an administrator is no
+  // exception, and the wiki can be shut for good. Closing a recovery page
+  // only bites whoever has *also* lost their password.
+  it("reserves « nobody gets in » for the sign-in page", () => {
+    expect(signInLockout(["connexion"], CLOSED)?.locksEveryoneOut).toBe(true);
+    expect(signInLockout(["mot-de-passe-oublie"], CLOSED)?.locksEveryoneOut).toBe(false);
+    expect(signInLockout(["invitation"], CLOSED)?.locksEveryoneOut).toBe(false);
+    expect(signInLockout(["mot-de-passe-oublie", "invitation"], CLOSED)?.locksEveryoneOut).toBe(
+      false
+    );
+  });
+
+  it("names every account page a lot would close, and agrees with the count", () => {
+    const lockout = signInLockout(["connexion", "invitation"], CLOSED);
+    expect(lockout?.purpose).toContain("Les pages");
+    expect(lockout?.purpose).toContain("servent");
+    expect(lockout?.consequence).toContain("leur lecture");
+  });
+
+  it("agrees in the singular for one page", () => {
+    const lockout = signInLockout(["connexion"], CLOSED);
+    expect(lockout?.purpose).toContain("La page");
+    expect(lockout?.consequence).toContain("sa lecture");
   });
 
   // A lot mixing the families joins them without ever saying « ou » twice.
   it("joins the three with one « ou », not three", () => {
-    const warning = signInLockout(
+    const lockout = signInLockout(
       ["connexion", "mot-de-passe-oublie", "invitation"],
-      { scope: "restricted" }
-    )?.message;
-    expect(warning).toContain("se connecter, récupérer ou activer un compte");
-    expect(warning).toContain("de se connecter, de récupérer ou d'activer leur compte");
+      CLOSED
+    );
+    expect(lockout?.purpose).toContain("se connecter, récupérer ou activer un compte");
+    expect(lockout?.consequence).toContain(
+      "de se connecter, de récupérer ou d'activer leur compte"
+    );
   });
 
   // The lot dialog offers to spare them, so it needs to know which they are.
   it("hands back the pages it is about, so a lot can spare them", () => {
     expect(
-      signInLockout(["compte-rendu", "connexion", "invitation"], {
-        scope: "restricted",
-      })?.slugs
+      signInLockout(["compte-rendu", "connexion", "invitation"], CLOSED)?.slugs
     ).toEqual(["connexion", "invitation"]);
-  });
-
-  it("warns, and names the page, as soon as the read narrows", () => {
-    const warning = signInLockout(LOT, { scope: "authenticated" })?.message;
-    expect(warning).toContain("connexion");
-    expect(warning).toContain("administrateurs compris");
-    // The lot's other pages are nobody's business here: the warning is about
-    // the one page that would lock the wiki.
-    expect(warning).not.toContain("compte-rendu");
-  });
-
-  it("names every account page a lot would close, and agrees with the count", () => {
-    const warning = signInLockout(["connexion", "invitation"], {
-      scope: "restricted",
-    })?.message;
-    expect(warning).toContain("connexion");
-    expect(warning).toContain("invitation");
-    expect(warning).toContain("Les pages");
-    expect(warning).toContain("servent");
-    expect(warning).toContain("leur lecture");
-  });
-
-  it("agrees in the singular for one page", () => {
-    const warning = signInLockout(["connexion"], { scope: "restricted" })?.message;
-    expect(warning).toContain("La page");
-    expect(warning).toContain("» sert à");
-    expect(warning).toContain("sa lecture");
-  });
-
-  // Two sentences, the second being the consequence: the note renders the
-  // break, so it has to survive the string.
-  it("keeps the consequence on its own line", () => {
-    expect(signInLockout(["connexion"], { scope: "restricted" })?.message).toContain(
-      ".\nSi toutes les sessions"
-    );
   });
 });

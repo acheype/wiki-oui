@@ -411,9 +411,15 @@ Le wiki fait donc ce que ses droits disent, et l'administrateur en répond. Un e
 
 **Le revers, à connaître.** Restreindre `connexion` ferme la connexion. Un administrateur encore connecté peut revenir en arrière ; si toutes les sessions expirent, seule la base permet de rouvrir. C'est la contrepartie assumée d'un wiki qui obéit à ses réglages plutôt qu'à une liste cachée — et elle se dit **avant le clic**, comme la transmission de propriété : la modale d'une page et le lot « Remplacer les accès » de `gerer-pages` **demandent confirmation** dès que la lecture de `connexion`, `mot-de-passe-oublie` ou `invitation` cesse d'être ouverte à tout le monde :
 
-> La page « connexion » sert à se connecter. Désactiver sa lecture empêchera les utilisateurs non connectés de se connecter, administrateurs compris.
+> La page « connexion » sert à se connecter. **Désactiver sa lecture empêchera les utilisateurs non connectés de se connecter, administrateurs compris.**
 >
-> Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.
+> Si toutes les sessions existantes expirent, **seule la base de données permettra alors de se reconnecter au wiki.**
+
+La **conséquence est en gras** : le reste est du contexte, et qui ne lit qu'une ligne doit lire celle-là.
+
+Le « administrateurs compris » et la dernière phrase sont réservés à `connexion`, et c'est le seul cas où elles sont vraies. Fermer une page de récupération ne mord que sur qui a **aussi** perdu son mot de passe : un administrateur y reste aussi capable de se connecter que n'importe qui d'autre, et le wiki ne se referme pas pour autant. Elles disent donc seulement :
+
+> La page « invitation » sert à récupérer ou activer un compte. **Désactiver sa lecture empêchera les utilisateurs non connectés de récupérer ou d'activer leur compte.**
 
 Une **modale**, pas une note : une remarque en petits caractères gris se dépasse sans la lire, et cette conséquence-là coûte le wiki.
 

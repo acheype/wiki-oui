@@ -36,11 +36,11 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SignInLockoutDescription } from "@/modules/pages/ui/sign-in-lockout";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -295,9 +295,7 @@ export function BulkRightsDialog({
                 ? "Ces pages servent à entrer dans le wiki"
                 : "Cette page sert à entrer dans le wiki"}
             </AlertDialogTitle>
-            <AlertDialogDescription className="whitespace-pre-line">
-              {lockout?.message}
-            </AlertDialogDescription>
+            {lockout && <SignInLockoutDescription lockout={lockout} />}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
@@ -312,16 +310,18 @@ export function BulkRightsDialog({
                   : "cette page"}
               </AlertDialogAction>
             )}
-            {/* « à toutes » only contrasts with something when the answer
-                beside it exists. Alone, the lot holds nothing but these
-                pages, and there is no « toutes » to tell it apart from. */}
-            <AlertDialogAction
+            {/* Red, like every other confirmation that cannot be walked back
+                (gerer-utilisateurs). « à toutes » only contrasts with
+                something when the answer beside it exists: alone, the lot
+                holds nothing but these pages, and there is no « toutes » to
+                tell it apart from. */}
+            <Button
+              variant="destructive"
               onClick={() => apply(pages.map((page) => page.slug))}
               disabled={applying}
-              className="bg-destructive text-white hover:bg-destructive/90"
             >
               {sparedSlugs.length > 0 ? "Appliquer à toutes" : "Appliquer quand même"}
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

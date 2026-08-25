@@ -165,12 +165,21 @@ function joinEntries(
   return parts.join(separator);
 }
 
-/** What a change to the rights would close, and the sentence that says so. */
+/** What a change to the rights would close, in the pieces a dialog shows. */
 export interface SignInLockout {
   /** The account pages it would close — what a lot can offer to spare. */
   slugs: string[];
-  /** Two sentences, the second being the consequence rather than the fact. */
-  message: string;
+  /** « La page « connexion » sert à se connecter. » */
+  purpose: string;
+  /** What closing them stops, shown in bold. No final punctuation. */
+  consequence: string;
+  /**
+   * Signing in is among them, so nobody gets in at all. Two things follow, and
+   * they are true of `connexion` alone : administrators are no exception, and
+   * once every session has gone the wiki is shut for good. Closing a recovery
+   * page only bites whoever has *also* lost their password, so it says neither.
+   */
+  locksEveryoneOut: boolean;
 }
 
 /**
@@ -180,9 +189,7 @@ export interface SignInLockout {
  *
  * No page is exempt from its rights, the account pages included (ADR 0025,
  * amendement du 2026-08-25) : that is what makes the setting mean something,
- * and it is also what makes this one dangerous. An administrator still signed
- * in can undo it ; once every session has expired, only the database reopens
- * the wiki.
+ * and it is also what makes this one dangerous.
  *
  * Only the **read** raises it : a page one may not write is still a page one
  * can sign in on. Null when the lot holds none of those pages, or when the
@@ -210,10 +217,8 @@ export function signInLockout(
 
   return {
     slugs: closed.map(({ slug }) => slug),
-    message:
-      `${subject} à ${servesPhrase(entries)}. Désactiver ${its} lecture ` +
-      `empêchera les utilisateurs non connectés ${preventsPhrase(entries)}, ` +
-      `administrateurs compris.\n` +
-      `Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.`,
+    purpose: `${subject} à ${servesPhrase(entries)}.`,
+    consequence: `Désactiver ${its} lecture empêchera les utilisateurs non connectés ${preventsPhrase(entries)}`,
+    locksEveryoneOut: entries.has("connect"),
   };
 }
