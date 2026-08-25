@@ -109,6 +109,27 @@ describe("signInLockoutWarning", () => {
     ).toBeNull();
   });
 
+  // Three of the four account pages lock the wiki, not four. Free sign-up is
+  // closed by default and opens no way back into an account that exists.
+  it("says nothing about the free sign-up page", () => {
+    expect(signInLockoutWarning(["inscription"], { scope: "restricted" })).toBeNull();
+  });
+
+  // Every recovery link lands on `invitation`, a forgotten password as much as
+  // an invitation (modules/accounts/access/guards.ts) — closing it closes the
+  // only way back for whoever has lost their password.
+  it("warns about the page every recovery link lands on", () => {
+    expect(signInLockoutWarning(["invitation"], { scope: "restricted" })).toContain(
+      "récupérer"
+    );
+  });
+
+  it("warns about the page that asks for a reset", () => {
+    expect(
+      signInLockoutWarning(["mot-de-passe-oublie"], { scope: "restricted" })
+    ).not.toBeNull();
+  });
+
   it("warns, and names the page, as soon as the read narrows", () => {
     const warning = signInLockoutWarning(LOT, { scope: "authenticated" });
     expect(warning).toContain("connexion");

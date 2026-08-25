@@ -92,18 +92,30 @@ export function ownerLine(ownerName: string | null): string {
 }
 
 /**
+ * The account pages a wiki can shut itself out of, named by their role rather
+ * than by their slug. Three of the four, and `inscription` is not one: free
+ * sign-up is closed by default (wiki.config.ts) and opens no way back into an
+ * account that already exists.
+ *
+ * `invitation` is on the list for a reason worth knowing: every recovery link
+ * lands there, a forgotten password as much as an invitation — one mint site,
+ * one page (modules/accounts/access/guards.ts).
+ */
+const LOCKING_ROLES = ["signIn", "forgotPassword", "invitation"] as const;
+
+/**
  * The one refusal a wiki cannot take back, said before the click rather than
  * after it — the same treatment « transmettre la propriété » gets above.
  *
  * No page is exempt from its rights, the account pages included (ADR 0025,
  * amendement du 2026-08-25) : that is what makes the setting mean something,
- * and it is also what makes this one dangerous. Closing the read of a sign-in
- * page closes the sign-in. An administrator still signed in can undo it ; once
- * every session has expired, only the database reopens the wiki.
+ * and it is also what makes this one dangerous. An administrator still signed
+ * in can undo it ; once every session has expired, only the database reopens
+ * the wiki.
  *
  * Only the **read** is warned about : a page one may not write is still a page
- * one can sign in on. Null when the lot holds no account page, or when the read
- * stays open to everyone — the one scope that keeps signing in reachable.
+ * one can sign in on. Null when the lot holds none of those pages, or when the
+ * read stays open to everyone — the one scope that keeps them reachable.
  *
  * Two sentences, the second being the consequence rather than the fact: they
  * are separated by a newline, which the note renders as a break.
@@ -113,8 +125,10 @@ export function signInLockoutWarning(
   read: AccessRule | undefined
 ): string | null {
   if (read === undefined || read.scope === "everyone") return null;
-  const accountPages: readonly string[] = Object.values(wikiConfig.authPages);
-  const closed = slugs.filter((slug) => accountPages.includes(slug));
+  const locking: readonly string[] = LOCKING_ROLES.map(
+    (role) => wikiConfig.authPages[role]
+  );
+  const closed = slugs.filter((slug) => locking.includes(slug));
   if (closed.length === 0) return null;
 
   const named = closed.map((slug) => `«\u00A0${slug}\u00A0»`);
@@ -125,7 +139,8 @@ export function signInLockoutWarning(
   const its = closed.length === 1 ? "sa" : "leur";
   return (
     `Attention : ${subject} à se connecter ou à récupérer un compte. ` +
-    `Désactiver ${its} lecture empêchera les utilisateurs non connectés d'accéder au wiki, administrateurs compris.\n` +
+    `Désactiver ${its} lecture empêchera les utilisateurs non connectés de se ` +
+    `connecter ou de récupérer leur compte, administrateurs compris.\n` +
     `Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.`
   );
 }

@@ -409,11 +409,13 @@ Ensuite une **fuite** : la liste ne disait pas « sers le chrome », elle disait
 
 Le wiki fait donc ce que ses droits disent, et l'administrateur en répond. Un emplacement de layout dont la page est refusée rend **vide**, et le layout le laisse dehors. Les pages seedées naissent en lecture *tout le monde*, donc un wiki neuf se comporte comme avant sans rien régler.
 
-**Le revers, à connaître.** Restreindre `connexion` ferme la connexion. Un administrateur encore connecté peut revenir en arrière ; si toutes les sessions expirent, seule la base permet de rouvrir. C'est la contrepartie assumée d'un wiki qui obéit à ses réglages plutôt qu'à une liste cachée — et elle se dit **avant le clic**, comme la transmission de propriété : la modale d'une page et le lot « Remplacer les accès » de `gerer-pages` affichent, dès que la lecture d'une page de compte cesse d'être ouverte à tout le monde :
+**Le revers, à connaître.** Restreindre `connexion` ferme la connexion. Un administrateur encore connecté peut revenir en arrière ; si toutes les sessions expirent, seule la base permet de rouvrir. C'est la contrepartie assumée d'un wiki qui obéit à ses réglages plutôt qu'à une liste cachée — et elle se dit **avant le clic**, comme la transmission de propriété : la modale d'une page et le lot « Remplacer les accès » de `gerer-pages` affichent, dès que la lecture de `connexion`, `mot-de-passe-oublie` ou `invitation` cesse d'être ouverte à tout le monde :
 
-> Attention : La page « connexion » sert à se connecter ou à récupérer un compte. Désactiver sa lecture empêchera les utilisateurs non connectés d'accéder au wiki, administrateurs compris.
+> Attention : La page « connexion » sert à se connecter ou à récupérer un compte. Désactiver sa lecture empêchera les utilisateurs non connectés de se connecter ou de récupérer leur compte, administrateurs compris.
 >
 > Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.
+
+Trois pages sur quatre : `inscription` n'y est pas, l'inscription libre étant fermée par défaut et n'ouvrant aucun retour vers un compte existant. `invitation` y est parce que **tout** lien de récupération y atterrit, un mot de passe oublié autant qu'une invitation.
 
 Un avertissement, pas un refus : c'est le droit de l'administrateur de fermer ce qu'il veut.
 
