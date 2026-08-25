@@ -118,11 +118,18 @@ describe("signInLockoutWarning", () => {
     expect(warning).not.toContain("compte-rendu");
   });
 
-  it("names every account page a lot would close", () => {
+  it("names every account page a lot would close, and agrees with the count", () => {
     const warning = signInLockoutWarning(["connexion", "invitation"], {
       scope: "restricted",
     });
     expect(warning).toContain("connexion");
     expect(warning).toContain("invitation");
+    expect(warning).toContain("servent");
+  });
+
+  it("agrees in the singular for one page", () => {
+    expect(signInLockoutWarning(["connexion"], { scope: "restricted" })).toContain(
+      "» sert à"
+    );
   });
 });

@@ -114,5 +114,6 @@ export function signInLockoutWarning(
   const closed = slugs.filter((slug) => accountPages.includes(slug));
   if (closed.length === 0) return null;
   const named = closed.map((slug) => `«\u00A0${slug}\u00A0»`).join(", ");
-  return `Attention : ${named} sert à se connecter. En fermer la lecture ferme la connexion pour qui n'est pas déjà connecté — et si toutes les sessions expirent, seule la base de données permettra de rouvrir le wiki.`;
+  const serves = closed.length === 1 ? "sert" : "servent";
+  return `Attention : ${named} ${serves} à se connecter ou à récupérer un compte. En fermer la lecture ferme la connexion à qui n'est pas déjà connecté — et si toutes les sessions expirent, seule la base de données permettra de rouvrir le wiki.`;
 }
