@@ -36,9 +36,8 @@ import {
 import { wikiConfig } from "@/wiki.config";
 import {
   type OwnedForm,
-  assertFormStructuring,
+  assertFormStructuringOf,
   editableForm,
-  ownerOf,
 } from "@/modules/forms/access/guards";
 import { type ReadableForm, readableForm } from "@/modules/permissions/readable-form";
 import type { Form } from "@/lib/generated/prisma/client";
@@ -190,7 +189,7 @@ export async function updateForm(
   definition: FormDefinition,
   sweeps: FormSaveSweeps
 ): Promise<void> {
-  await assertFormStructuring(await ownerOf(formId));
+  await assertFormStructuringOf(formId);
   const person = await currentUsername();
   await prisma.$transaction(
     async (tx) => {
@@ -272,7 +271,7 @@ export async function renameFormSlug(
   rename: SlugRename,
   referenceProps: ReadonlyMap<string, ReadonlySet<string>>
 ): Promise<void> {
-  await assertFormStructuring(await ownerOf(formId));
+  await assertFormStructuringOf(formId);
   await prisma.$transaction(
     async (tx) => {
       await tx.form.update({

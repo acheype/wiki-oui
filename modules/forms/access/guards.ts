@@ -2,7 +2,8 @@ import type { Form } from "@/lib/generated/prisma/client";
 import { canCreateEntry } from "@/modules/permissions/form-level";
 import { FORM_EDIT_REFUSED } from "@/modules/permissions/rules";
 import { currentOwns, currentPerson } from "@/modules/permissions/person";
-import { permissionsOf } from "@/modules/forms/forms";
+import { type SeenForm, permissionsOf } from "@/modules/forms/forms";
+import { readableForm } from "@/modules/permissions/readable-form";
 import { currentReadableWhere } from "@/modules/pages/rights";
 import { prisma } from "@/lib/prisma";
 
@@ -37,12 +38,18 @@ export async function assertFormStructuring(form: OwnedForm): Promise<void> {
   throw new Error(FORM_EDIT_REFUSED);
 }
 
-/** The same read, from the identifier a view holds. */
-export async function ownerOf(formId: string): Promise<OwnedForm> {
-  return prisma.form.findUniqueOrThrow({
+/**
+ * The same rung, from the technical identifier a write holds. Reads and
+ * refuses in one call rather than handing the owner back for the caller to
+ * assert on: the two halves only ever appeared together, and the read half
+ * alone said nothing about what it was for.
+ */
+export async function assertFormStructuringOf(formId: string): Promise<void> {
+  const form = await prisma.form.findUniqueOrThrow({
     where: { id: formId },
     select: { ownerUsername: true },
   });
+  await assertFormStructuring(form);
 }
 
 // --- the gates ---------------------------------------------------------------
@@ -128,21 +135,7 @@ export async function canEditForm(slug: string): Promise<boolean> {
   return form !== null && (await currentOwns(form.ownerUsername));
 }
 
-// --- the reads that decide nothing, and stay here for that reason ------------
-
-/**
- * A form by identifier, with no right posed on it. Private, and it must stay
- * so (ADR 0025, amendment of 2026-08-24): exported from a root file, nothing
- * about a call site would say which right it skipped.
- *
- * Its one caller is the entry save, where the right belongs to the fiche and
- * not to the form: creating one is refused by createEntryPage and editing one
- * by writeEntryRevision, both behind the Page guards, and both from the
- * revision they read themselves.
- */
-export async function formBySlug(slug: string): Promise<Form | null> {
-  return prisma.form.findUnique({ where: { slug } });
-}
+// --- the reads that answer no rung, and stay here for that reason ------------
 
 /**
  * Whether this person may add a fiche to that form — the form's own rule, not
@@ -180,7 +173,13 @@ export async function listFormNames() {
   });
 }
 
-/** The chosen forms, whole: every caller cuts them with readableForm itself. */
-export async function listFormsBySlugs(slugs: string[]) {
-  return prisma.form.findMany({ where: { slug: { in: slugs } } });
+/**
+ * The chosen forms, each already cut to what this person may see — the same
+ * gate readableFormBySlug is, over a handful of identifiers at once.
+ */
+export async function readableFormsBySlugs(slugs: string[]): Promise<SeenForm[]> {
+  const forms = await prisma.form.findMany({ where: { slug: { in: slugs } } });
+  return Promise.all(
+    forms.map(async (form) => ({ ...form, seen: await readableForm(form.schema) }))
+  );
 }

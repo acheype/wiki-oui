@@ -26,7 +26,6 @@ import {
   fieldWriteRule,
   writableDescriptor,
 } from "@/modules/permissions/field-level";
-import { readableForm } from "@/modules/permissions/readable-form";
 import { type EntryFieldChoice, unionEntryFields } from "@/modules/forms/entry-fields";
 import { loadComponentBuilders } from "@/modules/authoring/descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/modules/forms/field-rename/rules";
@@ -57,10 +56,9 @@ import {
   canEditForm,
   deleteFormBySlug,
   editableForm,
-  formBySlug,
   formSlugExists,
   listFormNames,
-  listFormsBySlugs,
+  readableFormsBySlugs,
   listFormsWithEntryCount,
   structuredForm,
 } from "@/modules/forms/access/guards";
@@ -501,23 +499,18 @@ export async function listFormChoices(): Promise<
 export async function listEntryFieldChoices(
   formSlugs: string[]
 ): Promise<EntryFieldChoice[]> {
-  const forms = await listFormsBySlugs(formSlugs);
-  const bySlug = new Map(forms.map((form) => [form.slug, form]));
   // Cut to what this person may read, and so are the zones, the filters and
   // the sorts built from it: a field they cannot see is not one they can be
-  // offered to sort on (docs/permissions.md § Champ). The values are cut
-  // again, form by form, where the payload is assembled — a name readable on
-  // one of the chosen forms is not thereby readable on the next.
-  const ordered = (
-    await Promise.all(
-      formSlugs.map(async (slug) => {
-        const form = bySlug.get(slug);
-        if (!form) return []; // a slug typed by hand may not exist (yet)
-        const seen = await readableForm(form.schema);
-        return seen ? [{ name: form.name, descriptor: seen.readable }] : [];
-      })
-    )
-  ).flat();
+  // offered to sort on (docs/permissions.md § Champ). The gate makes the cut
+  // form by form — a name readable on one of the chosen forms is not thereby
+  // readable on the next — and the values are cut again where the payload is
+  // assembled.
+  const forms = await readableFormsBySlugs(formSlugs);
+  const bySlug = new Map(forms.map((form) => [form.slug, form]));
+  const ordered = formSlugs.flatMap((slug) => {
+    const form = bySlug.get(slug); // a slug typed by hand may not exist (yet)
+    return form?.seen ? [{ name: form.name, descriptor: form.seen.readable }] : [];
+  });
   const choices = unionEntryFields(ordered);
   return Promise.all(
     choices.map(async (choice) => {
@@ -706,18 +699,18 @@ export type SaveEntryResult =
 export async function saveEntry(
   input: SaveEntryInput
 ): Promise<SaveEntryResult> {
-  // The whole descriptor, uncut: a save decides on fields it never showed
-  // (modules/permissions/readable-form.ts § whole). No right is posed here
-  // either, and none belongs here — creating a fiche is refused by
-  // createEntryPage and editing one by writeEntryRevision, both behind the
-  // Page guards and both from the revision they read themselves.
-  const form = await formBySlug(input.formSlug);
+  const form = await readableFormBySlug(input.formSlug);
   if (!form) return { ok: false, formError: "Ce formulaire n'existe plus." };
-  const parsed = parseFormDescriptor(form.schema);
-  if (!parsed.descriptor) {
+  if (!form.seen) {
     return { ok: false, formError: "Descripteur du formulaire invalide." };
   }
-  const descriptor = parsed.descriptor;
+  // `whole`, not `readable`: a save decides on fields it never showed
+  // (modules/permissions/readable-form.ts) — one of the two readers that
+  // field exists for. The right on the write itself is the fiche's and not
+  // the form's: createEntryPage refuses a creation and writeEntryRevision an
+  // edit, both behind the Page guards and both from the revision they read
+  // themselves.
+  const descriptor = form.seen.whole;
 
   // Same schema as the client resolver (ADR 0015): one source of truth. Cut
   // to the fields this person may write, so that what they send on the others

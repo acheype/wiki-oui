@@ -1,12 +1,16 @@
 import { Project } from "ts-morph";
 import { describe, expect, it } from "vitest";
-import { scanAccessGuards } from "./scan";
+import { FORM, scanAccessGuards } from "./scan";
 
 // Builds an in-memory project with a stand-in decide/rules.ts
 // (the three primitives) plus whatever modules/pages/content.ts-shaped source
 // the test provides — the same in-memory pattern
 // modules/authoring/verify.test.ts uses for cross-file resolution.
-function projectWith(pagesSource: string, extraFiles: Record<string, string> = {}) {
+function projectWith(
+  pagesSource: string,
+  extraFiles: Record<string, string> = {},
+  path = "modules/pages/content.ts"
+) {
   const project = new Project({ useInMemoryFileSystem: true });
   project.createSourceFile(
     "modules/permissions/decide/rules.ts",
@@ -28,7 +32,7 @@ function projectWith(pagesSource: string, extraFiles: Record<string, string> = {
   for (const [path, source] of Object.entries(extraFiles)) {
     project.createSourceFile(path, source);
   }
-  return project.createSourceFile("modules/pages/content.ts", pagesSource);
+  return project.createSourceFile(path, pagesSource);
 }
 
 describe("scanAccessGuards", () => {
@@ -190,5 +194,54 @@ describe("scanAccessGuards", () => {
     );
     const findings = scanAccessGuards(file);
     expect(findings.map((f) => f.name)).toContain("stuck");
+  });
+
+  it("flags a form read that never decides who is asking", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function everyDefinition() {
+         return prisma.form.findMany({});
+       }`,
+      {},
+      "modules/forms/forms.ts"
+    );
+    expect(scanAccessGuards(file, FORM).map((f) => f.name)).toContain(
+      "everyDefinition"
+    );
+  });
+
+  it("accepts a form read once the definition is cut to what is readable", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       import { isAdmin } from "../../modules/permissions/decide/rules";
+       async function currentPerson() { return {}; }
+       async function readableForm(schema: unknown) {
+         return isAdmin(await currentPerson()) ? schema : null;
+       }
+       export async function readableFormBySlug(slug: string) {
+         const form = await prisma.form.findUnique({ where: { slug } });
+         return form && { ...form, seen: await readableForm(form.schema) };
+       }`,
+      {},
+      "modules/forms/forms.ts"
+    );
+    expect(scanAccessGuards(file, FORM)).toEqual([]);
+  });
+
+  it("flags a form reached through a page relation, unguarded", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function leakyRelation(slug: string) {
+         return prisma.page.findUnique({
+           where: { slug },
+           include: { form: true },
+         });
+       }`,
+      {},
+      "modules/forms/forms.ts"
+    );
+    expect(scanAccessGuards(file, FORM).map((f) => f.name)).toContain(
+      "leakyRelation"
+    );
   });
 });

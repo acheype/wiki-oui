@@ -1,6 +1,7 @@
 import path from "node:path";
 import {
   type ArrowFunction,
+  type CallExpression,
   type FunctionDeclaration,
   type FunctionExpression,
   type Identifier,
@@ -77,22 +78,23 @@ function asFunctionLike(node: Node | undefined): FunctionLike | undefined {
   return undefined;
 }
 
-/** `X.page.<read>()`, or `X.revision.<read>()` when the call also reaches for `page`. */
-function isPageReadCall(call: Node): boolean {
-  if (!Node.isCallExpression(call)) return false;
-  const callee = call.getExpression();
-  if (!Node.isPropertyAccessExpression(callee)) return false;
-  const method = callee.getName();
-  if (!READ_METHODS.has(method)) return false;
-  const object = callee.getExpression();
-  if (!Node.isPropertyAccessExpression(object)) return false;
-  const model = object.getName();
-  if (model === "page") return true;
-  if (model !== "revision") return false;
-  // The relation escape ADR 0025's syntax rule cannot see (eslint.config.mjs):
-  // `prisma.revision.findUnique({ include: { page: … } })` never spells
-  // `.page.`, yet it hands the page back. Caught here by looking for a
-  // `page` key among the call's own arguments.
+/**
+ * One table this check watches: what its rows are called in Prisma, the
+ * neighbouring models whose reads hand its rows back through a relation, and
+ * the files allowed to touch it (the wikioui/access-layer exemption list).
+ */
+export interface WatchedTable {
+  /** As the domain names it, for the thrown message. */
+  name: string;
+  /** As Prisma names it: `prisma.<model>.findMany`. */
+  model: string;
+  /** Models whose own read can carry this one along, by relation. */
+  via: readonly string[];
+  files: readonly string[];
+}
+
+/** Does the call name `key` anywhere in its arguments — `include: { page: … }`? */
+function reachesFor(call: CallExpression, key: string): boolean {
   return call
     .getArguments()
     .some((arg) =>
@@ -101,9 +103,28 @@ function isPageReadCall(call: Node): boolean {
         .some(
           (node) =>
             (Node.isPropertyAssignment(node) || Node.isShorthandPropertyAssignment(node)) &&
-            node.getName() === "page"
+            node.getName() === key
         )
     );
+}
+
+/** `X.<model>.<read>()`, or a neighbour's read that reaches for `<model>`. */
+function isTableReadCall(call: Node, table: WatchedTable): boolean {
+  if (!Node.isCallExpression(call)) return false;
+  const callee = call.getExpression();
+  if (!Node.isPropertyAccessExpression(callee)) return false;
+  const method = callee.getName();
+  if (!READ_METHODS.has(method)) return false;
+  const object = callee.getExpression();
+  if (!Node.isPropertyAccessExpression(object)) return false;
+  const model = object.getName();
+  if (model === table.model) return true;
+  if (!table.via.includes(model)) return false;
+  // The relation escape ADR 0025's syntax rule cannot see (eslint.config.mjs):
+  // `prisma.revision.findUnique({ include: { page: … } })` never spells
+  // `.page.`, yet it hands the page back — and the same holds of
+  // `prisma.page.findMany({ include: { form: true } })` for a form.
+  return reachesFor(call, table.model);
 }
 
 function isPrimitiveCall(call: Node): string | undefined {
@@ -127,7 +148,10 @@ function isPrimitiveCall(call: Node): string | undefined {
  * check errs that way on purpose — following a reference that may never be
  * called is how a real leak would come to look guarded.
  */
-function scanReachable(start: FunctionLike): { reads: boolean; guarded: boolean } {
+function scanReachable(
+  start: FunctionLike,
+  table: WatchedTable
+): { reads: boolean; guarded: boolean } {
   const visited = new Set<string>();
   const queue: Node[] = [start];
   let reads = false;
@@ -136,7 +160,7 @@ function scanReachable(start: FunctionLike): { reads: boolean; guarded: boolean 
   while (queue.length > 0 && !(reads && guarded)) {
     const node = queue.shift()!;
     for (const call of node.getDescendants().filter(Node.isCallExpression)) {
-      if (isPageReadCall(call)) reads = true;
+      if (isTableReadCall(call, table)) reads = true;
       if (isPrimitiveCall(call)) {
         guarded = true;
         continue;
@@ -156,17 +180,20 @@ function scanReachable(start: FunctionLike): { reads: boolean; guarded: boolean 
 }
 
 /**
- * Every exported function of `sourceFile` that reads Page without its
+ * Every exported function of `sourceFile` that reads the table without its
  * reachable call graph ever deciding who is asking (see module doc). Pure —
  * takes a ts-morph SourceFile, never touches Prisma or a database.
  */
-export function scanAccessGuards(sourceFile: SourceFile): AccessFinding[] {
+export function scanAccessGuards(
+  sourceFile: SourceFile,
+  table: WatchedTable = PAGE
+): AccessFinding[] {
   const findings: AccessFinding[] = [];
   for (const [name, declarations] of sourceFile.getExportedDeclarations()) {
     for (const declaration of declarations) {
       const fn = asFunctionLike(declaration);
       if (!fn) continue;
-      const { reads, guarded } = scanReachable(fn);
+      const { reads, guarded } = scanReachable(fn, table);
       if (reads && !guarded) {
         findings.push({ name, line: declaration.getStartLineNumber() });
       }
@@ -175,20 +202,58 @@ export function scanAccessGuards(sourceFile: SourceFile): AccessFinding[] {
   return findings;
 }
 
-// --- the allowlist, run at prebuild ------------------------------------------
+// --- the tables and their allowlists, run at prebuild ------------------------
+
+/**
+ * The five files ADR 0029 split lib/pages.ts into: the guards themselves
+ * (access/guards.ts, private to modules/pages/) plus the four root files that
+ * each read or write Page (content.ts, revisions.ts, rights.ts, entries.ts). A
+ * function moved from one to another keeps the same name, so the allowlist
+ * below did not need to change with the split — only this list of files did.
+ */
+export const PAGE: WatchedTable = {
+  name: "Page",
+  model: "page",
+  via: ["revision"],
+  files: [
+    "modules/pages/access/guards.ts",
+    "modules/pages/content.ts",
+    "modules/pages/revisions.ts",
+    "modules/pages/rights.ts",
+    "modules/pages/entries.ts",
+  ],
+};
+
+/**
+ * The two files lib/forms.ts split into (ADR 0029): the guards, private to
+ * modules/forms/, and the one root file carrying the public API. Watched for
+ * the same reason Page is (issue #20): a form's definition names its own
+ * restricted fields, so handing one back undecided publishes what the field
+ * rights protect.
+ */
+export const FORM: WatchedTable = {
+  name: "Form",
+  model: "form",
+  via: ["page"],
+  files: ["modules/forms/access/guards.ts", "modules/forms/forms.ts"],
+};
+
+const WATCHED: readonly WatchedTable[] = [PAGE, FORM];
 
 /**
  * Every exported read the scan above finds and does not itself decide on —
- * verified by hand, once, the day this check was added (issue #17). Kept
- * deliberately small: a new entry is a new read of everyone's Page, and this
- * is where a reviewer looks for it.
+ * verified by hand, once, the day each table was added to this check (issues
+ * #17 and #20). Kept deliberately small: a new entry is a new read of
+ * everyone's rows, and this is where a reviewer looks for it.
  *
  * One invariant holds over the whole list, and is what a review should check
- * an addition against (issue #20): **no entry returns content**. What is here
- * is a boolean, some slugs and two counts. A read that hands back what a page
- * says belongs behind a guard, whatever its reason.
+ * an addition against: **no entry returns content**. What is here is a couple
+ * of booleans, some slugs and names, and three counts. A read that hands back
+ * what a page says, or what a form's fields are called, belongs behind a
+ * guard, whatever its reason.
  */
 const UNGUARDED_READS: Record<string, string> = {
+  // --- Page --------------------------------------------------------------
   // A boolean, never the page (see the function's own docstring): an address
   // one cannot read is still an address that is taken, and answering « libre »
   // would let someone write over what they cannot see.
@@ -204,47 +269,47 @@ const UNGUARDED_READS: Record<string, string> = {
   // A number, never the pages — and its one caller, getGroup, runs behind
   // getGroupDetail's own admin check first (modules/permissions/group-actions.ts).
   countPagesGrantingGroup: "a count, not the pages — its one caller already runs behind an admin check",
+
+  // --- Form --------------------------------------------------------------
+  // The same boolean, on the other identifier space.
+  formSlugExists: "a boolean saying an identifier is taken — never the form behind it",
+  // slug + name, by `select` (see the function's own docstring): what the
+  // pickers that name forms read, and private to modules/forms/ besides.
+  listFormNames: "slug and name only — what a picker needs to name a form, never its fields",
+  // The form half of what erasing an account would leave without an owner
+  // (modules/accounts/queries/queries.ts), behind that page's own admin check.
+  countFormsOwnedByAccount: "a count, not the forms — its caller runs behind an admin check",
+  // Three numbers — how many pages, entries and forms mention this identifier
+  // — for the sentence the rename dialog shows before it retcons (ADR 0016).
+  // Never the rows themselves, and never what any of them says.
+  countFormSlugReferences: "a headcount of references, not the rows that carry them",
 };
 
 /**
- * The five files ADR 0029 split lib/pages.ts into: the guards themselves
- * (access/guards.ts, private to modules/pages/) plus the four root files that
- * each read or write Page (content.ts, revisions.ts, rights.ts, entries.ts). A
- * function moved from one to another keeps the same name, so UNGUARDED_READS
- * below did not need to change with the split — only this list of files did.
- */
-const PAGE_ACCESS_FILES = [
-  "modules/pages/access/guards.ts",
-  "modules/pages/content.ts",
-  "modules/pages/revisions.ts",
-  "modules/pages/rights.ts",
-  "modules/pages/entries.ts",
-];
-
-/**
  * The prebuild gate itself (ADR 0013's culture, applied to ADR 0025's door):
- * throws with every exported read of modules/pages/ that does not decide who
- * is asking, and that this session has not already looked at and
- * allowlisted.
+ * throws with every exported read of the access layer that does not decide who
+ * is asking, and that this session has not already looked at and allowlisted.
  */
 export function verifyPageAccessGuards(): void {
   const project = new Project({
     tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
     skipAddingFilesFromTsConfig: true,
   });
-  const findings = PAGE_ACCESS_FILES.flatMap((relativePath) => {
-    const file = project.addSourceFileAtPath(path.join(process.cwd(), relativePath));
-    return scanAccessGuards(file)
-      .filter((finding) => !(finding.name in UNGUARDED_READS))
-      .map((finding) => ({ ...finding, file: relativePath }));
-  });
+  const findings = WATCHED.flatMap((table) =>
+    table.files.flatMap((relativePath) => {
+      const file = project.addSourceFileAtPath(path.join(process.cwd(), relativePath));
+      return scanAccessGuards(file, table)
+        .filter((finding) => !(finding.name in UNGUARDED_READS))
+        .map((finding) => ({ ...finding, file: relativePath, table: table.name }));
+    })
+  );
   if (findings.length > 0) {
     throw new Error(
-      "modules/pages/ reads Page without deciding who is asking (ADR 0025's door has no filter on this):\n" +
+      "The access layer reads rows without deciding who is asking (ADR 0025's door has no filter on this):\n" +
         findings
           .map(
             (finding) =>
-              `  - ${finding.name} (${finding.file}:${finding.line}) never reaches canRead, canWrite or isAdmin`
+              `  - ${finding.name} (${finding.file}:${finding.line}) reads ${finding.table} and never reaches canRead, canWrite or isAdmin`
           )
           .join("\n") +
         "\nGuard the read, or — if it is deliberate — add it to UNGUARDED_READS in scripts/verify-access/scan.ts with why."
