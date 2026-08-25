@@ -178,11 +178,10 @@ export function scanAccessGuards(sourceFile: SourceFile): AccessFinding[] {
  * is where a reviewer looks for it.
  */
 const UNGUARDED_READS: Record<string, string> = {
-  // Existence probe / write precursor (see the function's own docstring): the
-  // content never reaches a caller that has not first asked assertCanWrite or
-  // currentPermissions.
-  getPage:
-    "existence probe for a slug clash and the write paths' own read — callers assertCanWrite or currentPermissions before using the content",
+  // A boolean, never the page (see the function's own docstring): an address
+  // one cannot read is still an address that is taken, and answering « libre »
+  // would let someone write over what they cannot see.
+  slugExists: "a boolean saying an address is taken — never the page behind it",
   // Slugs only, readable or not (see the function's own docstring): what
   // modules/pages/lint.ts decides « cette page n'existe pas » against, never
   // content.

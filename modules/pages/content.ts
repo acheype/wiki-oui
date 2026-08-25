@@ -59,14 +59,28 @@ export const getPageWithCurrent = cache(async (slug: string) => {
 });
 
 /**
- * Uncached counterpart of getPageWithCurrent, for the write paths — which
- * hand what they read straight to assertCanWrite, so it carries the rights.
- * Also the existence probe a slug clash asks: a page one cannot read is still
- * a page whose address is taken, and hiding that would let someone write over
- * what they cannot see.
+ * « Cette adresse est-elle déjà prise ? » — a boolean and nothing else. A page
+ * one cannot read is still a page whose address is taken, and hiding that
+ * would let someone write over what they cannot see; but nothing of the page
+ * comes back here, so there is no right to pose on the answer.
  */
-export async function getPage(slug: string) {
-  return prisma.page.findUnique({ where: { slug }, include: WITH_RIGHTS });
+export async function slugExists(slug: string): Promise<boolean> {
+  const page = await prisma.page.findUnique({ where: { slug }, select: { id: true } });
+  return page !== null;
+}
+
+/**
+ * The page a rename is about to act on, read and refused in one call: changing
+ * an address is the administrators' alone (ADR 0016). Null when no page
+ * answers to the slug, so that the caller can still tell « cette page n'existe
+ * pas » from a refusal — and only then, since assertAddress decides on the
+ * person and never on the page.
+ */
+export async function addressablePage(slug: string): Promise<{ id: string } | null> {
+  const page = await prisma.page.findUnique({ where: { slug }, select: { id: true } });
+  if (!page) return null;
+  await assertAddress();
+  return page;
 }
 
 /**
@@ -377,13 +391,17 @@ export async function renamePageSlug(
 }
 
 // Hard delete (ADR 0008): revisions go with the page via onDelete: Cascade.
-// The rights are read here rather than taken from the caller: deleting is the
-// one action nothing undoes, and the door owes it its own look at the page.
-export async function deletePageById(id: string): Promise<void> {
-  const page = await prisma.page.findUniqueOrThrow({
-    where: { id },
+// Takes the slug the view holds and reads the page itself rather than being
+// handed one: deleting is the one action nothing undoes, so the guard owes it
+// its own look at the rights. False when no page answers to the slug — the
+// caller's own « cette page n'existe pas ».
+export async function deletePageBySlug(slug: string): Promise<boolean> {
+  const page = await prisma.page.findUnique({
+    where: { slug },
     include: WITH_RIGHTS,
   });
+  if (!page) return false;
   await assertStructuring(page, DELETE_REFUSED);
-  await prisma.page.delete({ where: { id } });
+  await prisma.page.delete({ where: { id: page.id } });
+  return true;
 }

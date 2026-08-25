@@ -68,7 +68,7 @@ vi.mock("@/modules/permissions/groups-queries", () => ({
   listDirectory: async () => ({ people: [], groups: [] }),
 }));
 
-const { deletePageById, renamePageSlug, writePageContent } = await import(
+const { deletePageBySlug, renamePageSlug, writePageContent } = await import(
   "@/modules/pages/content"
 );
 const { setPageRights, transferPageOwnership } = await import("@/modules/pages/rights");
@@ -109,7 +109,7 @@ beforeEach(() => {
 
 /** Every write of the door that a check stands in front of. */
 const guarded: [string, string, () => Promise<unknown>][] = [
-  ["deleting a page", DELETE_REFUSED, () => deletePageById("page-1")],
+  ["deleting a page", DELETE_REFUSED, () => deletePageBySlug("compte-rendu")],
   [
     "handing a page over",
     TRANSFER_REFUSED,
@@ -169,7 +169,7 @@ describe("the door refuses what the bar would not offer", () => {
 describe("the same writes, to whoever they answer to", () => {
   it("lets the owner delete their page, and lets nobody else", async () => {
     signedInAs("marie-durand");
-    await deletePageById("page-1");
+    await deletePageBySlug("compte-rendu");
     expect(db.page.delete).toHaveBeenCalledWith({ where: { id: "page-1" } });
   });
 

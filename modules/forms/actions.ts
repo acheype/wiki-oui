@@ -61,7 +61,7 @@ import {
   listDirectory,
 } from "@/modules/permissions/groups-queries";
 import { hasForm } from "@/modules/pages/entry-page";
-import { getPage, getPageWithCurrent } from "@/modules/pages/content";
+import { getPageWithCurrent, slugExists } from "@/modules/pages/content";
 import { isRefused } from "@/modules/pages/rights";
 import {
   createEntryPage,
@@ -736,8 +736,7 @@ export async function saveEntry(
     return { ok: false, slugCollision: true };
   }
   // Collision with any page (MDX or entry): explicit, never a silent suffix.
-  const clash = await getPage(slug);
-  if (clash) return { ok: false, slugCollision: true };
+  if (await slugExists(slug)) return { ok: false, slugCollision: true };
 
   try {
     await createEntryPage({

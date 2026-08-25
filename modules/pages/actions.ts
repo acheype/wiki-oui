@@ -16,20 +16,16 @@ import { type PageWarning, lintPageSource } from "@/modules/pages/lint";
 import { hasForm } from "@/modules/pages/entry-page";
 import {
   countPageSlugReferences,
-  deletePageById,
-  getPage,
+  deletePageBySlug,
+  addressablePage,
+  slugExists,
   listAllPageSlugs,
   renamePageSlug,
   writePageContent,
 } from "@/modules/pages/content";
 import { getRevisionToRestore, writeRestoredRevision } from "@/modules/pages/revisions";
 import { isRefused } from "@/modules/pages/rights";
-import { currentPermissions } from "@/modules/permissions/person";
-import {
-  ACCESS_DENIED,
-  ADDRESS_REFUSED,
-  refusalMessage,
-} from "@/modules/permissions/rules";
+import { ACCESS_DENIED, refusalMessage } from "@/modules/permissions/rules";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -128,18 +124,21 @@ export async function renamePage(
   }
   const reserved = reservedSlugRefusal(newSlug);
   if (reserved) return { error: reserved };
-  const page = await getPage(slug);
+  // Read and refused in one call, so that no path reaches the rename with an
+  // unchecked page. The refusal is caught here rather than by the try below —
+  // which speaks for the rename's own failure, a unique-constraint race on the
+  // new slug — and it comes before the clash test, that being the one answer
+  // which says something about another page.
+  let page: { id: string } | null;
+  try {
+    page = await addressablePage(slug);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
   if (!page) {
     return { error: "Cette page n'existe pas." };
   }
-  // Read from the same ladder the bar draws itself from, and read here rather
-  // than from the catch below — which speaks for the rename's own failure, a
-  // unique-constraint race on the new slug. It comes before the clash test
-  // too, that being the one answer which says something about another page.
-  if (!(await currentPermissions(page)).address) {
-    return { error: ADDRESS_REFUSED };
-  }
-  if (await getPage(newSlug)) {
+  if (await slugExists(newSlug)) {
     return { error: `L'adresse «\u00A0${newSlug}\u00A0» est déjà utilisée.` };
   }
 
@@ -163,17 +162,14 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   if (specialSlugs.includes(slug)) {
     return { error: "Les pages spéciales ne peuvent pas être supprimées." };
   }
-  const page = await getPage(slug);
-  if (!page) {
-    return { error: "Cette page n'existe pas." };
-  }
-
   // The bar leaves the action out for anyone but the owner and the
   // administrators, so reaching this means the page changed hands — or a
   // direct call — and the refusal belongs in a toast, not on the error
   // boundary.
   try {
-    await deletePageById(page.id);
+    if (!(await deletePageBySlug(slug))) {
+      return { error: "Cette page n'existe pas." };
+    }
   } catch (error) {
     return { error: refusalMessage(error) };
   }
