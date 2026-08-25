@@ -40,14 +40,13 @@ vi.mock("@/modules/permissions/groups-queries", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
-const { getFormBySlug } = vi.hoisted(() => ({ getFormBySlug: vi.fn() }));
+// The gate the action reads its form through: it makes the field cut itself,
+// so stubbing it is stubbing both moments at once.
+const { readableFormBySlug } = vi.hoisted(() => ({ readableFormBySlug: vi.fn() }));
 vi.mock("@/modules/forms/forms", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/modules/forms/forms")>()),
-  getFormBySlug,
+  readableFormBySlug,
 }));
-
-const { readableForm } = vi.hoisted(() => ({ readableForm: vi.fn() }));
-vi.mock("@/modules/permissions/readable-form", () => ({ readableForm }));
 
 const { listEntrySnapshots } = vi.hoisted(() => ({ listEntrySnapshots: vi.fn() }));
 vi.mock("@/modules/pages/entries", async (importOriginal) => ({
@@ -59,41 +58,47 @@ const { listUsedFieldValues } = await import("@/modules/forms/actions");
 
 const TAGS_FIELD = { type: "tags", name: "mots-cles", label: "Mots-clés" };
 
+/** The form as the gate hands it over: read, and already cut to what is seen. */
+function seenForm(readable: { fields: unknown[] } | null) {
+  readableFormBySlug.mockResolvedValue({
+    id: "form-1",
+    seen: readable && { readable },
+  });
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  getFormBySlug.mockResolvedValue({ id: "form-1", schema: {} });
+  seenForm({ fields: [] });
   listEntrySnapshots.mockResolvedValue([]);
 });
 
 describe("listUsedFieldValues", () => {
   it("answers nothing for a form that does not exist", async () => {
-    getFormBySlug.mockResolvedValue(null);
+    readableFormBySlug.mockResolvedValue(null);
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
     expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("answers nothing when the descriptor cannot be read at all", async () => {
-    readableForm.mockResolvedValue(null);
+    seenForm(null);
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
     expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("answers nothing for a field this person may not read", async () => {
-    readableForm.mockResolvedValue({ readable: { fields: [] } });
+    seenForm({ fields: [] });
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
     expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("answers nothing for a field that is readable but not a tags field", async () => {
-    readableForm.mockResolvedValue({
-      readable: { fields: [{ type: "text", name: "mots-cles", label: "Mots-clés" }] },
-    });
+    seenForm({ fields: [{ type: "text", name: "mots-cles", label: "Mots-clés" }] });
     expect(await listUsedFieldValues("associations", "mots-cles")).toEqual([]);
     expect(listEntrySnapshots).not.toHaveBeenCalled();
   });
 
   it("ranks the values already carried by the field's readable entries", async () => {
-    readableForm.mockResolvedValue({ readable: { fields: [TAGS_FIELD] } });
+    seenForm({ fields: [TAGS_FIELD] });
     listEntrySnapshots.mockResolvedValue([
       { "mots-cles": ["rh", " rh ", "paie"] },
       { "mots-cles": ["rh"] },

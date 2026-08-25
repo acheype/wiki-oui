@@ -1,6 +1,9 @@
 import type { Form } from "@/lib/generated/prisma/client";
+import { canCreateEntry } from "@/modules/permissions/form-level";
 import { FORM_EDIT_REFUSED } from "@/modules/permissions/rules";
-import { currentOwns } from "@/modules/permissions/person";
+import { currentOwns, currentPerson } from "@/modules/permissions/person";
+import { permissionsOf } from "@/modules/forms/forms";
+import { currentReadableWhere } from "@/modules/pages/rights";
 import { prisma } from "@/lib/prisma";
 
 // The guards of `Form` (ADR 0025), alongside modules/pages/access/guards.ts
@@ -123,4 +126,61 @@ export async function canEditForm(slug: string): Promise<boolean> {
     select: { ownerUsername: true },
   });
   return form !== null && (await currentOwns(form.ownerUsername));
+}
+
+// --- the reads that decide nothing, and stay here for that reason ------------
+
+/**
+ * A form by identifier, with no right posed on it. Private, and it must stay
+ * so (ADR 0025, amendment of 2026-08-24): exported from a root file, nothing
+ * about a call site would say which right it skipped.
+ *
+ * Its one caller is the entry save, where the right belongs to the fiche and
+ * not to the form: creating one is refused by createEntryPage and editing one
+ * by writeEntryRevision, both behind the Page guards, and both from the
+ * revision they read themselves.
+ */
+export async function formBySlug(slug: string): Promise<Form | null> {
+  return prisma.form.findUnique({ where: { slug } });
+}
+
+/**
+ * Whether this person may add a fiche to that form — the form's own rule, not
+ * the wiki's (docs/permissions.md § Formulaire). A boolean, so a system page
+ * leaves « Nouvelle fiche » out rather than offering what it would refuse.
+ */
+export async function canCreateEntryIn(slug: string): Promise<boolean> {
+  const form = await prisma.form.findUnique({
+    where: { slug },
+    select: { schema: true },
+  });
+  return form !== null && canCreateEntry(await currentPerson(), permissionsOf(form));
+}
+
+/**
+ * Every form with the count of its entries, for the forms system page. The
+ * count is filtered like the list it heads: a form announcing 40 entries and
+ * then showing 12 would be a leak dressed as a bug. The definitions come back
+ * whole, which is why this read stays private — what the page shows of them
+ * is a name and a number.
+ */
+export async function listFormsWithEntryCount() {
+  const readable = await currentReadableWhere();
+  return prisma.form.findMany({
+    orderBy: { name: "asc" },
+    include: { _count: { select: { entries: { where: readable } } } },
+  });
+}
+
+/** slug + name of every form, for the pickers that name forms — nothing else. */
+export async function listFormNames() {
+  return prisma.form.findMany({
+    orderBy: { name: "asc" },
+    select: { slug: true, name: true },
+  });
+}
+
+/** The chosen forms, whole: every caller cuts them with readableForm itself. */
+export async function listFormsBySlugs(slugs: string[]) {
+  return prisma.form.findMany({ where: { slug: { in: slugs } } });
 }

@@ -37,12 +37,10 @@ vi.mock("@/modules/permissions/groups-queries", () => ({
   currentGroupSlugs: async () => person.current.groupSlugs,
 }));
 
-const {
-  currentCanCreateForm,
-  createForm,
-  listFormsWithEntries,
-  listFormsWithEntryCount,
-} = await import("@/modules/forms/forms");
+const { currentCanCreateForm, createForm, listFormsWithEntries } = await import(
+  "@/modules/forms/forms"
+);
+const { listFormsWithEntryCount } = await import("@/modules/forms/access/guards");
 
 /** The `where` each call handed Prisma for the entries of a form. */
 function countClause() {

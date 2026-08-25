@@ -47,19 +47,21 @@ import {
   countFormDefaults,
   countFormSlugReferences,
   createForm,
-  getFormBySlug,
-  listFormNames,
-  listFormsBySlugs,
-  listFormsWithEntryCount,
   permissionsOf,
+  readableFormBySlug,
   renameFormSlug,
   updateForm,
 } from "@/modules/forms/forms";
 import {
+  canCreateEntryIn,
   canEditForm,
   deleteFormBySlug,
   editableForm,
+  formBySlug,
   formSlugExists,
+  listFormNames,
+  listFormsBySlugs,
+  listFormsWithEntryCount,
   structuredForm,
 } from "@/modules/forms/access/guards";
 import {
@@ -454,11 +456,11 @@ export async function listUsedFieldValues(
   formSlug: string,
   fieldName: string
 ): Promise<string[]> {
-  const form = await getFormBySlug(formSlug);
-  if (!form) return [];
-  const seen = await readableForm(form.schema);
-  if (!seen) return [];
-  const field = seen.readable.fields.find((candidate) => candidate.name === fieldName);
+  const form = await readableFormBySlug(formSlug);
+  if (!form?.seen) return [];
+  const field = form.seen.readable.fields.find(
+    (candidate) => candidate.name === fieldName
+  );
   if (!field || field.type !== "tags") return [];
 
   // Already cut to what this person may read (currentReadableWhere) and to
@@ -649,11 +651,13 @@ export async function getEntryForm(
   formSlug: string,
   entrySlug?: string
 ): Promise<EntryFormData | null> {
-  const form = await getFormBySlug(formSlug);
+  const form = await readableFormBySlug(formSlug);
   if (!form) return null;
   // What this person may not read never reaches the browser — neither the
-  // field nor the value it holds (docs/permissions.md § Champ).
-  const seen = await readableForm(form.schema);
+  // field nor the value it holds (docs/permissions.md § Champ). The gate has
+  // already made the cut; a null here means the stored descriptor no longer
+  // parses at all.
+  const seen = form.seen;
   if (!seen) {
     throw new Error(`Descripteur invalide en base : «\u00A0${formSlug}\u00A0»`);
   }
@@ -683,8 +687,7 @@ export async function getEntryForm(
 
 /** Whether a system page offers « Nouvelle fiche » for this form at all. */
 export async function canAddEntry(formSlug: string): Promise<boolean> {
-  const form = await getFormBySlug(formSlug);
-  return form !== null && currentCanCreateEntry(form);
+  return canCreateEntryIn(formSlug);
 }
 
 export interface SaveEntryInput {
@@ -703,7 +706,12 @@ export type SaveEntryResult =
 export async function saveEntry(
   input: SaveEntryInput
 ): Promise<SaveEntryResult> {
-  const form = await getFormBySlug(input.formSlug);
+  // The whole descriptor, uncut: a save decides on fields it never showed
+  // (modules/permissions/readable-form.ts § whole). No right is posed here
+  // either, and none belongs here — creating a fiche is refused by
+  // createEntryPage and editing one by writeEntryRevision, both behind the
+  // Page guards and both from the revision they read themselves.
+  const form = await formBySlug(input.formSlug);
   if (!form) return { ok: false, formError: "Ce formulaire n'existe plus." };
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {

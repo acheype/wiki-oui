@@ -1,9 +1,8 @@
 import { EntryView } from "@/modules/forms/ui/entry-view";
 import { Prose } from "@/components/ui/prose";
-import { readableForm } from "@/modules/permissions/readable-form";
 import { renderTemplateSource } from "@/modules/forms/entry-render";
 import { formSourcedValues, readEntryData } from "@/modules/forms/form-descriptor";
-import { getFormById } from "@/modules/forms/forms";
+import { readableFormById } from "@/modules/forms/forms";
 import { renderMdx } from "@/modules/authoring/mdx";
 import { listPagesWithCurrent } from "@/modules/pages/content";
 
@@ -25,13 +24,13 @@ export async function EntryContent({
    */
   hideTitle?: boolean;
 }): Promise<React.ReactNode> {
-  const form = await getFormById(formId);
-  if (!form) return null;
   // The second of the two moments (docs/permissions.md § Deux temps): which
-  // fiches was a `where`, which fields inside them is settled here, in memory
-  // — the rights of a field living in JSON no clause reaches.
-  const seen = await readableForm(form.schema);
-  if (!seen) return null;
+  // fiches was a `where`, which fields inside them is settled by the gate that
+  // reads the form, in memory — the rights of a field living in JSON no clause
+  // reaches.
+  const form = await readableFormById(formId);
+  const seen = form?.seen;
+  if (!form || !seen) return null;
   const data = seen.readableValues(rawData);
 
   if (form.template && form.template.trim() !== "") {

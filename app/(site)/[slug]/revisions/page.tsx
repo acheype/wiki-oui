@@ -10,9 +10,8 @@ import { DiffView } from "@/modules/pages/ui/diff-view";
 import { RestoreButton } from "@/modules/pages/ui/restore-button";
 import { RevisionTimeline } from "@/modules/pages/ui/timeline";
 import { Button } from "@/components/ui/button";
-import { readableForm } from "@/modules/permissions/readable-form";
 import { formatDateTime } from "@/lib/format";
-import { getFormById } from "@/modules/forms/forms";
+import { readableFormById } from "@/modules/forms/forms";
 import { renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithRevisions } from "@/modules/pages/revisions";
@@ -74,12 +73,12 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the
   // entry's default view (below).
-  const form = isEntryPage(page) ? await getFormById(page.formId) : null;
   // The history is another way of reading a fiche, so the fields cut from its
   // rendering are cut from every revision of it too (docs/permissions.md §
   // Champ) — the JSON of a snapshot would otherwise hand over what the fiche
-  // itself withholds.
-  const seen = form ? await readableForm(form.schema) : null;
+  // itself withholds. The gate makes that cut as it reads the form.
+  const form = isEntryPage(page) ? await readableFormById(page.formId) : null;
+  const seen = form?.seen ?? null;
   const sourceOf = (revision: { content: string | null; data: unknown }) =>
     seen
       ? JSON.stringify(seen.readableValues(revision.data), null, 2)

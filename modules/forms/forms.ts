@@ -34,7 +34,14 @@ import {
   sweepSlugReferences,
 } from "@/lib/slug-rename-db";
 import { wikiConfig } from "@/wiki.config";
-import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/access/guards";
+import {
+  type OwnedForm,
+  assertFormStructuring,
+  editableForm,
+  ownerOf,
+} from "@/modules/forms/access/guards";
+import { type ReadableForm, readableForm } from "@/modules/permissions/readable-form";
+import type { Form } from "@/lib/generated/prisma/client";
 
 // The only door to `Form` (ADR 0025), alongside modules/pages/access/guards.ts for
 // `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
@@ -66,10 +73,6 @@ export async function currentCanCreateForm(): Promise<boolean> {
   return currentAllows(wikiConfig.permissions.createForm);
 }
 
-export async function getFormBySlug(slug: string) {
-  return prisma.form.findUnique({ where: { slug } });
-}
-
 /**
  * The three rules a form poses today (docs/permissions.md § Formulaire). Read
  * back through the descriptor engine, so a form saved before the « Accès »
@@ -85,37 +88,34 @@ export function permissionsOf(form: { schema: unknown }): FormPermissions {
     : bornFormPermissions();
 }
 
+/**
+ * A form read for showing: its definition already cut to what this person may
+ * see (docs/permissions.md § Champ), so that no caller has to remember the cut
+ * — the mistake this ticket exists to make unwritable.
+ *
+ * `seen` is null when the stored descriptor no longer parses. What to do about
+ * that is the caller's own: the fiche renders nothing, the history falls back
+ * on the raw snapshot, the entry form throws so the mistake is loud.
+ */
+export type SeenForm = Form & { seen: ReadableForm | null };
+
+/** The form a fiche, a history or a field picker names, by identifier. */
+export async function readableFormBySlug(slug: string): Promise<SeenForm | null> {
+  const form = await prisma.form.findUnique({ where: { slug } });
+  return form && { ...form, seen: await readableForm(form.schema) };
+}
+
+/** The same read from the technical id a fiche carries (Page.formId). */
+export async function readableFormById(id: string): Promise<SeenForm | null> {
+  const form = await prisma.form.findUnique({ where: { id } });
+  return form && { ...form, seen: await readableForm(form.schema) };
+}
+
 /** Whether the person may add a fiche to this form — what the entry form asks. */
 export async function currentCanCreateEntry(form: {
   schema: unknown;
 }): Promise<boolean> {
   return canCreateEntry(await currentPerson(), permissionsOf(form));
-}
-
-export async function getFormById(id: string) {
-  return prisma.form.findUnique({ where: { id } });
-}
-
-export async function listFormsWithEntryCount() {
-  // The count is filtered like the list it heads: a form announcing 40 entries
-  // and then showing 12 would be a leak dressed as a bug.
-  const readable = await currentReadableWhere();
-  return prisma.form.findMany({
-    orderBy: { name: "asc" },
-    include: { _count: { select: { entries: { where: readable } } } },
-  });
-}
-
-/** slug + name of every form, for the pickers that name forms. */
-export async function listFormNames() {
-  return prisma.form.findMany({
-    orderBy: { name: "asc" },
-    select: { slug: true, name: true },
-  });
-}
-
-export async function listFormsBySlugs(slugs: string[]) {
-  return prisma.form.findMany({ where: { slug: { in: slugs } } });
 }
 
 /**
@@ -247,9 +247,8 @@ export async function countFormDefaults(
   slug: string,
   permissions: FormPermissions
 ): Promise<EntryRightsImpact | null> {
-  const form = await getFormBySlug(slug);
+  const form = await editableForm(slug);
   if (!form) return null;
-  await assertFormStructuring(form);
   return countEntryRightsImpact(form.id, permissions);
 }
 
@@ -257,9 +256,8 @@ export async function applyFormDefaults(
   slug: string,
   permissions: FormPermissions
 ): Promise<void> {
-  const form = await getFormBySlug(slug);
+  const form = await editableForm(slug);
   if (!form) throw new Error("Ce formulaire n'existe plus.");
-  await assertFormStructuring(form);
   await applyFormDefaultsToEntries(form.id, permissions);
 }
 
