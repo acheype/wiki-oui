@@ -10,7 +10,6 @@ import {
   SCOPES,
 } from "@/modules/permissions/rules";
 import {
-  anyClause,
   canRead,
   canWrite,
   ownsPage,
@@ -309,27 +308,11 @@ describe("the filter clause and the unit decision", () => {
   }
 });
 
-describe("anyClause", () => {
-  // The trap it exists for: `{}` means every row, and Prisma drops an empty
-  // branch from an OR — so joining it by hand turns « everything » into
-  // « only the other branches ».
-  it("lets an empty clause absorb the others, as « everything » does", () => {
-    expect(anyClause([{}, { slug: { in: ["connexion"] } }])).toEqual({});
-  });
-
-  it("joins the rest with an OR", () => {
-    expect(
-      anyClause([{ readScope: "everyone" }, { slug: { in: ["connexion"] } }])
-    ).toEqual({
-      OR: [{ readScope: "everyone" }, { slug: { in: ["connexion"] } }],
-    });
-  });
-});
-
 describe("the clause an administrator gets", () => {
-  // The property anyClause exists for, held here rather than inferred: an
-  // administrator reads everything, so their clause is empty — and an empty
-  // clause is the one Prisma drops from an OR.
+  // The fact the wikioui/access-clauses ESLint rule stands on, held here
+  // rather than left implicit: an administrator reads everything, so their
+  // clause is empty — and an empty clause is the one Prisma drops from an OR,
+  // which is why these clauses are never joined by an OR at all.
   it("is empty, in both senses", () => {
     expect(readableWhere(ADMIN)).toEqual({});
     expect(writableWhere(ADMIN)).toEqual({});

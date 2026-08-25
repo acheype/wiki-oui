@@ -162,34 +162,3 @@ export function readableWhere(person: Person): Prisma.PageWhereInput {
   if (isAdmin(person)) return {};
   return { OR: [...writeBranches(person), ...scopeBranches(person, "READ")] };
 }
-
-/**
- * « This clause, or that one » — the only way these clauses are ever joined.
- *
- * Written by hand, that join is a trap: a person who may read everything gets
- * the empty clause `{}`, and **Prisma drops an empty branch from an `OR`**.
- * The branch that meant « everything » disappears, leaving the others to
- * narrow what should not have been narrowed — silently, and only for whoever
- * has the most rights, which is why it went unnoticed for days.
- *
- * Here the empty clause absorbs instead, as « everything or anything » does in
- * logic. An ESLint rule refuses `OR:` around these clauses so that this
- * function is not merely the recommended way but the only one left.
- *
- * It has no caller today: the one join the wiki made — the readable pages plus
- * a handful of always-readable slugs — is gone with that list (issue #20), and
- * every remaining composition is an `AND`, which has no such trap. It stays
- * because the ESLint rule has to be able to name the way out, and because the
- * trap will outlive its first victim.
- */
-export function anyClause(
-  clauses: readonly Prisma.PageWhereInput[]
-): Prisma.PageWhereInput {
-  if (clauses.some(isEverything)) return {};
-  return { OR: [...clauses] };
-}
-
-/** No condition at all, which SQL-side means every row — never « no row ». */
-function isEverything(clause: Prisma.PageWhereInput): boolean {
-  return Object.keys(clause).length === 0;
-}
