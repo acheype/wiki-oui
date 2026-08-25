@@ -5,7 +5,7 @@
 // call these directly without pulling next/headers into its bundle. Being a
 // root file of the module (ADR 0029), it is imported directly wherever it is
 // needed — server or client side alike — rather than re-exported through the
-// door.
+// module's guards.
 
 /**
  * A fiche is a Page whose `formId` is set — the one scalar every query

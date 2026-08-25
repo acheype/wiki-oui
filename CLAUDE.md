@@ -14,7 +14,7 @@ Une ligne par module : ce qu'il possède, quelle doc en détaille le fonctionnem
 | --- | --- | --- | --- |
 | `pages` | `Page` : contenu, révisions, droits, fiches liées, `WikiFrame` | [`forms.md`](docs/forms.md), [`permissions.md`](docs/permissions.md) | 0025 |
 | `forms` | `Form` : descripteur, rendu de fiche, titre automatique, renommage de champ | [`forms.md`](docs/forms.md), [`permissions.md`](docs/permissions.md) | 0014 |
-| `permissions` | Rôles, groupes, ACL, droits par défaut, niveaux page/formulaire/champ | [`permissions.md`](docs/permissions.md) | 0023, 0024, 0026 |
+| `permissions` | Niveaux d'accès, groupes, droits et droits par défaut, aux quatre étages (page, formulaire, champ, wiki) | [`permissions.md`](docs/permissions.md) | 0023, 0024, 0026 |
 | `accounts` | `Account` (BetterAuth), identités, invitations, mailer | [`permissions.md`](docs/permissions.md) | 0023 |
 | `entries-view` | `<EntriesView>`, ses neuf vues et leurs règles | [`entries-view.md`](docs/entries-view.md) | 0018 |
 | `authoring` | Sandbox MDX, pipeline du registre de composants, ComponentBuilder, éditeur | [`component-builder.md`](docs/component-builder.md) | 0002, 0013 |

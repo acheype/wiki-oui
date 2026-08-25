@@ -36,7 +36,7 @@ import {
 // The rights of one page, and of the wiki as a whole: everything
 // modules/pages/content.ts, modules/pages/revisions.ts and
 // modules/pages/entries.ts need to decide who reads or writes what, plus the
-// administration system pages' own bulk actions. Part of ADR 0025's door.
+// administration system pages' own bulk actions. Part of ADR 0025's access layer.
 //
 // PUBLIC_IDENTITY, ACL_ROWS, WITH_RIGHTS and COLD_ADMIN_TRANSACTION_TIMEOUT_MS
 // live here rather than in modules/pages/access/guards.ts (private to the
@@ -67,8 +67,8 @@ export const ACL_ROWS = {
 
 /**
  * What deciding on a page needs, plus the name a refusal would print. Shared
- * with modules/forms/forms.ts, which loads entries by the formful: a system
- * page that offers a action per row has to know the rights of every one of them.
+ * with modules/forms/forms.ts, which loads a whole form's entries at once: a
+ * system page that offers an action per row has to know the rights of each.
  */
 export const WITH_RIGHTS = {
   owner: PUBLIC_IDENTITY,
@@ -79,7 +79,7 @@ export const WITH_RIGHTS = {
  * What a namespace-wide retcon is allowed to take (ADR 0016/0017/0020): a
  * large wiki means many rewrites in one sweep, where Prisma's default 5s is
  * sized for hot-path transactions. Shared with modules/forms/forms.ts — the
- * same rare cold admin actions, on the other side of the door.
+ * same rare cold admin actions, on the other side of the access layer.
  */
 export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;
 
@@ -176,7 +176,8 @@ export async function setPageRights(
 // rights of every page on one system page, and a decision applied to dozens
 // of them at once without wondering what has just been broken. Reading it is
 // an administrator's action — it names the owner of everything and what each
-// page is open to — so the check is at the door, like the accounts system page.
+// page is open to — so the check is in the access layer, like the accounts
+// system page.
 
 /** A line of the management system page: what it shows, and what it decides on. */
 export interface ManagedPage extends PageRights {

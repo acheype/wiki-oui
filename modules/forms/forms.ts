@@ -42,14 +42,15 @@ import {
 import { type ReadableForm, readableForm } from "@/modules/permissions/readable-form";
 import type { Form } from "@/lib/generated/prisma/client";
 
-// The only door to `Form` (ADR 0025), alongside modules/pages/access/guards.ts for
+// The public half of the access layer of `Form` (ADR 0025), alongside
+// modules/pages/access/guards.ts for
 // `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
 // permission checks this layer hosts cannot be bypassed by a caller that
 // forgot them — the risk being a silent read, which no test would ever catch.
 //
-// Split at the door like modules/pages/ was (ADR 0029): this file is the
+// Split at the access layer like modules/pages/ was (ADR 0029): this file is the
 // public API, modules/forms/access/guards.ts holds the guards and the reads
-// nothing outside the module needs. Where the Page door had to split into four
+// nothing outside the module needs. Where Page had to split into four
 // subjects, this one was small enough to stay a single file.
 
 /** Whether the system pages offer those permissions at all, or simply leave them out. */
@@ -59,7 +60,7 @@ export async function currentCanEditForm(form: OwnedForm): Promise<boolean> {
 
 /**
  * Creating a form reads the wiki's own rule, the twin of currentCanCreatePage
- * on the other side of the door (docs/permissions.md § Où s'appliquent les
+ * on the other side of the access layer (docs/permissions.md § Où s'appliquent les
  * droits). Distinct from createPage because the two acts differ in reach: a
  * page engages a page, a form shapes every fiche written with it and takes
  * them all with it when it goes (ADR 0014).

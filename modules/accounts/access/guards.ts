@@ -35,7 +35,7 @@ import { authPagePath } from "@/wiki.config";
 
 // The accounts half of `gerer-utilisateurs` (docs/permissions.md § Comptes):
 // how a person gets in, and the two ways they stop getting in. Every action
-// here but three is an administrator's, and the check sits at the door rather
+// here but three is an administrator's, and the check sits in the guards rather
 // than in the callers (ADR 0025) — the three exceptions are the ones a
 // stranger holding a link performs, and each says so in its own comment.
 //

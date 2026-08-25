@@ -8,7 +8,8 @@ import { assertCanWrite, ifReadable, mintRevision } from "@/modules/pages/access
 import { PUBLIC_IDENTITY, WITH_RIGHTS, isRefused } from "@/modules/pages/rights";
 
 // A page's history: reading it, reading one revision to restore, writing a
-// restored one back. Part of ADR 0025's door, alongside modules/pages/content.ts,
+// restored one back. Part of ADR 0025's access layer, alongside
+// modules/pages/content.ts,
 // modules/pages/rights.ts and modules/pages/entries.ts.
 
 export async function getPageWithRevisions(slug: string) {

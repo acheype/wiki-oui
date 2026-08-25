@@ -1,6 +1,6 @@
 // The end of an account (docs/permissions.md § Fin d'un compte): the two
 // permissions an administrator has, and what the system page says about them. Pure
-// and client-safe, like modules/permissions/groups.ts beside it — modules/accounts/queries/queries.ts loads
+// and client-safe, like modules/permissions/groups.ts beside it — modules/accounts/access/guards.ts loads
 // what these functions need and writes their verdict back.
 
 import { plural } from "@/lib/format";
@@ -126,7 +126,7 @@ export function deletionImpactLines(impact: DeletionImpact): string[] {
  */
 export const OWN_ERASURE_NOTICE = [
   "Conformément au RGPD, vos données personnelles sont effacées : nom affiché, identifiant, adresse e-mail et mot de passe.",
-  "Plus rien ne portera votre nom : les pages, fiches et formulaires dont vous êtes propriétaire ou auteur s'afficheront « Anonyme », historique compris.",
+  "Plus rien ne portera votre nom : les pages, fiches et formulaires dont vous êtes propriétaire ou auteur s'afficheront «\u00A0Anonyme\u00A0», historique compris.",
   "Ces contenus, eux, restent sur le wiki : votre départ ne les emporte pas.",
 ];
 

@@ -23,7 +23,7 @@ import { prisma } from "@/lib/prisma";
 // the nesting, hands it to the pure module and writes the verdict back. Every
 // action that changes a group passes through here, and every one of them is
 // an administrator's — v0.5 gives group edition to nobody else, so the check
-// lives at the door rather than in each caller (ADR 0025).
+// lives in the access layer rather than in each caller (ADR 0025).
 //
 // The nesting is resolved in memory, not by a recursive query: the same edges
 // answer the person's effective groups, the cycle refusal and the « via
@@ -404,8 +404,8 @@ export async function createAdminsGroupWith(username: string): Promise<void> {
 /**
  * Who administers the wiki, directly — nesting never makes an administrator
  * (docs/permissions.md § Groupes), so this list is the whole answer. Read by
- * modules/accounts/queries/queries.ts before it disables or erases anyone: the memberships are
- * this door's, whoever asks.
+ * modules/accounts/access/guards.ts before it disables or erases anyone: the
+ * memberships are this file's, whoever asks.
  */
 export async function listAdminUsernames(): Promise<string[]> {
   const members = await prisma.groupMember.findMany({

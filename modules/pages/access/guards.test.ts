@@ -3,7 +3,7 @@ import {
   REFUSALS,
 } from "@/modules/permissions/rules";
 
-// The door's own test (ADR 0025). Everything else in this suite is pure, so
+// The guards' own test (ADR 0025). Everything else in this suite is pure, so
 // the checks that stand between a person and a write had nothing holding them:
 // the rules were proved, their being *called* was not. Deleting an `await
 // assertStructuring(…)` line reddened nothing until here.
@@ -103,7 +103,7 @@ beforeEach(() => {
   );
 });
 
-/** Every write of the door that a check stands in front of. */
+/** Every write a guard stands in front of. */
 const guarded: [string, string, () => Promise<unknown>][] = [
   ["deleting a page", REFUSALS.delete, () => deletePageBySlug("compte-rendu")],
   [
@@ -140,7 +140,7 @@ const guarded: [string, string, () => Promise<unknown>][] = [
   ],
 ];
 
-describe("the door refuses what the bar would not offer", () => {
+describe("the guards refuse what the bar would not offer", () => {
   for (const [what, refusal, call] of guarded) {
     it(`refuses ${what} to someone the page does not answer to`, async () => {
       await expect(call()).rejects.toThrow(refusal);

@@ -10,10 +10,10 @@ import {
   type SourceFile,
 } from "ts-morph";
 
-// One door to Page (ADR 0025): an ESLint rule keeps `prisma.page` out of
+// One access layer for Page (ADR 0025): an ESLint rule keeps `prisma.page` out of
 // every file but the five modules/pages/ split into (and modules/forms/forms.ts
 // plus modules/forms/access/guards.ts for Form). That rule is silent about
-// what happens *inside* the door — a read that forgets to check who is asking
+// what happens *inside* it — a read that forgets to check who is asking
 // compiles, passes lint, and leaks in silence. This module closes that gap, in
 // the culture of ADR 0013 (parse the source with ts-morph, never import or run
 // it).
@@ -186,7 +186,7 @@ function scanReachable(
  */
 export function scanAccessGuards(
   sourceFile: SourceFile,
-  table: WatchedTable = PAGE
+  table: WatchedTable
 ): AccessFinding[] {
   const findings: AccessFinding[] = [];
   for (const [name, declarations] of sourceFile.getExportedDeclarations()) {
@@ -264,7 +264,7 @@ const UNGUARDED_READS: Record<string, string> = {
   listAllPageSlugs: "every slug, readable or not — the broken-link lint's own denominator, not content",
   // A number, never the pages themselves — and both callers already decide
   // before asking: accountDeletionImpact behind assertAdmin, ownDeletionImpact
-  // for the signed-in person's own account only (modules/accounts/queries/queries.ts).
+  // for the signed-in person's own account only (modules/accounts/access/guards.ts).
   countOwnedByAccount: "a count, not the pages — both callers already gate on admin or on the person's own account",
   // A number, never the pages — and its one caller, getGroup, runs behind
   // getGroupDetail's own admin check first (modules/permissions/group-actions.ts).
@@ -277,7 +277,7 @@ const UNGUARDED_READS: Record<string, string> = {
   // pickers that name forms read, and private to modules/forms/ besides.
   listFormNames: "slug and name only — what a picker needs to name a form, never its fields",
   // The form half of what erasing an account would leave without an owner
-  // (modules/accounts/queries/queries.ts), behind that page's own admin check.
+  // (modules/accounts/access/guards.ts), behind that page's own admin check.
   countFormsOwnedByAccount: "a count, not the forms — its caller runs behind an admin check",
   // Three numbers — how many pages, entries and forms mention this identifier
   // — for the sentence the rename dialog shows before it retcons (ADR 0016).
@@ -286,11 +286,12 @@ const UNGUARDED_READS: Record<string, string> = {
 };
 
 /**
- * The prebuild gate itself (ADR 0013's culture, applied to ADR 0025's door):
+ * The prebuild gate itself (ADR 0013's culture, applied to ADR 0025's access
+ * layer):
  * throws with every exported read of the access layer that does not decide who
  * is asking, and that this session has not already looked at and allowlisted.
  */
-export function verifyPageAccessGuards(): void {
+export function verifyAccessGuards(): void {
   const project = new Project({
     tsConfigFilePath: path.join(process.cwd(), "tsconfig.json"),
     skipAddingFilesFromTsConfig: true,
@@ -305,7 +306,7 @@ export function verifyPageAccessGuards(): void {
   );
   if (findings.length > 0) {
     throw new Error(
-      "The access layer reads rows without deciding who is asking (ADR 0025's door has no filter on this):\n" +
+      "The access layer reads rows without deciding who is asking (its ESLint rule has no filter on this):\n" +
         findings
           .map(
             (finding) =>

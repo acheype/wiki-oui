@@ -1,10 +1,8 @@
-import Link from "next/link";
 import { AccountMenu } from "@/modules/accounts/ui/account-menu";
 import { getLayoutContents } from "@/modules/pages/content";
-import { renderSlot } from "@/modules/pages/ui/layout-slot";
+import { TitleSlot, renderSlot } from "@/modules/pages/ui/layout-slot";
 import { currentIdentity, isCurrentAdmin } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";
-import { wikiConfig } from "@/wiki.config";
 
 // Site chrome (top bar, header slot, footer) around every wiki page. It
 // lives in this route group so chrome-free pages can exist under /api —
@@ -25,10 +23,10 @@ export default async function SiteLayout({
   // Only an administrator is told about a layout page that does not exist —
   // see modules/pages/ui/layout-slot.tsx for why nobody else is.
   const isAdmin = await isCurrentAdmin();
-  // The five slot renders are independent: pipeline them. Each comes back
-  // null when it has nothing to say, and the layout then leaves it out.
-  const [title, topMenu, topQuickAccess, header, footer] = await Promise.all([
-    renderSlot(slots.title, isAdmin),
+  // The four remaining slot renders are independent: pipeline them. Each
+  // comes back null when it has nothing to say, and the layout then leaves it
+  // out. The title renders itself, being the one slot that is also a link.
+  const [topMenu, topQuickAccess, header, footer] = await Promise.all([
     renderSlot(slots.topMenu, isAdmin),
     renderSlot(slots.topQuickAccess, isAdmin),
     renderSlot(slots.header, isAdmin),
@@ -39,19 +37,11 @@ export default async function SiteLayout({
     <>
       <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
-          {/* The note about a missing page is not a link home: it names
-              something to go and fix, not somewhere to go. */}
-          {title &&
-            (slots.title.missingSlug === undefined ? (
-              <Link
-                href={`/${wikiConfig.homeSlug}`}
-                className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
-              >
-                {title}
-              </Link>
-            ) : (
-              title
-            ))}
+          <TitleSlot
+            slot={slots.title}
+            isAdmin={isAdmin}
+            className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
+          />
           {/* Always rendered, empty menu or not: this is the bar's flexible
               middle, and what keeps the account menu on the right edge. The
               only slot whose box outlives its content, for that reason. */}

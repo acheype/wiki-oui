@@ -115,7 +115,7 @@ export function BulkRightsDialog({
   function apply() {
     startApplying(async () => {
       const slugs = pages.map((page) => page.slug);
-      // One call for the two senses: they are one action, and the door
+      // One call for the two senses: they are one action, and the guard
       // refuses the lot whole rather than leaving half of it written.
       const refused =
         intent === "grant"

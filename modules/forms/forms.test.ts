@@ -96,8 +96,8 @@ describe("the count of a system page and the list it heads", () => {
 // wiki that had closed its pages was still every signed-in member: a form
 // shapes every fiche written with it and takes them all with it when it goes
 // (ADR 0014), so it is the wiki's own rule that decides — and the check is
-// held here, at the door, not in the button that hides it.
-describe("the door on creating a form", () => {
+// held here, in the access layer, not in the button that hides it.
+describe("the guard on creating a form", () => {
   const DEFINITION = {
     name: "Agenda",
     schema: { fields: [] },

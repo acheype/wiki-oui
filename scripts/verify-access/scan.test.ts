@@ -1,6 +1,6 @@
 import { Project } from "ts-morph";
 import { describe, expect, it } from "vitest";
-import { FORM, scanAccessGuards } from "./scan";
+import { FORM, PAGE, scanAccessGuards } from "./scan";
 
 // Builds an in-memory project with a stand-in decide/rules.ts
 // (the three primitives) plus whatever modules/pages/content.ts-shaped source
@@ -43,7 +43,7 @@ describe("scanAccessGuards", () => {
          return prisma.page.findUnique({ where: { slug } });
        }`
     );
-    const findings = scanAccessGuards(file);
+    const findings = scanAccessGuards(file, PAGE);
     expect(findings.map((f) => f.name)).toContain("leaky");
   });
 
@@ -58,7 +58,7 @@ describe("scanAccessGuards", () => {
          return null;
        }`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("follows a relay two hops deep (assertStructuring -> ownsPage -> isAdmin)", () => {
@@ -78,7 +78,7 @@ describe("scanAccessGuards", () => {
          return page;
        }`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("follows a relay imported from another file (assertAdmin -> isAdmin)", () => {
@@ -90,7 +90,7 @@ describe("scanAccessGuards", () => {
          return prisma.page.findMany({});
        }`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("follows the hop person.ts adds (currentCanRead -> canRead)", () => {
@@ -102,7 +102,7 @@ describe("scanAccessGuards", () => {
          return page && (await currentCanRead(page)) ? page : null;
        }`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("does not flag a function with no Page read at all", () => {
@@ -111,7 +111,7 @@ describe("scanAccessGuards", () => {
          return a + b;
        }`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("flags a page read reached through a revision relation, unguarded", () => {
@@ -124,7 +124,7 @@ describe("scanAccessGuards", () => {
          });
        }`
     );
-    const findings = scanAccessGuards(file);
+    const findings = scanAccessGuards(file, PAGE);
     expect(findings.map((f) => f.name)).toContain("leakyRelation");
   });
 
@@ -142,7 +142,7 @@ describe("scanAccessGuards", () => {
          return null;
        }`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("does not flag a revision read that never touches the page relation", () => {
@@ -152,7 +152,7 @@ describe("scanAccessGuards", () => {
          return prisma.revision.count({ where: { authorUsername: username } });
        }`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("unwraps a cache()-wrapped exported const", () => {
@@ -166,7 +166,7 @@ describe("scanAccessGuards", () => {
          return page && canRead(await currentPerson(), page);
        });`
     );
-    expect(scanAccessGuards(file)).toEqual([]);
+    expect(scanAccessGuards(file, PAGE)).toEqual([]);
   });
 
   it("flags a cache()-wrapped exported const that stays unguarded", () => {
@@ -177,7 +177,7 @@ describe("scanAccessGuards", () => {
          return prisma.page.findUnique({ where: { slug } });
        });`
     );
-    const findings = scanAccessGuards(file);
+    const findings = scanAccessGuards(file, PAGE);
     expect(findings.map((f) => f.name)).toContain("cachedLeaky");
   });
 
@@ -192,7 +192,7 @@ describe("scanAccessGuards", () => {
          return null;
        }`
     );
-    const findings = scanAccessGuards(file);
+    const findings = scanAccessGuards(file, PAGE);
     expect(findings.map((f) => f.name)).toContain("stuck");
   });
 

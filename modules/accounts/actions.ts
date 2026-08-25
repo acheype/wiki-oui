@@ -3,7 +3,7 @@
 // Server Actions of the accounts system page (docs/permissions.md § Les
 // pages système). Reading them is an administrator's action — email
 // addresses are shown here and nowhere else — and the check lives behind
-// the door, in modules/accounts/queries/queries.ts, so none of these can
+// the guards, in modules/accounts/access/guards.ts, so none of these can
 // forget it.
 //
 // The two at the end are the exception, and are not called from that system page:
@@ -31,7 +31,7 @@ import {
   resendInvitation,
   revokeInvitation,
   setAccountDisabled,
-} from "@/modules/accounts/queries/queries";
+} from "@/modules/accounts/access/guards";
 import { auth } from "@/modules/accounts/auth";
 import { parseAddressList } from "@/modules/accounts/invitations";
 import { isMailerConfigured } from "@/modules/accounts/mailer";

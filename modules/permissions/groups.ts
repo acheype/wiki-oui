@@ -41,7 +41,8 @@ export interface InheritedGroup {
 
 /**
  * What a membership names, as the table holds it: a person or a group, never
- * both. One shape from the system page to the door, so nothing translates it on
+ * both. One shape from the system page to the access layer, so nothing
+ * translates it on
  * the way.
  */
 export type MemberRef = { username: string } | { groupSlug: string };

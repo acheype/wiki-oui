@@ -14,7 +14,7 @@ import {
   requestPasswordReset,
   resetPasswordWithLink,
   signUpRefusal,
-} from "@/modules/accounts/queries/queries";
+} from "@/modules/accounts/access/guards";
 import { auth } from "@/modules/accounts/auth";
 import { destinationWithinWiki } from "@/lib/destination";
 import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
@@ -128,7 +128,7 @@ function identityRefusal(input: {
     return "Le nom affiché est obligatoire.";
   }
   if (!isValidUsername(input.username)) {
-    return `Identifiant invalide : « ${input.username} » (minuscules, chiffres et tirets).`;
+    return `Identifiant invalide : «\u00A0${input.username}\u00A0» (minuscules, chiffres et tirets).`;
   }
   if (input.email !== undefined && !z.email().safeParse(input.email.trim()).success) {
     return "Cette adresse e-mail n'est pas valide.";
@@ -156,7 +156,7 @@ export async function readInvitation(
 /**
  * The end of an invitation: the person names themselves and chooses a
  * password, and the link is spent. Nobody is signed in when this runs — the
- * token is the whole credential (modules/accounts/queries/queries.ts).
+ * token is the whole credential (modules/accounts/access/guards.ts).
  */
 export async function acceptInvitationLink(input: {
   token: string;

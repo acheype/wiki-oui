@@ -79,7 +79,7 @@ beforeEach(() => {
   );
 });
 
-// The merge is the door's, not its caller's (docs/permissions.md § Champ): a
+// The merge is the guard's, not its caller's (docs/permissions.md § Champ): a
 // revision holds a complete snapshot, so a save that replaced it would let
 // whoever cannot see a salary destroy it just by saving the fiche.
 describe("what a save may move, field by field", () => {
@@ -168,7 +168,7 @@ describe("what a save may move, field by field", () => {
     });
   });
 
-  // The whole reason the title is worked out at the door, after the merge: a
+  // The whole reason the title is worked out in the guard, after the merge: a
   // gabarit may name a field this person cannot fill, and what arrives from
   // the browser no longer carries it. Computed from the payload alone, the
   // title would lose the very value the fiche still holds — and a stored

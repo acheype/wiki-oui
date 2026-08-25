@@ -3,7 +3,7 @@
 // Server Actions of the group system page (docs/permissions.md § Groupes): the
 // admin components are client-side and read their data through actions too,
 // the same transport as mutations (ADR 0014). Every one of them is an
-// administrator's action — the check lives behind the door, in
+// administrator's action — the check lives behind the access layer, in
 // modules/permissions/groups-queries.ts, so none of these can forget it.
 
 import {
@@ -37,7 +37,7 @@ export async function listGroups(): Promise<GroupSummary[]> {
  * A group's editor also says what deleting it would take with it: how many
  * pages carry a right naming it (docs/permissions.md § Les pages système). Counted
  * here rather than in modules/permissions/groups-queries.ts, because it is a question about pages
- * — and pages answer through their own door (ADR 0025).
+ * — and pages answer through their own access layer (ADR 0025).
  */
 export interface GroupDetailWithRights extends GroupDetail {
   pagesGranting: number;

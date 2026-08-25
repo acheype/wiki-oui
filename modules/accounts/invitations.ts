@@ -1,6 +1,7 @@
 // Inviting people (docs/permissions.md § Naissance d'un compte): reading a
 // pasted list of addresses and telling what came of it. Pure, no I/O — the
-// links themselves are minted behind the door, in modules/accounts/queries/queries.ts — and
+// links themselves are minted behind the guards, in
+// modules/accounts/access/guards.ts — and
 // client-safe, so the invite dialog can count the addresses as they are
 // pasted rather than after a round trip.
 

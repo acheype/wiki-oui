@@ -40,7 +40,8 @@ import {
 
 // The reads and the plain writes of a page — everything short of its rights
 // (modules/pages/rights.ts), its revisions (modules/pages/revisions.ts) and a
-// fiche's own life cycle (modules/pages/entries.ts). Part of ADR 0025's door:
+// fiche's own life cycle (modules/pages/entries.ts). Part of ADR 0025's
+// access layer:
 // the ESLint rule that keeps `prisma.page` out of every other file applies
 // here exactly as it did to lib/pages.ts before the split.
 
@@ -129,8 +130,8 @@ export type RawContent =
 /**
  * The content and metadata of a page, in the shape `/{slug}/raw` serves them
  * (docs/permissions.md § /{slug}/raw, the equivalent of YesWiki's `/raw`).
- * Born *inside* this door rather than beside it (ADR 0025) — a bare route
- * reading Prisma on its own is exactly the shortcut the door exists to close.
+ * Born *inside* the access layer rather than beside it (ADR 0025) — a bare
+ * route reading Prisma on its own is exactly the shortcut it exists to close.
  *
  * An MDX page hands back `content` plus `metadata`. A fiche hands back its
  * field values in the form's own order — `title` wherever the form's own
@@ -236,7 +237,7 @@ export async function listPagesWithCurrent(slugs: string[]) {
 /**
  * The rename dialog's headcount (ADR 0016): how many pages, entries and form
  * definitions reference this page slug today. A read of everyone's content,
- * hence a read through the door rather than beside it.
+ * hence a read through the access layer rather than beside it.
  */
 export async function countPageSlugReferences(
   slug: string,
@@ -304,7 +305,7 @@ export async function getLayoutContents(): Promise<
  * Whether the current person may read the page a link, a button or an iframe
  * names — what `hideIfNoAccess` asks before deciding to render at all
  * (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13). A
- * missing target is not this door's business: `modules/pages/lint.ts`
+ * missing target is not this guard's business: `modules/pages/lint.ts`
  * already signals a dead slug, so an unwritten page reads as reachable here
  * rather than as a reason to hide.
  *
@@ -325,10 +326,10 @@ export const isSlugReadable = cache(async (slug: string): Promise<boolean> => {
  * Whether a `hideIfNoAccess` link, button or iframe should vanish
  * (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13):
  * only when the setting is on, the target is internal, and it resolves to a
- * slug this person may not read. The one door
- * modules/pages/wiki-components/{wiki-link,button,iframe}.tsx all ask
- * through, so an external target or an
- * unparsable one reads the same way — visible — from every one of them,
+ * slug this person may not read. The one guard
+ * modules/pages/wiki-components/{wiki-link,button,iframe}.tsx all ask through,
+ * so an external target or an unparsable one reads the same way — visible —
+ * from every one of them,
  * rather than each re-deriving its own edge cases.
  */
 export async function hiddenIfNoAccess(

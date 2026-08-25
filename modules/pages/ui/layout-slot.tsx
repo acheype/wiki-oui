@@ -1,5 +1,8 @@
+import Link from "next/link";
 import type { LayoutSlot } from "@/modules/pages/content";
 import { isBlankMdx, renderMdx } from "@/modules/authoring/mdx";
+import { cn } from "@/lib/utils";
+import { wikiConfig } from "@/wiki.config";
 
 // What one slot of the site chrome puts on screen (issue #20). Three
 // situations reach here and only one of them says anything:
@@ -39,4 +42,29 @@ export async function renderSlot(
     return isAdmin ? <MissingSlot slug={slot.missingSlug} /> : null;
   }
   return isBlankMdx(slot.content) ? null : renderMdx(slot.content);
+}
+
+/**
+ * The title slot, which is a link home when it holds the wiki's name — and is
+ * not one when it holds the note about a missing page: that names something to
+ * go and fix, not somewhere to go. The choice lives here, beside the branch it
+ * repeats, rather than being made a second time by the layout.
+ */
+export async function TitleSlot({
+  slot,
+  isAdmin,
+  className,
+}: {
+  slot: LayoutSlot;
+  isAdmin: boolean;
+  className?: string;
+}) {
+  const rendered = await renderSlot(slot, isAdmin);
+  if (!rendered) return null;
+  if (slot.missingSlug !== undefined) return rendered;
+  return (
+    <Link href={`/${wikiConfig.homeSlug}`} className={cn(className)}>
+      {rendered}
+    </Link>
+  );
 }

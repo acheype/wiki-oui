@@ -229,7 +229,7 @@ function BuilderView({ editSlug }: { editSlug: string | null }) {
   const [notFound, setNotFound] = useState(false);
   // ?nouveau is a URL anyone can type, and the button that leads to it is
   // already gone for whoever lacks the right: the system page answers the same
-  // refusal the door would, rather than an empty builder that fails on save.
+  // refusal the guard would, rather than an empty builder that fails on save.
   const [refused, setRefused] = useState(false);
 
   useEffect(() => {

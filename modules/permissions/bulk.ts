@@ -1,6 +1,6 @@
 // What an action by lot would do, worked out before it is done
 // (docs/permissions.md § gerer-pages). Pure, like permissions.ts next door:
-// the count the modal shows and the rows the door then writes are decided by
+// the count the modal shows and the rows the access layer then writes are
 // the same function, so what was announced is what happens.
 
 import { plural } from "@/lib/format";

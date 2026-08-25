@@ -733,7 +733,7 @@ export async function saveEntry(
       return { ok: false, formError: "Cette fiche n'existe plus." };
     }
     // Nothing is merged here, and no title worked out: both belong to the
-    // door, which merges from the revision it reads itself and computes the
+    // guards, which merge from the revision they read themselves and compute the
     // title from that merge (ADR 0020). What comes back as a refusal — a
     // right that went away, a title the merge leaves empty — travels in the
     // toast rather than into an error boundary.

@@ -168,7 +168,8 @@ export interface EntryRightsImpact {
 
 /**
  * Where one fiche falls. Named rather than spelled out twice: the count the
- * confirmation shows and the rows the door then writes are the same verdict,
+ * confirmation shows and the rows the access layer then writes are the same
+ * verdict,
  * and two spellings of it would agree only by coincidence — the day one moved,
  * the wiki would announce a number and write another.
  */

@@ -195,7 +195,7 @@ const eslintConfig = defineConfig([
       // queries.ts: proxy.ts, outside every module, calls isInstalled() and
       // markInstalled() directly on every request.
       "modules/accounts/auth.ts",
-      "modules/accounts/queries/queries.ts",
+      "modules/accounts/access/guards.ts",
       "modules/permissions/groups-queries.ts",
       "modules/permissions/person.ts",
       "modules/settings/settings.ts",

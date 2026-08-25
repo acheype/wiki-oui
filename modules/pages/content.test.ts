@@ -144,7 +144,7 @@ describe("isSlugReadable", () => {
   });
 });
 
-// The one door modules/pages/wiki-components/{wiki-link,button,iframe}.tsx all ask through
+// The one guard modules/pages/wiki-components/{wiki-link,button,iframe}.tsx all ask through
 // before deciding whether to render at all — a link/button/iframe vanishes
 // only when every one of these holds.
 describe("hiddenIfNoAccess", () => {
@@ -166,7 +166,7 @@ describe("hiddenIfNoAccess", () => {
 
   it("never hides a target that does not parse as a wiki href", async () => {
     // Malformed rather than merely missing (isSlugReadable's own case): not
-    // this door's job to guess a slug out of it either.
+    // this guard's job to guess a slug out of it either.
     expect(await hiddenIfNoAccess("javascript:alert(1)", true)).toBe(false);
     expect(db.page.findUnique).not.toHaveBeenCalled();
   });
@@ -191,7 +191,7 @@ describe("hiddenIfNoAccess", () => {
   });
 });
 
-// /{slug}/raw (docs/permissions.md): born inside the door (ADR 0025), so its
+// /{slug}/raw (docs/permissions.md): born inside the access layer (ADR 0025), so its
 // own refusal and its own cut are exercised the same way as every other read.
 describe("getRawContent", () => {
   const BUREAU = { scope: "restricted", groupSlugs: ["bureau"] } as const;

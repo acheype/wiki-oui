@@ -228,8 +228,8 @@ export interface AclFloor {
 /**
  * What a floor covers, by the names a right stores. Takes the username rather
  * than the floor, because that is all a row can be compared against: a fiche
- * read by the formful carries an `ownerUsername` and no display name, and the
- * comparison must not depend on one.
+ * read a whole form at a time carries an `ownerUsername` and no display name,
+ * and the comparison must not depend on one.
  */
 export function coveredPrincipals(ownerUsername: string | null): PrincipalList {
   return {
@@ -291,6 +291,7 @@ export type RefusalKind =
   | "address"
   | "unknownRecipient"
   | "upload"
+  | "admin"
   | "lastAdmin";
 
 /**
@@ -327,6 +328,8 @@ export const REFUSALS: Record<RefusalKind, string> = {
   unknownRecipient:
     "Ce compte n'existe pas ou plus : la page n'a pas changé de propriétaire.",
   upload: "Vous n'avez pas le droit de déposer un fichier sur ce wiki.",
+  // The check every action of the two administration system pages passes.
+  admin: "Réservé aux administrateurs.",
   // The floor every action on an account or a membership stops at: a wiki whose
   // administrators have all gone is one nobody can take back, since the
   // installation service is a one-way door (ADR 0027). One sentence, because it

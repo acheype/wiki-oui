@@ -10,6 +10,7 @@ import type {
   PageRights,
   Person,
 } from "@/modules/permissions/rules";
+import { refuse } from "@/modules/permissions/rules";
 import {
   canRead,
   canWrite,
@@ -85,15 +86,13 @@ export async function isCurrentAdmin(): Promise<boolean> {
   return isAdmin(await currentPerson());
 }
 
-const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";
-
 /**
  * The check every action of the two administration system pages passes, at the
- * door rather than in each caller (ADR 0025) — groups-queries.ts and
- * modules/accounts/queries/queries.ts both ask for it by name.
+ * access layer rather than in each caller (ADR 0025) — groups-queries.ts and
+ * modules/accounts/access/guards.ts both ask for it by name.
  */
 export async function assertAdmin(): Promise<void> {
-  if (!(await isCurrentAdmin())) throw new Error(ADMINISTRATORS_ONLY);
+  if (!(await isCurrentAdmin())) refuse("admin");
 }
 
 // --- the verdicts, for whoever is asking now ---------------------------------

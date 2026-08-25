@@ -33,8 +33,9 @@ import {
   WITH_RIGHTS,
 } from "@/modules/pages/rights";
 
-// A fiche's own life cycle: born from a form, read by the formful, its rights
-// reset to the form's defaults. Part of ADR 0025's door, alongside
+// A fiche's own life cycle: born from a form, read a whole form at a time, its
+// rights reset to the form's defaults. Part of ADR 0025's access layer,
+// alongside
 // modules/pages/content.ts, modules/pages/revisions.ts and modules/pages/rights.ts.
 
 /** The entry pages of one form, or of every form when no slug is given. */
@@ -161,7 +162,7 @@ export async function applyFormDefaultsToEntries(
  * événement ».
  *
  * The form's three rules travel in rather than being read here: `Form` is the
- * other door's (ADR 0025), and modules/forms/forms.ts has already read the
+ * other module's (ADR 0025), and modules/forms/forms.ts has already read the
  * descriptor they come from on the way to this call.
  */
 export async function createEntryPage(input: {
@@ -206,12 +207,12 @@ export async function createEntryPage(input: {
  * A revision stores a **complete** snapshot, so the write merges rather than
  * replaces (docs/permissions.md § Champ): it starts from the current revision
  * and lays over it only the fields this person may write. Done here, at the
- * door, and from the revision the door itself just read — a caller could hand
+ * guard, and from the revision the guard itself just read — a caller could hand
  * over a merge made against a snapshot that has moved since, and that stale
  * base is exactly the salary somebody wipes by saving the fiche.
  *
  * The descriptor travels in rather than being read here: `Form` is the other
- * door's (ADR 0025), and modules/forms/forms.ts has already read it on the
+ * module's (ADR 0025), and modules/forms/forms.ts has already read it on the
  * way to this call.
  */
 export async function writeEntryRevision(input: {
