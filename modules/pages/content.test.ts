@@ -22,12 +22,22 @@ const { db, person } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
-vi.mock("@/modules/permissions/person", () => ({
-  currentPerson: async () => person.current,
-  currentUsername: async () => person.current.username,
-  assertAdmin: async () => {},
+// The session, not the verdicts: modules/permissions/person.ts runs for real
+// here, so what the code under test asks it is the rule itself and not a
+// second spelling of it in this file.
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+vi.mock("@/modules/accounts/auth", () => ({
+  auth: {
+    api: {
+      getSession: async () =>
+        person.current.username
+          ? { user: { username: person.current.username, name: person.current.username } }
+          : null,
+    },
+  },
 }));
 vi.mock("@/modules/permissions/groups-queries", () => ({
+  currentGroupSlugs: async () => person.current.groupSlugs,
   existingPrincipals: async () => ({ usernames: new Set(), groupSlugs: new Set() }),
   grantTarget: async () => null,
   listDirectory: async () => ({ people: [], groups: [] }),

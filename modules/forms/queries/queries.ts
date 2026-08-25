@@ -1,5 +1,5 @@
-import { FORM_EDIT_REFUSED, ownsSubject } from "@/modules/permissions/rules";
-import { currentPerson } from "@/modules/permissions/person";
+import { FORM_EDIT_REFUSED } from "@/modules/permissions/rules";
+import { currentOwns } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
 // The only door to `Form` (ADR 0025), alongside modules/pages/queries/queries.ts
@@ -23,7 +23,7 @@ export type OwnedForm = { ownerUsername: string | null };
  * every fiche ever written with it, so it never opens with the writing.
  */
 export async function assertFormStructuring(form: OwnedForm): Promise<void> {
-  if (ownsSubject(await currentPerson(), form.ownerUsername)) return;
+  if (await currentOwns(form.ownerUsername)) return;
   throw new Error(FORM_EDIT_REFUSED);
 }
 

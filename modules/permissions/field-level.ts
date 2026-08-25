@@ -15,7 +15,8 @@ import type {
   FormDescriptor,
   FormField,
 } from "@/modules/forms/form-descriptor";
-import { type AccessRule, type Person, isAdmin, ruleAllows } from "@/modules/permissions/rules";
+import type { AccessRule, Person } from "@/modules/permissions/rules";
+import { isAdmin, ruleAllows } from "@/modules/permissions/decide/rules";
 
 /** What an unposed rule stands for: a field is open until one says otherwise. */
 const UNRESTRICTED: AccessRule = { scope: "everyone" };

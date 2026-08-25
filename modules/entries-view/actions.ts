@@ -12,7 +12,7 @@ import type { ViewEntry } from "@/modules/entries-view/rules";
 import { readEntryData } from "@/modules/forms/form-descriptor";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { listFormsWithEntries } from "@/modules/forms/forms";
-import { personPermissions } from "@/modules/pages/rights";
+import { currentPermissions } from "@/modules/permissions/person";
 import type { PagePermissions } from "@/modules/permissions/rules";
 import {
   FALLBACK_SAMPLE_DESCRIPTOR,
@@ -138,7 +138,7 @@ export async function getEntriesViewData(
   const permissions: Record<string, PagePermissions> = {};
   for (const form of ordered) {
     for (const page of form.entries) {
-      permissions[page.slug] = await personPermissions(page);
+      permissions[page.slug] = await currentPermissions(page);
     }
   }
 

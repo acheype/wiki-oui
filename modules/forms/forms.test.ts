@@ -19,14 +19,26 @@ const { db, person } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
-vi.mock("@/modules/permissions/person", () => ({
-  currentPerson: async () => person.current,
-  currentUsername: async () => person.current.username,
-  assertAdmin: async () => {},
+// The session, not the verdicts: modules/permissions/person.ts runs for real
+// here, so what the code under test asks it is the rule itself and not a
+// second spelling of it in this file.
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+vi.mock("@/modules/accounts/auth", () => ({
+  auth: {
+    api: {
+      getSession: async () =>
+        person.current.username
+          ? { user: { username: person.current.username, name: person.current.username } }
+          : null,
+    },
+  },
+}));
+vi.mock("@/modules/permissions/groups-queries", () => ({
+  currentGroupSlugs: async () => person.current.groupSlugs,
 }));
 
 const {
-  personCanCreateForm,
+  currentCanCreateForm,
   createForm,
   listFormsWithEntries,
   listFormsWithEntryCount,
@@ -96,7 +108,7 @@ describe("the door on creating a form", () => {
 
   it("refuses a visitor, and writes nothing", async () => {
     person.current = { username: null, groupSlugs: [] };
-    expect(await personCanCreateForm()).toBe(false);
+    expect(await currentCanCreateForm()).toBe(false);
     await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
       CREATE_FORM_REFUSED
     );
@@ -108,7 +120,7 @@ describe("the door on creating a form", () => {
   // is refused, where the same shape on a page would let its owner through.
   it("refuses an ordinary member under the shipped configuration", async () => {
     person.current = { username: "jean-martin", groupSlugs: ["bureau"] };
-    expect(await personCanCreateForm()).toBe(false);
+    expect(await currentCanCreateForm()).toBe(false);
     await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
       CREATE_FORM_REFUSED
     );
@@ -117,7 +129,7 @@ describe("the door on creating a form", () => {
 
   it("lets an administrator through, and hands them what they made", async () => {
     person.current = { username: "wiki-admin", groupSlugs: ["admins"] };
-    expect(await personCanCreateForm()).toBe(true);
+    expect(await currentCanCreateForm()).toBe(true);
     await createForm("agenda", DEFINITION);
     expect(db.form.create).toHaveBeenCalledWith({
       data: { ...DEFINITION, slug: "agenda", ownerUsername: "wiki-admin" },

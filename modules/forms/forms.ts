@@ -19,8 +19,13 @@ import {
   currentReadableWhere,
 } from "@/modules/pages/rights";
 import { applyFormDefaultsToEntries, countEntryRightsImpact } from "@/modules/pages/entries";
-import { CREATE_FORM_REFUSED, isAdmin, ownsSubject, ruleAllows } from "@/modules/permissions/rules";
-import { currentPerson, currentUsername } from "@/modules/permissions/person";
+import { CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
+import {
+  currentAllows,
+  currentOwns,
+  currentPerson,
+  currentUsername,
+} from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
 import {
@@ -43,12 +48,12 @@ import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/
 // small enough to stay a single file.
 
 /** Whether the system pages offer those permissions at all, or simply leave them out. */
-export async function personCanEditForm(form: OwnedForm): Promise<boolean> {
-  return ownsSubject(await currentPerson(), form.ownerUsername);
+export async function currentCanEditForm(form: OwnedForm): Promise<boolean> {
+  return currentOwns(form.ownerUsername);
 }
 
 /**
- * Creating a form reads the wiki's own rule, the twin of personCanCreatePage
+ * Creating a form reads the wiki's own rule, the twin of currentCanCreatePage
  * on the other side of the door (docs/permissions.md § Où s'appliquent les
  * droits). Distinct from createPage because the two acts differ in reach: a
  * page engages a page, a form shapes every fiche written with it and takes
@@ -58,9 +63,8 @@ export async function personCanEditForm(form: OwnedForm): Promise<boolean> {
  * with an empty list, which the shipped configuration writes, means the
  * administrators alone.
  */
-export async function personCanCreateForm(): Promise<boolean> {
-  const person = await currentPerson();
-  return isAdmin(person) || ruleAllows(person, wikiConfig.permissions.createForm);
+export async function currentCanCreateForm(): Promise<boolean> {
+  return currentAllows(wikiConfig.permissions.createForm);
 }
 
 export async function getFormBySlug(slug: string) {
@@ -83,7 +87,7 @@ export function permissionsOf(form: { schema: unknown }): FormPermissions {
 }
 
 /** Whether the person may add a fiche to this form — what the entry form asks. */
-export async function personCanCreateEntry(form: {
+export async function currentCanCreateEntry(form: {
   schema: unknown;
 }): Promise<boolean> {
   return canCreateEntry(await currentPerson(), permissionsOf(form));
@@ -210,7 +214,7 @@ export async function createForm(
   slug: string,
   definition: FormDefinition
 ): Promise<void> {
-  if (!(await personCanCreateForm())) throw new Error(CREATE_FORM_REFUSED);
+  if (!(await currentCanCreateForm())) throw new Error(CREATE_FORM_REFUSED);
   const ownerUsername = await currentUsername();
   await prisma.form.create({ data: { ...definition, slug, ownerUsername } });
 }

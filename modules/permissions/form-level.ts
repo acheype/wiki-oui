@@ -13,12 +13,10 @@ import {
   type PageRights,
   type StoredRights,
   coveredPrincipals,
-  isAdmin,
-  ownsPage,
-  ruleAllows,
   storedRights,
   withoutCovered,
 } from "@/modules/permissions/rules";
+import { isAdmin, ownsPage, ruleAllows } from "@/modules/permissions/decide/rules";
 import { wikiConfig } from "@/wiki.config";
 
 /**

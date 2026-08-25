@@ -10,25 +10,23 @@ import {
   type AclFloor,
   type Identity,
   type PageRights,
-  type PagePermissions,
   PERM_KINDS,
   RIGHTS_REFUSED,
   TRANSFER_REFUSED,
   UNKNOWN_RECIPIENT,
   aclEntries,
-  canWrite,
-  isAdmin,
-  permissionsOn,
   pageRule,
-  listReadableWhere,
-  ruleAllows,
   storedRights,
   withoutFloor,
-  writableWhere,
 } from "@/modules/permissions/rules";
 import { refGroupSlug, refUsername } from "@/modules/permissions/groups";
 import { existingPrincipals, grantTarget } from "@/modules/permissions/groups-queries";
-import { assertAdmin, currentPerson } from "@/modules/permissions/person";
+import {
+  assertAdmin,
+  currentAllows,
+  currentListReadableWhere,
+  currentWritableWhere,
+} from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { wikiConfig } from "@/wiki.config";
@@ -50,7 +48,7 @@ import {
 // door (ADR 0029). PUBLIC_IDENTITY and ACL_ROWS specifically cannot move to
 // queries.ts even as an implementation detail: WITH_RIGHTS composes them in a
 // top-level `const`, evaluated at import time, and queries.ts already imports
-// WITH_RIGHTS and personCanCreatePage back from this same file — a cycle
+// WITH_RIGHTS and currentCanCreatePage back from this same file — a cycle
 // bundlers resolve fine when every crossing is inside a function body, but
 // not when one side of it is a top-level `const`.
 
@@ -95,7 +93,7 @@ export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;
  * come out right mechanically, working on what actually arrived.
  */
 export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
-  return listReadableWhere(await currentPerson(), ALWAYS_READABLE);
+  return currentListReadableWhere(ALWAYS_READABLE);
 }
 
 /**
@@ -120,24 +118,8 @@ export function isRefused<T extends object>(
  * Creating a page reads the wiki's own rule (docs/permissions.md § Où
  * s'appliquent les droits), the only right no page carries.
  */
-export async function personCanCreatePage(): Promise<boolean> {
-  const person = await currentPerson();
-  return isAdmin(person) || ruleAllows(person, wikiConfig.permissions.createPage);
-}
-
-/** Whether the system pages offer a action or simply leave it out. */
-export async function personCanWrite(page: PageRights): Promise<boolean> {
-  return canWrite(await currentPerson(), page);
-}
-
-/**
- * What the action bar may offer at all — the three rungs at once, so a system
- * page asks the question once and cannot answer half of it. What it does not get
- * is absent from the bar, never greyed out: an offer nobody can take up
- * informs nobody (docs/permissions.md § Ce que voit qui n'a pas le droit).
- */
-export async function personPermissions(page: PageRights): Promise<PagePermissions> {
-  return permissionsOn(await currentPerson(), page);
+export async function currentCanCreatePage(): Promise<boolean> {
+  return currentAllows(wikiConfig.permissions.createPage);
 }
 
 /** Whoever the page always allows, whatever its lists hold. */
@@ -467,15 +449,13 @@ export async function countPagesGrantingGroup(groupSlug: string): Promise<number
 /**
  * « Cette personne peut-elle contribuer quelque part ? » — the only question the
  * upload asks (docs/permissions.md § Quel droit commande quelle action): there is
- * no right of its own on files. The two free tests come first and short-
- * circuit the third, which is the only one that touches the database.
+ * no right of its own on files. The free test comes first and short-circuits
+ * the query, which is the only half that touches the database.
  */
 export async function canContributeSomewhere(): Promise<boolean> {
-  const person = await currentPerson();
-  if (isAdmin(person)) return true;
-  if (ruleAllows(person, wikiConfig.permissions.createPage)) return true;
+  if (await currentCanCreatePage()) return true;
   const writable = await prisma.page.findFirst({
-    where: writableWhere(person),
+    where: await currentWritableWhere(),
     select: { id: true },
   });
   return writable !== null;

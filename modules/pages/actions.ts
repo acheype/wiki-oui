@@ -23,7 +23,8 @@ import {
   writePageContent,
 } from "@/modules/pages/content";
 import { getRevisionToRestore, writeRestoredRevision } from "@/modules/pages/revisions";
-import { isRefused, personPermissions } from "@/modules/pages/rights";
+import { isRefused } from "@/modules/pages/rights";
+import { currentPermissions } from "@/modules/permissions/person";
 import {
   ACCESS_DENIED,
   ADDRESS_REFUSED,
@@ -135,7 +136,7 @@ export async function renamePage(
   // than from the catch below — which speaks for the rename's own failure, a
   // unique-constraint race on the new slug. It comes before the clash test
   // too, that being the one answer which says something about another page.
-  if (!(await personPermissions(page)).address) {
+  if (!(await currentPermissions(page)).address) {
     return { error: ADDRESS_REFUSED };
   }
   if (await getPage(newSlug)) {

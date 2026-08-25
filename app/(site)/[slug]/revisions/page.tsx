@@ -16,7 +16,8 @@ import { getFormById } from "@/modules/forms/forms";
 import { renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithRevisions } from "@/modules/pages/revisions";
-import { isRefused, personCanWrite } from "@/modules/pages/rights";
+import { isRefused } from "@/modules/pages/rights";
+import { currentCanWrite } from "@/modules/permissions/person";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { displayName } from "@/modules/accounts/username";
@@ -68,7 +69,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   // Reading the history is a read action, putting a revision back is a write
   // (docs/permissions.md § Quel droit commande quelle action): whoever may only
   // read gets the whole page, minus the button.
-  const writable = await personCanWrite(page);
+  const writable = await currentCanWrite(page);
 
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the

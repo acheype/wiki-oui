@@ -12,7 +12,8 @@ import { formatDateTime } from "@/lib/format";
 import { renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithCurrent } from "@/modules/pages/content";
-import { isRefused, personCanCreatePage, personPermissions } from "@/modules/pages/rights";
+import { isRefused, currentCanCreatePage } from "@/modules/pages/rights";
+import { currentPermissions } from "@/modules/permissions/person";
 import { isValidSlug } from "@/lib/slug";
 import { displayName } from "@/modules/accounts/username";
 
@@ -40,7 +41,7 @@ export default async function ShowPage({ params }: Props) {
 
   const page = await getPageWithCurrent(slug);
   if (!page) {
-    return (await personCanCreatePage()) ? (
+    return (await currentCanCreatePage()) ? (
       <PageNotYetCreated slug={slug} />
     ) : (
       <PageNotFound slug={slug} />
@@ -50,7 +51,7 @@ export default async function ShowPage({ params }: Props) {
     return <AccessRefused slug={slug} ownerName={page.ownerName} />;
   }
 
-  const permissions = await personPermissions(page);
+  const permissions = await currentPermissions(page);
 
   return (
     <div className="flex flex-1 flex-col">

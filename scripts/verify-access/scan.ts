@@ -17,18 +17,18 @@ import {
 // source with ts-morph, never import or run it).
 //
 // The three primitives every access decision in this codebase bottoms out on
-// are canRead, canWrite and isAdmin (modules/permissions/rules.ts) — every relay this
-// file has today (ifReadable, assertCanWrite, assertStructuring, assertAdmin,
-// assertAddress, writableWhere, currentReadableWhere…) is, transitively, a
-// call to one of the three. So rather than naming the relays — a list a
+// are canRead, canWrite and isAdmin (modules/permissions/decide/rules.ts) —
+// every relay this file has today (ifReadable, assertCanWrite,
+// assertStructuring, assertAdmin, assertAddress, currentWritableWhere,
+// currentReadableWhere…) is, transitively, a call to one of the three. So rather than naming the relays — a list a
 // future one would silently fall outside of — the check follows the call
 // graph from each exported function until it finds one of the three, however
 // many hops and files that takes.
 
 type FunctionLike = FunctionDeclaration | FunctionExpression | ArrowFunction;
 
-/** modules/permissions/rules.ts's own name — the primitives count only from there. */
-const PRIMITIVES_FILE = "modules/permissions/rules.ts";
+/** decide/rules.ts's own name — the primitives count only from there. */
+const PRIMITIVES_FILE = "modules/permissions/decide/rules.ts";
 const PRIMITIVES = new Set(["canRead", "canWrite", "isAdmin"]);
 
 // Prisma methods that return rows rather than writing them (mirrors
@@ -180,9 +180,9 @@ export function scanAccessGuards(sourceFile: SourceFile): AccessFinding[] {
 const UNGUARDED_READS: Record<string, string> = {
   // Existence probe / write precursor (see the function's own docstring): the
   // content never reaches a caller that has not first asked assertCanWrite or
-  // personPermissions.
+  // currentPermissions.
   getPage:
-    "existence probe for a slug clash and the write paths' own read — callers assertCanWrite or personPermissions before using the content",
+    "existence probe for a slug clash and the write paths' own read — callers assertCanWrite or currentPermissions before using the content",
   // Slugs only, readable or not (see the function's own docstring): what
   // modules/pages/lint.ts decides « cette page n'existe pas » against, never
   // content.

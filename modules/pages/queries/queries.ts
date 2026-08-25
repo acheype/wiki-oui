@@ -5,22 +5,23 @@ import {
   ADDRESS_REFUSED,
   CREATE_REFUSED,
   WRITE_REFUSED,
-  canRead,
-  canWrite,
-  isAdmin,
   knownEntries,
-  ownsPage,
   storedRights,
 } from "@/modules/permissions/rules";
 import { existingPrincipals } from "@/modules/permissions/groups-queries";
-import { currentPerson } from "@/modules/permissions/person";
+import {
+  currentCanRead,
+  currentCanWrite,
+  currentOwns,
+  isCurrentAdmin,
+} from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
-import { WITH_RIGHTS, personCanCreatePage } from "@/modules/pages/rights";
+import { WITH_RIGHTS, currentCanCreatePage } from "@/modules/pages/rights";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { wikiConfig } from "@/wiki.config";
 
 // queries.ts and rights.ts import from each other (WITH_RIGHTS/structuredPage
-// on one side, personCanCreatePage/assertStructuring on the other). Harmless,
+// on one side, currentCanCreatePage/assertStructuring on the other). Harmless,
 // because both sides only reach for the other inside a function body, never
 // at module-evaluation time — unlike PUBLIC_IDENTITY/ACL_ROWS, which is
 // exactly why those two live in rights.ts and not here: WITH_RIGHTS composes
@@ -57,17 +58,17 @@ export async function ifReadable<T extends Decidable>(
   page: T
 ): Promise<T | { refused: true; ownerName: string | null }> {
   if (ALWAYS_READABLE.includes(page.slug)) return page;
-  if (canRead(await currentPerson(), page)) return page;
+  if (await currentCanRead(page)) return page;
   return { refused: true, ownerName: page.owner?.name ?? null };
 }
 
 /** The backstop of every content write; the views refuse long before it. */
 export async function assertCanWrite(page: PageRights): Promise<void> {
-  if (!canWrite(await currentPerson(), page)) throw new Error(WRITE_REFUSED);
+  if (!(await currentCanWrite(page))) throw new Error(WRITE_REFUSED);
 }
 
 export async function assertCanCreatePage(): Promise<void> {
-  if (!(await personCanCreatePage())) throw new Error(CREATE_REFUSED);
+  if (!(await currentCanCreatePage())) throw new Error(CREATE_REFUSED);
 }
 
 /** The configured principals that still exist, as the pure filter reads them. */
@@ -90,7 +91,7 @@ export async function assertStructuring(
   page: PageRights,
   refusal: string
 ): Promise<void> {
-  if (ownsPage(await currentPerson(), page)) return;
+  if (await currentOwns(page)) return;
   throw new Error(refusal);
 }
 
@@ -100,7 +101,7 @@ export async function assertStructuring(
  * the way no other action on it does.
  */
 export async function assertAddress(): Promise<void> {
-  if (!isAdmin(await currentPerson())) throw new Error(ADDRESS_REFUSED);
+  if (!(await isCurrentAdmin())) throw new Error(ADDRESS_REFUSED);
 }
 
 /**

@@ -7,7 +7,8 @@ import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { loadComponentBuilders } from "@/modules/authoring/descriptors";
 import { hasForm } from "@/modules/pages/entry-page";
 import { getPageWithForm, listPageSlugs, listPageTags } from "@/modules/pages/content";
-import { isRefused, personCanCreatePage, personCanWrite } from "@/modules/pages/rights";
+import { isRefused, currentCanCreatePage } from "@/modules/pages/rights";
+import { currentCanWrite } from "@/modules/permissions/person";
 import { CREATE_REFUSED, WRITE_REFUSED } from "@/modules/permissions/rules";
 import { isValidSlug } from "@/lib/slug";
 
@@ -39,7 +40,7 @@ export default async function EditPage({ params }: Props) {
   // The editor is reached by its address as well as by the hidden « Modifier »
   // button, so the write right is checked here too — with its own wording,
   // since « vous n'avez pas accès » would be untrue of a page one can read.
-  if (existing && !(await personCanWrite(existing))) {
+  if (existing && !(await currentCanWrite(existing))) {
     return (
       <AccessRefused
         slug={slug}
@@ -48,7 +49,7 @@ export default async function EditPage({ params }: Props) {
       />
     );
   }
-  if (!existing && !(await personCanCreatePage())) {
+  if (!existing && !(await currentCanCreatePage())) {
     return (
       <AccessRefused slug={slug} ownerName={null} message={CREATE_REFUSED} />
     );

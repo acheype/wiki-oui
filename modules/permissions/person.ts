@@ -1,12 +1,37 @@
 import { headers } from "next/headers";
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { cache } from "react";
 import { auth } from "@/modules/accounts/auth";
 import { currentGroupSlugs } from "@/modules/permissions/groups-queries";
-import { type Person, type Identity, isAdmin } from "@/modules/permissions/rules";
+import type {
+  AccessRule,
+  Identity,
+  PagePermissions,
+  PageRights,
+  Person,
+} from "@/modules/permissions/rules";
+import {
+  canRead,
+  canWrite,
+  isAdmin,
+  listReadableWhere,
+  ownsSubject,
+  permissionsOn,
+  ruleAllows,
+  writableWhere,
+} from "@/modules/permissions/decide/rules";
 
-// The database side of the rules (docs/permissions.md): who is acting, and
-// which access level that puts them at. The rules themselves — and the `where`
-// clauses that carry them into SQL — are pure, and live in rules.ts.
+// The one interface the rest of the wiki decides through (docs/permissions.md):
+// who is acting, and every verdict about them, already taken. The rules
+// themselves — and the `where` clauses that carry them into SQL — are pure and
+// live in decide/rules.ts, private to this module by their depth (ADR 0029).
+//
+// Every form here resolves the person itself rather than taking one (ADR 0025,
+// amendment of 2026-08-24): an argument can be forgotten, and a forgotten
+// person reads as a visitor, which is the one mistake that fails open. It also
+// means each of these reads the session, so none of them runs in a client
+// component — sorting rows in memory that were read without a right is not
+// merely discouraged, it cannot be written.
 //
 // The groups a person ends up in are resolved next door, in
 // groups-queries.ts, which reads back the session from here: the two files
@@ -69,4 +94,69 @@ const ADMINISTRATORS_ONLY = "Réservé aux administrateurs.";
  */
 export async function assertAdmin(): Promise<void> {
   if (!(await isCurrentAdmin())) throw new Error(ADMINISTRATORS_ONLY);
+}
+
+// --- the verdicts, for whoever is asking now ---------------------------------
+
+/**
+ * Whether the current person may read this page — canRead with the one person
+ * it could ever be asked about.
+ */
+export async function currentCanRead(page: PageRights): Promise<boolean> {
+  return canRead(await currentPerson(), page);
+}
+
+/** Whether the current person may write this page. */
+export async function currentCanWrite(page: PageRights): Promise<boolean> {
+  return canWrite(await currentPerson(), page);
+}
+
+/**
+ * « Son propriétaire ou un administrateur », posed on whatever carries an
+ * owner: a page, read straight from its rights, or a form, which hands its
+ * `ownerUsername` over on its own.
+ */
+export async function currentOwns(
+  subject: Pick<PageRights, "ownerUsername"> | string | null
+): Promise<boolean> {
+  const ownerUsername = typeof subject === "object" && subject !== null
+    ? subject.ownerUsername
+    : subject;
+  return ownsSubject(await currentPerson(), ownerUsername);
+}
+
+/** The three rungs at once, so a system page cannot answer half the question. */
+export async function currentPermissions(page: PageRights): Promise<PagePermissions> {
+  return permissionsOn(await currentPerson(), page);
+}
+
+/**
+ * Whether a rule that stands on its own lets the current person through — the
+ * wiki's `createPage` and `createForm`, which no page carries.
+ *
+ * Administrators pass every rule, and that is settled here rather than at each
+ * site: their access is an invariant of the model (ADR 0023), not a scope one
+ * may forget to name. Written by hand, this check was spelled `isAdmin(person)
+ * || ruleAllows(person, rule)` in three places, which is three chances to drop
+ * the first half.
+ */
+export async function currentAllows(rule: AccessRule): Promise<boolean> {
+  const person = await currentPerson();
+  return isAdmin(person) || ruleAllows(person, rule);
+}
+
+/** Which pages the current person may write, as a `where` — `{}` for an administrator. */
+export async function currentWritableWhere(): Promise<Prisma.PageWhereInput> {
+  return writableWhere(await currentPerson());
+}
+
+/**
+ * What a list filters on: what the current person may read, plus the pages
+ * that answer to everyone whatever is posed on them (their slugs, which the
+ * caller holds).
+ */
+export async function currentListReadableWhere(
+  alwaysReadable: readonly string[]
+): Promise<Prisma.PageWhereInput> {
+  return listReadableWhere(await currentPerson(), alwaysReadable);
 }

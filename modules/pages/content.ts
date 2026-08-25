@@ -5,10 +5,9 @@ import { type EntryData, orderedEntryData } from "@/modules/forms/form-descripto
 import {
   type AccessRule,
   DELETE_REFUSED,
-  canRead,
   pageRule,
 } from "@/modules/permissions/rules";
-import { currentPerson, currentUsername } from "@/modules/permissions/person";
+import { currentCanRead, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { isExternalHref, wikiHrefSlug } from "@/lib/slug";
@@ -267,7 +266,7 @@ export async function getLayoutContents(): Promise<
  * rather than as a reason to hide.
  *
  * Memoized per request and per slug (React cache), like every other read
- * behind currentPerson — a menu naming the same page from several entries
+ * behind the session — a menu naming the same page from several entries
  * costs one query, not one per entry.
  */
 export const isSlugReadable = cache(async (slug: string): Promise<boolean> => {
@@ -277,7 +276,7 @@ export const isSlugReadable = cache(async (slug: string): Promise<boolean> => {
     select: { ownerUsername: true, readScope: true, writeScope: true, acls: ACL_ROWS },
   });
   if (!page) return true;
-  return canRead(await currentPerson(), page);
+  return currentCanRead(page);
 });
 
 /**

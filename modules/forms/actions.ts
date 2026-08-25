@@ -37,9 +37,9 @@ import {
   bornFormPermissions,
 } from "@/modules/permissions/form-level";
 import {
-  personCanCreateEntry,
-  personCanCreateForm,
-  personCanEditForm,
+  currentCanCreateEntry,
+  currentCanCreateForm,
+  currentCanEditForm,
   applyFormDefaults,
   countEntriesCarryingField,
   countEntryTitleRecompute,
@@ -103,8 +103,8 @@ export async function listForms(): Promise<FormSummary[]> {
       name: form.name,
       entryCount: form._count.entries,
       createdAt: form.createdAt,
-      canEdit: await personCanEditForm(form),
-      canCreateEntry: await personCanCreateEntry(form),
+      canEdit: await currentCanEditForm(form),
+      canCreateEntry: await currentCanCreateEntry(form),
     }))
   );
 }
@@ -137,7 +137,7 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
     schema: parsed.descriptor,
     template: form.template,
     permissions: permissionsOf(form),
-    canEdit: await personCanEditForm(form),
+    canEdit: await currentCanEditForm(form),
   };
 }
 
@@ -154,14 +154,14 @@ export async function listRightsDirectory(
   // rung the act itself stops at answers for it: whoever may not create a form
   // has no business reading the wiki's membership either.
   const allowed = form
-    ? await personCanEditForm(form)
-    : await personCanCreateForm();
+    ? await currentCanEditForm(form)
+    : await currentCanCreateForm();
   return allowed ? listDirectory() : { people: [], groups: [] };
 }
 
 /** Whether the system pages offer « Nouveau formulaire » at all. */
 export async function canAddForm(): Promise<boolean> {
-  return personCanCreateForm();
+  return currentCanCreateForm();
 }
 
 /**
@@ -397,7 +397,7 @@ export async function renameForm(
   // Checked here rather than only at the door: the generic failure message
   // below is for a unique-constraint race, and would turn a refusal into
   // « réessayez dans un instant » — an invitation to keep trying.
-  if (!(await personCanEditForm(form))) {
+  if (!(await currentCanEditForm(form))) {
     return { error: FORM_EDIT_REFUSED };
   }
   if (await getFormBySlug(newSlug)) {
@@ -593,7 +593,7 @@ async function creationRefusalOf(
   form: { schema: unknown },
   isEdit: boolean
 ): Promise<string | null> {
-  if (isEdit || (await personCanCreateEntry(form))) return null;
+  if (isEdit || (await currentCanCreateEntry(form))) return null;
   const rule = permissionsOf(form).createEntry;
   return scopeRefusal(rule, await groupDisplayNames(rule.groupSlugs ?? []));
 }
@@ -663,7 +663,7 @@ export async function getEntryForm(
 /** Whether a system page offers « Nouvelle fiche » for this form at all. */
 export async function canAddEntry(formSlug: string): Promise<boolean> {
   const form = await getFormBySlug(formSlug);
-  return form !== null && personCanCreateEntry(form);
+  return form !== null && currentCanCreateEntry(form);
 }
 
 export interface SaveEntryInput {
