@@ -34,7 +34,7 @@ import {
   ALWAYS_READABLE,
   assertStructuring,
   structuredPage,
-} from "@/modules/pages/queries/queries";
+} from "@/modules/pages/access/guards";
 
 // The rights of one page, and of the wiki as a whole: everything
 // modules/pages/content.ts, modules/pages/revisions.ts and
@@ -42,15 +42,15 @@ import {
 // administration system pages' own bulk actions. Part of ADR 0025's door.
 //
 // PUBLIC_IDENTITY, ACL_ROWS, WITH_RIGHTS, COLD_ADMIN_TRANSACTION_TIMEOUT_MS
-// and currentReadableWhere live here rather than in modules/pages/queries/queries.ts
-// (the door, private to the module) because modules/forms/queries.ts imports
-// several of them — a shared brick lives at a module's root, never behind its
-// door (ADR 0029). PUBLIC_IDENTITY and ACL_ROWS specifically cannot move to
-// queries.ts even as an implementation detail: WITH_RIGHTS composes them in a
-// top-level `const`, evaluated at import time, and queries.ts already imports
-// WITH_RIGHTS and currentCanCreatePage back from this same file — a cycle
-// bundlers resolve fine when every crossing is inside a function body, but
-// not when one side of it is a top-level `const`.
+// and currentReadableWhere live here rather than in modules/pages/access/guards.ts
+// (private to the module by its depth) because modules/forms/queries/queries.ts
+// imports several of them — a shared brick lives at a module's root, never
+// behind its guards (ADR 0029). PUBLIC_IDENTITY and ACL_ROWS specifically
+// cannot move to guards.ts even as an implementation detail: WITH_RIGHTS
+// composes them in a top-level `const`, evaluated at import time, and guards.ts
+// already imports WITH_RIGHTS and currentCanCreatePage back from this same
+// file — a cycle bundlers resolve fine when every crossing is inside a
+// function body, but not when one side of it is a top-level `const`.
 
 /**
  * What the wiki says about a person beside a contribution: the display name,
@@ -71,7 +71,7 @@ export const ACL_ROWS = {
 
 /**
  * What deciding on a page needs, plus the name a refusal would print. Shared
- * with modules/forms/queries.ts, which loads entries by the formful: a system
+ * with modules/forms/queries/queries.ts, which loads entries by the formful: a system
  * page that offers a action per row has to know the rights of every one of them.
  */
 export const WITH_RIGHTS = {
@@ -82,7 +82,7 @@ export const WITH_RIGHTS = {
 /**
  * What a namespace-wide retcon is allowed to take (ADR 0016/0017/0020): a
  * large wiki means many rewrites in one sweep, where Prisma's default 5s is
- * sized for hot-path transactions. Shared with modules/forms/queries.ts — the
+ * sized for hot-path transactions. Shared with modules/forms/queries/queries.ts — the
  * same rare cold admin actions, on the other side of the door.
  */
 export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;

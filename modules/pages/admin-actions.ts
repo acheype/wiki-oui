@@ -19,7 +19,7 @@ import { type AclDirectory, refusalMessage } from "@/modules/permissions/rules";
 
 // Server Actions of `gerer-pages` (docs/permissions.md § Les pages système). Reading
 // the list and acting on a lot are both an administrator's permissions, and the
-// check lives behind the door in modules/pages/queries/queries.ts, so none of these
+// check lives behind the door in modules/pages/access/guards.ts, so none of these
 // can forget it.
 //
 // Refusals travel as values rather than as throws: across the Server Action

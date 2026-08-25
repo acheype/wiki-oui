@@ -4,7 +4,7 @@ import { type EntryData, type FormDescriptor, readEntryData } from "@/modules/fo
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
-import { assertCanWrite, ifReadable, mintRevision } from "@/modules/pages/queries/queries";
+import { assertCanWrite, ifReadable, mintRevision } from "@/modules/pages/access/guards";
 import { PUBLIC_IDENTITY, WITH_RIGHTS, isRefused } from "@/modules/pages/rights";
 
 // A page's history: reading it, reading one revision to restore, writing a

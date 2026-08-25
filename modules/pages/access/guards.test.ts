@@ -18,7 +18,7 @@ import {
 //
 // Spans modules/pages/content.ts, modules/pages/rights.ts and
 // modules/pages/revisions.ts on purpose: this is a test of
-// modules/pages/queries/queries.ts's own guards (assertStructuring,
+// modules/pages/access/guards.ts's own guards (assertStructuring,
 // assertAddress, assertCanWrite), exercised through every public function
 // that calls them — not a test of any one of those three files' own business
 // logic.

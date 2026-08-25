@@ -1,6 +1,6 @@
 // A fiche or a page, told apart the one shared way (docs/architecture.md):
 // pure predicates over a plain shape, no Prisma or session behind them, so
-// this file carries none of the server-only imports modules/pages/queries/queries.ts
+// this file carries none of the server-only imports modules/pages/access/guards.ts
 // (ADR 0025) does — a Client Component (modules/pages/ui/pages-admin.tsx) can
 // call these directly without pulling next/headers into its bundle. Being a
 // root file of the module (ADR 0029), it is imported directly wherever it is

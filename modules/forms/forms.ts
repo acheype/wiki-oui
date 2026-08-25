@@ -36,7 +36,7 @@ import {
 import { wikiConfig } from "@/wiki.config";
 import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/queries/queries";
 
-// The only door to `Form` (ADR 0025), alongside modules/pages/queries/queries.ts for
+// The only door to `Form` (ADR 0025), alongside modules/pages/access/guards.ts for
 // `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
 // permission checks this layer hosts cannot be bypassed by a caller that
 // forgot them — the risk being a silent read, which no test would ever catch.

@@ -200,14 +200,14 @@ const UNGUARDED_READS: Record<string, string> = {
 };
 
 /**
- * The five files ADR 0029 split lib/pages.ts into: the door itself
- * (queries.ts, private to modules/pages/) plus the four root files that each
- * read or write Page (content.ts, revisions.ts, rights.ts, entries.ts). A
+ * The five files ADR 0029 split lib/pages.ts into: the guards themselves
+ * (access/guards.ts, private to modules/pages/) plus the four root files that
+ * each read or write Page (content.ts, revisions.ts, rights.ts, entries.ts). A
  * function moved from one to another keeps the same name, so UNGUARDED_READS
  * below did not need to change with the split — only this list of files did.
  */
 const PAGE_ACCESS_FILES = [
-  "modules/pages/queries/queries.ts",
+  "modules/pages/access/guards.ts",
   "modules/pages/content.ts",
   "modules/pages/revisions.ts",
   "modules/pages/rights.ts",

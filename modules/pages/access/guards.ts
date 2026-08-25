@@ -20,7 +20,7 @@ import { WITH_RIGHTS, currentCanCreatePage } from "@/modules/pages/rights";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { wikiConfig } from "@/wiki.config";
 
-// queries.ts and rights.ts import from each other (WITH_RIGHTS/structuredPage
+// guards.ts and rights.ts import from each other (WITH_RIGHTS/structuredPage
 // on one side, currentCanCreatePage/assertStructuring on the other). Harmless,
 // because both sides only reach for the other inside a function body, never
 // at module-evaluation time — unlike PUBLIC_IDENTITY/ACL_ROWS, which is
@@ -30,10 +30,14 @@ import { wikiConfig } from "@/wiki.config";
 // cannot resolve (a real "Cannot access before initialization" hit during
 // this split — see the commit this file was added in).
 
-// The only door to `Page` (ADR 0025), alongside modules/forms/queries/queries.ts for
-// `Form`. An ESLint rule refuses `prisma.page` anywhere else, so the
+// The guards of `Page` (ADR 0025), alongside modules/forms/queries/queries.ts
+// for `Form`. An ESLint rule refuses `prisma.page` anywhere else, so the
 // permission checks this layer hosts cannot be bypassed by a caller that
 // forgot them — the risk being a silent read, which no test would ever catch.
+//
+// Named for what it holds rather than for the library it calls: three of the
+// wiki's forty-nine Prisma calls are here, and every one of them is a read
+// taken so that a right can be posed on it at once.
 //
 // Private to this module (ADR 0029, wikioui/module-seam): every other file of
 // modules/pages/ may import from here, nothing outside the module may. The

@@ -2,7 +2,7 @@ import { FORM_EDIT_REFUSED } from "@/modules/permissions/rules";
 import { currentOwns } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
-// The only door to `Form` (ADR 0025), alongside modules/pages/queries/queries.ts
+// The only door to `Form` (ADR 0025), alongside modules/pages/access/guards.ts
 // for `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
 // permission checks this layer hosts cannot be bypassed by a caller that
 // forgot them — the risk being a silent read, which no test would ever catch.

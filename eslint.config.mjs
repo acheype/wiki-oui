@@ -78,7 +78,7 @@ function moduleImportTarget(source, filename) {
 
 // A module's interface is its root listing (ADR 0029): a file one hop below
 // modules/<name>/ can be imported from elsewhere, a file under a sub-folder
-// cannot. The door (ADR 0025, e.g. modules/pages/queries/queries.ts) never
+// cannot. The door (ADR 0025, e.g. modules/pages/access/guards.ts) never
 // sits at the root for exactly this reason — a door reached from outside its
 // own module answers to nobody's rights but the caller's own module, so
 // depth alone keeps it private, with no name to special-case. `app/` is the
@@ -165,12 +165,12 @@ const eslintConfig = defineConfig([
     // reddens. Exceptions stay few, so that adding one is visible in review.
     ignores: [
       // The access layer itself. lib/pages.ts split into five files at the
-      // door (ADR 0029): modules/pages/queries/queries.ts plus the four root
+      // door (ADR 0029): modules/pages/access/guards.ts plus the four root
       // files that each read or write Page directly (content.ts,
       // revisions.ts, rights.ts, entries.ts) — this rule polices
-      // `prisma.page`, not the ESLint module-seam privacy of queries.ts, so
+      // `prisma.page`, not the ESLint module-seam privacy of guards.ts, so
       // all five need the exemption, not just the one that stayed private.
-      "modules/pages/queries/queries.ts",
+      "modules/pages/access/guards.ts",
       "modules/pages/content.ts",
       "modules/pages/revisions.ts",
       "modules/pages/rights.ts",
