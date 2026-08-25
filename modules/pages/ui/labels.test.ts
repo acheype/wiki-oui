@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ownerLine,
-  signInLockoutWarning,
+  signInLockout,
   ownerTransferNote,
   ownerTransferWarning,
   ruleSummary,
@@ -92,46 +92,69 @@ describe("ruleSummary", () => {
 // its rights any more, sign-in pages included — which is what makes the
 // setting mean something, and what makes this one worth a word before the
 // click.
-describe("signInLockoutWarning", () => {
+describe("signInLockout", () => {
   const LOT = ["compte-rendu", "connexion", "annuaire"];
 
   it("says nothing while the read stays open to everyone", () => {
-    expect(signInLockoutWarning(LOT, { scope: "everyone" })).toBeNull();
+    expect(signInLockout(LOT, { scope: "everyone" })).toBeNull();
   });
 
   it("says nothing when the sense is not being replaced at all", () => {
-    expect(signInLockoutWarning(LOT, undefined)).toBeNull();
+    expect(signInLockout(LOT, undefined)).toBeNull();
   });
 
   it("says nothing about a lot that holds no account page", () => {
     expect(
-      signInLockoutWarning(["compte-rendu", "annuaire"], { scope: "authenticated" })
+      signInLockout(["compte-rendu", "annuaire"], { scope: "authenticated" })
     ).toBeNull();
   });
 
   // Three of the four account pages lock the wiki, not four. Free sign-up is
   // closed by default and opens no way back into an account that exists.
   it("says nothing about the free sign-up page", () => {
-    expect(signInLockoutWarning(["inscription"], { scope: "restricted" })).toBeNull();
+    expect(signInLockout(["inscription"], { scope: "restricted" })).toBeNull();
   });
 
   // Every recovery link lands on `invitation`, a forgotten password as much as
   // an invitation (modules/accounts/access/guards.ts) — closing it closes the
   // only way back for whoever has lost their password.
   it("warns about the page every recovery link lands on", () => {
-    expect(signInLockoutWarning(["invitation"], { scope: "restricted" })).toContain(
+    expect(signInLockout(["invitation"], { scope: "restricted" })?.message).toContain(
       "récupérer"
     );
   });
 
   it("warns about the page that asks for a reset", () => {
     expect(
-      signInLockoutWarning(["mot-de-passe-oublie"], { scope: "restricted" })
+      signInLockout(["mot-de-passe-oublie"], { scope: "restricted" })
     ).not.toBeNull();
   });
 
+  // Each page is described for what it does, not for what it links to:
+  // `connexion` offers a link to the recovery page, it recovers nothing.
+  it("says of the sign-in page only that one signs in on it", () => {
+    const warning = signInLockout(["connexion"], { scope: "restricted" })?.message;
+    expect(warning).toContain("sert à se connecter.");
+    expect(warning).not.toContain("récupérer");
+  });
+
+  it("says of the recovery pages what they recover", () => {
+    const warning = signInLockout(["invitation"], { scope: "restricted" })?.message;
+    expect(warning).toContain("récupérer ou activer un compte");
+    expect(warning).not.toContain("se connecter");
+  });
+
+  // The lot dialog offers to spare them, so it needs to know which they are.
+  it("hands back the pages it is about, so a lot can spare them", () => {
+    expect(
+      signInLockout(["compte-rendu", "connexion", "invitation"], {
+        scope: "restricted",
+      })?.slugs
+    ).toEqual(["connexion", "invitation"]);
+  });
+
   it("warns, and names the page, as soon as the read narrows", () => {
-    const warning = signInLockoutWarning(LOT, { scope: "authenticated" });
+    const warning = signInLockout(LOT, { scope: "authenticated" })?.message;
     expect(warning).toContain("connexion");
     expect(warning).toContain("administrateurs compris");
     // The lot's other pages are nobody's business here: the warning is about
@@ -140,9 +163,9 @@ describe("signInLockoutWarning", () => {
   });
 
   it("names every account page a lot would close, and agrees with the count", () => {
-    const warning = signInLockoutWarning(["connexion", "invitation"], {
+    const warning = signInLockout(["connexion", "invitation"], {
       scope: "restricted",
-    });
+    })?.message;
     expect(warning).toContain("connexion");
     expect(warning).toContain("invitation");
     expect(warning).toContain("Les pages");
@@ -151,7 +174,7 @@ describe("signInLockoutWarning", () => {
   });
 
   it("agrees in the singular for one page", () => {
-    const warning = signInLockoutWarning(["connexion"], { scope: "restricted" });
+    const warning = signInLockout(["connexion"], { scope: "restricted" })?.message;
     expect(warning).toContain("La page");
     expect(warning).toContain("» sert à");
     expect(warning).toContain("sa lecture");
@@ -160,7 +183,7 @@ describe("signInLockoutWarning", () => {
   // Two sentences, the second being the consequence: the note renders the
   // break, so it has to survive the string.
   it("keeps the consequence on its own line", () => {
-    expect(signInLockoutWarning(["connexion"], { scope: "restricted" })).toContain(
+    expect(signInLockout(["connexion"], { scope: "restricted" })?.message).toContain(
       ".\nSi toutes les sessions"
     );
   });

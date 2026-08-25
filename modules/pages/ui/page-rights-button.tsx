@@ -16,8 +16,17 @@ import {
 } from "@/modules/pages/rights-actions";
 import { Field } from "@/modules/forms/field-widget";
 import { OwnerTransfer } from "@/modules/pages/ui/owner-transfer";
-import { signInLockoutWarning } from "@/modules/pages/ui/labels";
-import { InfoNote } from "@/components/ui/info-note";
+import { signInLockout } from "@/modules/pages/ui/labels";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -41,6 +50,7 @@ export function PageRightsButton({
   const [read, setRead] = useState<AccessRule>({ scope: "restricted" });
   const [write, setWrite] = useState<AccessRule>({ scope: "restricted" });
   const [saving, startSaving] = useTransition();
+  const [confirming, setConfirming] = useState(false);
 
   function openWith(next: boolean) {
     setOpen(next);
@@ -76,8 +86,9 @@ export function PageRightsButton({
   // The modal is the same for a fiche; only what it calls the thing changes.
   // Both nouns are feminine, so the second question needs no variant.
   const subject = rights?.isEntry ? "cette fiche" : "cette page";
-  // Read live, so it appears as the scope is chosen rather than after the save.
-  const lockout = signInLockoutWarning([slug], read);
+  // Raised on the save rather than shown beside the widget: a note in small
+  // grey type is walked past, and this consequence costs the wiki.
+  const lockout = signInLockout([slug], read);
 
   return (
     <Dialog open={open} onOpenChange={openWith}>
@@ -111,7 +122,6 @@ export function PageRightsButton({
               environment={{ directory: rights.directory, aclFloor: rights.floor }}
               onChange={(value) => setRead(value as AccessRule)}
             />
-            {lockout && <InfoNote className="whitespace-pre-line">{lockout}</InfoNote>}
             <Field
               id="page-write-acl"
               spec={{ type: "acl", label: "Qui peut la modifier ?" }}
@@ -126,11 +136,34 @@ export function PageRightsButton({
           <Button variant="outline" onClick={() => setOpen(false)}>
             Annuler
           </Button>
-          <Button onClick={save} disabled={!rights || saving}>
+          <Button
+            onClick={() => (lockout ? setConfirming(true) : save())}
+            disabled={!rights || saving}
+          >
             Enregistrer
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Asked, not merely noted: the rights modal is a place people click
+          through, and closing a sign-in page is the one change here nothing
+          undoes once every session has expired. */}
+      <AlertDialog open={confirming} onOpenChange={setConfirming}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Fermer l&apos;accès à cette page&nbsp;?</AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-line">
+              {lockout?.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={save} disabled={saving}>
+              Enregistrer quand même
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

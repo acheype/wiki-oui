@@ -50,7 +50,7 @@ L'ADR exemptait `getLayoutContents()`, et la v0.5 tenait par ailleurs une liste 
 
 Conséquences : `ifReadable` ne connaît plus aucun slug, la clause de liste n'unit plus rien (`listReadableWhere` disparaît), et un emplacement de layout refusé rend vide — le layout le laisse dehors, comme il le faisait déjà d'un emplacement qu'un auteur n'avait pas rempli. Les pages seedées naissent en lecture *tout le monde*, donc rien ne change pour un wiki neuf.
 
-Le revers est assumé, et signalé : restreindre `connexion` ferme la connexion, et si toutes les sessions expirent, seule la base permet de rouvrir. Les deux endroits où un droit de lecture se pose — la modale d'une page et le lot de `gerer-pages` — avertissent avant le clic, sans refuser : fermer une page reste le droit de l'administrateur.
+Le revers est assumé, et signalé : restreindre `connexion` ferme la connexion, et si toutes les sessions expirent, seule la base permet de rouvrir. Les deux endroits où un droit de lecture se pose — la modale d'une page et le lot de `gerer-pages` — demandent confirmation avant d'écrire, sans refuser : fermer une page reste le droit de l'administrateur. Sur un lot, la confirmation offre d'épargner les pages de comptes plutôt que d'obliger à recommencer la sélection.
 
 ### Ce qui tient la règle
 

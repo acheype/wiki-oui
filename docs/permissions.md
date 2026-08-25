@@ -409,15 +409,27 @@ Ensuite une **fuite** : la liste ne disait pas « sers le chrome », elle disait
 
 Le wiki fait donc ce que ses droits disent, et l'administrateur en répond. Un emplacement de layout dont la page est refusée rend **vide**, et le layout le laisse dehors. Les pages seedées naissent en lecture *tout le monde*, donc un wiki neuf se comporte comme avant sans rien régler.
 
-**Le revers, à connaître.** Restreindre `connexion` ferme la connexion. Un administrateur encore connecté peut revenir en arrière ; si toutes les sessions expirent, seule la base permet de rouvrir. C'est la contrepartie assumée d'un wiki qui obéit à ses réglages plutôt qu'à une liste cachée — et elle se dit **avant le clic**, comme la transmission de propriété : la modale d'une page et le lot « Remplacer les accès » de `gerer-pages` affichent, dès que la lecture de `connexion`, `mot-de-passe-oublie` ou `invitation` cesse d'être ouverte à tout le monde :
+**Le revers, à connaître.** Restreindre `connexion` ferme la connexion. Un administrateur encore connecté peut revenir en arrière ; si toutes les sessions expirent, seule la base permet de rouvrir. C'est la contrepartie assumée d'un wiki qui obéit à ses réglages plutôt qu'à une liste cachée — et elle se dit **avant le clic**, comme la transmission de propriété : la modale d'une page et le lot « Remplacer les accès » de `gerer-pages` **demandent confirmation** dès que la lecture de `connexion`, `mot-de-passe-oublie` ou `invitation` cesse d'être ouverte à tout le monde :
 
-> Attention : La page « connexion » sert à se connecter ou à récupérer un compte. Désactiver sa lecture empêchera les utilisateurs non connectés de se connecter ou de récupérer leur compte, administrateurs compris.
+> La page « connexion » sert à se connecter. Désactiver sa lecture empêchera les utilisateurs non connectés de se connecter, administrateurs compris.
 >
 > Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.
 
-Trois pages sur quatre : `inscription` n'y est pas, l'inscription libre étant fermée par défaut et n'ouvrant aucun retour vers un compte existant. `invitation` y est parce que **tout** lien de récupération y atterrit, un mot de passe oublié autant qu'une invitation.
+Une **modale**, pas une note : une remarque en petits caractères gris se dépasse sans la lire, et cette conséquence-là coûte le wiki. Chaque page est décrite pour ce qu'elle fait, non pour ce vers quoi elle renvoie — `connexion` propose un lien vers la récupération, elle ne récupère rien ; `mot-de-passe-oublie` et `invitation` servent, elles, à « récupérer ou activer un compte », **tout** lien de récupération atterrissant sur la seconde.
 
-Un avertissement, pas un refus : c'est le droit de l'administrateur de fermer ce qu'il veut.
+Trois pages sur quatre : `inscription` n'y est pas, l'inscription libre étant fermée par défaut et n'ouvrant aucun retour vers un compte existant.
+
+Sur un **lot**, la confirmation offre trois réponses plutôt que deux, la deuxième étant ce que la plupart viennent faire :
+
+| Réponse | Ce qu'elle fait |
+| --- | --- |
+| Annuler | rien |
+| Appliquer sans cette page | le lot entier, ces pages exceptées |
+| Appliquer à toutes | le lot entier, ces pages comprises |
+
+La deuxième n'apparaît que si le lot contient autre chose : épargner ces pages d'un lot qui ne contient qu'elles, c'est ne rien faire, ce qu'« Annuler » dit déjà.
+
+Une confirmation, pas un refus : c'est le droit de l'administrateur de fermer ce qu'il veut.
 
 ### Deux temps, jamais un chargement suivi d'un tri
 

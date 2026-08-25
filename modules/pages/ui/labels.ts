@@ -92,20 +92,40 @@ export function ownerLine(ownerName: string | null): string {
 }
 
 /**
- * The account pages a wiki can shut itself out of, named by their role rather
- * than by their slug. Three of the four, and `inscription` is not one: free
- * sign-up is closed by default (wiki.config.ts) and opens no way back into an
- * account that already exists.
+ * The account pages a wiki can shut itself out of, and what each is for.
+ * Three of the four : `inscription` is not one, free sign-up being closed by
+ * default (wiki.config.ts) and opening no way back into an account that
+ * already exists.
  *
- * `invitation` is on the list for a reason worth knowing: every recovery link
- * lands there, a forgotten password as much as an invitation — one mint site,
- * one page (modules/accounts/access/guards.ts).
+ * `connexion` only signs people in — it links to the recovery page, it does
+ * not recover anything. `invitation` is where **every** recovery link lands,
+ * a forgotten password as much as an invitation: one mint site, one page
+ * (modules/accounts/access/guards.ts).
  */
-const LOCKING_ROLES = ["signIn", "forgotPassword", "invitation"] as const;
+const LOCKING_PAGES = {
+  signIn: { serves: "se connecter", prevents: "de se connecter" },
+  forgotPassword: {
+    serves: "récupérer ou activer un compte",
+    prevents: "de récupérer ou d'activer leur compte",
+  },
+  invitation: {
+    serves: "récupérer ou activer un compte",
+    prevents: "de récupérer ou d'activer leur compte",
+  },
+} as const;
+
+/** What a change to the rights would close, and the sentence that says so. */
+export interface SignInLockout {
+  /** The account pages it would close — what a lot can offer to spare. */
+  slugs: string[];
+  /** Two sentences, the second being the consequence rather than the fact. */
+  message: string;
+}
 
 /**
- * The one refusal a wiki cannot take back, said before the click rather than
- * after it — the same treatment « transmettre la propriété » gets above.
+ * The one refusal a wiki cannot take back, raised **before** the write rather
+ * than noted beside it: a note in small grey type is too easy to walk past,
+ * and this one costs the wiki.
  *
  * No page is exempt from its rights, the account pages included (ADR 0025,
  * amendement du 2026-08-25) : that is what makes the setting mean something,
@@ -113,34 +133,39 @@ const LOCKING_ROLES = ["signIn", "forgotPassword", "invitation"] as const;
  * in can undo it ; once every session has expired, only the database reopens
  * the wiki.
  *
- * Only the **read** is warned about : a page one may not write is still a page
- * one can sign in on. Null when the lot holds none of those pages, or when the
+ * Only the **read** raises it : a page one may not write is still a page one
+ * can sign in on. Null when the lot holds none of those pages, or when the
  * read stays open to everyone — the one scope that keeps them reachable.
- *
- * Two sentences, the second being the consequence rather than the fact: they
- * are separated by a newline, which the note renders as a break.
  */
-export function signInLockoutWarning(
+export function signInLockout(
   slugs: readonly string[],
   read: AccessRule | undefined
-): string | null {
+): SignInLockout | null {
   if (read === undefined || read.scope === "everyone") return null;
-  const locking: readonly string[] = LOCKING_ROLES.map(
-    (role) => wikiConfig.authPages[role]
-  );
-  const closed = slugs.filter((slug) => locking.includes(slug));
+  const roles = Object.entries(LOCKING_PAGES) as [
+    keyof typeof LOCKING_PAGES,
+    (typeof LOCKING_PAGES)[keyof typeof LOCKING_PAGES],
+  ][];
+  const closed = roles.flatMap(([role, purpose]) => {
+    const slug = wikiConfig.authPages[role];
+    return slugs.includes(slug) ? [{ slug, ...purpose }] : [];
+  });
   if (closed.length === 0) return null;
 
-  const named = closed.map((slug) => `«\u00A0${slug}\u00A0»`);
+  const named = closed.map(({ slug }) => `«\u00A0${slug}\u00A0»`);
   const subject =
     closed.length === 1
       ? `La page ${named[0]} sert`
       : `Les pages ${named.slice(0, -1).join(", ")} et ${named[named.length - 1]} servent`;
   const its = closed.length === 1 ? "sa" : "leur";
-  return (
-    `Attention : ${subject} à se connecter ou à récupérer un compte. ` +
-    `Désactiver ${its} lecture empêchera les utilisateurs non connectés de se ` +
-    `connecter ou de récupérer leur compte, administrateurs compris.\n` +
-    `Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.`
-  );
+  const serves = [...new Set(closed.map((page) => page.serves))].join(" et à ");
+  const prevents = [...new Set(closed.map((page) => page.prevents))].join(" et ");
+
+  return {
+    slugs: closed.map(({ slug }) => slug),
+    message:
+      `${subject} à ${serves}. Désactiver ${its} lecture empêchera les ` +
+      `utilisateurs non connectés ${prevents}, administrateurs compris.\n` +
+      `Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.`,
+  };
 }

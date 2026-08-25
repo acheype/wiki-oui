@@ -30,7 +30,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { InfoNote } from "@/components/ui/info-note";
-import { signInLockoutWarning } from "@/modules/pages/ui/labels";
+import { signInLockout } from "@/modules/pages/ui/labels";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -94,6 +104,7 @@ export function BulkRightsDialog({
   const [grant, setGrant] = useState(EMPTY_GRANT);
   const [replacement, setReplacement] = useState<RightsReplacement>({});
   const [applying, startApplying] = useTransition();
+  const [confirming, setConfirming] = useState(false);
   const targets = useGrantTargets(grant);
 
   const subject = lotSubject(pages.length);
@@ -105,8 +116,14 @@ export function BulkRightsDialog({
   // scope is chosen rather than after the lot is written.
   const lockout =
     intent === "replace"
-      ? signInLockoutWarning(pages.map((page) => page.slug), replacement.READ)
+      ? signInLockout(pages.map((page) => page.slug), replacement.READ)
       : null;
+  // What the lot would still change if the account pages were left out of it.
+  // Empty when the lot holds nothing else — and then sparing them is doing
+  // nothing, so the dialog does not offer it.
+  const sparedSlugs = lockout
+    ? pages.map((page) => page.slug).filter((slug) => !lockout.slugs.includes(slug))
+    : [];
   const nothingChosen =
     intent === "grant"
       ? grantAddsNothing(pages, namedTargets(grant, targets))
@@ -120,9 +137,9 @@ export function BulkRightsDialog({
     setReplacement({});
   }
 
-  function apply() {
+  function apply(slugs: string[]) {
     startApplying(async () => {
-      const slugs = pages.map((page) => page.slug);
+      setConfirming(false);
       // One call for the two senses: they are one action, and the guard
       // refuses the lot whole rather than leaving half of it written.
       const refused =
@@ -248,17 +265,63 @@ export function BulkRightsDialog({
         </div>
 
         {intent === "replace" && <ReplacementNote pages={pages.length} replacement={replacement} />}
-        {lockout && <InfoNote className="whitespace-pre-line">{lockout}</InfoNote>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => reset(false)}>
             Annuler
           </Button>
-          <Button onClick={apply} disabled={nothingChosen || applying}>
+          <Button
+            onClick={() =>
+              lockout ? setConfirming(true) : apply(pages.map((page) => page.slug))
+            }
+            disabled={nothingChosen || applying}
+          >
             Appliquer
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Three answers rather than two, because the middle one is what most
+          people came to do: a lot of dozens of pages caught a sign-in page it
+          was never about, and hunting it down in the list to deselect it is a
+          worse click than this one. Offered only when the lot holds something
+          else — sparing them out of a lot of nothing but them is doing
+          nothing, which « Annuler » already says. */}
+      <AlertDialog open={confirming} onOpenChange={setConfirming}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {lockout && lockout.slugs.length > 1
+                ? "Ces pages servent à entrer dans le wiki"
+                : "Cette page sert à entrer dans le wiki"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-line">
+              {lockout?.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            {sparedSlugs.length > 0 && (
+              <AlertDialogAction
+                onClick={() => apply(sparedSlugs)}
+                disabled={applying}
+              >
+                Appliquer sans{" "}
+                {lockout && lockout.slugs.length > 1
+                  ? `ces ${lockout.slugs.length} pages`
+                  : "cette page"}
+              </AlertDialogAction>
+            )}
+            <AlertDialogAction
+              onClick={() => apply(pages.map((page) => page.slug))}
+              disabled={applying}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Appliquer à toutes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
