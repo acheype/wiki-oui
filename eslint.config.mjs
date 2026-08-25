@@ -245,7 +245,7 @@ const eslintConfig = defineConfig([
         {
           selector: accessClauseInsideOr,
           message:
-            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish, silently, and only for whoever has the most rights. Join with AND, which has no such trap. A join that really has to be an OR belongs in modules/permissions/decide/rules.ts, beside the clauses, where the empty case can be made to absorb.",
+            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish, silently, and only for whoever has the most rights. Join with AND, which has no such trap. If it really has to be an OR, it cannot be written here: add it to modules/permissions/decide/rules.ts, beside the clauses, and export the clause already joined — that folder is private, so there is nothing in it to import.",
         },
       ],
     },

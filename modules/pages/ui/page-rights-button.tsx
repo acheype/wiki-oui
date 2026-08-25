@@ -16,6 +16,8 @@ import {
 } from "@/modules/pages/rights-actions";
 import { Field } from "@/modules/forms/field-widget";
 import { OwnerTransfer } from "@/modules/pages/ui/owner-transfer";
+import { signInLockoutWarning } from "@/modules/pages/ui/labels";
+import { InfoNote } from "@/components/ui/info-note";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -74,6 +76,8 @@ export function PageRightsButton({
   // The modal is the same for a fiche; only what it calls the thing changes.
   // Both nouns are feminine, so the second question needs no variant.
   const subject = rights?.isEntry ? "cette fiche" : "cette page";
+  // Read live, so it appears as the scope is chosen rather than after the save.
+  const lockout = signInLockoutWarning([slug], read);
 
   return (
     <Dialog open={open} onOpenChange={openWith}>
@@ -107,6 +111,7 @@ export function PageRightsButton({
               environment={{ directory: rights.directory, aclFloor: rights.floor }}
               onChange={(value) => setRead(value as AccessRule)}
             />
+            {lockout && <InfoNote>{lockout}</InfoNote>}
             <Field
               id="page-write-acl"
               spec={{ type: "acl", label: "Qui peut la modifier ?" }}

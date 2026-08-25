@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ownerLine,
+  signInLockoutWarning,
   ownerTransferNote,
   ownerTransferWarning,
   ruleSummary,
@@ -84,5 +85,44 @@ describe("ruleSummary", () => {
         directory
       )
     ).toBe("Paul Riva +2");
+  });
+});
+
+// The one refusal a wiki cannot take back (issue #20). No page is exempt from
+// its rights any more, sign-in pages included — which is what makes the
+// setting mean something, and what makes this one worth a word before the
+// click.
+describe("signInLockoutWarning", () => {
+  const LOT = ["compte-rendu", "connexion", "annuaire"];
+
+  it("says nothing while the read stays open to everyone", () => {
+    expect(signInLockoutWarning(LOT, { scope: "everyone" })).toBeNull();
+  });
+
+  it("says nothing when the sense is not being replaced at all", () => {
+    expect(signInLockoutWarning(LOT, undefined)).toBeNull();
+  });
+
+  it("says nothing about a lot that holds no account page", () => {
+    expect(
+      signInLockoutWarning(["compte-rendu", "annuaire"], { scope: "authenticated" })
+    ).toBeNull();
+  });
+
+  it("warns, and names the page, as soon as the read narrows", () => {
+    const warning = signInLockoutWarning(LOT, { scope: "authenticated" });
+    expect(warning).toContain("connexion");
+    expect(warning).toContain("ferme la connexion");
+    // The lot's other pages are nobody's business here: the warning is about
+    // the one page that would lock the wiki.
+    expect(warning).not.toContain("compte-rendu");
+  });
+
+  it("names every account page a lot would close", () => {
+    const warning = signInLockoutWarning(["connexion", "invitation"], {
+      scope: "restricted",
+    });
+    expect(warning).toContain("connexion");
+    expect(warning).toContain("invitation");
   });
 });

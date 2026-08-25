@@ -30,6 +30,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { InfoNote } from "@/components/ui/info-note";
+import { signInLockoutWarning } from "@/modules/pages/ui/labels";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
@@ -99,6 +100,13 @@ export function BulkRightsDialog({
   // Out of reach until the action would write something: naming only people
   // the lot already lets in is a click that would report a success over pages
   // it never touched. The button reads what the notes above it announce.
+  // « Remplacer les accès » is the only intent that can close a read:
+  // « Donner accès » only ever adds. Read live, so the note appears as the
+  // scope is chosen rather than after the lot is written.
+  const lockout =
+    intent === "replace"
+      ? signInLockoutWarning(pages.map((page) => page.slug), replacement.READ)
+      : null;
   const nothingChosen =
     intent === "grant"
       ? grantAddsNothing(pages, namedTargets(grant, targets))
@@ -240,6 +248,7 @@ export function BulkRightsDialog({
         </div>
 
         {intent === "replace" && <ReplacementNote pages={pages.length} replacement={replacement} />}
+        {lockout && <InfoNote>{lockout}</InfoNote>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => reset(false)}>

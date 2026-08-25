@@ -11,6 +11,7 @@ import {
   type AclFloor,
   ADMINS_GROUP,
 } from "@/modules/permissions/rules";
+import { wikiConfig } from "@/wiki.config";
 
 /**
  * A rule as a column of a list has room for it (docs/permissions.md §
@@ -88,4 +89,30 @@ export function ownerTransferWarning(total: number): string {
  */
 export function ownerLine(ownerName: string | null): string {
   return `Propriétaire : ${ownerName ?? ANONYMOUS}`;
+}
+
+/**
+ * The one refusal a wiki cannot take back, said before the click rather than
+ * after it — the same treatment « transmettre la propriété » gets above.
+ *
+ * No page is exempt from its rights, the sign-in pages included (ADR 0025,
+ * amendement du 2026-08-25) : that is what makes the setting mean something,
+ * and it is also what makes this one dangerous. Closing the read of a sign-in
+ * page closes the sign-in. An administrator still signed in can undo it ; once
+ * every session has expired, only the database reopens the wiki.
+ *
+ * Only the **read** is warned about : a page one may not write is still a page
+ * one can sign in on. Null when the lot holds no account page, or when the read
+ * stays open to everyone — the one scope that keeps signing in reachable.
+ */
+export function signInLockoutWarning(
+  slugs: readonly string[],
+  read: AccessRule | undefined
+): string | null {
+  if (read === undefined || read.scope === "everyone") return null;
+  const accountPages: readonly string[] = Object.values(wikiConfig.authPages);
+  const closed = slugs.filter((slug) => accountPages.includes(slug));
+  if (closed.length === 0) return null;
+  const named = closed.map((slug) => `«\u00A0${slug}\u00A0»`).join(", ");
+  return `Attention : ${named} sert à se connecter. En fermer la lecture ferme la connexion pour qui n'est pas déjà connecté — et si toutes les sessions expirent, seule la base de données permettra de rouvrir le wiki.`;
 }
