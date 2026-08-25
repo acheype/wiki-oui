@@ -44,9 +44,13 @@ vi.mock("@/modules/permissions/groups-queries", () => ({
 }));
 
 const { currentReadableWhere, isRefused } = await import("@/modules/pages/rights");
-const { getRawContent, hiddenIfNoAccess, isSlugReadable, listPageTags } = await import(
-  "@/modules/pages/content"
-);
+const {
+  getLayoutContents,
+  getRawContent,
+  hiddenIfNoAccess,
+  isSlugReadable,
+  listPageTags,
+} = await import("@/modules/pages/content");
 
 /** A page Marie owns, closed to everyone else in both senses. */
 const MARIES_PAGE = {
@@ -276,5 +280,45 @@ describe("getRawContent", () => {
         ? Object.keys(seenByBureau.fields)
         : []
     ).toEqual(["title", "nom", "salaire"]);
+  });
+});
+
+// The site's chrome obeys the rights like any other content (issue #20). The
+// case that matters is the private wiki: an administrator closes every page
+// to visitors, and the menu — which names every page — has to close with
+// them. An earlier pass put these five slugs in ALWAYS_READABLE, which said
+// far more than « serve the chrome »: it opened the pages themselves.
+describe("getLayoutContents", () => {
+  /** A layout page, with the read scope the test poses on it. */
+  function slot(slug: string, readScope: string) {
+    return {
+      slug,
+      ownerUsername: null,
+      readScope,
+      writeScope: "restricted",
+      acls: [],
+      owner: null,
+      current: { content: `contenu de ${slug}` },
+    };
+  }
+
+  it("serves a slot the person may read", async () => {
+    person.current = { username: null, groupSlugs: [] };
+    db.page.findMany.mockResolvedValue([slot("page-menu-haut", "everyone")]);
+    expect((await getLayoutContents()).topMenu).toBe("contenu de page-menu-haut");
+  });
+
+  it("hands back an empty slot when the rights refuse it", async () => {
+    person.current = { username: null, groupSlugs: [] };
+    db.page.findMany.mockResolvedValue([slot("page-menu-haut", "authenticated")]);
+    // Empty, not absent and not refused: the layout leaves an empty slot out
+    // the same way it does one whose author wrote nothing in it.
+    expect((await getLayoutContents()).topMenu).toBe("");
+  });
+
+  it("serves that same slot to whoever the rights let through", async () => {
+    person.current = { username: "marie-durand", groupSlugs: [] };
+    db.page.findMany.mockResolvedValue([slot("page-menu-haut", "authenticated")]);
+    expect((await getLayoutContents()).topMenu).toBe("contenu de page-menu-haut");
   });
 });

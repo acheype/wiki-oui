@@ -35,12 +35,18 @@ export default async function SiteLayout({
     <>
       <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
-          <Link
-            href={`/${wikiConfig.homeSlug}`}
-            className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
-          >
-            {title}
-          </Link>
+          {/* Every slot is left out when it is empty rather than rendered
+              blank: a slot the person may not read comes back empty
+              (getLayoutContents), and an empty one is indistinguishable from
+              a page whose author wrote nothing in it. */}
+          {!isBlankMdx(slots.title) && (
+            <Link
+              href={`/${wikiConfig.homeSlug}`}
+              className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
+            >
+              {title}
+            </Link>
+          )}
           <div className="layout-slot min-w-0 flex-1">
             {topMenu}
           </div>
@@ -71,16 +77,18 @@ export default async function SiteLayout({
         {children}
       </main>
 
-      <footer className="border-t">
-        <div
-          className={cn(
-            "mx-auto max-w-5xl px-4 py-4 text-sm text-muted-foreground",
-            inlineMdx
-          )}
-        >
-          {footer}
-        </div>
-      </footer>
+      {!isBlankMdx(slots.footer) && (
+        <footer className="border-t">
+          <div
+            className={cn(
+              "mx-auto max-w-5xl px-4 py-4 text-sm text-muted-foreground",
+              inlineMdx
+            )}
+          >
+            {footer}
+          </div>
+        </footer>
+      )}
     </>
   );
 }

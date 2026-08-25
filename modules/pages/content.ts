@@ -244,11 +244,15 @@ export async function countPageSlugReferences(
 }
 
 /**
- * Current MDX content of each layout page, keyed by its role. Goes through
- * ifReadable like every other read: the five layout slugs sit in
- * ALWAYS_READABLE, which is where « the site's chrome answers to everyone »
- * is written down once (docs/permissions.md § Application des droits). Nothing
- * here steps around the check — it passes it.
+ * Current MDX content of each layout page, keyed by its role — the site's
+ * chrome, and the one read that runs on every page of the wiki.
+ *
+ * It obeys the rights like any other read (docs/permissions.md § Application
+ * des droits): a slot whose page this person may not read comes back as the
+ * empty string, and the layout leaves it out. That is what lets an
+ * administrator close a wiki to visitors and have it actually close — with
+ * the chrome exempted, a menu naming every page of a private wiki would still
+ * be served to whoever asked.
  */
 export async function getLayoutContents(): Promise<
   Record<keyof typeof wikiConfig.layoutPages, string>

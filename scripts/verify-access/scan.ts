@@ -312,7 +312,8 @@ export function verifyPageAccessGuards(): void {
               `  - ${finding.name} (${finding.file}:${finding.line}) reads ${finding.table} and never reaches canRead, canWrite or isAdmin`
           )
           .join("\n") +
-        "\nGuard the read, or — if it is deliberate — add it to UNGUARDED_READS in scripts/verify-access/scan.ts with why."
+        "\nGuard the read, or — if it is deliberate — add it to UNGUARDED_READS in scripts/verify-access/scan.ts with why." +
+        "\nA guard only counts where it is called: rows.map(ifReadable) reads as unguarded, rows.map((row) => ifReadable(row)) does not."
     );
   }
 }

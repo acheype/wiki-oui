@@ -20,7 +20,7 @@ Le risque n'est pas d'écrire la mauvaise règle, c'est d'**oublier de l'appeler
 - La règle a **deux volets**, parce qu'une règle syntaxique ne lit que des noms : elle refuse `prisma.page` et `prisma.form` (le `tx.` d'une transaction compris), et elle refuse l'**import du client** hors des deux portes — ce second volet ferme ce que le premier ne voit pas, une `Page` atteinte par une relation (`include`) ou du SQL brut. Les modules de balayage reçoivent leur client en paramètre, donc ne l'importent pas.
 - Un oubli devient une **erreur de lint au build**, pas une fuite en production. C'est la culture déjà installée par l'ADR 0013, qui vérifie la cohérence descripteur/composant en parsant la source au `prebuild` et bloque.
 - La règle se contourne par une exception — mais une exception est **visible en revue**, ce qui est précisément son intérêt.
-- Un seul chemin y échappe délibérément : le seed, qui écrit sans personne. (Les cinq pages de layout y échappaient aussi ; l'amendement du 2026-08-24 les a fait passer par le contrôle.)
+- Un seul chemin y échappe délibérément : le seed, qui écrit sans personne. (Les cinq pages de layout y échappaient aussi ; l'amendement ci-dessous les a soumises au contrôle.)
 - Le handler `/{slug}/raw` naît **dans** la couche, et non à côté : c'est le genre d'accès au contenu qui, ajouté plus tard et branché en direct, aurait court-circuité tout le dispositif.
 
 ## Amendement du 2026-08-24 — la porte rend des décisions, pas de quoi décider
@@ -39,6 +39,16 @@ Le nom manquait à la documentation, alors que la liste existe : c'est l'ensembl
 - **Les fichiers racine qui touchent `Page` ou `Form` directement** : `modules/pages/content.ts`, `revisions.ts`, `rights.ts`, `entries.ts` et `modules/forms/forms.ts`. Ils portent l'API publique de leur module, et chacune de leurs lectures publiques passe par une garde.
 
 S'y ajoutent les voisines derrière la même porte — `modules/accounts/`, `modules/permissions/groups-queries.ts`, `modules/permissions/person.ts`, `modules/settings/settings.ts` — et les balayages, qui reçoivent leur client en paramètre.
+
+### Le chrome n'est pas une exception
+
+L'ADR exemptait `getLayoutContents()` : les cinq pages de layout étaient lues sans contrôle à chaque rendu, au motif que c'est du chrome et non du contenu. L'exemption tombe.
+
+Le motif décrit ce que ces pages **servent**, pas ce qu'elles **sont** : ce sont des pages ordinaires, avec des droits comme les autres. Les mettre hors du contrôle disait donc beaucoup plus que « sers le chrome à tout le monde » — `/page-menu-haut` s'ouvrait à qui ses droits refusaient, chaque liste l'offrait, et un lien `hideIfNoAccess` qui la nommait restait visible. Sur un wiki qu'un administrateur ferme aux visiteurs, un menu qui nomme chaque page est le plan du site.
+
+Elles passent donc `ifReadable` comme toute autre lecture. Un emplacement refusé rend vide, et le layout le laisse dehors — la même règle que l'en-tête suivait déjà quand son auteur ne l'avait pas rempli. Les défauts livrés posent une lecture *tout le monde*, donc rien ne change pour un wiki neuf.
+
+Les quatre pages de comptes restent, elles, toujours lisibles : elles ne le sont pas par commodité mais par nécessité — se connecter doit marcher exactement là où le contenu refuse.
 
 ### Ce qui tient la règle
 

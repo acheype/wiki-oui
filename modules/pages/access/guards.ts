@@ -48,23 +48,23 @@ import { wikiConfig } from "@/wiki.config";
 export type Decidable = PageRights & { slug: string; owner: { name: string } | null };
 
 /**
- * The nine pages that answer to everyone, whatever right is posed on them
- * (docs/permissions.md § Les pages système). Two families, one reason each:
+ * The four account system pages answer to everyone, whatever right is posed on
+ * them (docs/permissions.md § Les pages système): signing in has to work
+ * exactly where the content refuses, and the refusal view's own « Se
+ * connecter » would otherwise lead to a second refusal. Read by the
+ * single-page check, by the list clause and by hideIfNoAccess alike, so the
+ * three cannot drift apart.
  *
- * - the account pages, because signing in has to work exactly where the
- *   content refuses, and the refusal view's own « Se connecter » would
- *   otherwise lead to a second refusal;
- * - the layout pages, because they are the site's chrome and not its content
- *   — a menu that vanishes for some readers and not others.
- *
- * Read by the single-page check and by the list clause alike, so the two
- * cannot drift apart. This list is what makes those pages readable, rather
- * than each read remembering to step around the check on its own.
+ * The five layout pages are deliberately **not** here, though an earlier pass
+ * of issue #20 put them in. Their content is the site's chrome, which was the
+ * argument — but this list says something much wider than « serve the chrome »:
+ * it says the page answers to everyone everywhere, so /page-menu-haut would
+ * open to a visitor its rights refuse, and every list would offer it. On a
+ * wiki an administrator has closed to visitors, the menu is the plan of the
+ * site. The chrome obeys the rights like any other content; a slot the person
+ * may not read renders empty.
  */
-export const ALWAYS_READABLE: readonly string[] = [
-  ...Object.values(wikiConfig.authPages),
-  ...Object.values(wikiConfig.layoutPages),
-];
+export const ALWAYS_READABLE: readonly string[] = Object.values(wikiConfig.authPages);
 
 /** A single page's read decision — the lists get a `where` instead. */
 export async function ifReadable<T extends Decidable>(

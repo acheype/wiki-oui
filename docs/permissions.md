@@ -399,7 +399,11 @@ Le widget portée + liste devient un **type de champ du vocabulaire de descripte
 
 **Une seule porte** (ADR 0025). `lib/pages.ts` et `lib/forms.ts` deviennent le seul chemin vers `Page` et `Form`, et résolvent eux-mêmes la personne qui agit ; une règle ESLint interdit `prisma.page` et `prisma.form` ailleurs, avec des exceptions listées (seed, balayage). Même esprit que la vérification de descripteurs au `prebuild` (ADR 0013) : l'invariant est tenu par un outil, pas par la vigilance. Environ 33 appels directs, répartis dans six fichiers, sont à rapatrier — `app/form-actions.ts` en concentre les deux tiers.
 
-Un seul chemin **échappe** au contrôle, délibérément : le seed, qui écrit sans personne. Les cinq pages de layout, elles, passent le contrôle comme les autres : leurs slugs sont dans `ALWAYS_READABLE`, la liste des pages qui répondent à tout le monde quel que soit le droit posé dessus (c'est du chrome, pas du contenu — le soumettre aux droits ferait disparaître le menu pour les uns et pas pour les autres).
+Un seul chemin **échappe** au contrôle, délibérément : le seed, qui écrit sans personne.
+
+Les cinq pages de layout, elles, **passent le contrôle comme les autres** *(révisé le 2026-08-25, issue #20 — la v0.5 les en exemptait)*. Un emplacement dont la page est refusée à cette personne rend **vide**, et le layout le laisse dehors. L'argument d'origine — « c'est du chrome, pas du contenu » — décrit bien ce que ces pages servent, mais l'exemption disait beaucoup plus que ça : `/page-menu-haut` s'ouvrait à qui ses droits refusaient, et toutes les listes l'offraient. Sur un wiki qu'un administrateur ferme aux visiteurs, le menu est le **plan du site** ; il doit se fermer avec le reste. Les défauts livrés portent une lecture *tout le monde*, donc un wiki neuf garde son chrome sans rien régler.
+
+Les quatre pages de comptes, elles, restent dans `ALWAYS_READABLE` : se connecter doit marcher exactement là où le contenu refuse, sans quoi le « Se connecter » de la vue de refus mènerait à un second refus.
 
 ### Deux temps, jamais un chargement suivi d'un tri
 
