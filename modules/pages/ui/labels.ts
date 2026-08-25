@@ -92,27 +92,78 @@ export function ownerLine(ownerName: string | null): string {
 }
 
 /**
- * The account pages a wiki can shut itself out of, and what each is for.
+ * What one does on an account page, as the atoms a sentence is built from.
+ * Three, because the three pages do not overlap the way their names suggest.
+ */
+type Entry = "connect" | "recover" | "activate";
+
+/**
+ * The account pages a wiki can shut itself out of, and what each one is for.
  * Three of the four : `inscription` is not one, free sign-up being closed by
  * default (wiki.config.ts) and opening no way back into an account that
  * already exists.
  *
- * `connexion` only signs people in — it links to the recovery page, it does
- * not recover anything. `invitation` is where **every** recovery link lands,
- * a forgotten password as much as an invitation: one mint site, one page
- * (modules/accounts/access/guards.ts).
+ * Each is named for what it does, never for what it links to. `connexion`
+ * offers a link to the recovery page and recovers nothing.
+ * `mot-de-passe-oublie` only ever reaches an account that exists —
+ * requestPasswordReset refuses an unknown or disabled address — so it recovers
+ * and never activates. `invitation` does both: **every** link lands there, a
+ * forgotten password as much as a first invitation (one mint site, one page,
+ * modules/accounts/access/guards.ts).
  */
-const LOCKING_PAGES = {
-  signIn: { serves: "se connecter", prevents: "de se connecter" },
-  forgotPassword: {
-    serves: "récupérer ou activer un compte",
-    prevents: "de récupérer ou d'activer leur compte",
-  },
-  invitation: {
-    serves: "récupérer ou activer un compte",
-    prevents: "de récupérer ou d'activer leur compte",
-  },
-} as const;
+const LOCKING_PAGES: Record<
+  "signIn" | "forgotPassword" | "invitation",
+  readonly Entry[]
+> = {
+  signIn: ["connect"],
+  forgotPassword: ["recover"],
+  invitation: ["recover", "activate"],
+};
+
+/** « se connecter, récupérer ou activer un compte », for whichever apply. */
+function servesPhrase(entries: ReadonlySet<Entry>): string {
+  const account = [
+    entries.has("recover") ? "récupérer" : null,
+    entries.has("activate") ? "activer" : null,
+  ]
+    .filter((verb) => verb !== null)
+    .join(" ou ");
+  return joinEntries(
+    entries,
+    entries.has("connect") ? "se connecter" : null,
+    account === "" ? null : `${account} un compte`
+  );
+}
+
+/** The same set, as what closing the pages would stop people doing. */
+function preventsPhrase(entries: ReadonlySet<Entry>): string {
+  const account = [
+    entries.has("recover") ? "de récupérer" : null,
+    entries.has("activate") ? "d'activer" : null,
+  ]
+    .filter((verb) => verb !== null)
+    .join(" ou ");
+  return joinEntries(
+    entries,
+    entries.has("connect") ? "de se connecter" : null,
+    account === "" ? null : `${account} leur compte`
+  );
+}
+
+/**
+ * The two halves of the sentence, joined. A comma rather than « ou » when the
+ * second half already holds one, so that « se connecter ou récupérer ou
+ * activer un compte » never comes out.
+ */
+function joinEntries(
+  entries: ReadonlySet<Entry>,
+  connect: string | null,
+  account: string | null
+): string {
+  const parts = [connect, account].filter((part) => part !== null);
+  const separator = entries.has("recover") && entries.has("activate") ? ", " : " ou ";
+  return parts.join(separator);
+}
 
 /** What a change to the rights would close, and the sentence that says so. */
 export interface SignInLockout {
@@ -142,30 +193,27 @@ export function signInLockout(
   read: AccessRule | undefined
 ): SignInLockout | null {
   if (read === undefined || read.scope === "everyone") return null;
-  const roles = Object.entries(LOCKING_PAGES) as [
-    keyof typeof LOCKING_PAGES,
-    (typeof LOCKING_PAGES)[keyof typeof LOCKING_PAGES],
-  ][];
-  const closed = roles.flatMap(([role, purpose]) => {
+  const roles = Object.keys(LOCKING_PAGES) as (keyof typeof LOCKING_PAGES)[];
+  const closed = roles.flatMap((role) => {
     const slug = wikiConfig.authPages[role];
-    return slugs.includes(slug) ? [{ slug, ...purpose }] : [];
+    return slugs.includes(slug) ? [{ slug, entries: LOCKING_PAGES[role] }] : [];
   });
   if (closed.length === 0) return null;
 
+  const entries = new Set(closed.flatMap((page) => page.entries));
   const named = closed.map(({ slug }) => `«\u00A0${slug}\u00A0»`);
   const subject =
     closed.length === 1
       ? `La page ${named[0]} sert`
       : `Les pages ${named.slice(0, -1).join(", ")} et ${named[named.length - 1]} servent`;
   const its = closed.length === 1 ? "sa" : "leur";
-  const serves = [...new Set(closed.map((page) => page.serves))].join(" et à ");
-  const prevents = [...new Set(closed.map((page) => page.prevents))].join(" et ");
 
   return {
     slugs: closed.map(({ slug }) => slug),
     message:
-      `${subject} à ${serves}. Désactiver ${its} lecture empêchera les ` +
-      `utilisateurs non connectés ${prevents}, administrateurs compris.\n` +
+      `${subject} à ${servesPhrase(entries)}. Désactiver ${its} lecture ` +
+      `empêchera les utilisateurs non connectés ${preventsPhrase(entries)}, ` +
+      `administrateurs compris.\n` +
       `Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.`,
   };
 }

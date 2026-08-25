@@ -312,12 +312,15 @@ export function BulkRightsDialog({
                   : "cette page"}
               </AlertDialogAction>
             )}
+            {/* « à toutes » only contrasts with something when the answer
+                beside it exists. Alone, the lot holds nothing but these
+                pages, and there is no « toutes » to tell it apart from. */}
             <AlertDialogAction
               onClick={() => apply(pages.map((page) => page.slug))}
               disabled={applying}
               className="bg-destructive text-white hover:bg-destructive/90"
             >
-              Appliquer à toutes
+              {sparedSlugs.length > 0 ? "Appliquer à toutes" : "Appliquer quand même"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

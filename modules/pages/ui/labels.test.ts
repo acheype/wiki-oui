@@ -138,10 +138,33 @@ describe("signInLockout", () => {
     expect(warning).not.toContain("récupérer");
   });
 
-  it("says of the recovery pages what they recover", () => {
+  // The two recovery pages do not do the same thing: requestPasswordReset
+  // refuses an address with no account, so `mot-de-passe-oublie` never
+  // activates one — only `invitation` does, every link landing there.
+  it("says of the reset page that it recovers, and nothing more", () => {
+    const warning = signInLockout(["mot-de-passe-oublie"], {
+      scope: "restricted",
+    })?.message;
+    expect(warning).toContain("sert à récupérer un compte.");
+    // « Désactiver sa lecture » holds the word, so the phrase is what counts.
+    expect(warning).not.toContain("ou activer");
+    expect(warning).not.toContain("d'activer");
+  });
+
+  it("says of the invitation page that it recovers or activates", () => {
     const warning = signInLockout(["invitation"], { scope: "restricted" })?.message;
     expect(warning).toContain("récupérer ou activer un compte");
     expect(warning).not.toContain("se connecter");
+  });
+
+  // A lot mixing the families joins them without ever saying « ou » twice.
+  it("joins the three with one « ou », not three", () => {
+    const warning = signInLockout(
+      ["connexion", "mot-de-passe-oublie", "invitation"],
+      { scope: "restricted" }
+    )?.message;
+    expect(warning).toContain("se connecter, récupérer ou activer un compte");
+    expect(warning).toContain("de se connecter, de récupérer ou d'activer leur compte");
   });
 
   // The lot dialog offers to spare them, so it needs to know which they are.

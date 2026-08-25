@@ -415,7 +415,17 @@ Le wiki fait donc ce que ses droits disent, et l'administrateur en répond. Un e
 >
 > Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.
 
-Une **modale**, pas une note : une remarque en petits caractères gris se dépasse sans la lire, et cette conséquence-là coûte le wiki. Chaque page est décrite pour ce qu'elle fait, non pour ce vers quoi elle renvoie — `connexion` propose un lien vers la récupération, elle ne récupère rien ; `mot-de-passe-oublie` et `invitation` servent, elles, à « récupérer ou activer un compte », **tout** lien de récupération atterrissant sur la seconde.
+Une **modale**, pas une note : une remarque en petits caractères gris se dépasse sans la lire, et cette conséquence-là coûte le wiki.
+
+Chaque page est décrite pour ce qu'elle **fait**, non pour ce vers quoi elle renvoie — les trois ne se recouvrent pas comme leurs noms le laissent croire :
+
+| Page | Sert à | Pourquoi |
+| --- | --- | --- |
+| `connexion` | se connecter | elle propose un lien vers la récupération, elle ne récupère rien |
+| `mot-de-passe-oublie` | récupérer un compte | `requestPasswordReset` refuse une adresse sans compte : elle n'en active jamais un |
+| `invitation` | récupérer **ou activer** un compte | **tout** lien y atterrit, un mot de passe oublié autant qu'une première invitation |
+
+Un lot qui en ferme plusieurs joint ce qu'elles font : « servent à se connecter, récupérer ou activer un compte ».
 
 Trois pages sur quatre : `inscription` n'y est pas, l'inscription libre étant fermée par défaut et n'ouvrant aucun retour vers un compte existant.
 
@@ -425,7 +435,7 @@ Sur un **lot**, la confirmation offre trois réponses plutôt que deux, la deuxi
 | --- | --- |
 | Annuler | rien |
 | Appliquer sans cette page | le lot entier, ces pages exceptées |
-| Appliquer à toutes | le lot entier, ces pages comprises |
+| Appliquer à toutes | le lot entier, ces pages comprises — « Appliquer quand même » quand la réponse du milieu est absente, « toutes » n'ayant alors rien à quoi s'opposer |
 
 La deuxième n'apparaît que si le lot contient autre chose : épargner ces pages d'un lot qui ne contient qu'elles, c'est ne rien faire, ce qu'« Annuler » dit déjà.
 
