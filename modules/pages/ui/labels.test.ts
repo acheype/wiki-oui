@@ -112,7 +112,7 @@ describe("signInLockoutWarning", () => {
   it("warns, and names the page, as soon as the read narrows", () => {
     const warning = signInLockoutWarning(LOT, { scope: "authenticated" });
     expect(warning).toContain("connexion");
-    expect(warning).toContain("ferme la connexion");
+    expect(warning).toContain("administrateurs compris");
     // The lot's other pages are nobody's business here: the warning is about
     // the one page that would lock the wiki.
     expect(warning).not.toContain("compte-rendu");
@@ -124,12 +124,23 @@ describe("signInLockoutWarning", () => {
     });
     expect(warning).toContain("connexion");
     expect(warning).toContain("invitation");
+    expect(warning).toContain("Les pages");
     expect(warning).toContain("servent");
+    expect(warning).toContain("leur lecture");
   });
 
   it("agrees in the singular for one page", () => {
+    const warning = signInLockoutWarning(["connexion"], { scope: "restricted" });
+    expect(warning).toContain("La page");
+    expect(warning).toContain("» sert à");
+    expect(warning).toContain("sa lecture");
+  });
+
+  // Two sentences, the second being the consequence: the note renders the
+  // break, so it has to survive the string.
+  it("keeps the consequence on its own line", () => {
     expect(signInLockoutWarning(["connexion"], { scope: "restricted" })).toContain(
-      "» sert à"
+      ".\nSi toutes les sessions"
     );
   });
 });

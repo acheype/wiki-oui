@@ -111,7 +111,7 @@ export function PageRightsButton({
               environment={{ directory: rights.directory, aclFloor: rights.floor }}
               onChange={(value) => setRead(value as AccessRule)}
             />
-            {lockout && <InfoNote>{lockout}</InfoNote>}
+            {lockout && <InfoNote className="whitespace-pre-line">{lockout}</InfoNote>}
             <Field
               id="page-write-acl"
               spec={{ type: "acl", label: "Qui peut la modifier ?" }}

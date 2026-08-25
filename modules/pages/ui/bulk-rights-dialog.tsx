@@ -248,7 +248,7 @@ export function BulkRightsDialog({
         </div>
 
         {intent === "replace" && <ReplacementNote pages={pages.length} replacement={replacement} />}
-        {lockout && <InfoNote>{lockout}</InfoNote>}
+        {lockout && <InfoNote className="whitespace-pre-line">{lockout}</InfoNote>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => reset(false)}>

@@ -95,7 +95,7 @@ export function ownerLine(ownerName: string | null): string {
  * The one refusal a wiki cannot take back, said before the click rather than
  * after it — the same treatment « transmettre la propriété » gets above.
  *
- * No page is exempt from its rights, the sign-in pages included (ADR 0025,
+ * No page is exempt from its rights, the account pages included (ADR 0025,
  * amendement du 2026-08-25) : that is what makes the setting mean something,
  * and it is also what makes this one dangerous. Closing the read of a sign-in
  * page closes the sign-in. An administrator still signed in can undo it ; once
@@ -104,6 +104,9 @@ export function ownerLine(ownerName: string | null): string {
  * Only the **read** is warned about : a page one may not write is still a page
  * one can sign in on. Null when the lot holds no account page, or when the read
  * stays open to everyone — the one scope that keeps signing in reachable.
+ *
+ * Two sentences, the second being the consequence rather than the fact: they
+ * are separated by a newline, which the note renders as a break.
  */
 export function signInLockoutWarning(
   slugs: readonly string[],
@@ -113,7 +116,16 @@ export function signInLockoutWarning(
   const accountPages: readonly string[] = Object.values(wikiConfig.authPages);
   const closed = slugs.filter((slug) => accountPages.includes(slug));
   if (closed.length === 0) return null;
-  const named = closed.map((slug) => `«\u00A0${slug}\u00A0»`).join(", ");
-  const serves = closed.length === 1 ? "sert" : "servent";
-  return `Attention : ${named} ${serves} à se connecter ou à récupérer un compte. En fermer la lecture ferme la connexion à qui n'est pas déjà connecté — et si toutes les sessions expirent, seule la base de données permettra de rouvrir le wiki.`;
+
+  const named = closed.map((slug) => `«\u00A0${slug}\u00A0»`);
+  const subject =
+    closed.length === 1
+      ? `La page ${named[0]} sert`
+      : `Les pages ${named.slice(0, -1).join(", ")} et ${named[named.length - 1]} servent`;
+  const its = closed.length === 1 ? "sa" : "leur";
+  return (
+    `Attention : ${subject} à se connecter ou à récupérer un compte. ` +
+    `Désactiver ${its} lecture empêchera les utilisateurs non connectés d'accéder au wiki, administrateurs compris.\n` +
+    `Si toutes les sessions existantes expirent, seule la base de données permettra alors de rouvrir le wiki.`
+  );
 }
