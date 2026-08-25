@@ -213,13 +213,13 @@ const eslintConfig = defineConfig([
         {
           selector: directPageOrFormAccess,
           message:
-            "Page and Form are reached through modules/pages/ and lib/forms.ts only (ADR 0025). Add a function there rather than querying Prisma here.",
+            "Page and Form are reached through modules/pages/ and modules/forms/ only (ADR 0025). Add a guard or a function there rather than querying Prisma here — see docs/invariants.md.",
         },
       ],
       // The syntax rule reads names, so it says nothing about a Page reached
       // through a relation (`prisma.revision.findMany({ include: { page } })`)
-      // nor about raw SQL on "Page". Holding the client itself behind the two
-      // doors closes both: outside them there is nothing to query with.
+      // nor about raw SQL on "Page". Holding the client itself behind the
+      // access layer closes both: outside it there is nothing to query with.
       "no-restricted-imports": [
         "error",
         {
@@ -227,7 +227,7 @@ const eslintConfig = defineConfig([
             {
               name: "@/lib/prisma",
               message:
-                "The Prisma client lives behind modules/pages/ and lib/forms.ts (ADR 0025). Sweep modules receive their client as a parameter.",
+                "The Prisma client lives behind the access layer, modules/pages/ and modules/forms/ (ADR 0025). Sweep modules receive their client as a parameter.",
             },
           ],
         },

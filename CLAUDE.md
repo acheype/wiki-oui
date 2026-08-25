@@ -1,6 +1,6 @@
 # WikiOui
 
-Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/adr/`), glossaire du domaine : [`CONTEXT.md`](CONTEXT.md).
+Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/adr/`), glossaire du domaine : [`CONTEXT.md`](CONTEXT.md), les cinq contrôles qui font échouer le build : [`docs/invariants.md`](docs/invariants.md).
 
 ## Organisation en modules
 
