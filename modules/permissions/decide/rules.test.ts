@@ -13,7 +13,6 @@ import {
   anyClause,
   canRead,
   canWrite,
-  listReadableWhere,
   ownsPage,
   permissionsOn,
   readableWhere,
@@ -327,26 +326,17 @@ describe("anyClause", () => {
   });
 });
 
-describe("the read clause of a list", () => {
-  const ALWAYS = ["connexion", "inscription"];
-
-  // Prisma drops an empty branch from an OR, so wrapping an administrator's
-  // clause — which is empty, they read everything — would leave only the
-  // account pages, hiding the whole wiki from whoever has the most rights.
-  it("hands an administrator's clause back untouched, never inside an OR", () => {
-    expect(listReadableWhere(ADMIN, ALWAYS)).toEqual({});
+describe("the clause an administrator gets", () => {
+  // The property anyClause exists for, held here rather than inferred: an
+  // administrator reads everything, so their clause is empty — and an empty
+  // clause is the one Prisma drops from an OR.
+  it("is empty, in both senses", () => {
+    expect(readableWhere(ADMIN)).toEqual({});
+    expect(writableWhere(ADMIN)).toEqual({});
   });
 
-  it("opens the account pages to whoever the rights would refuse", () => {
-    const where = listReadableWhere(VISITOR, ALWAYS);
-    const closed = page({ ownerUsername: null, readScope: "restricted", writeScope: "restricted" });
-    expect(whereMatches(where, closed)).toBe(false);
-    expect(whereMatches(where, { ...closed, slug: "connexion" })).toBe(true);
-  });
-
-  it("still lets an administrator through every page", () => {
-    const where = listReadableWhere(ADMIN, ALWAYS);
-    const refused = everyPage().filter((subject) => !whereMatches(where, subject));
-    expect(refused).toEqual([]);
+  it("is never empty for anyone else", () => {
+    expect(readableWhere(VISITOR)).not.toEqual({});
+    expect(readableWhere(MARIE)).not.toEqual({});
   });
 });

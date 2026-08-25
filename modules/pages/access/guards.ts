@@ -41,36 +41,25 @@ import { wikiConfig } from "@/wiki.config";
 // Private to this module (ADR 0029, wikioui/module-seam): every other file of
 // modules/pages/ may import from here, nothing outside the module may. The
 // constants any other module needs — WITH_RIGHTS, PUBLIC_IDENTITY, ACL_ROWS,
-// COLD_ADMIN_TRANSACTION_TIMEOUT_MS, currentReadableWhere — live in
-// modules/pages/rights.ts instead, a root file, precisely because they cross
-// that seam (modules/forms/forms.ts uses the first and the last two).
+// COLD_ADMIN_TRANSACTION_TIMEOUT_MS — live in modules/pages/rights.ts instead,
+// a root file, precisely because they cross that seam (modules/forms/forms.ts
+// uses the first and the last).
 
 export type Decidable = PageRights & { slug: string; owner: { name: string } | null };
 
 /**
- * The four account system pages answer to everyone, whatever right is posed on
- * them (docs/permissions.md § Les pages système): signing in has to work
- * exactly where the content refuses, and the refusal view's own « Se
- * connecter » would otherwise lead to a second refusal. Read by the
- * single-page check, by the list clause and by hideIfNoAccess alike, so the
- * three cannot drift apart.
+ * A single page's read decision — the lists get a `where` instead.
  *
- * The five layout pages are deliberately **not** here, though an earlier pass
- * of issue #20 put them in. Their content is the site's chrome, which was the
- * argument — but this list says something much wider than « serve the chrome »:
- * it says the page answers to everyone everywhere, so /page-menu-haut would
- * open to a visitor its rights refuse, and every list would offer it. On a
- * wiki an administrator has closed to visitors, the menu is the plan of the
- * site. The chrome obeys the rights like any other content; a slot the person
- * may not read renders empty.
+ * No page is exempt, not even the account ones and not even the layout ones
+ * (issue #20). The wiki used to keep a list of slugs that answered to everyone
+ * whatever was posed on them; it is gone, and with it the two things it cost:
+ * an administrator who changed the rights of `connexion` saw nothing happen,
+ * and a menu naming every page of a closed wiki was still served to whoever
+ * asked. What an administrator poses on a page is what the page does.
  */
-export const ALWAYS_READABLE: readonly string[] = Object.values(wikiConfig.authPages);
-
-/** A single page's read decision — the lists get a `where` instead. */
 export async function ifReadable<T extends Decidable>(
   page: T
 ): Promise<T | { refused: true; ownerName: string | null }> {
-  if (ALWAYS_READABLE.includes(page.slug)) return page;
   if (await currentCanRead(page)) return page;
   return { refused: true, ownerName: page.owner?.name ?? null };
 }

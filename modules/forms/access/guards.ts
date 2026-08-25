@@ -4,7 +4,7 @@ import { refuse } from "@/modules/permissions/rules";
 import { currentOwns, currentPerson } from "@/modules/permissions/person";
 import { type SeenForm, permissionsOf } from "@/modules/forms/forms";
 import { readableForm } from "@/modules/permissions/readable-form";
-import { currentReadableWhere } from "@/modules/pages/rights";
+import { currentReadableWhere } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
 // The guards of `Form` (ADR 0025), alongside modules/pages/access/guards.ts

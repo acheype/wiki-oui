@@ -16,7 +16,6 @@ import {
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   WITH_RIGHTS,
-  currentReadableWhere,
 } from "@/modules/pages/rights";
 import { applyFormDefaultsToEntries, countEntryRightsImpact } from "@/modules/pages/entries";
 import { refuse } from "@/modules/permissions/rules";
@@ -24,6 +23,7 @@ import {
   currentAllows,
   currentOwns,
   currentPerson,
+  currentReadableWhere,
   currentUsername,
 } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";

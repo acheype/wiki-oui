@@ -175,6 +175,12 @@ export function readableWhere(person: Person): Prisma.PageWhereInput {
  * Here the empty clause absorbs instead, as « everything or anything » does in
  * logic. An ESLint rule refuses `OR:` around these clauses so that this
  * function is not merely the recommended way but the only one left.
+ *
+ * It has no caller today: the one join the wiki made — the readable pages plus
+ * a handful of always-readable slugs — is gone with that list (issue #20), and
+ * every remaining composition is an `AND`, which has no such trap. It stays
+ * because the ESLint rule has to be able to name the way out, and because the
+ * trap will outlive its first victim.
  */
 export function anyClause(
   clauses: readonly Prisma.PageWhereInput[]
@@ -187,19 +193,3 @@ export function anyClause(
 function isEverything(clause: Prisma.PageWhereInput): boolean {
   return Object.keys(clause).length === 0;
 }
-
-/**
- * What a list filters on: what the person may read, plus the handful of pages
- * that answer to everyone whatever is posed on them (the account system pages —
- * signing in has to work where the content refuses).
- */
-export function listReadableWhere(
-  person: Person,
-  alwaysReadable: readonly string[]
-): Prisma.PageWhereInput {
-  return anyClause([
-    readableWhere(person),
-    { slug: { in: [...alwaysReadable] } },
-  ]);
-}
-

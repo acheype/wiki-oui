@@ -20,14 +20,17 @@ import {
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { refuse, storedRights } from "@/modules/permissions/rules";
 import { existingPrincipals } from "@/modules/permissions/groups-queries";
-import { currentPerson, currentUsername } from "@/modules/permissions/person";
+import {
+  currentPerson,
+  currentReadableWhere,
+  currentUsername,
+} from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import { assertCanWrite, bornWith, mintRevision } from "@/modules/pages/access/guards";
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   PUBLIC_IDENTITY,
   WITH_RIGHTS,
-  currentReadableWhere,
 } from "@/modules/pages/rights";
 
 // A fiche's own life cycle: born from a form, read by the formful, its rights

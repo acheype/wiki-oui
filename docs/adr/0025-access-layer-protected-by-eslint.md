@@ -40,15 +40,17 @@ Le nom manquait à la documentation, alors que la liste existe : c'est l'ensembl
 
 S'y ajoutent les voisines derrière la même porte — `modules/accounts/`, `modules/permissions/groups-queries.ts`, `modules/permissions/person.ts`, `modules/settings/settings.ts` — et les balayages, qui reçoivent leur client en paramètre.
 
-### Le chrome n'est pas une exception
+### Aucune page n'est exemptée
 
-L'ADR exemptait `getLayoutContents()` : les cinq pages de layout étaient lues sans contrôle à chaque rendu, au motif que c'est du chrome et non du contenu. L'exemption tombe.
+L'ADR exemptait `getLayoutContents()`, et la v0.5 tenait par ailleurs une liste de slugs — les quatre pages de comptes — qui répondaient à tout le monde quel que soit le droit posé dessus. Les deux disparaissent.
 
-Le motif décrit ce que ces pages **servent**, pas ce qu'elles **sont** : ce sont des pages ordinaires, avec des droits comme les autres. Les mettre hors du contrôle disait donc beaucoup plus que « sers le chrome à tout le monde » — `/page-menu-haut` s'ouvrait à qui ses droits refusaient, chaque liste l'offrait, et un lien `hideIfNoAccess` qui la nommait restait visible. Sur un wiki qu'un administrateur ferme aux visiteurs, un menu qui nomme chaque page est le plan du site.
+**Le motif décrivait ce que ces pages servent, pas ce qu'elles sont.** Ce sont des pages ordinaires, avec des droits comme les autres. Les mettre hors du contrôle disait beaucoup plus que « sers le chrome à tout le monde » : `/page-menu-haut` s'ouvrait à qui ses droits refusaient, chaque liste l'offrait, et un lien `hideIfNoAccess` qui la nommait restait visible.
 
-Elles passent donc `ifReadable` comme toute autre lecture. Un emplacement refusé rend vide, et le layout le laisse dehors — la même règle que l'en-tête suivait déjà quand son auteur ne l'avait pas rempli. Les défauts livrés posent une lecture *tout le monde*, donc rien ne change pour un wiki neuf.
+**Et une exception qui ne se voit nulle part coûte plus qu'elle ne protège.** Un administrateur qui restreignait `connexion` voyait son réglage s'enregistrer et rien se produire. Le wiki doit faire ce que ses droits disent ; c'est aussi ce qui rend le modèle explicable, une règle valant pour toute page.
 
-Les quatre pages de comptes restent, elles, toujours lisibles : elles ne le sont pas par commodité mais par nécessité — se connecter doit marcher exactement là où le contenu refuse.
+Conséquences : `ifReadable` ne connaît plus aucun slug, la clause de liste n'unit plus rien (`listReadableWhere` disparaît), et un emplacement de layout refusé rend vide — le layout le laisse dehors, comme il le faisait déjà d'un emplacement qu'un auteur n'avait pas rempli. Les pages seedées naissent en lecture *tout le monde*, donc rien ne change pour un wiki neuf.
+
+Le revers est assumé : restreindre `connexion` ferme la connexion, et si toutes les sessions expirent, seule la base permet de rouvrir.
 
 ### Ce qui tient la règle
 

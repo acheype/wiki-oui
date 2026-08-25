@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { AccountMenu } from "@/modules/accounts/ui/account-menu";
-import { isBlankMdx, renderMdx } from "@/modules/authoring/mdx";
 import { getLayoutContents } from "@/modules/pages/content";
-import { currentIdentity } from "@/modules/permissions/person";
+import { renderSlot } from "@/modules/pages/ui/layout-slot";
+import { currentIdentity, isCurrentAdmin } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";
 import { wikiConfig } from "@/wiki.config";
 
@@ -22,31 +22,36 @@ export default async function SiteLayout({
   // Server-resolved: the top bar renders signed in or out on the first
   // paint, without the flash a client-side session fetch would bring.
   const identity = await currentIdentity();
-  // The five slot renders are independent: pipeline them.
+  // Only an administrator is told about a layout page that does not exist —
+  // see modules/pages/ui/layout-slot.tsx for why nobody else is.
+  const isAdmin = await isCurrentAdmin();
+  // The five slot renders are independent: pipeline them. Each comes back
+  // null when it has nothing to say, and the layout then leaves it out.
   const [title, topMenu, topQuickAccess, header, footer] = await Promise.all([
-    renderMdx(slots.title),
-    renderMdx(slots.topMenu),
-    renderMdx(slots.topQuickAccess),
-    renderMdx(slots.header),
-    renderMdx(slots.footer),
+    renderSlot(slots.title, isAdmin),
+    renderSlot(slots.topMenu, isAdmin),
+    renderSlot(slots.topQuickAccess, isAdmin),
+    renderSlot(slots.header, isAdmin),
+    renderSlot(slots.footer, isAdmin),
   ]);
 
   return (
     <>
       <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
-          {/* Every slot is left out when it is empty rather than rendered
-              blank: a slot the person may not read comes back empty
-              (getLayoutContents), and an empty one is indistinguishable from
-              a page whose author wrote nothing in it. */}
-          {!isBlankMdx(slots.title) && (
-            <Link
-              href={`/${wikiConfig.homeSlug}`}
-              className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
-            >
-              {title}
-            </Link>
-          )}
+          {/* The note about a missing page is not a link home: it names
+              something to go and fix, not somewhere to go. */}
+          {title &&
+            (slots.title.missingSlug === undefined ? (
+              <Link
+                href={`/${wikiConfig.homeSlug}`}
+                className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
+              >
+                {title}
+              </Link>
+            ) : (
+              title
+            ))}
           <div className="layout-slot min-w-0 flex-1">
             {topMenu}
           </div>
@@ -63,7 +68,7 @@ export default async function SiteLayout({
         </div>
       </div>
 
-      {!isBlankMdx(slots.header) && (
+      {header && (
         <div className="border-b bg-muted/40">
           <div className={cn("mx-auto max-w-5xl px-4 py-3 text-sm", inlineMdx)}>
             {header}
@@ -77,7 +82,7 @@ export default async function SiteLayout({
         {children}
       </main>
 
-      {!isBlankMdx(slots.footer) && (
+      {footer && (
         <footer className="border-t">
           <div
             className={cn(

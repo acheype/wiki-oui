@@ -3,7 +3,11 @@ import { hasForm } from "@/modules/pages/entry-page";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { type EntryData, orderedEntryData } from "@/modules/forms/form-descriptor";
 import { type AccessRule, pageRule } from "@/modules/permissions/rules";
-import { currentCanRead, currentUsername } from "@/modules/permissions/person";
+import {
+  currentCanRead,
+  currentReadableWhere,
+  currentUsername,
+} from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { isExternalHref, wikiHrefSlug } from "@/lib/slug";
@@ -17,7 +21,6 @@ import {
 } from "@/lib/slug-rename-db";
 import { wikiConfig } from "@/wiki.config";
 import {
-  ALWAYS_READABLE,
   assertAddress,
   assertCanCreatePage,
   assertCanWrite,
@@ -32,7 +35,6 @@ import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   PUBLIC_IDENTITY,
   WITH_RIGHTS,
-  currentReadableWhere,
   isRefused,
 } from "@/modules/pages/rights";
 
@@ -244,18 +246,35 @@ export async function countPageSlugReferences(
 }
 
 /**
+ * What one layout slot puts on screen. Two shapes rather than one string,
+ * because the two situations call for opposite treatments: a page whose
+ * rights refuse this person must say nothing — a refusal is a right being
+ * applied, and naming it would be a second, contradictory story — where a
+ * page that does not exist at all is a misconfiguration somebody has to fix.
+ */
+export type LayoutSlot =
+  | { content: string; missingSlug?: undefined }
+  /** The slug `wiki.config.ts` names, which answers to no page. */
+  | { content?: undefined; missingSlug: string };
+
+/**
  * Current MDX content of each layout page, keyed by its role — the site's
  * chrome, and the one read that runs on every page of the wiki.
  *
  * It obeys the rights like any other read (docs/permissions.md § Application
- * des droits): a slot whose page this person may not read comes back as the
- * empty string, and the layout leaves it out. That is what lets an
- * administrator close a wiki to visitors and have it actually close — with
- * the chrome exempted, a menu naming every page of a private wiki would still
- * be served to whoever asked.
+ * des droits): a slot whose page this person may not read comes back empty,
+ * and the layout leaves it out. That is what lets an administrator close a
+ * wiki to visitors and have it actually close — with the chrome exempted, a
+ * menu naming every page of a private wiki would still be served to whoever
+ * asked.
+ *
+ * A slot whose page does not exist comes back as `missingSlug` instead. The
+ * two cannot be confused by whoever sees the difference: every rule lets an
+ * administrator through, so a slot *they* find empty is either empty or
+ * missing, never refused.
  */
 export async function getLayoutContents(): Promise<
-  Record<keyof typeof wikiConfig.layoutPages, string>
+  Record<keyof typeof wikiConfig.layoutPages, LayoutSlot>
 > {
   const roles = Object.entries(wikiConfig.layoutPages) as [
     keyof typeof wikiConfig.layoutPages,
@@ -265,14 +284,20 @@ export async function getLayoutContents(): Promise<
     where: { slug: { in: roles.map(([, slug]) => slug) } },
     include: { current: true, ...WITH_RIGHTS },
   });
+  const existing = new Set(rows.map((page) => page.slug));
   const pages = await Promise.all(rows.map((page) => ifReadable(page)));
   const bySlug = new Map(
     pages.flatMap((page) => (isRefused(page) ? [] : [[page.slug, page] as const]))
   );
 
   return Object.fromEntries(
-    roles.map(([role, slug]) => [role, bySlug.get(slug)?.current?.content ?? ""])
-  ) as Record<keyof typeof wikiConfig.layoutPages, string>;
+    roles.map(([role, slug]) => [
+      role,
+      existing.has(slug)
+        ? { content: bySlug.get(slug)?.current?.content ?? "" }
+        : { missingSlug: slug },
+    ])
+  ) as Record<keyof typeof wikiConfig.layoutPages, LayoutSlot>;
 }
 
 /**
@@ -288,7 +313,6 @@ export async function getLayoutContents(): Promise<
  * costs one query, not one per entry.
  */
 export const isSlugReadable = cache(async (slug: string): Promise<boolean> => {
-  if (ALWAYS_READABLE.includes(slug)) return true;
   const page = await prisma.page.findUnique({
     where: { slug },
     select: { ownerUsername: true, readScope: true, writeScope: true, acls: ACL_ROWS },

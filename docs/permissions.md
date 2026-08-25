@@ -307,7 +307,7 @@ Une `<Iframe>` sur une page inaccessible rend le même bloc, en version compacte
 
 Deux **pages spéciales** seedées de plus, dont le contenu appelle des composants intégrés — même philosophie que `formulaires` et `fiches`. Elles rejoignent la roue crantée de `page-rapide-haut`.
 
-Les quatre pages système de comptes en sont aussi : `connexion` (`<SignIn />`), `inscription` (`<SignUp />`), `mot-de-passe-oublie` (`<ForgotPassword />`) et `invitation` (`<Invitation />`) — une page système est une page comme les autres (ADR 0028), l'installation exceptée, qui est un service et non une page système — et elle-même n'occupe aucun slug. Elles portent le chrome du site comme n'importe quelle page : on se connecte **dans** le wiki. Deux conséquences à tenir quand les droits de lecture arriveront : ces quatre pages restent **lisibles par tout le monde** quel que soit le droit posé dessus (la connexion doit répondre là où le contenu refuse), et l'inscription libre étant fermée par défaut, `inscription` affiche alors où trouver un compte plutôt qu'un formulaire inutilisable.
+Les quatre pages système de comptes en sont aussi : `connexion` (`<SignIn />`), `inscription` (`<SignUp />`), `mot-de-passe-oublie` (`<ForgotPassword />`) et `invitation` (`<Invitation />`) — une page système est une page comme les autres (ADR 0028), l'installation exceptée, qui est un service et non une page système — et elle-même n'occupe aucun slug. Elles portent le chrome du site comme n'importe quelle page : on se connecte **dans** le wiki. Elles naissent **lisibles par tout le monde** — c'est le défaut d'une page seedée — et le restent tant qu'un administrateur n'en décide pas autrement *(révisé le 2026-08-25, issue #20 : la v0.5 les exemptait des droits, elles y sont désormais soumises comme toute page ; voir § Application des droits)*. L'inscription libre étant fermée par défaut, `inscription` affiche où trouver un compte plutôt qu'un formulaire inutilisable.
 
 ### `gerer-utilisateurs`
 
@@ -401,9 +401,15 @@ Le widget portée + liste devient un **type de champ du vocabulaire de descripte
 
 Un seul chemin **échappe** au contrôle, délibérément : le seed, qui écrit sans personne.
 
-Les cinq pages de layout, elles, **passent le contrôle comme les autres** *(révisé le 2026-08-25, issue #20 — la v0.5 les en exemptait)*. Un emplacement dont la page est refusée à cette personne rend **vide**, et le layout le laisse dehors. L'argument d'origine — « c'est du chrome, pas du contenu » — décrit bien ce que ces pages servent, mais l'exemption disait beaucoup plus que ça : `/page-menu-haut` s'ouvrait à qui ses droits refusaient, et toutes les listes l'offraient. Sur un wiki qu'un administrateur ferme aux visiteurs, le menu est le **plan du site** ; il doit se fermer avec le reste. Les défauts livrés portent une lecture *tout le monde*, donc un wiki neuf garde son chrome sans rien régler.
+**Aucune page n'est exemptée** *(révisé le 2026-08-25, issue #20)*. La v0.5 tenait une liste de slugs qui répondaient à tout le monde quel que soit le droit posé dessus : les cinq pages de layout, puis les quatre pages de comptes. Elle a disparu, avec les deux choses qu'elle coûtait.
 
-Les quatre pages de comptes, elles, restent dans `ALWAYS_READABLE` : se connecter doit marcher exactement là où le contenu refuse, sans quoi le « Se connecter » de la vue de refus mènerait à un second refus.
+D'abord un **mensonge de l'interface** : un administrateur qui restreignait `connexion` voyait le réglage s'enregistrer et rien changer. Une exception qui ne se voit nulle part est pire que le comportement qu'elle protège.
+
+Ensuite une **fuite** : la liste ne disait pas « sers le chrome », elle disait « cette page répond à tout le monde, partout ». `/page-menu-haut` s'ouvrait à qui ses droits refusaient, toutes les listes l'offraient, et un lien `hideIfNoAccess` qui la nommait restait visible. Sur un wiki qu'un administrateur ferme aux visiteurs, le menu est le **plan du site**.
+
+Le wiki fait donc ce que ses droits disent, et l'administrateur en répond. Un emplacement de layout dont la page est refusée rend **vide**, et le layout le laisse dehors. Les pages seedées naissent en lecture *tout le monde*, donc un wiki neuf se comporte comme avant sans rien régler.
+
+**Le revers, à connaître.** Restreindre `connexion` ferme la connexion. Un administrateur encore connecté peut revenir en arrière ; si toutes les sessions expirent, seule la base permet de rouvrir. C'est la contrepartie assumée d'un wiki qui obéit à ses réglages plutôt qu'à une liste cachée.
 
 ### Deux temps, jamais un chargement suivi d'un tri
 

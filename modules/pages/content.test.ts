@@ -43,7 +43,8 @@ vi.mock("@/modules/permissions/groups-queries", () => ({
   listDirectory: async () => ({ people: [], groups: [] }),
 }));
 
-const { currentReadableWhere, isRefused } = await import("@/modules/pages/rights");
+const { isRefused } = await import("@/modules/pages/rights");
+const { currentReadableWhere } = await import("@/modules/permissions/person");
 const {
   getLayoutContents,
   getRawContent,
@@ -133,10 +134,13 @@ describe("isSlugReadable", () => {
     expect(await isSlugReadable("nulle-part")).toBe(true);
   });
 
-  it("reads an auth page whatever its own rights say", async () => {
+  // No slug is exempt any more (issue #20): the wiki kept a list of pages that
+  // answered to everyone whatever was posed on them, and `connexion` was on
+  // it. An administrator who closed that page saw nothing happen, which is a
+  // worse surprise than a wiki that does what its rights say.
+  it("hides a link to an account page its rights refuse, like any other", async () => {
     db.page.findUnique.mockResolvedValue(MARIES_PAGE);
-    expect(await isSlugReadable("connexion")).toBe(true);
-    expect(db.page.findUnique).not.toHaveBeenCalled();
+    expect(await isSlugReadable("connexion")).toBe(false);
   });
 });
 
@@ -286,8 +290,7 @@ describe("getRawContent", () => {
 // The site's chrome obeys the rights like any other content (issue #20). The
 // case that matters is the private wiki: an administrator closes every page
 // to visitors, and the menu — which names every page — has to close with
-// them. An earlier pass put these five slugs in ALWAYS_READABLE, which said
-// far more than « serve the chrome »: it opened the pages themselves.
+// them.
 describe("getLayoutContents", () => {
   /** A layout page, with the read scope the test poses on it. */
   function slot(slug: string, readScope: string) {
@@ -305,20 +308,36 @@ describe("getLayoutContents", () => {
   it("serves a slot the person may read", async () => {
     person.current = { username: null, groupSlugs: [] };
     db.page.findMany.mockResolvedValue([slot("page-menu-haut", "everyone")]);
-    expect((await getLayoutContents()).topMenu).toBe("contenu de page-menu-haut");
+    expect((await getLayoutContents()).topMenu).toEqual({
+      content: "contenu de page-menu-haut",
+    });
   });
 
   it("hands back an empty slot when the rights refuse it", async () => {
     person.current = { username: null, groupSlugs: [] };
     db.page.findMany.mockResolvedValue([slot("page-menu-haut", "authenticated")]);
-    // Empty, not absent and not refused: the layout leaves an empty slot out
-    // the same way it does one whose author wrote nothing in it.
-    expect((await getLayoutContents()).topMenu).toBe("");
+    // Empty, and above all not « missing »: a refusal is a right being
+    // applied, and saying so would be a second, contradictory story.
+    expect((await getLayoutContents()).topMenu).toEqual({ content: "" });
   });
 
   it("serves that same slot to whoever the rights let through", async () => {
     person.current = { username: "marie-durand", groupSlugs: [] };
     db.page.findMany.mockResolvedValue([slot("page-menu-haut", "authenticated")]);
-    expect((await getLayoutContents()).topMenu).toBe("contenu de page-menu-haut");
+    expect((await getLayoutContents()).topMenu).toEqual({
+      content: "contenu de page-menu-haut",
+    });
+  });
+
+  // A layout page is a special page, so a missing one means wiki.config.ts
+  // names a slug the wiki does not have — something to fix, not something an
+  // author did. It is told apart from an empty slot so that the layout can
+  // say so to an administrator, and to nobody else.
+  it("names the slug when no page answers to it", async () => {
+    person.current = { username: "wiki-admin", groupSlugs: ["admins"] };
+    db.page.findMany.mockResolvedValue([]);
+    expect((await getLayoutContents()).topMenu).toEqual({
+      missingSlug: "page-menu-haut",
+    });
   });
 });

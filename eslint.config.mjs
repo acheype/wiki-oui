@@ -34,8 +34,9 @@ const directPageOrFormAccess =
 // The three clauses that may come out empty, `{}` meaning « every row » for
 // an actor who reads or writes everything. Prisma drops an empty branch from
 // an `OR`, so joining one by hand turns « everything » into « only the other
-// branches » — see anyClause() in modules/permissions/rules.ts, which absorbs instead.
-const ACCESS_CLAUSES = "readableWhere|writableWhere|listReadableWhere|currentReadableWhere";
+// branches » — see anyClause() in modules/permissions/decide/rules.ts, which
+// absorbs instead.
+const ACCESS_CLAUSES = "readableWhere|writableWhere|currentReadableWhere";
 
 // An `OR: [ … ]` holding a call to one of them, however deep in the array.
 const accessClauseInsideOr =
@@ -244,7 +245,7 @@ const eslintConfig = defineConfig([
         {
           selector: accessClauseInsideOr,
           message:
-            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish. Ask for the clause already joined: currentReadableWhere() or currentListReadableWhere() (issue #20 made anyClause() private, since composing by hand is what this rule refuses).",
+            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish. Join with AND, which has no such trap; if it really has to be OR, the absorbing join is anyClause() in modules/permissions/decide/rules.ts, and reaching for it from another module means the clause belongs there too.",
         },
       ],
     },

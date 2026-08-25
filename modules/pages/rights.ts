@@ -23,14 +23,12 @@ import { existingPrincipals, grantTarget } from "@/modules/permissions/groups-qu
 import {
   assertAdmin,
   currentAllows,
-  currentListReadableWhere,
   currentWritableWhere,
 } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { wikiConfig } from "@/wiki.config";
 import {
-  ALWAYS_READABLE,
   assertStructuring,
   structuredPage,
 } from "@/modules/pages/access/guards";
@@ -40,10 +38,9 @@ import {
 // modules/pages/entries.ts need to decide who reads or writes what, plus the
 // administration system pages' own bulk actions. Part of ADR 0025's door.
 //
-// PUBLIC_IDENTITY, ACL_ROWS, WITH_RIGHTS, COLD_ADMIN_TRANSACTION_TIMEOUT_MS
-// and currentReadableWhere live here rather than in modules/pages/access/guards.ts
-// (private to the module by its depth) because modules/forms/forms.ts
-// imports several of them — a shared brick lives at a module's root, never
+// PUBLIC_IDENTITY, ACL_ROWS, WITH_RIGHTS and COLD_ADMIN_TRANSACTION_TIMEOUT_MS
+// live here rather than in modules/pages/access/guards.ts (private to the
+// module by its depth) because modules/forms/forms.ts imports several of them — a shared brick lives at a module's root, never
 // behind its guards (ADR 0029). PUBLIC_IDENTITY and ACL_ROWS specifically
 // cannot move to guards.ts even as an implementation detail: WITH_RIGHTS
 // composes them in a top-level `const`, evaluated at import time, and guards.ts
@@ -85,15 +82,6 @@ export const WITH_RIGHTS = {
  * same rare cold admin actions, on the other side of the door.
  */
 export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;
-
-/**
- * What the lists filter on, in SQL and never afterwards (docs/permissions.md
- * § Deux temps) — so that counters, pagination and « effacer les filtres »
- * come out right mechanically, working on what actually arrived.
- */
-export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
-  return currentListReadableWhere(ALWAYS_READABLE);
-}
 
 /**
  * What a refused read hands back instead of the page. A distinct shape rather

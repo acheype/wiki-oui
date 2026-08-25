@@ -14,7 +14,7 @@ import {
   canRead,
   canWrite,
   isAdmin,
-  listReadableWhere,
+  readableWhere,
   ownsSubject,
   permissionsOn,
   ruleAllows,
@@ -151,12 +151,14 @@ export async function currentWritableWhere(): Promise<Prisma.PageWhereInput> {
 }
 
 /**
- * What a list filters on: what the current person may read, plus the pages
- * that answer to everyone whatever is posed on them (their slugs, which the
- * caller holds).
+ * What a list filters on, in SQL and never afterwards (docs/permissions.md
+ * § Deux temps) — so that counters, pagination and « effacer les filtres »
+ * come out right mechanically, working on what actually arrived.
+ *
+ * Every page is in scope of it: no slug answers to everyone whatever is posed
+ * on it (issue #20). `{}` for an administrator, which is why it is never
+ * joined by hand — see the wikioui/access-clauses ESLint rule.
  */
-export async function currentListReadableWhere(
-  alwaysReadable: readonly string[]
-): Promise<Prisma.PageWhereInput> {
-  return listReadableWhere(await currentPerson(), alwaysReadable);
+export async function currentReadableWhere(): Promise<Prisma.PageWhereInput> {
+  return readableWhere(await currentPerson());
 }
