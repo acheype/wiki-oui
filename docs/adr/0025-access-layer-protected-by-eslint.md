@@ -54,6 +54,6 @@ Le revers est assumé : restreindre `connexion` ferme la connexion, et si toutes
 
 ### Ce qui tient la règle
 
-`scripts/verify-access/` suit le graphe d'appels de chaque lecture exportée de la couche, `Page` et `Form`, jusqu'à `canRead`, `canWrite` ou `isAdmin` — ce qu'ESLint ne peut pas faire, ne voyant qu'un fichier à la fois. Une lecture qui n'y arrive pas fait échouer `pnpm build`, sauf si elle figure dans `UNGUARDED_READS` avec son motif écrit. Une seule invariante y règne, et c'est elle qu'une revue vérifie sur tout ajout : **aucune entrée ne rend de contenu**.
+`scripts/verify-access/` suit le graphe d'appels de chaque lecture exportée de la couche, `Page` et `Form`, jusqu'à `canRead`, `canWrite` ou `isAdmin` — ce qu'ESLint ne peut pas faire, ne voyant qu'un fichier à la fois. Une lecture qui n'y arrive pas fait échouer `pnpm build`, sauf si elle figure dans `UNGUARDED_READS` avec son motif écrit. Un seul invariant y règne, et c'est lui qu'une revue vérifie sur tout ajout : **aucune entrée ne rend de contenu**.
 
 Le nom du fichier suit ce qu'il tient : `queries.ts` est devenu `access/guards.ts` des deux côtés. Trois appels Prisma sur quarante-neuf y vivaient — « porte » et « requêtes » disaient tous deux la mauvaise moitié de ce que ces fichiers font.

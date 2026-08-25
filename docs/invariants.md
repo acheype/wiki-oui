@@ -7,8 +7,8 @@ Cinq contrôles font échouer le build plutôt que de compter sur la vigilance �
 | `wikioui/module-seam` | importer un fichier de sous-dossier depuis un autre module | `pnpm lint` |
 | `wikioui/access-layer` | toucher `Page` ou `Form` hors de la couche d'accès | `pnpm lint` |
 | `wikioui/access-clauses` | joindre une clause de droits par un `OR` | `pnpm lint` |
-| `scripts/verify-descriptors.ts` | un descripteur qui ment sur son composant, deux modules qui revendiquent la même balise | `pnpm prebuild` |
-| `scripts/verify-access/` | une lecture exportée de `Page` ou `Form` qui ne tranche aucun droit | `pnpm prebuild` |
+| `scripts/verify-descriptors.ts` | un descripteur qui décrit une propriété que son composant n'a pas ; deux modules qui donnent le même nom à un composant | `pnpm prebuild` |
+| `scripts/verify-access/` | une lecture exportée de `Page` ou `Form` qui rend son résultat sans avoir demandé si la personne y a droit | `pnpm prebuild` |
 
 ## Un exemple chacun
 
@@ -56,20 +56,30 @@ where: { AND: [{ slug: { in: choisies } }, await currentReadableWhere()] }
 
 ### `scripts/verify-descriptors.ts` — le descripteur fait foi (ADR 0013, ADR 0002)
 
-Le YAML d'un ComponentBuilder promet des propriétés ; le `.tsx` les reçoit. Le script lit les deux sources et refuse qu'elles divergent, puis vérifie qu'aucune balise n'est revendiquée par deux modules.
+**Le descripteur et son composant disent la même chose.** Le YAML décrit les propriétés que le ComponentBuilder offrira à l'auteur ; le `.tsx` les reçoit en props. Le script lit les deux **sources** — il ne charge jamais le composant — et refuse qu'elles divergent : une propriété décrite dans le YAML et absente du composant serait un champ que la modale propose et que le rendu ignore.
 
 ```yaml
-# button.yaml promet une prop `label`…
+# modules/pages/wiki-components/button.yaml décrit une propriété `label`…
 properties:
   label: { type: string }
 ```
 
 ```tsx
-// …que le composant n'a pas : le build échoue
+// …que modules/pages/wiki-components/button.tsx ne reçoit pas : le build échoue
 export function Button({ text }: { text: string }) { … }
 ```
 
-### `scripts/verify-access/` — une lecture qui ne tranche pas ne s'exporte pas (ADR 0025)
+**Un nom de composant appartient à un seul module.** Le nom de la balise vient du nom du fichier (`button.tsx` → `<Button>`), et une balise ne peut appeler qu'un composant. Deux modules qui nomment un fichier pareil produiraient deux composants pour une même balise, dont un seul serait rendu, l'autre disparaissant sans un mot.
+
+```text
+modules/pages/wiki-components/card.tsx
+modules/forms/wiki-components/card.tsx
+→ « <Card> is claimed by two modules: pages and forms — rename one of the files »
+```
+
+Un troisième contrôle ferme le cas inverse : un module qui a un dossier `wiki-components/` sans figurer dans `modules/authoring/registry/sources.ts` n'est balayé par personne, et ses composants ne rendraient rien, en silence.
+
+### `scripts/verify-access/` — on n'exporte pas une lecture qui n'a rien demandé (ADR 0025)
 
 ESLint ne voit qu'un fichier à la fois. Ce script suit le **graphe d'appels** de chaque lecture exportée de la couche d'accès, à travers les fichiers, jusqu'à `canRead`, `canWrite` ou `isAdmin`.
 
@@ -86,7 +96,7 @@ Deux pièges connus, écrits dans le message d'erreur et dans les docstrings du 
 - **une garde ne compte que là où elle est appelée** — `rows.map(ifReadable)` se lit comme non gardé, `rows.map((row) => ifReadable(row))` non ;
 - **il vérifie qu'une garde est atteinte, jamais qu'elle refuse** — c'est un contrôle de câblage, pas de politique.
 
-Une lecture délibérément non gardée s'ajoute à `UNGUARDED_READS`, **avec son motif écrit**. Une seule invariante y règne, et c'est elle qu'une revue vérifie sur tout ajout : **aucune entrée ne rend de contenu**.
+Une lecture délibérément non gardée s'ajoute à `UNGUARDED_READS`, **avec son motif écrit**. Un seul invariant y règne, et c'est lui qu'une revue vérifie sur tout ajout : **aucune entrée ne rend de contenu**.
 
 ## Ce qui a été écarté
 
