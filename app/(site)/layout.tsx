@@ -52,18 +52,21 @@ export default async function SiteLayout({
             ) : (
               title
             ))}
-          <div className="layout-slot min-w-0 flex-1">
-            {topMenu}
-          </div>
-          <div
-            className={cn(
-              "layout-slot flex flex-wrap items-center gap-x-2",
-              "text-sm text-muted-foreground",
-              inlineMdx
-            )}
-          >
-            {topQuickAccess}
-          </div>
+          {/* Always rendered, empty menu or not: this is the bar's flexible
+              middle, and what keeps the account menu on the right edge. The
+              only slot whose box outlives its content, for that reason. */}
+          <div className="layout-slot min-w-0 flex-1">{topMenu}</div>
+          {topQuickAccess && (
+            <div
+              className={cn(
+                "layout-slot flex flex-wrap items-center gap-x-2",
+                "text-sm text-muted-foreground",
+                inlineMdx
+              )}
+            >
+              {topQuickAccess}
+            </div>
+          )}
           <AccountMenu identity={identity} />
         </div>
       </div>
