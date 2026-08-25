@@ -158,7 +158,7 @@ export async function applyFormDefaultsToEntries(
  * événement ».
  *
  * The form's three rules travel in rather than being read here: `Form` is the
- * other door's (ADR 0025), and modules/forms/queries/queries.ts has already read the
+ * other door's (ADR 0025), and modules/forms/forms.ts has already read the
  * descriptor they come from on the way to this call.
  */
 export async function createEntryPage(input: {
@@ -208,7 +208,7 @@ export async function createEntryPage(input: {
  * base is exactly the salary somebody wipes by saving the fiche.
  *
  * The descriptor travels in rather than being read here: `Form` is the other
- * door's (ADR 0025), and modules/forms/queries/queries.ts has already read it on the
+ * door's (ADR 0025), and modules/forms/forms.ts has already read it on the
  * way to this call.
  */
 export async function writeEntryRevision(input: {

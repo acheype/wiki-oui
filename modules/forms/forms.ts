@@ -34,7 +34,7 @@ import {
   sweepSlugReferences,
 } from "@/lib/slug-rename-db";
 import { wikiConfig } from "@/wiki.config";
-import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/queries/queries";
+import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/access/guards";
 
 // The only door to `Form` (ADR 0025), alongside modules/pages/access/guards.ts for
 // `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
@@ -42,10 +42,9 @@ import { type OwnedForm, assertFormStructuring, ownerOf } from "@/modules/forms/
 // forgot them — the risk being a silent read, which no test would ever catch.
 //
 // Split at the door like modules/pages/ was (ADR 0029): this file is the
-// public API, modules/forms/queries/queries.ts holds the three private pieces
-// (OwnedForm, assertFormStructuring, ownerOf) nothing outside the module
-// needs. Where the Page door had to split into four subjects, this one was
-// small enough to stay a single file.
+// public API, modules/forms/access/guards.ts holds the guards and the reads
+// nothing outside the module needs. Where the Page door had to split into four
+// subjects, this one was small enough to stay a single file.
 
 /** Whether the system pages offer those permissions at all, or simply leave them out. */
 export async function currentCanEditForm(form: OwnedForm): Promise<boolean> {
@@ -235,13 +234,6 @@ export async function reassignOwnedForms(
     where: { ownerUsername: fromUsername },
     data: { ownerUsername: toUsername },
   });
-}
-
-// Cascade (ADR 0014): deleting a form deletes its entry pages — which is why
-// it stops at the same rung as editing the definition, and not at the writing.
-export async function deleteFormById(id: string): Promise<void> {
-  await assertFormStructuring(await ownerOf(id));
-  await prisma.form.delete({ where: { id } });
 }
 
 // --- applying the defaults to the fiches already there -----------------------

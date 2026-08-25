@@ -43,7 +43,7 @@ import {
 //
 // PUBLIC_IDENTITY, ACL_ROWS, WITH_RIGHTS, COLD_ADMIN_TRANSACTION_TIMEOUT_MS
 // and currentReadableWhere live here rather than in modules/pages/access/guards.ts
-// (private to the module by its depth) because modules/forms/queries/queries.ts
+// (private to the module by its depth) because modules/forms/forms.ts
 // imports several of them — a shared brick lives at a module's root, never
 // behind its guards (ADR 0029). PUBLIC_IDENTITY and ACL_ROWS specifically
 // cannot move to guards.ts even as an implementation detail: WITH_RIGHTS
@@ -71,7 +71,7 @@ export const ACL_ROWS = {
 
 /**
  * What deciding on a page needs, plus the name a refusal would print. Shared
- * with modules/forms/queries/queries.ts, which loads entries by the formful: a system
+ * with modules/forms/forms.ts, which loads entries by the formful: a system
  * page that offers a action per row has to know the rights of every one of them.
  */
 export const WITH_RIGHTS = {
@@ -82,7 +82,7 @@ export const WITH_RIGHTS = {
 /**
  * What a namespace-wide retcon is allowed to take (ADR 0016/0017/0020): a
  * large wiki means many rewrites in one sweep, where Prisma's default 5s is
- * sized for hot-path transactions. Shared with modules/forms/queries/queries.ts — the
+ * sized for hot-path transactions. Shared with modules/forms/forms.ts — the
  * same rare cold admin actions, on the other side of the door.
  */
 export const COLD_ADMIN_TRANSACTION_TIMEOUT_MS = 60_000;

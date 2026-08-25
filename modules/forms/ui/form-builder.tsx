@@ -56,7 +56,6 @@ import {
 import {
   type AccessRule,
   type AclDirectory,
-  FORM_EDIT_REFUSED,
 } from "@/modules/permissions/rules";
 import {
   AlertDialog,
@@ -185,7 +184,6 @@ export function FormBuilder({
   onRenamed?: (slug: string) => void;
 }) {
   const isNew = initial === null;
-  const canEdit = initial?.canEdit ?? true;
   const [name, setName] = useState(initial?.name ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugCustomized, setSlugCustomized] = useState(false);
@@ -440,20 +438,15 @@ export function FormBuilder({
             />
           </div>
           {/* Editing a form's definition is its owner's or an administrator's
-              (docs/permissions.md): what the person cannot do is left out of
-              the header rather than greyed out, and the note says why. */}
-          {canEdit ? (
-            <Button onClick={save} disabled={isPending}>
-              {isPending ? <Loader2 className="animate-spin" /> : <Save />}
-              Enregistrer
-            </Button>
-          ) : (
-            <InfoNote className="max-w-80">{FORM_EDIT_REFUSED}</InfoNote>
-          )}
+              (docs/permissions.md), and the gate that loads it refuses anyone
+              else: reaching this builder at all means the save is offered. */}
+          <Button onClick={save} disabled={isPending}>
+            {isPending ? <Loader2 className="animate-spin" /> : <Save />}
+            Enregistrer
+          </Button>
         </div>
         <FormIdentity
           isNew={isNew}
-          canEdit={canEdit}
           slug={slug}
           onChange={onSlugChange}
           onBlur={onSlugBlur}
@@ -550,7 +543,7 @@ export function FormBuilder({
             // No fiche exists yet to apply anything to, and the form itself
             // is not in base: the button appears once there is something for
             // it to reach.
-            onApply={isNew || !canEdit ? undefined : askToApply}
+            onApply={isNew ? undefined : askToApply}
             applying={isPending}
             onChange={setPermissions}
           />
@@ -865,15 +858,12 @@ function CanvasRow({
 // and only « Changer » can move it (the ADR 0016 retcon dialog).
 function FormIdentity({
   isNew,
-  canEdit,
   slug,
   onChange,
   onBlur,
   onRenamed,
 }: {
   isNew: boolean;
-  /** Owner or administrator: « Changer » is theirs alone, like the save. */
-  canEdit: boolean;
   slug: string;
   onChange: (slug: string) => void;
   /** Leaving the input empty re-derives the slug from the name. */
@@ -887,31 +877,29 @@ function FormIdentity({
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-sm">
           {slug}
         </code>
-        {canEdit && (
-          <RenameSlugDialog
-            trigger={
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-7 gap-1 px-2 text-xs"
-              >
-                <Pencil className="size-3.5" />
-                Changer
-              </Button>
-            }
-            title="Changer l'identifiant du formulaire"
-            currentLabel="Identifiant actuel"
-            current={slug}
-            inputLabel="Nouvel identifiant"
-            confirmLabel="Changer l'identifiant"
-            searchingText="Recherche des utilisations de cet identifiant…"
-            impactSentence={formImpactSentence}
-            fetchImpact={() => countFormReferences(slug)}
-            rename={(newSlug) => renameForm(slug, newSlug)}
-            onRenamed={onRenamed}
-          />
-        )}
+        <RenameSlugDialog
+          trigger={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1 px-2 text-xs"
+            >
+              <Pencil className="size-3.5" />
+              Changer
+            </Button>
+          }
+          title="Changer l'identifiant du formulaire"
+          currentLabel="Identifiant actuel"
+          current={slug}
+          inputLabel="Nouvel identifiant"
+          confirmLabel="Changer l'identifiant"
+          searchingText="Recherche des utilisations de cet identifiant…"
+          impactSentence={formImpactSentence}
+          fetchImpact={() => countFormReferences(slug)}
+          rename={(newSlug) => renameForm(slug, newSlug)}
+          onRenamed={onRenamed}
+        />
       </div>
     );
   }

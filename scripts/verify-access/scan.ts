@@ -11,10 +11,11 @@ import {
 
 // One door to Page (ADR 0025): an ESLint rule keeps `prisma.page` out of
 // every file but the five modules/pages/ split into (and modules/forms/forms.ts
-// plus modules/forms/queries/queries.ts for Form). That rule is silent about what happens *inside* the door — a read
-// that forgets to check who is asking compiles, passes lint, and leaks in
-// silence. This module closes that gap, in the culture of ADR 0013 (parse the
-// source with ts-morph, never import or run it).
+// plus modules/forms/access/guards.ts for Form). That rule is silent about
+// what happens *inside* the door — a read that forgets to check who is asking
+// compiles, passes lint, and leaks in silence. This module closes that gap, in
+// the culture of ADR 0013 (parse the source with ts-morph, never import or run
+// it).
 //
 // The three primitives every access decision in this codebase bottoms out on
 // are canRead, canWrite and isAdmin (modules/permissions/decide/rules.ts) —

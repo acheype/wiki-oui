@@ -176,11 +176,12 @@ const eslintConfig = defineConfig([
       "modules/pages/rights.ts",
       "modules/pages/entries.ts",
       // lib/forms.ts split the same way at the door (ADR 0029): a private
-      // queries/queries.ts (three helpers, ownerOf among them) plus the one
-      // root file left, forms.ts, that carries the whole public API — small
-      // enough that a single file sufficed where Page needed four.
+      // access/guards.ts, holding the guards and the reads nothing outside the
+      // module needs, plus the one root file left, forms.ts, that carries the
+      // whole public API — small enough that a single file sufficed where Page
+      // needed four.
       "modules/forms/forms.ts",
-      "modules/forms/queries/queries.ts",
+      "modules/forms/access/guards.ts",
       // Its neighbours behind the same door: BetterAuth owns the account
       // tables and touches nothing else (ADR 0023), the actor resolution
       // reads the session, the accounts and the groups are their own door —

@@ -6,6 +6,7 @@
 // engine the FormBuilder uses client-side (modules/forms/form-descriptor).
 
 import { revalidatePath } from "next/cache";
+import type { Form } from "@/lib/generated/prisma/client";
 import {
   type EntryData,
   type FormDescriptor,
@@ -46,7 +47,6 @@ import {
   countFormDefaults,
   countFormSlugReferences,
   createForm,
-  deleteFormById,
   getFormBySlug,
   listFormNames,
   listFormsBySlugs,
@@ -55,6 +55,13 @@ import {
   renameFormSlug,
   updateForm,
 } from "@/modules/forms/forms";
+import {
+  canEditForm,
+  deleteFormBySlug,
+  editableForm,
+  formSlugExists,
+  structuredForm,
+} from "@/modules/forms/access/guards";
 import {
   groupDisplayNames,
   groupNamesBySlug,
@@ -71,7 +78,6 @@ import {
 } from "@/modules/pages/entries";
 import {
   type AclDirectory,
-  FORM_EDIT_REFUSED,
   refusalMessage,
   scopeRefusal,
 } from "@/modules/permissions/rules";
@@ -116,12 +122,15 @@ export interface FormDetail {
   template: string | null;
   /** The « Accès » tab's three settings, the wiki's own for an old form. */
   permissions: FormPermissions;
-  /** Whether this person may save what the builder shows (owner or admin). */
-  canEdit: boolean;
 }
 
+/**
+ * What the builder mounts on. Refused to anyone but the owner and the
+ * administrators — the definition names its restricted fields, so reporting
+ * the right instead of applying it published exactly what the right protects.
+ */
 export async function getForm(slug: string): Promise<FormDetail | null> {
-  const form = await getFormBySlug(slug);
+  const form = await editableForm(slug);
   if (!form) return null;
   const parsed = parseFormDescriptor(form.schema);
   if (!parsed.descriptor) {
@@ -137,7 +146,6 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
     schema: parsed.descriptor,
     template: form.template,
     permissions: permissionsOf(form),
-    canEdit: await currentCanEditForm(form),
   };
 }
 
@@ -149,12 +157,11 @@ export async function getForm(slug: string): Promise<FormDetail | null> {
 export async function listRightsDirectory(
   formSlug: string | null
 ): Promise<AclDirectory> {
-  const form = formSlug ? await getFormBySlug(formSlug) : null;
   // A form being created has no owner yet to hang the editing rung on, so the
   // rung the act itself stops at answers for it: whoever may not create a form
   // has no business reading the wiki's membership either.
-  const allowed = form
-    ? await currentCanEditForm(form)
+  const allowed = formSlug
+    ? await canEditForm(formSlug)
     : await currentCanCreateForm();
   return allowed ? listDirectory() : { people: [], groups: [] };
 }
@@ -254,14 +261,26 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
     }
   }
 
-  const existing = issues.length === 0 ? await getFormBySlug(input.slug) : null;
-  if (input.isNew && existing) {
-    issues.push({
-      message: `L'identifiant «\u00A0${input.slug}\u00A0» est déjà pris par un autre formulaire.`,
-    });
-  }
-  if (!input.isNew && !existing && issues.length === 0) {
-    issues.push({ message: "Ce formulaire n'existe plus." });
+  // Two questions, two rungs. A new identifier only has to be free, which
+  // answers to nobody; an existing one is about to be overwritten, which is
+  // its owner's rung — so the definition is read through the gate that refuses
+  // rather than probed and checked afterwards.
+  let existing: Form | null = null;
+  if (issues.length === 0) {
+    if (input.isNew) {
+      if (await formSlugExists(input.slug)) {
+        issues.push({
+          message: `L'identifiant «\u00A0${input.slug}\u00A0» est déjà pris par un autre formulaire.`,
+        });
+      }
+    } else {
+      try {
+        existing = await editableForm(input.slug);
+      } catch (error) {
+        return { ok: false, issues: [{ message: refusalMessage(error) }] };
+      }
+      if (!existing) issues.push({ message: "Ce formulaire n'existe plus." });
+    }
   }
 
   if (issues.length > 0 || !parsed.descriptor) {
@@ -315,12 +334,10 @@ export type DeleteFormResult = { error: string } | { ok: true };
 // Cascade (ADR 0014): deleting a form deletes its entry pages — the UI
 // confirmation announces the count beforehand.
 export async function deleteForm(slug: string): Promise<DeleteFormResult> {
-  const form = await getFormBySlug(slug);
-  if (!form) {
-    return { error: "Ce formulaire n'existe pas." };
-  }
   try {
-    await deleteFormById(form.id);
+    if (!(await deleteFormBySlug(slug))) {
+      return { error: "Ce formulaire n'existe pas." };
+    }
   } catch (error) {
     return { error: refusalMessage(error) };
   }
@@ -345,7 +362,7 @@ export async function countFieldReferences(
   formSlug: string,
   fieldName: string
 ): Promise<number> {
-  const form = await getFormBySlug(formSlug);
+  const form = await structuredForm(formSlug);
   if (!form) return 0;
   return countEntriesCarryingField(form.id, fieldName);
 }
@@ -360,7 +377,7 @@ export async function countTitleImpact(
   formSlug: string,
   schema: unknown
 ): Promise<TitleRecomputeImpact | null> {
-  const form = await getFormBySlug(formSlug);
+  const form = await editableForm(formSlug);
   if (!form) return null;
   const before = parseFormDescriptor(form.schema).descriptor;
   const after = parseFormDescriptor(schema).descriptor;
@@ -390,17 +407,21 @@ export async function renameForm(
   if (newSlug === slug) {
     return { error: "Le nouvel identifiant est identique à l'actuel." };
   }
-  const form = await getFormBySlug(slug);
+  // Read and refused in one call. The refusal is caught here rather than by
+  // the try below, which speaks for a unique-constraint race and would turn a
+  // refusal into « réessayez dans un instant » — an invitation to keep trying.
+  // It comes before the clash test, that being the one answer which says
+  // something about another form.
+  let form: { id: string } | null;
+  try {
+    form = await structuredForm(slug);
+  } catch (error) {
+    return { error: refusalMessage(error) };
+  }
   if (!form) {
     return { error: "Ce formulaire n'existe pas." };
   }
-  // Checked here rather than only at the door: the generic failure message
-  // below is for a unique-constraint race, and would turn a refusal into
-  // « réessayez dans un instant » — an invitation to keep trying.
-  if (!(await currentCanEditForm(form))) {
-    return { error: FORM_EDIT_REFUSED };
-  }
-  if (await getFormBySlug(newSlug)) {
+  if (await formSlugExists(newSlug)) {
     return {
       error: `L'identifiant «\u00A0${newSlug}\u00A0» est déjà pris par un autre formulaire.`,
     };
