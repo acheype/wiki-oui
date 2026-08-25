@@ -19,7 +19,7 @@ import {
   listFormChoices,
   listRightsDirectory,
 } from "@/modules/forms/actions";
-import { type AclDirectory, CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
+import { REFUSALS, type AclDirectory } from "@/modules/permissions/rules";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -259,7 +259,7 @@ function BuilderView({ editSlug }: { editSlug: string | null }) {
   if (refused) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">{CREATE_FORM_REFUSED}</p>
+        <p className="text-sm text-muted-foreground">{REFUSALS.createForm}</p>
         <Button asChild variant="outline" className="w-fit">
           <Link href="/formulaires">Retour à la liste</Link>
         </Button>

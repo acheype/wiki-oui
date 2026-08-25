@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   type AclEntry,
   ADMINS_GROUP,
+  REFUSALS,
+  Refusal,
+  refuse,
+  refusalMessage,
   aclEntries,
   aclFloorPrincipals,
   knownEntries,
@@ -119,5 +123,32 @@ describe("withoutFloor", () => {
       usernames: ["marie-durand"],
       groupSlugs: [ADMINS_GROUP.slug],
     });
+  });
+});
+
+describe("the refusal channel", () => {
+  it("shows what the access layer meant to say", () => {
+    try {
+      refuse("delete");
+    } catch (error) {
+      expect(refusalMessage(error)).toBe(REFUSALS.delete);
+    }
+    expect.assertions(1);
+  });
+
+  it("keeps every other error off the screen", () => {
+    // The one that mattered: an ORM message naming a column used to travel
+    // straight into a toast, because the channel carried a string (issue #20).
+    expect(refusalMessage(new Error('Unique constraint failed on "Page_slug_key"')))
+      .toBe(REFUSALS.access);
+    expect(refusalMessage(new TypeError("x is not a function"))).toBe(REFUSALS.access);
+    expect(refusalMessage("something thrown that is not an error")).toBe(
+      REFUSALS.access
+    );
+  });
+
+  it("is an Error, so a stack trace still names where it was refused", () => {
+    expect(new Refusal("write")).toBeInstanceOf(Error);
+    expect(new Refusal("write").message).toBe(REFUSALS.write);
   });
 });

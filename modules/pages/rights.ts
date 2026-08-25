@@ -10,14 +10,13 @@ import {
   type AclFloor,
   type Identity,
   type PageRights,
+  type RefusalKind,
   PERM_KINDS,
-  RIGHTS_REFUSED,
-  TRANSFER_REFUSED,
-  UNKNOWN_RECIPIENT,
   aclEntries,
   pageRule,
   storedRights,
   withoutFloor,
+  refuse,
 } from "@/modules/permissions/rules";
 import { refGroupSlug, refUsername } from "@/modules/permissions/groups";
 import { existingPrincipals, grantTarget } from "@/modules/permissions/groups-queries";
@@ -149,7 +148,7 @@ export async function getPageRights(slug: string): Promise<PageRightsView | null
     include: WITH_RIGHTS,
   });
   if (!page) return null;
-  await assertStructuring(page, RIGHTS_REFUSED);
+  await assertStructuring(page, "rights");
   return {
     floor: pageFloor(page),
     isEntry: isEntryPage(page),
@@ -169,7 +168,7 @@ export async function setPageRights(
   read: AccessRule,
   write: AccessRule
 ): Promise<void> {
-  const page = await structuredPage(slug, RIGHTS_REFUSED);
+  const page = await structuredPage(slug, "rights");
   const rights = storedRights(read, write);
   const kept = withoutFloor(rights.acls, pageFloor(page));
   await prisma.$transaction(async (tx) => {
@@ -228,7 +227,7 @@ export async function listManagedPages(): Promise<ManagedPage[]> {
  * handful of single permissions, and one page refused refuses the lot — half an
  * action by lot would be worse than none.
  */
-async function lotPages(slugs: readonly string[], refusal: string) {
+async function lotPages(slugs: readonly string[], refusal: RefusalKind) {
   const pages = await prisma.page.findMany({
     where: { slug: { in: [...slugs] } },
     include: WITH_RIGHTS,
@@ -250,7 +249,7 @@ export async function grantPagesAccess(
   slugs: readonly string[],
   grant: AccessGrant
 ): Promise<void> {
-  const pages = await lotPages(slugs, RIGHTS_REFUSED);
+  const pages = await lotPages(slugs, "rights");
   const rows: Prisma.PageAclCreateManyInput[] = [];
   for (const kind of PERM_KINDS) {
     for (const ref of grant[kind] ?? []) {
@@ -288,7 +287,7 @@ export async function replacePagesRights(
   replacement: RightsReplacement
 ): Promise<void> {
   if (nothingToReplace(replacement)) return;
-  const pages = await lotPages(slugs, RIGHTS_REFUSED);
+  const pages = await lotPages(slugs, "rights");
   const ids = pages.map((page) => page.id);
   const posed = PERM_KINDS.filter((kind) => replacement[kind] !== undefined);
   const rows = pages.flatMap((page) =>
@@ -331,12 +330,12 @@ export async function handPagesTo(
   slugs: readonly string[],
   toUsername: string
 ): Promise<void> {
-  const pages = await lotPages(slugs, TRANSFER_REFUSED);
+  const pages = await lotPages(slugs, "transfer");
   const known = await existingPrincipals({
     usernames: [toUsername],
     groupSlugs: [],
   });
-  if (!known.usernames.has(toUsername)) throw new Error(UNKNOWN_RECIPIENT);
+  if (!known.usernames.has(toUsername)) refuse("unknownRecipient");
   const ids = pages.map((page) => page.id);
   await prisma.$transaction(
     async (tx) => {
@@ -383,7 +382,7 @@ export async function transferPageOwnership(
   slug: string,
   toUsername: string
 ): Promise<void> {
-  const page = await structuredPage(slug, TRANSFER_REFUSED);
+  const page = await structuredPage(slug, "transfer");
   // Whom the client names is checked before it reaches the column: an unknown
   // username would come back as a foreign-key failure, and the refusal a
   // view prints has to be one this wiki wrote.
@@ -391,7 +390,7 @@ export async function transferPageOwnership(
     usernames: [toUsername],
     groupSlugs: [],
   });
-  if (!known.usernames.has(toUsername)) throw new Error(UNKNOWN_RECIPIENT);
+  if (!known.usernames.has(toUsername)) refuse("unknownRecipient");
   await prisma.$transaction(async (tx) => {
     await tx.page.update({
       where: { id: page.id },

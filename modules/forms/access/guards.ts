@@ -1,6 +1,6 @@
 import type { Form } from "@/lib/generated/prisma/client";
 import { canCreateEntry } from "@/modules/permissions/form-level";
-import { FORM_EDIT_REFUSED } from "@/modules/permissions/rules";
+import { refuse } from "@/modules/permissions/rules";
 import { currentOwns, currentPerson } from "@/modules/permissions/person";
 import { type SeenForm, permissionsOf } from "@/modules/forms/forms";
 import { readableForm } from "@/modules/permissions/readable-form";
@@ -35,7 +35,7 @@ export type OwnedForm = { ownerUsername: string | null };
  */
 export async function assertFormStructuring(form: OwnedForm): Promise<void> {
   if (await currentOwns(form.ownerUsername)) return;
-  throw new Error(FORM_EDIT_REFUSED);
+  refuse("editForm");
 }
 
 /**

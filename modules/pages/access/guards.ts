@@ -2,10 +2,9 @@ import {
   type AccessRule,
   type AclEntry,
   type PageRights,
-  ADDRESS_REFUSED,
-  CREATE_REFUSED,
-  WRITE_REFUSED,
+  type RefusalKind,
   knownEntries,
+  refuse,
   storedRights,
 } from "@/modules/permissions/rules";
 import { existingPrincipals } from "@/modules/permissions/groups-queries";
@@ -78,11 +77,11 @@ export async function ifReadable<T extends Decidable>(
 
 /** The backstop of every content write; the views refuse long before it. */
 export async function assertCanWrite(page: PageRights): Promise<void> {
-  if (!(await currentCanWrite(page))) throw new Error(WRITE_REFUSED);
+  if (!(await currentCanWrite(page))) refuse("write");
 }
 
 export async function assertCanCreatePage(): Promise<void> {
-  if (!(await currentCanCreatePage())) throw new Error(CREATE_REFUSED);
+  if (!(await currentCanCreatePage())) refuse("createPage");
 }
 
 /** The configured principals that still exist, as the pure filter reads them. */
@@ -103,10 +102,10 @@ export async function keepKnownPrincipals(acls: AclEntry[]): Promise<AclEntry[]>
  */
 export async function assertStructuring(
   page: PageRights,
-  refusal: string
+  refusal: RefusalKind
 ): Promise<void> {
   if (await currentOwns(page)) return;
-  throw new Error(refusal);
+  refuse(refusal);
 }
 
 /**
@@ -115,7 +114,7 @@ export async function assertStructuring(
  * the way no other action on it does.
  */
 export async function assertAddress(): Promise<void> {
-  if (!(await isCurrentAdmin())) throw new Error(ADDRESS_REFUSED);
+  if (!(await isCurrentAdmin())) refuse("address");
 }
 
 /**
@@ -124,7 +123,7 @@ export async function assertAddress(): Promise<void> {
  * has happened, rather than leaving each action to remember an assertion
  * after its own query.
  */
-export async function structuredPage(slug: string, refusal: string) {
+export async function structuredPage(slug: string, refusal: RefusalKind) {
   const page = await prisma.page.findUniqueOrThrow({
     where: { slug },
     include: WITH_RIGHTS,

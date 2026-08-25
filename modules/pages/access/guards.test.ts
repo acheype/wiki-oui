@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  ADDRESS_REFUSED,
-  DELETE_REFUSED,
-  RIGHTS_REFUSED,
-  TRANSFER_REFUSED,
-  WRITE_REFUSED,
+  REFUSALS,
 } from "@/modules/permissions/rules";
 
 // The door's own test (ADR 0025). Everything else in this suite is pure, so
@@ -109,30 +105,30 @@ beforeEach(() => {
 
 /** Every write of the door that a check stands in front of. */
 const guarded: [string, string, () => Promise<unknown>][] = [
-  ["deleting a page", DELETE_REFUSED, () => deletePageBySlug("compte-rendu")],
+  ["deleting a page", REFUSALS.delete, () => deletePageBySlug("compte-rendu")],
   [
     "handing a page over",
-    TRANSFER_REFUSED,
+    REFUSALS.transfer,
     () => transferPageOwnership("compte-rendu", "jean-martin"),
   ],
   [
     "posing the rights",
-    RIGHTS_REFUSED,
+    REFUSALS.rights,
     () => setPageRights("compte-rendu", { scope: "everyone" }, { scope: "everyone" }),
   ],
   [
     "changing the address",
-    ADDRESS_REFUSED,
+    REFUSALS.address,
     () => renamePageSlug("page-1", { oldSlug: "compte-rendu", newSlug: "cr" }, new Map()),
   ],
   [
     "writing the content",
-    WRITE_REFUSED,
+    REFUSALS.write,
     () => writePageContent({ slug: "compte-rendu", content: "# Salut", tags: [] }),
   ],
   [
     "restoring a revision",
-    WRITE_REFUSED,
+    REFUSALS.write,
     () =>
       writeRestoredRevision({
         pageId: "page-1",
@@ -177,7 +173,7 @@ describe("the same writes, to whoever they answer to", () => {
     signedInAs("marie-durand");
     const rename = { oldSlug: "compte-rendu", newSlug: "cr" };
     await expect(renamePageSlug("page-1", rename, new Map())).rejects.toThrow(
-      ADDRESS_REFUSED
+      REFUSALS.address
     );
 
     signedInAs("wiki-admin", ["admins"]);

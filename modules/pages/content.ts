@@ -2,11 +2,7 @@ import { cache } from "react";
 import { hasForm } from "@/modules/pages/entry-page";
 import { readableForm } from "@/modules/permissions/readable-form";
 import { type EntryData, orderedEntryData } from "@/modules/forms/form-descriptor";
-import {
-  type AccessRule,
-  DELETE_REFUSED,
-  pageRule,
-} from "@/modules/permissions/rules";
+import { type AccessRule, pageRule } from "@/modules/permissions/rules";
 import { currentCanRead, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/lib/generated/prisma/client";
@@ -405,7 +401,7 @@ export async function deletePageBySlug(slug: string): Promise<boolean> {
     include: WITH_RIGHTS,
   });
   if (!page) return false;
-  await assertStructuring(page, DELETE_REFUSED);
+  await assertStructuring(page, "delete");
   await prisma.page.delete({ where: { id: page.id } });
   return true;
 }

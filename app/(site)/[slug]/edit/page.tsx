@@ -9,7 +9,7 @@ import { hasForm } from "@/modules/pages/entry-page";
 import { getPageWithForm, listPageSlugs, listPageTags } from "@/modules/pages/content";
 import { isRefused, currentCanCreatePage } from "@/modules/pages/rights";
 import { currentCanWrite } from "@/modules/permissions/person";
-import { CREATE_REFUSED, WRITE_REFUSED } from "@/modules/permissions/rules";
+import { REFUSALS } from "@/modules/permissions/rules";
 import { isValidSlug } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -45,13 +45,13 @@ export default async function EditPage({ params }: Props) {
       <AccessRefused
         slug={slug}
         ownerName={existing.owner?.name ?? null}
-        message={WRITE_REFUSED}
+        message={REFUSALS.write}
       />
     );
   }
   if (!existing && !(await currentCanCreatePage())) {
     return (
-      <AccessRefused slug={slug} ownerName={null} message={CREATE_REFUSED} />
+      <AccessRefused slug={slug} ownerName={null} message={REFUSALS.createPage} />
     );
   }
 

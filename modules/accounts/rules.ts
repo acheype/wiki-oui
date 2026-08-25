@@ -4,7 +4,7 @@
 // what these functions need and writes their verdict back.
 
 import { plural } from "@/lib/format";
-import { LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
+import { REFUSALS } from "@/modules/permissions/rules";
 
 /**
  * What a line of the accounts list is: someone who can sign in, someone whose
@@ -76,7 +76,7 @@ export function deleteRefusal(action: AccountAction): string | null {
 }
 
 function lastAdminRefusal(action: AccountAction): string | null {
-  return action.lastAdmin ? LAST_ADMIN_REFUSAL : null;
+  return action.lastAdmin ? REFUSALS.lastAdmin : null;
 }
 
 /** What an erasure would leave behind, counted before it is decided. */

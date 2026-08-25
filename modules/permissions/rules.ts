@@ -2,10 +2,11 @@
 // is acting, how a right reads back, and what a page stores it as. Public to
 // the whole wiki, and deliberately unable to decide anything.
 //
-// No French here beyond the refusals a Server Action throws: a label belongs
-// to the one view that shows it (issue #20), so SCOPE_LABELS lives in
-// acl-input.tsx, the owner lines in modules/pages/ui/labels.ts and the scope
-// refusal in modules/forms/refusal.ts.
+// No French here beyond the refusals themselves: a label belongs to the one
+// view that shows it (issue #20), so SCOPE_LABELS lives in acl-input.tsx, the
+// owner lines in modules/pages/ui/labels.ts and the scope refusal in
+// modules/forms/refusal.ts. The refusals stay because they are one channel,
+// read at one place and thrown from many.
 //
 // The decisions themselves — canRead, canWrite, ownsPage and the `where`
 // clauses — are one folder down, in decide/rules.ts, private by their depth
@@ -23,15 +24,6 @@
  * administrators reads at a glance.
  */
 export const ADMINS_GROUP = { slug: "admins", name: "Admins" } as const;
-
-/**
- * The floor every action on an account or a membership stops at: a wiki
- * whose administrators have all gone is one nobody can take back, since the
- * installation service is a one-way door (ADR 0027). One sentence, because it
- * is one rule — removing the last member of @Admins, disabling them and
- * deleting them are three ways to the same place.
- */
-export const LAST_ADMIN_REFUSAL = "Ce wiki doit garder au moins un administrateur.";
 
 /**
  * A signed-in person as the interface names them. The display name signs
@@ -280,55 +272,97 @@ export function withoutCovered(
 // --- what someone without the right is told ----------------------------------
 
 /**
- * One message, the same for every refusal: the wiki does not try to hide that
- * the page exists — a 404 would be a second, contradictory story the moment
- * someone reached the page from a link that names it.
+ * Every refusal the access layer can raise, named. A kind rather than a bare
+ * message, because the message is what a person reads and the kind is what the
+ * code decides on: the two used to be the same string, which is how any error
+ * at all — a violated Prisma constraint, a TypeError — could reach the screen
+ * (issue #20).
  */
-export const ACCESS_DENIED = "Vous n'avez pas accès à cette page.";
+export type RefusalKind =
+  | "access"
+  | "write"
+  | "createPage"
+  | "createEntry"
+  | "createForm"
+  | "editForm"
+  | "rights"
+  | "delete"
+  | "transfer"
+  | "address"
+  | "unknownRecipient"
+  | "upload"
+  | "lastAdmin";
 
 /**
- * What the access layer throws when a write reaches it anyway. The views
- * hide what they cannot offer, so nobody reads these in the ordinary course
- * — they are the backstop for a direct call to a Server Action.
+ * What each refusal says. The views hide what they cannot offer, so most of
+ * these are read only after a direct call to a Server Action — but a few are
+ * shown outright, where hiding would inform nobody (docs/permissions.md § Ce
+ * que voit qui n'a pas le droit).
  */
-export const WRITE_REFUSED = "Vous n'avez pas le droit de modifier cette page.";
-export const CREATE_REFUSED = "Vous n'avez pas le droit de créer une page sur ce wiki.";
-/**
- * Creating a fiche reads the form's own rule and not the wiki's: a form
- * decides who may add to it (docs/permissions.md § Formulaire), which is what
- * makes « chacun propose un événement » possible on a wiki that does not hand
- * out pages.
- */
-export const CREATE_ENTRY_REFUSED =
-  "Vous n'avez pas le droit de créer une fiche avec ce formulaire.";
-/**
- * Creating a form reads the wiki's own rule, beside createPage and distinct
- * from it (docs/permissions.md § Où s'appliquent les droits): a page engages a
- * page, a form engages every fiche ever written with it.
- */
-export const CREATE_FORM_REFUSED =
-  "Vous n'avez pas le droit de créer un formulaire sur ce wiki.";
-export const FORM_EDIT_REFUSED =
-  "Seuls le propriétaire du formulaire et les administrateurs peuvent le modifier.";
-export const RIGHTS_REFUSED =
-  "Seuls le propriétaire et les administrateurs peuvent modifier les droits d'une page.";
-export const DELETE_REFUSED =
-  "Seuls le propriétaire et les administrateurs peuvent supprimer une page.";
-export const TRANSFER_REFUSED =
-  "Seuls le propriétaire et les administrateurs peuvent transmettre la propriété d'une page.";
-export const ADDRESS_REFUSED =
-  "Seuls les administrateurs peuvent changer l'adresse d'une page.";
-/** The account named to receive a page has gone since the list was read. */
-export const UNKNOWN_RECIPIENT =
-  "Ce compte n'existe pas ou plus : la page n'a pas changé de propriétaire.";
-export const UPLOAD_REFUSED =
-  "Vous n'avez pas le droit de déposer un fichier sur ce wiki.";
+export const REFUSALS: Record<RefusalKind, string> = {
+  // One message for every read refusal: the wiki does not try to hide that the
+  // page exists — a 404 would be a second, contradictory story the moment
+  // someone reached the page from a link that names it.
+  access: "Vous n'avez pas accès à cette page.",
+  write: "Vous n'avez pas le droit de modifier cette page.",
+  createPage: "Vous n'avez pas le droit de créer une page sur ce wiki.",
+  // Creating a fiche reads the form's own rule and not the wiki's: a form
+  // decides who may add to it (docs/permissions.md § Formulaire), which is what
+  // makes « chacun propose un événement » possible on a wiki that does not hand
+  // out pages.
+  createEntry: "Vous n'avez pas le droit de créer une fiche avec ce formulaire.",
+  // Creating a form reads the wiki's own rule, beside createPage and distinct
+  // from it (docs/permissions.md § Où s'appliquent les droits): a page engages
+  // a page, a form engages every fiche ever written with it.
+  createForm: "Vous n'avez pas le droit de créer un formulaire sur ce wiki.",
+  editForm:
+    "Seuls le propriétaire du formulaire et les administrateurs peuvent le modifier.",
+  rights:
+    "Seuls le propriétaire et les administrateurs peuvent modifier les droits d'une page.",
+  delete: "Seuls le propriétaire et les administrateurs peuvent supprimer une page.",
+  transfer:
+    "Seuls le propriétaire et les administrateurs peuvent transmettre la propriété d'une page.",
+  address: "Seuls les administrateurs peuvent changer l'adresse d'une page.",
+  // The account named to receive a page has gone since the list was read.
+  unknownRecipient:
+    "Ce compte n'existe pas ou plus : la page n'a pas changé de propriétaire.",
+  upload: "Vous n'avez pas le droit de déposer un fichier sur ce wiki.",
+  // The floor every action on an account or a membership stops at: a wiki whose
+  // administrators have all gone is one nobody can take back, since the
+  // installation service is a one-way door (ADR 0027). One sentence, because it
+  // is one rule — removing the last member of @Admins, disabling them and
+  // deleting them are three ways to the same place.
+  lastAdmin: "Ce wiki doit garder au moins un administrateur.",
+};
 
 /**
- * That refusal, as the view that asked can show it. A Server Action that
- * let it through would land on the error boundary, where a right that went
- * away between opening a page and saving it reads as a crash.
+ * A refusal, and nothing else. Its own class so that the reader below can tell
+ * it from every other Error: only what the access layer meant to say reaches
+ * the person.
+ */
+export class Refusal extends Error {
+  constructor(readonly kind: RefusalKind) {
+    super(REFUSALS[kind]);
+    this.name = "Refusal";
+  }
+}
+
+/** How the access layer refuses. Never `throw new Error(<a French sentence>)`. */
+export function refuse(kind: RefusalKind): never {
+  throw new Refusal(kind);
+}
+
+/**
+ * That refusal, as the view that asked can show it. A Server Action that let
+ * it through would land on the error boundary, where a right that went away
+ * between opening a page and saving it reads as a crash.
+ *
+ * Anything that is not a Refusal falls back on the read refusal rather than
+ * being repeated: a violated constraint or a message naming a column is not
+ * something to hand a reader, and it is not something they can act on either.
+ * Called on the server, inside the action — an instance of a class does not
+ * survive the server-to-client boundary a thrown value crosses.
  */
 export function refusalMessage(error: unknown): string {
-  return error instanceof Error ? error.message : ACCESS_DENIED;
+  return error instanceof Refusal ? REFUSALS[error.kind] : REFUSALS.access;
 }

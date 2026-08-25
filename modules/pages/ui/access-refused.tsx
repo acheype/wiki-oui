@@ -2,7 +2,7 @@ import { Lock } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DESTINATION_PARAM } from "@/lib/destination";
-import { ACCESS_DENIED } from "@/modules/permissions/rules";
+import { REFUSALS } from "@/modules/permissions/rules";
 import { ownerLine } from "@/modules/pages/ui/labels";
 import { currentIdentity } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ import { authPagePath } from "@/wiki.config";
 export async function AccessRefused({
   slug,
   ownerName,
-  message = ACCESS_DENIED,
+  message = REFUSALS.access,
   compact = false,
 }: {
   slug: string;

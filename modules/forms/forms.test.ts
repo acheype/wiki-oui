@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
+import { REFUSALS } from "@/modules/permissions/rules";
 
 // What a system page announces and what it then shows have to be filtered the same
 // way. Nothing held that: the count of `formulaires` read one clause and the
@@ -108,7 +108,7 @@ describe("the door on creating a form", () => {
     person.current = { username: null, groupSlugs: [] };
     expect(await currentCanCreateForm()).toBe(false);
     await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
-      CREATE_FORM_REFUSED
+      REFUSALS.createForm
     );
     expect(db.form.create).not.toHaveBeenCalled();
   });
@@ -120,7 +120,7 @@ describe("the door on creating a form", () => {
     person.current = { username: "jean-martin", groupSlugs: ["bureau"] };
     expect(await currentCanCreateForm()).toBe(false);
     await expect(createForm("agenda", DEFINITION)).rejects.toThrow(
-      CREATE_FORM_REFUSED
+      REFUSALS.createForm
     );
     expect(db.form.create).not.toHaveBeenCalled();
   });

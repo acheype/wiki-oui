@@ -9,7 +9,7 @@
 // they were never added to.
 
 import { plural } from "@/lib/format";
-import { ADMINS_GROUP, LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
+import { ADMINS_GROUP, REFUSALS } from "@/modules/permissions/rules";
 
 /** One nesting: `groupSlug` holds `memberGroupSlug` among its members. */
 export interface Nesting {
@@ -251,7 +251,7 @@ export function memberRemovalRefusal(group: {
   if (group.groupSlug !== ADMINS_GROUP.slug || group.memberCount > 1) {
     return null;
   }
-  return LAST_ADMIN_REFUSAL;
+  return REFUSALS.lastAdmin;
 }
 
 /**

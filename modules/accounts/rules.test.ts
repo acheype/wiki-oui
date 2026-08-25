@@ -6,7 +6,7 @@ import {
   disableRefusal,
   matchesAccountFilter,
 } from "./rules";
-import { LAST_ADMIN_REFUSAL } from "@/modules/permissions/rules";
+import { REFUSALS } from "@/modules/permissions/rules";
 
 describe("ACCOUNT_FILTERS", () => {
   it("offers the four the system page shows, in the order it shows them", () => {
@@ -56,7 +56,7 @@ describe("disableRefusal", () => {
 
   it("refuses to leave the wiki without an administrator", () => {
     expect(disableRefusal({ ...marie, lastAdmin: true })).toBe(
-      LAST_ADMIN_REFUSAL
+      REFUSALS.lastAdmin
     );
   });
 });
@@ -79,7 +79,7 @@ describe("deleteRefusal", () => {
         personUsername: "jean-martin",
         lastAdmin: true,
       })
-    ).toBe(LAST_ADMIN_REFUSAL);
+    ).toBe(REFUSALS.lastAdmin);
   });
 
   it("holds it against the last administrator erasing themselves too", () => {
@@ -89,7 +89,7 @@ describe("deleteRefusal", () => {
         personUsername: "jean-martin",
         lastAdmin: true,
       })
-    ).toBe(LAST_ADMIN_REFUSAL);
+    ).toBe(REFUSALS.lastAdmin);
   });
 });
 

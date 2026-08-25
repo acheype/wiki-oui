@@ -19,7 +19,7 @@ import {
   currentReadableWhere,
 } from "@/modules/pages/rights";
 import { applyFormDefaultsToEntries, countEntryRightsImpact } from "@/modules/pages/entries";
-import { CREATE_FORM_REFUSED } from "@/modules/permissions/rules";
+import { refuse } from "@/modules/permissions/rules";
 import {
   currentAllows,
   currentOwns,
@@ -212,7 +212,7 @@ export async function createForm(
   slug: string,
   definition: FormDefinition
 ): Promise<void> {
-  if (!(await currentCanCreateForm())) throw new Error(CREATE_FORM_REFUSED);
+  if (!(await currentCanCreateForm())) refuse("createForm");
   const ownerUsername = await currentUsername();
   await prisma.form.create({ data: { ...definition, slug, ownerUsername } });
 }

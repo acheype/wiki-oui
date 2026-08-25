@@ -25,7 +25,7 @@ import {
 } from "@/modules/pages/content";
 import { getRevisionToRestore, writeRestoredRevision } from "@/modules/pages/revisions";
 import { isRefused } from "@/modules/pages/rights";
-import { ACCESS_DENIED, refusalMessage } from "@/modules/permissions/rules";
+import { REFUSALS, refusalMessage } from "@/modules/permissions/rules";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -242,7 +242,7 @@ export async function restoreRevision(
     return { error: "Révision introuvable." };
   }
   if (isRefused(source)) {
-    return { error: ACCESS_DENIED };
+    return { error: REFUSALS.access };
   }
 
   const restored = restoredEntryData(

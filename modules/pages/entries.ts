@@ -18,7 +18,7 @@ import {
   withKnownPrincipals,
 } from "@/modules/permissions/form-level";
 import type { Prisma } from "@/lib/generated/prisma/client";
-import { CREATE_ENTRY_REFUSED, storedRights } from "@/modules/permissions/rules";
+import { refuse, storedRights } from "@/modules/permissions/rules";
 import { existingPrincipals } from "@/modules/permissions/groups-queries";
 import { currentPerson, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
@@ -170,7 +170,7 @@ export async function createEntryPage(input: {
 }): Promise<void> {
   const { slug, formId, formName, data, permissions } = input;
   if (!canCreateEntry(await currentPerson(), permissions)) {
-    throw new Error(CREATE_ENTRY_REFUSED);
+    refuse("createEntry");
   }
   // No merge here, where an edit has one: the merge protects the values a
   // revision already holds (docs/permissions.md § Champ), and a fiche being
