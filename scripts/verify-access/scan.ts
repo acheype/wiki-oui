@@ -120,6 +120,11 @@ function isPrimitiveCall(call: Node): string | undefined {
  * Page, and does that same reachable graph decide on the read anywhere? A
  * visited set (keyed by declaration position) makes the walk safe against the
  * mutual-recursion a relay could in principle form.
+ *
+ * Only calls count, never a function merely named: `rows.map(ifReadable)`
+ * reads as unguarded where `rows.map((row) => ifReadable(row))` does not. The
+ * check errs that way on purpose — following a reference that may never be
+ * called is how a real leak would come to look guarded.
  */
 function scanReachable(start: FunctionLike): { reads: boolean; guarded: boolean } {
   const visited = new Set<string>();
@@ -176,6 +181,11 @@ export function scanAccessGuards(sourceFile: SourceFile): AccessFinding[] {
  * verified by hand, once, the day this check was added (issue #17). Kept
  * deliberately small: a new entry is a new read of everyone's Page, and this
  * is where a reviewer looks for it.
+ *
+ * One invariant holds over the whole list, and is what a review should check
+ * an addition against (issue #20): **no entry returns content**. What is here
+ * is a boolean, some slugs and two counts. A read that hands back what a page
+ * says belongs behind a guard, whatever its reason.
  */
 const UNGUARDED_READS: Record<string, string> = {
   // A boolean, never the page (see the function's own docstring): an address
@@ -186,9 +196,6 @@ const UNGUARDED_READS: Record<string, string> = {
   // modules/pages/lint.ts decides « cette page n'existe pas » against, never
   // content.
   listAllPageSlugs: "every slug, readable or not — the broken-link lint's own denominator, not content",
-  // The site's chrome, not its content (see the function's own docstring):
-  // submitting it to the rights would make the menu vanish for some readers.
-  getLayoutContents: "the site's chrome (menu, footer…), not its content — deliberately shown to everyone",
   // A number, never the pages themselves — and both callers already decide
   // before asking: accountDeletionImpact behind assertAdmin, ownDeletionImpact
   // for the signed-in person's own account only (modules/accounts/queries/queries.ts).

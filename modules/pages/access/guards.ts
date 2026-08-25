@@ -49,13 +49,23 @@ import { wikiConfig } from "@/wiki.config";
 export type Decidable = PageRights & { slug: string; owner: { name: string } | null };
 
 /**
- * The four account system pages answer to everyone, whatever right is posed on
- * them (docs/permissions.md § Les pages système): signing in has to work exactly
- * where the content refuses, and the refusal view's own « Se connecter »
- * would otherwise lead to a second refusal. Read by the single-page check and
- * by the list clause alike, so the two cannot drift apart.
+ * The nine pages that answer to everyone, whatever right is posed on them
+ * (docs/permissions.md § Les pages système). Two families, one reason each:
+ *
+ * - the account pages, because signing in has to work exactly where the
+ *   content refuses, and the refusal view's own « Se connecter » would
+ *   otherwise lead to a second refusal;
+ * - the layout pages, because they are the site's chrome and not its content
+ *   — a menu that vanishes for some readers and not others.
+ *
+ * Read by the single-page check and by the list clause alike, so the two
+ * cannot drift apart. This list is what makes those pages readable, rather
+ * than each read remembering to step around the check on its own.
  */
-export const ALWAYS_READABLE: readonly string[] = Object.values(wikiConfig.authPages);
+export const ALWAYS_READABLE: readonly string[] = [
+  ...Object.values(wikiConfig.authPages),
+  ...Object.values(wikiConfig.layoutPages),
+];
 
 /** A single page's read decision — the lists get a `where` instead. */
 export async function ifReadable<T extends Decidable>(

@@ -248,10 +248,11 @@ export async function countPageSlugReferences(
 }
 
 /**
- * Current MDX content of each layout page, keyed by its role. One of the two
- * paths that deliberately escape the check (docs/permissions.md § Application
- * des droits): this is the site's chrome, not its content, and submitting it
- * to the rights would make the menu vanish for some readers and not others.
+ * Current MDX content of each layout page, keyed by its role. Goes through
+ * ifReadable like every other read: the five layout slugs sit in
+ * ALWAYS_READABLE, which is where « the site's chrome answers to everyone »
+ * is written down once (docs/permissions.md § Application des droits). Nothing
+ * here steps around the check — it passes it.
  */
 export async function getLayoutContents(): Promise<
   Record<keyof typeof wikiConfig.layoutPages, string>
@@ -260,11 +261,14 @@ export async function getLayoutContents(): Promise<
     keyof typeof wikiConfig.layoutPages,
     string,
   ][];
-  const pages = await prisma.page.findMany({
+  const rows = await prisma.page.findMany({
     where: { slug: { in: roles.map(([, slug]) => slug) } },
-    include: { current: true },
+    include: { current: true, ...WITH_RIGHTS },
   });
-  const bySlug = new Map(pages.map((page) => [page.slug, page]));
+  const pages = await Promise.all(rows.map((page) => ifReadable(page)));
+  const bySlug = new Map(
+    pages.flatMap((page) => (isRefused(page) ? [] : [[page.slug, page] as const]))
+  );
 
   return Object.fromEntries(
     roles.map(([role, slug]) => [role, bySlug.get(slug)?.current?.content ?? ""])
