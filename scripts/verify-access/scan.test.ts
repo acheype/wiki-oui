@@ -1,6 +1,6 @@
 import { Project } from "ts-morph";
 import { describe, expect, it } from "vitest";
-import { scanAccessGuards } from "./verify-access";
+import { scanAccessGuards } from "./scan";
 
 // Builds an in-memory project with a stand-in modules/permissions/rules.ts
 // (the three primitives) plus whatever modules/pages/content.ts-shaped source

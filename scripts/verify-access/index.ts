@@ -1,8 +1,7 @@
 // Build gate (issue #17): fails `pnpm build` when an exported read of
 // modules/pages/ never reaches canRead, canWrite or isAdmin — the ADR 0025
-// door checked from the inside, which ESLint alone cannot do (see
-// lib/verify-access.ts).
-import { verifyPageAccessGuards } from "../lib/verify-access";
+// door checked from the inside, which ESLint alone cannot do (see scan.ts).
+import { verifyPageAccessGuards } from "./scan";
 
 try {
   verifyPageAccessGuards();

@@ -240,7 +240,7 @@ export function verifyPageAccessGuards(): void {
               `  - ${finding.name} (${finding.file}:${finding.line}) never reaches canRead, canWrite or isAdmin`
           )
           .join("\n") +
-        "\nGuard the read, or — if it is deliberate — add it to UNGUARDED_READS in lib/verify-access.ts with why."
+        "\nGuard the read, or — if it is deliberate — add it to UNGUARDED_READS in scripts/verify-access/scan.ts with why."
     );
   }
 }
