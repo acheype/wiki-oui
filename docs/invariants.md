@@ -8,7 +8,7 @@ Cinq contrôles font échouer le build plutôt que de compter sur la vigilance �
 | `wikioui/access-layer` | toucher `Page` ou `Form` hors de la couche d'accès | `pnpm lint` |
 | `wikioui/access-clauses` | joindre une clause de droits par un `OR` | `pnpm lint` |
 | `scripts/verify-descriptors.ts` | un descripteur qui décrit une propriété que son composant n'a pas ; deux modules qui donnent le même nom à un composant | `pnpm prebuild` |
-| `scripts/verify-access/` | une lecture exportée de `Page` ou `Form` qui rend son résultat sans avoir demandé si la personne y a droit | `pnpm prebuild` |
+| `scripts/verify-access/` | une lecture exportée de `Page` ou `Form` qui ne passe par aucune garde | `pnpm prebuild` |
 
 ## Un exemple chacun
 
@@ -79,9 +79,9 @@ modules/forms/wiki-components/card.tsx
 
 Un troisième contrôle ferme le cas inverse : un module qui a un dossier `wiki-components/` sans figurer dans `modules/authoring/registry/sources.ts` n'est balayé par personne, et ses composants ne rendraient rien, en silence.
 
-### `scripts/verify-access/` — on n'exporte pas une lecture qui n'a rien demandé (ADR 0025)
+### `scripts/verify-access/` — toute lecture exportée passe par une garde (ADR 0025)
 
-ESLint ne voit qu'un fichier à la fois. Ce script suit le **graphe d'appels** de chaque lecture exportée de la couche d'accès, à travers les fichiers, jusqu'à `canRead`, `canWrite` ou `isAdmin`.
+Une garde est rarement dans le fichier qui lit : `content.ts` lit la page, `ifReadable` décide, `canRead` répond — trois fichiers. Une règle ESLint ne saurait pas le voir, ne lisant qu'un fichier à la fois. C'est la raison d'être de ce script : il suit le **graphe d'appels** de chaque lecture exportée de la couche d'accès, à travers les fichiers, jusqu'à `canRead`, `canWrite` ou `isAdmin`.
 
 ```ts
 // dans modules/pages/content.ts — le build échoue
