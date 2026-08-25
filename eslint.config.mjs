@@ -244,7 +244,7 @@ const eslintConfig = defineConfig([
         {
           selector: accessClauseInsideOr,
           message:
-            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish. Compose with anyClause() from modules/permissions/rules.ts.",
+            "An access clause may be empty, and Prisma drops an empty branch from an OR — the branch that meant « everything » would vanish. Ask for the clause already joined: currentReadableWhere() or currentListReadableWhere() (issue #20 made anyClause() private, since composing by hand is what this rule refuses).",
         },
       ],
     },

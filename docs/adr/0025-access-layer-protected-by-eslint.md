@@ -20,5 +20,28 @@ Le risque n'est pas d'écrire la mauvaise règle, c'est d'**oublier de l'appeler
 - La règle a **deux volets**, parce qu'une règle syntaxique ne lit que des noms : elle refuse `prisma.page` et `prisma.form` (le `tx.` d'une transaction compris), et elle refuse l'**import du client** hors des deux portes — ce second volet ferme ce que le premier ne voit pas, une `Page` atteinte par une relation (`include`) ou du SQL brut. Les modules de balayage reçoivent leur client en paramètre, donc ne l'importent pas.
 - Un oubli devient une **erreur de lint au build**, pas une fuite en production. C'est la culture déjà installée par l'ADR 0013, qui vérifie la cohérence descripteur/composant en parsant la source au `prebuild` et bloque.
 - La règle se contourne par une exception — mais une exception est **visible en revue**, ce qui est précisément son intérêt.
-- Deux chemins y échappent délibérément : `getLayoutContents()`, qui lit les cinq pages de layout à chaque rendu de n'importe quelle page (c'est du chrome, pas du contenu — le soumettre aux droits de la personne ferait disparaître le menu pour les uns et pas pour les autres), et le seed, qui écrit sans personne.
+- Un seul chemin y échappe délibérément : le seed, qui écrit sans personne. (Les cinq pages de layout y échappaient aussi ; l'amendement du 2026-08-24 les a fait passer par le contrôle.)
 - Le handler `/{slug}/raw` naît **dans** la couche, et non à côté : c'est le genre d'accès au contenu qui, ajouté plus tard et branché en direct, aurait court-circuité tout le dispositif.
+
+## Amendement du 2026-08-24 — la porte rend des décisions, pas de quoi décider
+
+L'ADR pose une seule porte par table, gardée par ESLint. Il laissait une question ouverte : ce que la porte **rend**. Deux règles s'y ajoutent.
+
+**1. Une lecture non décidée ne s'obtient pas.** Hors de la couche d'accès, aucune fonction ne rend le contenu d'une page ou la définition d'un formulaire sans qu'un droit ait été tranché dessus. Une fonction qui rend le contenu et laisse l'appelant vérifier après coup est un oubli en attente : elle est remplacée par une fonction qui lit et décide en un seul appel. Une fonction qui ne fait qu'un seul des deux temps vit dans un fichier privé de son module.
+
+**2. Un module expose ses décisions prises, jamais de quoi les prendre.** Toute décision de droit prend la **personne** en premier paramètre — et un paramètre s'oublie, un paramètre oublié se lit comme un visiteur, ce qui est la seule erreur qui ouvre au lieu de fermer. Le module `permissions` n'expose donc que les formes qui résolvent la personne elles-mêmes (`currentCanRead(page)`), et garde les formes pures dans `decide/`, privé par la profondeur (ADR 0029). Une forme qui résout la personne lit la session : elle ne s'exécute pas dans un composant client. Trier en mémoire des lignes déjà lues devient donc impossible à écrire, et non plus seulement déconseillé.
+
+### La couche d'accès
+
+Le nom manquait à la documentation, alors que la liste existe : c'est l'ensemble des fichiers exemptés de la règle `wikioui/access-layer` dans `eslint.config.mjs`, chacun commenté. Deux cercles :
+
+- **Les gardes**, privées par la profondeur : `modules/pages/access/guards.ts` et `modules/forms/access/guards.ts`. Elles lisent et refusent dans le même appel.
+- **Les fichiers racine qui touchent `Page` ou `Form` directement** : `modules/pages/content.ts`, `revisions.ts`, `rights.ts`, `entries.ts` et `modules/forms/forms.ts`. Ils portent l'API publique de leur module, et chacune de leurs lectures publiques passe par une garde.
+
+S'y ajoutent les voisines derrière la même porte — `modules/accounts/`, `modules/permissions/groups-queries.ts`, `modules/permissions/person.ts`, `modules/settings/settings.ts` — et les balayages, qui reçoivent leur client en paramètre.
+
+### Ce qui tient la règle
+
+`scripts/verify-access/` suit le graphe d'appels de chaque lecture exportée de la couche, `Page` et `Form`, jusqu'à `canRead`, `canWrite` ou `isAdmin` — ce qu'ESLint ne peut pas faire, ne voyant qu'un fichier à la fois. Une lecture qui n'y arrive pas fait échouer `pnpm build`, sauf si elle figure dans `UNGUARDED_READS` avec son motif écrit. Une seule invariante y règne, et c'est elle qu'une revue vérifie sur tout ajout : **aucune entrée ne rend de contenu**.
+
+Le nom du fichier suit ce qu'il tient : `queries.ts` est devenu `access/guards.ts` des deux côtés. Trois appels Prisma sur quarante-neuf y vivaient — « porte » et « requêtes » disaient tous deux la mauvaise moitié de ce que ces fichiers font.
