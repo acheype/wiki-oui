@@ -67,7 +67,7 @@ import {
   groupDisplayNames,
   groupNamesBySlug,
   listDirectory,
-} from "@/modules/permissions/groups-queries";
+} from "@/modules/permissions/groups-directory";
 import { hasForm } from "@/modules/pages/entry-page";
 import { getPageWithCurrent, slugExists } from "@/modules/pages/content";
 import { isRefused } from "@/modules/pages/rights";

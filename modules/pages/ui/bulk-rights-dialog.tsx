@@ -56,7 +56,7 @@ import {
   nothingToReplace,
   replacementNote,
 } from "@/modules/permissions/bulk";
-import { type MemberRef, refGroupSlug, refUsername } from "@/modules/permissions/groups";
+import { type MemberRef, refGroupSlug, refUsername } from "@/modules/permissions/groups-nesting";
 import type { ManagedPage } from "@/modules/pages/rights";
 import {
   type AccessRule,

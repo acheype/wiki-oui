@@ -53,8 +53,8 @@ import {
   PEOPLE_ONLY_NOTE,
   groupDeletionImpact,
   stillMemberMessage,
-} from "@/modules/permissions/groups";
-import type { NamedGroup } from "@/modules/permissions/groups-queries";
+} from "@/modules/permissions/groups-nesting";
+import type { NamedGroup } from "@/modules/permissions/groups-directory";
 import type { Identity } from "@/modules/permissions/rules";
 
 export function GroupEditor({

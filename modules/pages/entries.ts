@@ -19,7 +19,7 @@ import {
 } from "@/modules/permissions/form-level";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { refuse, storedRights } from "@/modules/permissions/rules";
-import { existingPrincipals } from "@/modules/permissions/groups-queries";
+import { existingPrincipals } from "@/modules/permissions/groups-directory";
 import {
   currentPerson,
   currentReadableWhere,

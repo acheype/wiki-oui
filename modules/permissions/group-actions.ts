@@ -4,26 +4,28 @@
 // admin components are client-side and read their data through actions too,
 // the same transport as mutations (ADR 0014). Every one of them is an
 // administrator's action — the check lives behind the access layer, in
-// modules/permissions/groups-queries.ts, so none of these can forget it.
+// modules/permissions/access/guards.ts, so none of these can forget it.
 
 import {
   type MemberRef,
   groupDeletionRefusal,
   groupRenameRefusal,
-} from "@/modules/permissions/groups";
+} from "@/modules/permissions/groups-nesting";
 import {
   type GroupDetail,
   type GroupSummary,
+  getGroupDetail,
+  listGroupSummaries,
+} from "@/modules/permissions/groups-directory";
+import {
   addPersonToGroup,
   deleteGroupBySlug,
-  getGroupDetail,
   groupExists,
   insertGroup,
-  listGroupSummaries,
   nestGroup,
   removeGroupMember,
   updateGroupName,
-} from "@/modules/permissions/groups-queries";
+} from "@/modules/permissions/access/guards";
 import { countPagesGrantingGroup } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 
@@ -36,7 +38,7 @@ export async function listGroups(): Promise<GroupSummary[]> {
 /**
  * A group's editor also says what deleting it would take with it: how many
  * pages carry a right naming it (docs/permissions.md § Les pages système). Counted
- * here rather than in modules/permissions/groups-queries.ts, because it is a question about pages
+ * here rather than in modules/permissions/access/guards.ts, because it is a question about pages
  * — and pages answer through their own access layer (ADR 0025).
  */
 export interface GroupDetailWithRights extends GroupDetail {

@@ -6,8 +6,8 @@ import type {
   GrantTarget,
   RightsReplacement,
 } from "@/modules/permissions/bulk";
-import type { MemberRef } from "@/modules/permissions/groups";
-import { grantTarget, listDirectory } from "@/modules/permissions/groups-queries";
+import type { MemberRef } from "@/modules/permissions/groups-nesting";
+import { grantTarget, listDirectory } from "@/modules/permissions/groups-directory";
 import {
   type ManagedPage,
   grantPagesAccess,

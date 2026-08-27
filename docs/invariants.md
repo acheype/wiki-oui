@@ -8,7 +8,7 @@ Cinq contrôles font échouer le build plutôt que de compter sur la vigilance �
 | `wikioui/access-layer` | toucher `Page` ou `Form` hors de la couche d'accès | `pnpm lint` |
 | `wikioui/access-clauses` | joindre une clause de droits par un `OR` | `pnpm lint` |
 | `scripts/verify-descriptors.ts` | un descripteur qui décrit une propriété que son composant n'a pas ; deux modules qui donnent le même nom à un composant | `pnpm prebuild` |
-| `scripts/verify-access/` | une lecture exportée de `Page` ou `Form` qui ne passe par aucune garde | `pnpm prebuild` |
+| `scripts/verify-access/` | un accès exporté (lecture de `Page`/`Form`, écriture de `User`/`Group`/`GroupMember`/`AccountLink`/`Session`) qui ne passe par aucune garde | `pnpm prebuild` |
 
 ## Un exemple chacun
 
@@ -79,9 +79,11 @@ modules/forms/wiki-components/card.tsx
 
 Un troisième contrôle ferme le cas inverse : un module qui a un dossier `wiki-components/` sans figurer dans `modules/authoring/registry/sources.ts` n'est balayé par personne, et ses composants ne rendraient rien, en silence.
 
-### `scripts/verify-access/` — toute lecture exportée passe par une garde (ADR 0025)
+### `scripts/verify-access/` — tout accès exporté passe par une garde (ADR 0025)
 
-Une garde est rarement dans le fichier qui lit : `content.ts` lit la page, `ifReadable` décide, `canRead` répond — trois fichiers. Une règle ESLint ne saurait pas le voir, ne lisant qu'un fichier à la fois. C'est la raison d'être de ce script : il suit le **graphe d'appels** de chaque lecture exportée de la couche d'accès, à travers les fichiers, jusqu'à `canRead`, `canWrite` ou `isAdmin`.
+Une garde est rarement dans le fichier qui accède : `content.ts` lit la page, `ifReadable` décide, `canRead` répond — trois fichiers. Une règle ESLint ne saurait pas le voir, ne lisant qu'un fichier à la fois. C'est la raison d'être de ce script : il suit le **graphe d'appels** de chaque fonction exportée de la couche d'accès, à travers les fichiers, jusqu'à `canRead`, `canWrite` ou `isAdmin`.
+
+Deux régimes coexistent : `Page` et `Form` sont surveillées en **lecture** (issues #17 et #20), les cinq tables de comptes et de groupes (`User`, `Group`, `GroupMember`, `AccountLink`, `Session`) sont surveillées en **écriture** (issue #21). Chaque table de `WATCHED` déclare ses méthodes.
 
 ```ts
 // dans modules/pages/content.ts — le build échoue
@@ -96,7 +98,7 @@ Deux pièges connus, écrits dans le message d'erreur et dans les docstrings du 
 - **une garde ne compte que là où elle est appelée** — `rows.map(ifReadable)` se lit comme non gardé, `rows.map((row) => ifReadable(row))` non ;
 - **il vérifie qu'une garde est atteinte, jamais qu'elle refuse** — c'est un contrôle de câblage, pas de politique.
 
-Une lecture délibérément non gardée s'ajoute à `UNGUARDED_READS`, **avec son motif écrit**. Un seul invariant y règne, et c'est lui qu'une revue vérifie sur tout ajout : **aucune entrée ne rend de contenu**.
+Un accès délibérément non gardé s'ajoute à `UNGUARDED_READS` (lectures) ou `UNGUARDED_WRITES` (écritures), **avec son motif écrit**. Une question tient sur chaque liste : pour les lectures, **cette fonction rend-elle du contenu ?** Pour les écritures, **cette fonction agit-elle au nom d'une autre personne ?** Si la réponse est oui, la fonction a besoin d'une garde, pas d'une exemption.
 
 ## Ce qui a été écarté
 

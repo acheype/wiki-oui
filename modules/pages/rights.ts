@@ -18,8 +18,8 @@ import {
   withoutFloor,
   refuse,
 } from "@/modules/permissions/rules";
-import { refGroupSlug, refUsername } from "@/modules/permissions/groups";
-import { existingPrincipals, grantTarget } from "@/modules/permissions/groups-queries";
+import { refGroupSlug, refUsername } from "@/modules/permissions/groups-nesting";
+import { existingPrincipals, grantTarget } from "@/modules/permissions/groups-directory";
 import {
   assertAdmin,
   currentAllows,

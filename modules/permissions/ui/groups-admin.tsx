@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { GroupSummary } from "@/modules/permissions/groups-queries";
+import type { GroupSummary } from "@/modules/permissions/groups-directory";
 import { slugify } from "@/lib/slug";
 
 export function GroupsAdmin() {

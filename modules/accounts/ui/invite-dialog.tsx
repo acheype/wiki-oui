@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { plural } from "@/lib/format";
-import type { GroupSummary } from "@/modules/permissions/groups-queries";
+import type { GroupSummary } from "@/modules/permissions/groups-directory";
 import {
   INVITATION_LIFETIME_DAYS,
   type MailFailure,

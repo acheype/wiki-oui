@@ -1,34 +1,25 @@
 import { cache } from "react";
-import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
 import type { GrantTarget } from "@/modules/permissions/bulk";
 import {
   type InheritedMember,
+  type Membership,
   type MemberRef,
   type Nesting,
   acceptsNestedGroups,
   effectiveGroups,
   inheritedMembers,
   isProtectedGroup,
-  memberRemovalRefusal,
-  nestingCycle,
-  nestingCycleMessage,
   refGroupSlug,
   refUsername,
-} from "@/modules/permissions/groups";
+} from "@/modules/permissions/groups-nesting";
 import { type AclDirectory, type Identity, ADMINS_GROUP } from "@/modules/permissions/rules";
 import { assertAdmin, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
-// The database side of the groups (docs/permissions.md § Groupes): it loads
-// the nesting, hands it to the pure module and writes the verdict back. Every
-// action that changes a group passes through here, and every one of them is
-// an administrator's — v0.5 gives group edition to nobody else, so the check
-// lives in the access layer rather than in each caller (ADR 0025).
-//
-// The nesting is resolved in memory, not by a recursive query: the same edges
-// answer the person's effective groups, the cycle refusal and the « via
-// @Bureau › @Trésorerie » of the system pages. Group-to-group edges are few — one
-// per nesting in the whole wiki — where user memberships are many.
+// The directory side of the groups (docs/permissions.md § Groupes): who belongs
+// where, who can be named, and what the current person counts as. Every query
+// here is a read — the writes live in access/guards.ts (admin mutations) and
+// groups-onboarding.ts (installation and invitation).
 
 /** What a person's line and a group's chip need to name someone. */
 const PERSON = { select: { username: true, name: true } } as const;
@@ -121,7 +112,7 @@ export async function listNestings(): Promise<Nesting[]> {
 }
 
 /** Every person-in-a-group edge of the wiki. */
-async function listMemberships() {
+async function listMemberships(): Promise<Membership[]> {
   const held = await prisma.groupMember.findMany({
     where: { username: { not: null } },
     select: { groupSlug: true, username: true },
@@ -376,31 +367,6 @@ function namePeople(
   }));
 }
 
-// --- writes ------------------------------------------------------------------
-
-/**
- * Creates @Admins around its first member, the account the installation
- * service just made (ADR 0027). Idempotent, so a retried installation
- * converges instead of failing halfway — and person-free, since it runs
- * before anyone can be an administrator.
- */
-export async function createAdminsGroupWith(username: string): Promise<void> {
-  await prisma.$transaction(async (tx) => {
-    await tx.group.upsert({
-      where: { slug: ADMINS_GROUP.slug },
-      create: { slug: ADMINS_GROUP.slug, name: ADMINS_GROUP.name },
-      update: {},
-    });
-    await tx.groupMember.upsert({
-      where: {
-        groupSlug_username: { groupSlug: ADMINS_GROUP.slug, username },
-      },
-      create: { groupSlug: ADMINS_GROUP.slug, username },
-      update: {},
-    });
-  });
-}
-
 /**
  * Who administers the wiki, directly — nesting never makes an administrator
  * (docs/permissions.md § Groupes), so this list is the whole answer. Read by
@@ -413,121 +379,4 @@ export async function listAdminUsernames(): Promise<string[]> {
     select: { username: true },
   });
   return members.map((member) => member.username!);
-}
-
-/**
- * The membership an accepted invitation carries out. No administrator is
- * acting — the person joining is nobody's — and what allows it is the
- * invitation that named the group, back when one did have the say.
- */
-export async function joinGroupOnInvitation(
-  groupSlug: string,
-  username: string
-): Promise<void> {
-  await prisma.groupMember.upsert({
-    where: { groupSlug_username: { groupSlug, username } },
-    create: { groupSlug, username },
-    update: {},
-  });
-}
-
-export async function groupExists(slug: string): Promise<boolean> {
-  await assertAdmin();
-  return (await prisma.group.count({ where: { slug } })) > 0;
-}
-
-export async function insertGroup(group: NamedGroup): Promise<void> {
-  await assertAdmin();
-  await prisma.group.create({ data: { slug: group.slug, name: group.name } });
-}
-
-/** The display name only: the slug is the identity, frozen at creation. */
-export async function updateGroupName(slug: string, name: string): Promise<void> {
-  await assertAdmin();
-  await prisma.group.update({ where: { slug }, data: { name } });
-}
-
-/**
- * Deletes the group, and with it every membership and right naming it
- * (`onDelete: Cascade`, ADR 0024). The field rights and form defaults naming
- * this slug live in `Form.schema` on the other hand, which no foreign key
- * reaches, so the sweep runs here, in the same transaction, rather than
- * trusting Postgres to have done it.
- */
-export async function deleteGroupBySlug(slug: string): Promise<void> {
-  await assertAdmin();
-  await prisma.$transaction(async (tx) => {
-    await tx.group.delete({ where: { slug } });
-    await sweepAclReferences(tx, { kind: "groupSlug", from: slug, to: null });
-  });
-}
-
-/** Why a membership was refused, or null once it is in. */
-export type MembershipRefusal = string | null;
-
-export async function addPersonToGroup(
-  groupSlug: string,
-  username: string
-): Promise<void> {
-  await assertAdmin();
-  await prisma.groupMember.upsert({
-    where: { groupSlug_username: { groupSlug, username } },
-    create: { groupSlug, username },
-    update: {},
-  });
-}
-
-/**
- * Nests a group into another, unless that closes a cycle — refused with the
- * way back named, « @Rédacteurs contient déjà @Bureau, via @Trésorerie. »
- */
-export async function nestGroup(
-  groupSlug: string,
-  memberGroupSlug: string
-): Promise<MembershipRefusal> {
-  await assertAdmin();
-  if (!acceptsNestedGroups(groupSlug)) {
-    return "Ce groupe n'accepte que des personnes.";
-  }
-  const [nestings, groups] = await Promise.all([
-    listNestings(),
-    prisma.group.findMany({ select: { slug: true, name: true } }),
-  ]);
-  const cycle = nestingCycle(nestings, { groupSlug, memberGroupSlug });
-  if (cycle) {
-    const nameOf = groupNames(groups);
-    return nestingCycleMessage(cycle.map((slug) => nameOf.get(slug) ?? slug));
-  }
-  await prisma.groupMember.upsert({
-    where: { groupSlug_memberGroupSlug: { groupSlug, memberGroupSlug } },
-    create: { groupSlug, memberGroupSlug },
-    update: {},
-  });
-  return null;
-}
-
-/**
- * Takes a member out — refused only when it would empty @Admins, and the
- * count that decides is the direct one: nesting never makes an administrator.
- */
-export async function removeGroupMember(
-  groupSlug: string,
-  member: MemberRef
-): Promise<MembershipRefusal> {
-  await assertAdmin();
-  const refusal = memberRemovalRefusal({
-    groupSlug,
-    memberCount: await prisma.groupMember.count({ where: { groupSlug } }),
-  });
-  if (refusal) return refusal;
-
-  await prisma.groupMember.deleteMany({
-    where: {
-      groupSlug,
-      ...("username" in member
-        ? { username: member.username }
-        : { memberGroupSlug: member.groupSlug }),
-    },
-  });
-  return null;
 }

@@ -8,14 +8,14 @@ import {
 import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
 import { auth } from "@/modules/accounts/auth";
 import { countFormsOwnedByAccount, reassignOwnedForms } from "@/modules/forms/forms";
-import { inheritedGroups } from "@/modules/permissions/groups";
+import { inheritedGroups } from "@/modules/permissions/groups-nesting";
 import {
   type NamedGroup,
   groupNames,
-  joinGroupOnInvitation,
   listAdminUsernames,
   listNestings,
-} from "@/modules/permissions/groups-queries";
+} from "@/modules/permissions/groups-directory";
+import { joinGroupOnInvitation } from "@/modules/permissions/groups-onboarding";
 import {
   INVITATION_LIFETIME_DAYS,
   INVITATION_TOKEN_PARAM,

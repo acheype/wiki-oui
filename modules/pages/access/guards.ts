@@ -7,7 +7,7 @@ import {
   refuse,
   storedRights,
 } from "@/modules/permissions/rules";
-import { existingPrincipals } from "@/modules/permissions/groups-queries";
+import { existingPrincipals } from "@/modules/permissions/groups-directory";
 import {
   currentCanRead,
   currentCanWrite,

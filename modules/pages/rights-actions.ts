@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { listDirectory } from "@/modules/permissions/groups-queries";
+import { listDirectory } from "@/modules/permissions/groups-directory";
 import {
   type PageRightsView,
   getPageRights,

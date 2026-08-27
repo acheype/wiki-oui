@@ -4,7 +4,7 @@
 // the same function, so what was announced is what happens.
 
 import { plural } from "@/lib/format";
-import { type MemberRef, refUsername } from "@/modules/permissions/groups";
+import { type MemberRef, refUsername } from "@/modules/permissions/groups-nesting";
 import {
   type AccessRule,
   type PageRights,

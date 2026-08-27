@@ -196,7 +196,9 @@ const eslintConfig = defineConfig([
       // markInstalled() directly on every request.
       "modules/accounts/auth.ts",
       "modules/accounts/access/guards.ts",
-      "modules/permissions/groups-queries.ts",
+      "modules/permissions/groups-directory.ts",
+      "modules/permissions/groups-onboarding.ts",
+      "modules/permissions/access/guards.ts",
       "modules/permissions/person.ts",
       "modules/settings/settings.ts",
       // Sweeps: they retcon a whole namespace in place, actor-free by nature

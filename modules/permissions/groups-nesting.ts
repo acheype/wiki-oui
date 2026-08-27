@@ -1,5 +1,5 @@
 // The nesting of groups (docs/permissions.md § Groupes): pure graph work on
-// plain edges, no I/O — groups-queries.ts loads them and writes the results
+// plain edges, no I/O — groups-directory.ts loads them and writes the results
 // back, the pairing this project uses throughout (slug-rename, field-rename,
 // entry-title).
 //

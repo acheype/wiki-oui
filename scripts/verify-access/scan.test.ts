@@ -1,6 +1,6 @@
 import { Project } from "ts-morph";
 import { describe, expect, it } from "vitest";
-import { FORM, PAGE, scanAccessGuards } from "./scan";
+import { FORM, GROUP_MEMBER, PAGE, USER, scanAccessGuards } from "./scan";
 
 // Builds an in-memory project with a stand-in decide/rules.ts
 // (the three primitives) plus whatever modules/pages/content.ts-shaped source
@@ -243,5 +243,71 @@ describe("scanAccessGuards", () => {
     expect(scanAccessGuards(file, FORM).map((f) => f.name)).toContain(
       "leakyRelation"
     );
+  });
+
+  it("flags an exported function that writes User and never decides on it", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function leaky(username: string) {
+         await prisma.user.update({ where: { username }, data: { name: "x" } });
+       }`,
+      {},
+      "modules/accounts/access/guards.ts"
+    );
+    const findings = scanAccessGuards(file, USER, "write");
+    expect(findings.map((f) => f.name)).toContain("leaky");
+  });
+
+  it("accepts a write behind assertAdmin", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       import { assertAdmin } from "../../../modules/permissions/person";
+       export async function safe(username: string) {
+         await assertAdmin();
+         await prisma.user.update({ where: { username }, data: { name: "x" } });
+       }`,
+      {},
+      "modules/accounts/access/guards.ts"
+    );
+    expect(scanAccessGuards(file, USER, "write")).toEqual([]);
+  });
+
+  it("does not flag a read when checking for writes", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function readOnly(username: string) {
+         return prisma.user.findUnique({ where: { username } });
+       }`,
+      {},
+      "modules/accounts/access/guards.ts"
+    );
+    expect(scanAccessGuards(file, USER, "write")).toEqual([]);
+  });
+
+  it("flags a write through a transaction client (tx.model.method)", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function leaky(slug: string) {
+         await prisma.$transaction(async (tx: any) => {
+           await tx.groupMember.deleteMany({ where: { groupSlug: slug } });
+         });
+       }`,
+      {},
+      "modules/permissions/access/guards.ts"
+    );
+    const findings = scanAccessGuards(file, GROUP_MEMBER, "write");
+    expect(findings.map((f) => f.name)).toContain("leaky");
+  });
+
+  it("does not flag a write on a different model than the watched one", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function writesOther(slug: string) {
+         await prisma.group.create({ data: { slug, name: slug } });
+       }`,
+      {},
+      "modules/permissions/access/guards.ts"
+    );
+    expect(scanAccessGuards(file, GROUP_MEMBER, "write")).toEqual([]);
   });
 });

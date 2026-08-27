@@ -36,7 +36,7 @@ vi.mock("@/modules/accounts/auth", () => ({
     },
   },
 }));
-vi.mock("@/modules/permissions/groups-queries", () => ({
+vi.mock("@/modules/permissions/groups-directory", () => ({
   currentGroupSlugs: async () => person.current.groupSlugs,
   existingPrincipals: async () => ({ usernames: new Set(), groupSlugs: new Set() }),
   grantTarget: async () => null,

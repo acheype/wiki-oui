@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { cache } from "react";
 import { auth } from "@/modules/accounts/auth";
-import { currentGroupSlugs } from "@/modules/permissions/groups-queries";
+import { currentGroupSlugs } from "@/modules/permissions/groups-directory";
 import type {
   AccessRule,
   Identity,
@@ -35,7 +35,7 @@ import {
 // merely discouraged, it cannot be written.
 //
 // The groups a person ends up in are resolved next door, in
-// groups-queries.ts, which reads back the session from here: the two files
+// groups-directory.ts, which reads back the session from here: the two files
 // name each other, and only ever inside a function body, once a request is
 // being served.
 
@@ -88,8 +88,8 @@ export async function isCurrentAdmin(): Promise<boolean> {
 
 /**
  * The check every action of the two administration system pages passes, at the
- * access layer rather than in each caller (ADR 0025) — groups-queries.ts and
- * modules/accounts/access/guards.ts both ask for it by name.
+ * access layer rather than in each caller (ADR 0025) — modules/permissions/access/guards.ts
+ * and modules/accounts/access/guards.ts both ask for it by name.
  */
 export async function assertAdmin(): Promise<void> {
   if (!(await isCurrentAdmin())) refuse("admin");

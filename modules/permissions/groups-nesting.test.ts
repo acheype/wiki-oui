@@ -13,7 +13,7 @@ import {
   nestingCycle,
   nestingCycleMessage,
   stillMemberMessage,
-} from "./groups";
+} from "./groups-nesting";
 import { ADMINS_GROUP } from "@/modules/permissions/rules";
 
 // The nesting of the spec's own example (docs/permissions.md § Groupes):
