@@ -42,10 +42,13 @@ export function WikiFrame({
   className?: string;
 }) {
   const external = isExternalHref(target);
+  // ModalLink passes a resolved path ("/{slug}"), while other callers pass a
+  // bare slug — strip the leading slash so wikiHrefSlug always sees a slug.
+  const bare = !external && target.startsWith("/") ? target.slice(1) : target;
   // Internal target must resolve to a real slug: a `javascript:`/`data:` string
   // (not http(s), so not "external" here) or any invalid slug renders nothing,
   // never a bogus /{…}/iframe src.
-  const slug = external ? null : wikiHrefSlug(target) ?? target;
+  const slug = external ? null : wikiHrefSlug(bare) ?? bare;
   const src = external
     ? target
     : slug && isValidSlug(slug)
