@@ -13,6 +13,7 @@ import {
 } from "@/modules/authoring/host-elements";
 import { allowLiteralPropsOnly } from "@/modules/authoring/literal-props";
 import {
+  type WikiComponentFile,
   listWikiComponentFiles,
   loadWikiComponentModule,
   tagCollisionMessage,
@@ -36,7 +37,7 @@ import {
 // (eval, process…), so it never saw the tags or prop names the other two gate.
 export async function renderMdx(source: string): Promise<React.ReactNode> {
   try {
-    const registry = await loadWikiComponents();
+    const registry = await loadWikiComponents(source);
     // Every markdown link renders as <WikiLink> (ADR 0006), taken from the
     // registry rather than imported: the registry is this file's one way into
     // a module's wiki-components/, and the `a` mapping is not an exception to
@@ -90,12 +91,30 @@ export async function renderMdx(source: string): Promise<React.ReactNode> {
 // (button.tsx → Button). A co-located descriptor (button.yaml) only affects
 // the editor's component menu, never what may render — system pages have
 // none and still render.
+//
+// In prod the full registry is cached once (all components loaded at first
+// render). In dev only the components whose tags appear in the source are
+// imported (issue #18), and the file list is deduplicated across the
+// concurrent renderMdx calls of a single page render. WikiLink is always
+// included: every markdown link renders through it (the `a` mapping), but
+// no `<WikiLink>` tag appears in the source for a regular `[text](page)`.
 let registryCache: Promise<MDXComponents> | undefined;
 
-function loadWikiComponents(): Promise<MDXComponents> {
-  // No cache in dev so adding a component doesn't require a restart.
-  if (process.env.NODE_ENV === "development") return buildRegistry();
-  return (registryCache ??= buildRegistry());
+function loadWikiComponents(source: string): Promise<MDXComponents> {
+  if (process.env.NODE_ENV !== "development") {
+    return (registryCache ??= buildRegistry());
+  }
+  const needed = usedTagNames(source);
+  needed.add("WikiLink");
+  return buildRegistry(needed);
+}
+
+function usedTagNames(source: string): Set<string> {
+  const names = new Set<string>();
+  for (const [, name] of source.matchAll(/<([A-Z][A-Za-z0-9]*)/g)) {
+    names.add(name);
+  }
+  return names;
 }
 
 /**
@@ -108,14 +127,33 @@ export async function listWikiComponentNames(): Promise<string[]> {
   return files.map(({ base }) => pascalCase(base));
 }
 
-async function buildRegistry(): Promise<MDXComponents> {
+// Concurrent renderMdx calls (page content + layout slots) share one
+// readdir pass instead of each triggering its own. Cleared after
+// resolution so the next request picks up new files in dev.
+let pendingFileList: Promise<WikiComponentFile[]> | undefined;
+
+function resolveFileList(): Promise<WikiComponentFile[]> {
+  if (pendingFileList) return pendingFileList;
+  pendingFileList = validateFileList();
+  if (process.env.NODE_ENV === "development") {
+    pendingFileList.finally(() => { pendingFileList = undefined; });
+  }
+  return pendingFileList;
+}
+
+async function validateFileList(): Promise<WikiComponentFile[]> {
   const files = await listWikiComponentFiles(".tsx");
   const collision = tagCollisionMessage(files);
   if (collision) throw new Error(collision);
+  return files;
+}
 
+async function buildRegistry(needed?: Set<string>): Promise<MDXComponents> {
+  const files = await resolveFileList();
   const registry: MDXComponents = {};
   for (const { module, base } of files) {
     const name = pascalCase(base);
+    if (needed && !needed.has(name)) continue;
     const mod = await loadWikiComponentModule(module, base);
     if (typeof mod[name] !== "function") {
       throw new Error(

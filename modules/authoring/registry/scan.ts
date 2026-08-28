@@ -59,15 +59,19 @@ const MODULES = Object.entries(WIKI_COMPONENT_MODULES) as [
 export async function listWikiComponentFiles(
   extension: ".tsx" | ".yaml"
 ): Promise<WikiComponentFile[]> {
-  const found: WikiComponentFile[] = [];
-  for (const [module, source] of MODULES) {
-    for (const file of await source.list()) {
-      if (file.endsWith(extension)) {
-        found.push({ module, base: file.slice(0, -extension.length) });
+  const perModule = await Promise.all(
+    MODULES.map(async ([module, source]) => {
+      const files = await source.list();
+      const found: WikiComponentFile[] = [];
+      for (const file of files) {
+        if (file.endsWith(extension)) {
+          found.push({ module, base: file.slice(0, -extension.length) });
+        }
       }
-    }
-  }
-  return found.sort((a, b) => a.base.localeCompare(b.base));
+      return found;
+    }),
+  );
+  return perModule.flat().sort((a, b) => a.base.localeCompare(b.base));
 }
 
 /** Reads `modules/<module>/wiki-components/<file>`. */
