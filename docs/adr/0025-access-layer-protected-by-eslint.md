@@ -54,6 +54,27 @@ Le revers est assumé, et signalé : restreindre `connexion` ferme la connexion,
 
 ### Ce qui tient la règle
 
-`scripts/verify-access/` suit le graphe d'appels de chaque lecture exportée de la couche, `Page` et `Form`, jusqu'à `canRead`, `canWrite` ou `isAdmin` — ce qu'ESLint ne peut pas faire, ne voyant qu'un fichier à la fois. Une lecture qui n'y arrive pas fait échouer `pnpm build`, sauf si elle figure dans `UNGUARDED_READS` avec son motif écrit. Un seul invariant y règne, et c'est lui qu'une revue vérifie sur tout ajout : **aucune entrée ne rend de contenu**.
+`scripts/verify-access/` suit le graphe d'appels de chaque fonction exportée de la couche, pour chaque table surveillée et chaque direction (lecture, écriture, ou les deux), jusqu'à `canRead`, `canWrite` ou `isAdmin` — ce qu'ESLint ne peut pas faire, ne voyant qu'un fichier à la fois. Une fonction qui n'y arrive pas fait échouer `pnpm build`, sauf si elle figure dans `EXEMPTIONS` avec son fichier, son nom et son motif. Deux questions tiennent sur la liste : pour les lectures, **cette fonction rend-elle du contenu ?** Pour les écritures, **cette fonction agit-elle au nom d'une autre personne ?** Si la réponse est oui, la fonction a besoin d'une garde, pas d'une exemption.
 
 Le nom du fichier suit ce qu'il tient : `queries.ts` est devenu `access/guards.ts` des deux côtés. Trois appels Prisma sur quarante-neuf y vivaient — « porte » et « requêtes » disaient tous deux la mauvaise moitié de ce que ces fichiers font.
+
+### Le fichier JSON partagé (issue #23)
+
+`lib/access-layer-files.json` est la liste canonique des 19 fichiers de la couche d'accès. `eslint.config.mjs` l'importe tel quel pour ses `ignores` ; `scripts/verify-access/scan.ts` l'importe et retire les six fichiers exemptés entièrement (4 balayages, le seed, `auth.ts`) — 13 fichiers scannés pour chaque table.
+
+### Le `via` étendu (issue #23)
+
+Le scan détecte un accès indirect par relation Prisma. Chaque table surveillée déclare ses relations avec un `via: { model, as }[]` : l'étape 1 matche le modèle voisin, l'étape 2 cherche le nom de **relation** (pas du modèle) dans les arguments. `prisma.page.findUnique({ include: { current: true } })` est ainsi détecté comme un accès `Revision`, parce que `current` est un alias de la relation `Revision` sur `Page`.
+
+### Tables et fichiers exclus du scan (issue #23)
+
+| Fichier | Pourquoi hors du scan |
+| --- | --- |
+| `prisma/seed.ts` | écrit avant qu'une personne existe (ADR 0027) |
+| `modules/accounts/auth.ts` | BetterAuth — on lui fournit une requête Prisma pour accéder à User, il gère l'authentification lui-même |
+| `lib/slug-rename-db.ts` | intégrité référentielle — réécrit les références de slug dans toute la base, aucune personne n'agit |
+| `modules/forms/entry-title/sweep.ts` | intégrité référentielle — recalcule les titres stockés après un renommage, aucune personne n'agit |
+| `modules/forms/field-rename/sweep.ts` | intégrité référentielle — renomme les clés de champ dans chaque porteur, aucune personne n'agit |
+| `modules/permissions/acl-rename-sweep.ts` | intégrité référentielle — réécrit les noms de principal dans les ACL, aucune personne n'agit |
+
+`Account` et `Verification` ne sont pas surveillées : BetterAuth les gère, aucun appel Prisma direct ne les atteint.

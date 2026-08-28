@@ -1,6 +1,15 @@
 import { Project } from "ts-morph";
 import { describe, expect, it } from "vitest";
-import { FORM, GROUP_MEMBER, PAGE, USER, scanAccessGuards } from "./scan";
+import {
+  FORM,
+  GROUP_MEMBER,
+  PAGE,
+  PAGE_ACL,
+  REVISION,
+  SETTINGS,
+  USER,
+  scanAccessGuards,
+} from "./scan";
 
 // Builds an in-memory project with a stand-in decide/rules.ts
 // (the three primitives) plus whatever modules/pages/content.ts-shaped source
@@ -309,5 +318,105 @@ describe("scanAccessGuards", () => {
       "modules/permissions/access/guards.ts"
     );
     expect(scanAccessGuards(file, GROUP_MEMBER, "write")).toEqual([]);
+  });
+
+  // --- via extended to relation names (issue #23) ----------------------------
+
+  it("flags a revision read reached through a page's 'current' relation, unguarded", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function leakyCurrent(slug: string) {
+         return prisma.page.findUnique({
+           where: { slug },
+           include: { current: true },
+         });
+       }`
+    );
+    const findings = scanAccessGuards(file, REVISION);
+    expect(findings.map((f) => f.name)).toContain("leakyCurrent");
+  });
+
+  it("flags a revision read reached through a page's 'revisions' relation, unguarded", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function leakyRevisions(slug: string) {
+         return prisma.page.findUnique({
+           where: { slug },
+           include: { revisions: true },
+         });
+       }`
+    );
+    const findings = scanAccessGuards(file, REVISION);
+    expect(findings.map((f) => f.name)).toContain("leakyRevisions");
+  });
+
+  it("accepts a revision read through 'current' once guarded", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       import { canRead } from "../../modules/permissions/decide/rules";
+       async function currentPerson() { return {}; }
+       export async function safeRevision(slug: string) {
+         const page = await prisma.page.findUnique({
+           where: { slug },
+           include: { current: true },
+         });
+         if (page && canRead(await currentPerson(), page)) return page;
+         return null;
+       }`
+    );
+    expect(scanAccessGuards(file, REVISION)).toEqual([]);
+  });
+
+  it("does not flag a page read that does not include current or revisions as a Revision access", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function pageOnly(slug: string) {
+         return prisma.page.findUnique({ where: { slug } });
+       }`
+    );
+    expect(scanAccessGuards(file, REVISION)).toEqual([]);
+  });
+
+  it("flags a direct revision read, unguarded", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function directRevision(id: string) {
+         return prisma.revision.findUnique({ where: { id } });
+       }`
+    );
+    const findings = scanAccessGuards(file, REVISION);
+    expect(findings.map((f) => f.name)).toContain("directRevision");
+  });
+
+  // --- new write-only tables (issue #23) -------------------------------------
+
+  it("flags an unguarded PageAcl write", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function leaky(rows: any[]) {
+         await prisma.pageAcl.createMany({ data: rows });
+       }`,
+      {},
+      "modules/pages/rights.ts"
+    );
+    const findings = scanAccessGuards(file, PAGE_ACL, "write");
+    expect(findings.map((f) => f.name)).toContain("leaky");
+  });
+
+  it("flags an unguarded Settings write", () => {
+    const file = projectWith(
+      `import { prisma } from "./prisma";
+       export async function leaky() {
+         await prisma.settings.upsert({
+           where: { id: 1 },
+           create: { id: 1, installedAt: new Date() },
+           update: { installedAt: new Date() },
+         });
+       }`,
+      {},
+      "modules/settings/settings.ts"
+    );
+    const findings = scanAccessGuards(file, SETTINGS, "write");
+    expect(findings.map((f) => f.name)).toContain("leaky");
   });
 });

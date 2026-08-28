@@ -5,10 +5,10 @@ Cinq contrôles font échouer le build plutôt que de compter sur la vigilance �
 | Contrôle | Ce qu'il refuse | Quand |
 | --- | --- | --- |
 | `wikioui/module-seam` | importer un fichier de sous-dossier depuis un autre module | `pnpm lint` |
-| `wikioui/access-layer` | toucher `Page` ou `Form` hors de la couche d'accès | `pnpm lint` |
+| `wikioui/access-layer` | appeler Prisma hors de la couche d'accès | `pnpm lint` |
 | `wikioui/access-clauses` | joindre une clause de droits par un `OR` | `pnpm lint` |
 | `scripts/verify-descriptors.ts` | un descripteur qui décrit une propriété que son composant n'a pas ; deux modules qui donnent le même nom à un composant | `pnpm prebuild` |
-| `scripts/verify-access/` | un accès exporté (lecture de `Page`/`Form`, écriture de `User`/`Group`/`GroupMember`/`AccountLink`/`Session`) qui ne passe par aucune garde | `pnpm prebuild` |
+| `scripts/verify-access/` | un accès exporté à une table surveillée qui ne passe par aucune garde (voir tableau ci-dessous) | `pnpm prebuild` |
 
 ## Un exemple chacun
 
@@ -27,7 +27,7 @@ import { currentCanRead } from "@/modules/permissions/person";
 
 Deux exceptions, et deux seulement : `app/` compose `ui/`, et `modules/authoring/registry/sources.ts` atteint les `wiki-components/`.
 
-### `wikioui/access-layer` — une seule couche vers `Page` et `Form` (ADR 0025)
+### `wikioui/access-layer` — une seule couche d'accès (ADR 0025)
 
 Deux volets, parce qu'une règle syntaxique ne lit que des noms.
 
@@ -40,7 +40,7 @@ const page = await prisma.page.findUnique({ where: { slug } });
 import { prisma } from "@/lib/prisma";
 ```
 
-La liste d'exceptions vit dans `eslint.config.mjs`, chaque chemin commenté. Les balayages ne l'importent pas : ils **reçoivent** leur client en paramètre.
+La liste d'exceptions vit dans `lib/access-layer-files.json`, partagée avec le scan (issue #23). Les balayages ne l'importent pas : ils **reçoivent** leur client en paramètre.
 
 ### `wikioui/access-clauses` — jamais un `OR` autour d'une clause de droits
 
@@ -83,7 +83,28 @@ Un troisième contrôle ferme le cas inverse : un module qui a un dossier `wiki-
 
 Une garde est rarement dans le fichier qui accède : `content.ts` lit la page, `ifReadable` décide, `canRead` répond — trois fichiers. Une règle ESLint ne saurait pas le voir, ne lisant qu'un fichier à la fois. C'est la raison d'être de ce script : il suit le **graphe d'appels** de chaque fonction exportée de la couche d'accès, à travers les fichiers, jusqu'à `canRead`, `canWrite` ou `isAdmin`.
 
-Deux régimes coexistent : `Page` et `Form` sont surveillées en **lecture** (issues #17 et #20), les cinq tables de comptes et de groupes (`User`, `Group`, `GroupMember`, `AccountLink`, `Session`) sont surveillées en **écriture** (issue #21). Chaque table de `WATCHED` déclare ses méthodes.
+#### Tables surveillées
+
+La liste des fichiers de la couche d'accès vit dans `lib/access-layer-files.json`, partagée avec ESLint (issue #23). Le scan en retire les balayages, le seed et `auth.ts` — 13 fichiers scannés pour chaque table.
+
+| Table | Lectures | Écritures | Pourquoi pas davantage |
+| --- | --- | --- | --- |
+| Page | oui | oui | — |
+| Form | oui | oui | — |
+| Revision | oui | oui | — |
+| User | oui | oui | — |
+| PageAcl | — | oui | les lectures sont des métadonnées de droits, pas du contenu protégé |
+| Settings | — | oui | la seule lecture est un booléen (`isInstalled`) |
+| AccountLink | — | oui | les lectures sont derrière `assertAdmin` (emails) ou servent à valider un jeton |
+| Session | — | oui | les lectures sont gérées par BetterAuth pour l'authentification |
+| Group | — | oui | les lectures rendent des slugs et des noms — l'annuaire pour poser des droits |
+| GroupMember | — | oui | idem Group — des listes d'appartenance |
+| Account | — | — | BetterAuth, aucun appel Prisma direct |
+| Verification | — | — | BetterAuth, aucun appel Prisma direct |
+
+#### Accès indirect par relation (`via`)
+
+Le scan détecte aussi un accès indirect par relation Prisma : `prisma.page.findUnique({ include: { current: true } })` est un accès Revision, `prisma.revision.findUnique({ include: { page: true } })` est un accès Page. Chaque table de `WATCHED` déclare ses relations.
 
 ```ts
 // dans modules/pages/content.ts — le build échoue
@@ -98,7 +119,7 @@ Deux pièges connus, écrits dans le message d'erreur et dans les docstrings du 
 - **une garde ne compte que là où elle est appelée** — `rows.map(ifReadable)` se lit comme non gardé, `rows.map((row) => ifReadable(row))` non ;
 - **il vérifie qu'une garde est atteinte, jamais qu'elle refuse** — c'est un contrôle de câblage, pas de politique.
 
-Un accès délibérément non gardé s'ajoute à `UNGUARDED_READS` (lectures) ou `UNGUARDED_WRITES` (écritures), **avec son motif écrit**. Une question tient sur chaque liste : pour les lectures, **cette fonction rend-elle du contenu ?** Pour les écritures, **cette fonction agit-elle au nom d'une autre personne ?** Si la réponse est oui, la fonction a besoin d'une garde, pas d'une exemption.
+Un accès délibérément non gardé s'ajoute à `EXEMPTIONS` dans `scripts/verify-access/scan.ts`, **avec son fichier, son nom de fonction et son motif**. Un fichier sans `function` est exclu du scan entièrement (balayages, seed, `auth.ts`). Deux questions tiennent sur la liste : pour les lectures, **cette fonction rend-elle du contenu ?** Pour les écritures, **cette fonction agit-elle au nom d'une autre personne ?** Si la réponse est oui, la fonction a besoin d'une garde, pas d'une exemption.
 
 ## Ce qui a été écarté
 

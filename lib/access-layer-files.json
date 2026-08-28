@@ -1,0 +1,21 @@
+[
+  "modules/pages/access/guards.ts",
+  "modules/pages/content.ts",
+  "modules/pages/revisions.ts",
+  "modules/pages/rights.ts",
+  "modules/pages/entries.ts",
+  "modules/forms/access/guards.ts",
+  "modules/forms/forms.ts",
+  "modules/accounts/auth.ts",
+  "modules/accounts/access/guards.ts",
+  "modules/permissions/groups-directory.ts",
+  "modules/permissions/groups-onboarding.ts",
+  "modules/permissions/access/guards.ts",
+  "modules/permissions/person.ts",
+  "modules/settings/settings.ts",
+  "lib/slug-rename-db.ts",
+  "modules/forms/entry-title/sweep.ts",
+  "modules/forms/field-rename/sweep.ts",
+  "modules/permissions/acl-rename-sweep.ts",
+  "prisma/seed.ts"
+]

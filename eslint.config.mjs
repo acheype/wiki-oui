@@ -1,7 +1,15 @@
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
+
+// The canonical list of access-layer files, shared with scripts/verify-access/
+// (ADR 0025, issue #23). ESLint uses it as-is for its ignores; the scan
+// filters out sweeps, seed and auth.ts before checking guards.
+const accessLayerFiles = JSON.parse(
+  readFileSync(new URL("lib/access-layer-files.json", import.meta.url), "utf-8")
+);
 
 // Prisma model methods: the leaf of `<client>.page.findMany(…)`. Matching on
 // the method (and not on `.page` alone) keeps `page.form`, `source.page.slug`
@@ -160,55 +168,8 @@ const eslintConfig = defineConfig([
   },
   {
     name: "wikioui/access-layer",
-    // One door to Page and Form (ADR 0025): every other module asks the access
-    // layer, so the permission checks it will host cannot be bypassed by a
-    // caller that forgot them — a forgotten read leaks in silence, and no test
-    // reddens. Exceptions stay few, so that adding one is visible in review.
-    ignores: [
-      // The access layer itself. lib/pages.ts split into five files at the
-      // door (ADR 0029): modules/pages/access/guards.ts plus the four root
-      // files that each read or write Page directly (content.ts,
-      // revisions.ts, rights.ts, entries.ts) — this rule polices
-      // `prisma.page`, not the ESLint module-seam privacy of guards.ts, so
-      // all five need the exemption, not just the one that stayed private.
-      "modules/pages/access/guards.ts",
-      "modules/pages/content.ts",
-      "modules/pages/revisions.ts",
-      "modules/pages/rights.ts",
-      "modules/pages/entries.ts",
-      // lib/forms.ts split the same way at the door (ADR 0029): a private
-      // access/guards.ts, holding the guards and the reads nothing outside the
-      // module needs, plus the one root file left, forms.ts, that carries the
-      // whole public API — small enough that a single file sufficed where Page
-      // needed four.
-      "modules/forms/forms.ts",
-      "modules/forms/access/guards.ts",
-      // Its neighbours behind the same door: BetterAuth owns the account
-      // tables and touches nothing else (ADR 0023), the actor resolution
-      // reads the session, the accounts and the groups are their own door —
-      // every action on one is an administrator's or a link holder's,
-      // checked there — and the installation flag is a single row no rule
-      // applies to (ADR 0027). None of them reaches Page or Form except
-      // through modules/pages/ and modules/forms/, which is why the counts
-      // and the reassignment of an erased account live over there.
-      // modules/settings/settings.ts stays a root file rather than a private
-      // queries.ts: proxy.ts, outside every module, calls isInstalled() and
-      // markInstalled() directly on every request.
-      "modules/accounts/auth.ts",
-      "modules/accounts/access/guards.ts",
-      "modules/permissions/groups-directory.ts",
-      "modules/permissions/groups-onboarding.ts",
-      "modules/permissions/access/guards.ts",
-      "modules/permissions/person.ts",
-      "modules/settings/settings.ts",
-      // Sweeps: they retcon a whole namespace in place, actor-free by nature
-      // (ADR 0016/0017/0020/0024).
-      "lib/slug-rename-db.ts",
-      "modules/forms/entry-title/sweep.ts",
-      "modules/permissions/acl-rename-sweep.ts",
-      // The seed writes without an actor, before anyone can be one.
-      "prisma/seed.ts",
-    ],
+    // lib/access-layer-files.json: the canonical list (ADR 0025, issue #23).
+    ignores: accessLayerFiles,
     rules: {
       "no-restricted-syntax": [
         "error",
