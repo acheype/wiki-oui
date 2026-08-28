@@ -1,6 +1,7 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import type { PageWarning } from "@/modules/pages/lint";
 
@@ -20,12 +21,30 @@ export function WarningsPanel({
   onGoToLine: (line: number) => void;
   onSaveAnyway: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // The panel sits under an editor that can be several screens tall: without
+  // this, the save looks like it did nothing. « nearest » so a panel already
+  // in view stays put — a second save must not yank the page.
+  useEffect(() => {
+    panelRef.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+      block: "nearest",
+    });
+  }, [warnings]);
+
   return (
     <div
+      ref={panelRef}
       // Announced on appearance: the save button seemingly doing nothing
       // otherwise leaves a screen-reader user with no explanation.
       role="alert"
-      className="grid gap-3 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:bg-amber-950/20"
+      // Scroll margins: the top one clears the two sticky bars, under which
+      // the panel's first line would otherwise land; the bottom one keeps a
+      // breath between the panel and the window's edge.
+      className="grid scroll-mt-[calc(var(--chrome-top)_+_5rem)] scroll-mb-6 gap-3 rounded-md border border-amber-500/40 bg-amber-50 p-3 text-sm dark:bg-amber-950/20"
     >
       <p className="flex items-center gap-2 font-medium text-amber-700 dark:text-amber-500">
         <TriangleAlert className="size-4 shrink-0" aria-hidden />

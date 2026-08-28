@@ -5,7 +5,7 @@ import { AccessRefused } from "@/modules/pages/ui/access-refused";
 import { Prose } from "@/components/ui/prose";
 import { WikiFrameResizeEmitter } from "@/modules/pages/ui/wiki-frame-emitter";
 import { readEntryData } from "@/modules/forms/form-descriptor";
-import { firstHeadingText, renderMdx } from "@/modules/authoring/mdx";
+import { firstHeadingText, leadingHeading, renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithCurrent } from "@/modules/pages/content";
 import { isRefused } from "@/modules/pages/rights";
@@ -18,10 +18,14 @@ import { isValidSlug } from "@/lib/slug";
 // docs/component-builder.md), replacing the old /api/render/entry route and
 // widening it to any page, entry or plain MDX.
 //
-// `?title=hidden` drops the entry title for a container that already names it
-// (an unfolded Liste row). The [data-wiki-frame] box is the measurable height:
-// WikiFrame sizes to it same-origin; WikiFrameResizeEmitter posts it to a
-// cross-origin parent.
+// `?title=hidden` drops the page's own title for a container that names it
+// itself (an unfolded Liste row, a modal's title bar): the stored title of a
+// fiche (ADR 0020), the heading an MDX page opens with. What was taken off
+// then rides on the box as data-wiki-title, so that container can show it —
+// a page with no title of its own carries nothing, and the container names
+// itself. The [data-wiki-frame] box is the measurable height: WikiFrame sizes
+// to it same-origin; WikiFrameResizeEmitter posts it to a cross-origin
+// parent.
 //
 // No padding here: a caller that needs breathing room around the frame (the
 // unfolded Liste row, the Carte panel) adds it on its side, so the default —
@@ -74,17 +78,31 @@ export default async function IframePage({
     );
   }
 
+  const hidden = title === "hidden";
+  const entry = isEntryPage(page);
+  const content = page.current?.content ?? "";
+  // Taken off the render, and handed to the container on the box.
+  const lead = hidden && !entry ? leadingHeading(content) : null;
+  let hiddenTitle: string | undefined;
+  if (hidden && entry) {
+    const stored = readEntryData(page.current?.data).title;
+    hiddenTitle =
+      typeof stored === "string" && stored.trim() ? stored : undefined;
+  } else if (hidden) {
+    hiddenTitle = lead?.title;
+  }
+
   return (
-    <div data-wiki-frame>
+    <div data-wiki-frame data-wiki-title={hiddenTitle}>
       <article>
-        {isEntryPage(page) ? (
+        {entry ? (
           <EntryContent
             formId={page.formId}
             rawData={page.current?.data}
-            hideTitle={title === "hidden"}
+            hideTitle={hidden}
           />
         ) : (
-          <Prose>{await renderMdx(page.current?.content ?? "")}</Prose>
+          <Prose>{await renderMdx(lead ? lead.body : content)}</Prose>
         )}
       </article>
       <WikiFrameResizeEmitter />

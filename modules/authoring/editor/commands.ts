@@ -277,6 +277,8 @@ export type TableContext = {
   col: number;
   /** Doc position of that column's first cell character on the header line. */
   colHeaderPos: number;
+  /** The pipe closing that column: with colHeaderPos, the column's width. */
+  colHeaderEnd: number;
   onHeader: boolean;
   onSeparator: boolean;
   alignment: Alignment;
@@ -298,12 +300,19 @@ export function tableContext(state: EditorState): TableContext | null {
   const pipesBefore = (line.text.slice(0, offset).match(/\|/g) ?? []).length;
   const col = Math.min(Math.max(0, pipesBefore - 1), cols - 1);
 
-  // First cell character of column `col` on the header line.
+  // First cell character of column `col` on the header line, and the pipe
+  // that closes it. The two coordinates give the column's width on screen,
+  // which is what centres the column strip over it (cursor-tools.tsx).
   let colHeaderPos = header.from;
+  let colHeaderEnd = header.to;
   let seen = -1;
   for (let i = 0; i < header.text.length; i++) {
-    if (header.text[i] === "|" && ++seen === col) {
+    if (header.text[i] !== "|") continue;
+    seen++;
+    if (seen === col) {
       colHeaderPos = header.from + Math.min(i + 2, header.length);
+    } else if (seen === col + 1) {
+      colHeaderEnd = header.from + i;
       break;
     }
   }
@@ -319,6 +328,7 @@ export function tableContext(state: EditorState): TableContext | null {
     last,
     col,
     colHeaderPos,
+    colHeaderEnd,
     onHeader: line.number === first,
     onSeparator: isSeparator(line.text),
     alignment,

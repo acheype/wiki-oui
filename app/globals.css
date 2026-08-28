@@ -105,6 +105,19 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Measured and republished by the top bar itself, whose height depends on
+     its author-written slots (modules/pages/ui/sticky-top-bar.tsx); the value
+     here is what the first paint uses. */
+  --chrome-top: 3.25rem;
+  /* The resting grey of a scrollbar we draw ourselves: the same grey the
+     pointer brings to full strength, calmed against the background. --border
+     is too faint to be seen from the text. Works either theme, the mix
+     always running towards whatever the background is. */
+  --scrollbar-thumb: color-mix(
+    in oklab,
+    var(--muted-foreground) 65%,
+    var(--background)
+  );
 }
 
 .dark {
@@ -160,6 +173,18 @@
     @apply font-sans;
   }
 }
+
+/* --- Sticky bars ------------------------------------------------------- */
+
+/* The surface both sticky bars wear — the site's top bar and the editing bar
+   that lands under it — kept in one place so they cannot drift apart. Fully
+   opaque: the page scrolls under them, and a toolbar read through the text it
+   covers is a toolbar nobody can read. */
+@utility sticky-bar {
+  background-color: var(--background);
+  border-bottom: 1px solid var(--border);
+}
+
 
 /* --- MDX rendering: @tailwindcss/typography fixes --------------------- */
 
@@ -253,11 +278,18 @@
   width: 0.875rem;
   height: 0.875rem;
 }
-/* Left of the current line (row ops): the editor's wide left padding hosts it. */
+/* Left of the current line (row ops): a column rather than a row, which is
+   what lets the editor's left padding stay narrow — 28px of strip instead of
+   50px. Centred on the line it acts on, standing a little above and below it.
+   The 0.74rem is half a line (line-height 1.7 on 0.875rem, set in the
+   CodeMirror theme). */
 .cm-wiki-strip-left {
-  transform: translate(calc(-100% - 4px), calc(-100% - 2px));
+  flex-direction: column;
+  transform: translate(calc(-100% - 4px), calc(-50% - 0.5rem));
 }
-/* Table top-left corner (reformat). */
+/* Table top-left corner (reformat). Sideways only: its height is set in
+   cursor-tools.tsx, which is the only way it can be the same whatever the
+   editor does with the tooltips around it. */
 .cm-wiki-strip-corner {
   transform: translateX(calc(-100% - 4px));
 }

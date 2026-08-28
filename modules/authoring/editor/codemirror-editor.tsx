@@ -17,8 +17,11 @@ const editorTheme = EditorView.theme({
   "&.cm-focused": { outline: "none" },
   ".cm-content": {
     fontFamily: "var(--font-geist-mono), ui-monospace, monospace",
-    // The wide left padding hosts the cursor-anchored row strip (ADR 0005).
-    padding: "1rem 1rem 1rem 3.5rem",
+    // The left padding hosts the cursor-anchored row strip (ADR 0005) — a
+    // 28px column of buttons — and is cut short of it on purpose: the strip
+    // overhangs the editor's left border by a few pixels rather than push the
+    // text a whole gutter to the right.
+    padding: "1rem 1rem 1rem 1.6rem",
     minHeight: "24rem",
     lineHeight: "1.7",
     caretColor: "var(--foreground)",

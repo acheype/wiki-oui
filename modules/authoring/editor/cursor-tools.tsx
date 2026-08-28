@@ -42,6 +42,7 @@ import {
   tableContext,
   type Alignment,
   type LinkTarget,
+  type TableContext,
 } from "./commands";
 
 // Cursor-anchored contextual UI (ADR 0005): CodeMirror tooltips computed from
@@ -188,6 +189,65 @@ const ALIGNMENT_LABELS: Record<Alignment, string> = {
   right: "à droite",
 };
 
+// Puts the strip's middle over the column's, « -50% » alone centring it on
+// the column's first character. The width is only known on screen, and a
+// tooltip can be created in the middle of an update — insertTable dispatches
+// and the strip is built there and then — where CodeMirror forbids reading
+// the layout. So the reading is asked for through requestMeasure, which runs
+// it in the measure phase, and the offset is written afterwards; until then
+// the strip stands centred on the first character.
+function centreOverColumn(
+  view: EditorView,
+  dom: HTMLElement,
+  table: TableContext
+) {
+  const place = (offset: string) =>
+    (dom.style.transform = `translate(${offset}, -6px)`);
+  place("-50%");
+  view.requestMeasure({
+    read: (measured) => {
+      const start = measured.coordsAtPos(table.colHeaderPos);
+      const end = measured.coordsAtPos(table.colHeaderEnd);
+      return start && end ? Math.round((end.left - start.left) / 2) : 0;
+    },
+    write: (half) => place(`calc(-50% + ${half}px)`),
+  });
+}
+
+// The gap between the reformat button's underside and the table's first line.
+const CORNER_GAP = 24;
+
+// Puts a strip a fixed distance above its line, whatever the editor did with
+// it: CodeMirror stacks tooltips that would overlap, which left the reformat
+// button at one height when the cursor was in the first column — under the
+// column strip, so stacked — and at another everywhere else.
+//
+// Two rules govern when this can run. It has to be after CodeMirror has
+// placed the tooltip, so it hangs on the `positioned` hook; and the layout
+// can only be read from the measure phase, never from an update — which
+// `positioned` is part of. Hence a measure asked for from inside it, running
+// on the next pass. The shift already applied is taken back out before a new
+// one is worked out, and nothing is written when it lands on the same value:
+// the correction settles in one pass instead of chasing itself.
+function liftAbove(view: EditorView, dom: HTMLElement, pos: number) {
+  let shift = 0;
+  return () => {
+    view.requestMeasure({
+      read: (measured) => {
+        const line = measured.coordsAtPos(pos);
+        if (!line) return null;
+        const unshifted = dom.getBoundingClientRect().bottom - shift;
+        return Math.round(line.top - CORNER_GAP - unshifted);
+      },
+      write: (wanted) => {
+        if (wanted === null || wanted === shift) return;
+        shift = wanted;
+        dom.style.transform = `translateY(${shift}px)`;
+      },
+    });
+  };
+}
+
 function computeTooltips(
   state: EditorState,
   options: CursorToolsOptions
@@ -236,12 +296,15 @@ function computeTooltips(
     const line = doc.lineAt(state.selection.main.head);
     const header = doc.line(table.first);
 
-    // Column operations, on top of the current column (header line anchor).
+    // Column operations, over the middle of the current column. The width is
+    // measured on screen, and the tooltips are recomputed on every keystroke
+    // (the state field above), so the strip follows a column that a typed
+    // character widens.
     tooltips.push({
       pos: table.colHeaderPos,
       above: true,
-      create: (view: EditorView) =>
-        reactTooltip(
+      create: (view: EditorView) => {
+        const strip = reactTooltip(
           "",
           <>
             <StripButton
@@ -263,15 +326,18 @@ function computeTooltips(
               {ALIGNMENT_ICONS[table.alignment]}
             </StripButton>
           </>
-        ),
+        );
+        centreOverColumn(view, strip.dom, table);
+        return strip;
+      },
     });
 
     // Reformat, at the table's top-left corner (above-left of the header).
     tooltips.push({
       pos: header.from,
       above: true,
-      create: (view: EditorView) =>
-        reactTooltip(
+      create: (view: EditorView) => {
+        const strip = reactTooltip(
           "cm-wiki-strip-corner",
           <StripButton
             label="Reformater le tableau (aligner les pipes)"
@@ -279,7 +345,9 @@ function computeTooltips(
           >
             <AlignHorizontalDistributeCenter />
           </StripButton>
-        ),
+        );
+        return { ...strip, positioned: liftAbove(view, strip.dom, header.from) };
+      },
     });
 
     // Row operations, left of the current line.

@@ -4,7 +4,7 @@ import type { EditorView } from "@codemirror/view";
 import { Loader2, Save, Tag } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { discardUploadedFile, lintPage, savePage } from "@/modules/pages/actions";
 import type { PageWarning } from "@/modules/pages/lint";
@@ -198,6 +198,9 @@ export function PageEditor({
   // moment a fix costs nothing — hence a panel rather than a toast, which
   // would vanish while they read it.
   function save() {
+    // The keyboard shortcut has no disabled state to stop it, unlike the
+    // button: a second Ctrl+S mid-save would start a second save.
+    if (isPending) return;
     const content = currentContent();
     startTransition(async () => {
       const found = await lintPage(content, slug);
@@ -208,6 +211,25 @@ export function PageEditor({
       await persist(content);
     });
   }
+
+  // Ctrl/Cmd+S saves: the reflex of anyone typing a long text. On window
+  // rather than in the CodeMirror keymap, so the tags field has it too.
+  // Re-bound after each render (no dependency array) so the handler reads the
+  // tags and the dialog state of the render it belongs to; a listener costs
+  // less than a ref that would have to be kept in step by hand.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s")
+        return;
+      // A dialog open means the keystroke belongs to the dialog, not the
+      // page: the browser keeps its own shortcut, since we take nothing.
+      if (builderDialog || upload) return;
+      event.preventDefault();
+      save();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
 
   // « Enregistrer quand même » — the warnings are acknowledged, not fixed.
   function saveAnyway() {
@@ -230,34 +252,68 @@ export function PageEditor({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="min-w-0 flex-1 truncate text-lg font-semibold">
-          {isNew ? "Créer" : "Modifier"} «&nbsp;{slug}&nbsp;»
-        </h1>
-        <Button asChild variant="ghost" disabled={isPending}>
-          <Link href={`/${slug}`}>Annuler</Link>
-        </Button>
-        <Button onClick={save} disabled={isPending}>
-          {isPending ? <Loader2 className="animate-spin" /> : <Save />}
-          Enregistrer
-        </Button>
+      <h1 className="truncate text-lg font-semibold">
+        {isNew ? "Créer" : "Modifier"} «&nbsp;{slug}&nbsp;»
+      </h1>
+
+      {/* Above the editor, with the title it belongs to: under a page
+          several screens tall, the field would be out of reach. */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Tag className="size-4 shrink-0" aria-hidden />
+        {/* The tag icon carries the meaning for the eye; the field needs
+            its own name for a screen reader, having no <label> of its own. */}
+        <TagsInput
+          ariaLabel="Tags de la page"
+          tags={tags}
+          candidates={allTags}
+          onChange={setTags}
+        />
       </div>
 
-      <EditorToolbar
-        viewRef={viewRef}
-        onRequestLink={(selectionText) =>
-          openWikiLinkBuilder({ text: selectionText || undefined })
-        }
-        builders={builders}
-        onRequestComponent={(spec) =>
-          setBuilderDialog({
-            mode: "insert",
-            spec,
-            initial: insertionState(spec),
-          })
-        }
-        onRequestUpload={() => fileInputRef.current?.click()}
-      />
+      {/* One anchored bar for everything that acts on the text. The tools
+          work on the cursor and the save is never more than a click away, so
+          neither may scroll off a long page. It sticks under the site's top
+          bar, whose height --chrome-top carries (modules/pages/ui/
+          sticky-top-bar.tsx), and bleeds to the column's edges to read as a
+          bar rather than as a box. The title stays out of it: pinned, it
+          would take the width the tools need without acting on anything.
+          One line, and one only above sm: a flex line is filled from each
+          item's base width, so a wrapping bar would drop the actions to a
+          second row long before the toolbar ever had to scroll — which is
+          exactly the row the toolbar is meant to spare us. */}
+      <div className="sticky-bar sticky top-(--chrome-top) z-30 -mx-4 flex items-start gap-2 px-4 max-sm:flex-wrap">
+        <EditorToolbar
+          viewRef={viewRef}
+          onRequestLink={(selectionText) =>
+            openWikiLinkBuilder({ text: selectionText || undefined })
+          }
+          builders={builders}
+          onRequestComponent={(spec) =>
+            setBuilderDialog({
+              mode: "insert",
+              spec,
+              initial: insertionState(spec),
+            })
+          }
+          onRequestUpload={() => fileInputRef.current?.click()}
+        />
+
+        {/* Kept together and to the right, whether they share the tools' row
+            or, too narrow for that, sit on their own. Both blocks are laid
+            out from the top of the bar (items-start) with the same padding
+            above them: that, and not centring, is what puts the buttons and
+            the icons on one line — the tools carry an indicator under them
+            and the buttons do not. */}
+        <div className="ml-auto flex shrink-0 items-center gap-2 pt-1.5 max-sm:pb-1.5">
+          <Button asChild variant="ghost" size="sm" disabled={isPending}>
+            <Link href={`/${slug}`}>Annuler</Link>
+          </Button>
+          <Button size="sm" onClick={save} disabled={isPending}>
+            {isPending ? <Loader2 className="animate-spin" /> : <Save />}
+            Enregistrer
+          </Button>
+        </div>
+      </div>
       <input
         ref={fileInputRef}
         type="file"
@@ -274,18 +330,6 @@ export function PageEditor({
         viewRef={viewRef}
         extensions={extensions}
       />
-
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Tag className="size-4 shrink-0" aria-hidden />
-        {/* The tag icon carries the meaning for the eye; the field needs
-            its own name for a screen reader, having no <label> of its own. */}
-        <TagsInput
-          ariaLabel="Tags de la page"
-          tags={tags}
-          candidates={allTags}
-          onChange={setTags}
-        />
-      </div>
 
       {warnings.length > 0 && (
         <WarningsPanel

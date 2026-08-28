@@ -22,8 +22,7 @@ import {
   Table,
   Upload,
 } from "lucide-react";
-import Link from "next/link";
-import { useMemo, type RefObject } from "react";
+import { useMemo, useState, type RefObject } from "react";
 import { emitsMarkdownLink } from "@/modules/authoring/descriptor";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { SwipeRow } from "./swipe-row";
+import { WikiFrame } from "@/modules/pages/wiki-frame";
+import { cn } from "@/lib/utils";
 import {
   Tooltip,
   TooltipContent,
@@ -106,6 +114,9 @@ export function EditorToolbar({
   /** Opens the file picker of the upload pipeline (ADR 0012). */
   onRequestUpload: () => void;
 }) {
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [helpTitle, setHelpTitle] = useState<string>();
+
   // Alphabetical labels; markdown-link emitters (wiki-link) have their own
   // doors and stay out of the menu (docs/component-builder.md).
   const menuBuilders = useMemo(
@@ -120,9 +131,16 @@ export function EditorToolbar({
 
   return (
     <TooltipProvider delayDuration={400}>
-      <div className="flex flex-wrap items-center gap-0.5 rounded-md border bg-muted/40 px-1.5 py-1">
+      {/* One row, whatever the width: a second row of tools would eat the
+          text it serves. Narrower than its tools, it scrolls sideways and
+          says so, under an indicator of our own (SwipeRow). Takes the bar's
+          width first (flex-1), the actions keeping theirs; on a phone it
+          takes the whole row and they drop below it. */}
+      <SwipeRow className="min-w-0 flex-1 max-sm:basis-full">
         <ToolButton label="Gras (Ctrl+B)" viewRef={viewRef} command={(v) => toggleInline(v, "**")}>
-          <Bold />
+          {/* A heavier stroke than the rest of the row: the icon is a B, and
+              a B drawn as thin as the others says nothing about bold. */}
+          <Bold strokeWidth={4} />
         </ToolButton>
         <ToolButton label="Italique (Ctrl+I)" viewRef={viewRef} command={(v) => toggleInline(v, "*")}>
           <Italic />
@@ -300,19 +318,50 @@ export function EditorToolbar({
           </DropdownMenu>
         )}
 
+        {/* Only when the row is full does the help button sit against the
+            tools; a rule then tells the two apart. With room to spare it
+            floats off to the right, and needs none. */}
+        <Separator
+          orientation="vertical"
+          className="mx-1 hidden h-5! group-data-[overflowing]/swipe:block"
+        />
         <div className="ml-auto">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button asChild type="button" variant="ghost" size="icon-sm" aria-label="Aide-mémoire">
-                <Link href="/aide-memoire" target="_blank">
-                  <CircleQuestionMark />
-                </Link>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => setHelpOpen(true)}
+                aria-label="Aide-mémoire"
+              >
+                <CircleQuestionMark />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Aide-mémoire (nouvel onglet)</TooltipContent>
+            <TooltipContent>Aide-mémoire</TooltipContent>
           </Tooltip>
         </div>
-      </div>
+      </SwipeRow>
+
+      {/* Read over the text being written, not in another tab: the cheat
+          sheet answers a question asked mid-sentence. Same frame as every
+          other in-place page rendering (WikiFrame), the chrome-free
+          /aide-memoire/iframe render. */}
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent className="max-h-[85vh] gap-3 overflow-y-auto sm:max-w-5xl">
+          <DialogHeader>
+            {/* The dialog wears the title the frame took off (hideTitle), so
+                it is written once. A page that opens with no heading hands
+                nothing over: the fallback then only names the dialog for a
+                screen reader, Radix asking every dialog for a name. */}
+            <DialogTitle className={cn(!helpTitle && "sr-only")}>
+              {helpTitle ?? "Aide-mémoire"}
+            </DialogTitle>
+          </DialogHeader>
+          <WikiFrame target="aide-memoire" hideTitle onTitle={setHelpTitle} />
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }

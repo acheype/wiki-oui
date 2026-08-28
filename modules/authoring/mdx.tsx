@@ -211,6 +211,48 @@ export function firstHeadingText(source: string): string | null {
   return found;
 }
 
+// The title a page wears at its top, and the source left once it is taken
+// off — null when the page does not open with one. `?title=hidden` uses it to
+// hand the title to a container that will show it itself (a modal's own
+// title bar), instead of the page repeating it inside the frame.
+//
+// « Opens with » is read on the rendered page, so leading comments (which
+// render to nothing) do not count as a first block. Only the heading's own
+// span is cut, the rest of the source staying verbatim.
+export function leadingHeading(
+  source: string
+): { title: string; body: string } | null {
+  let tree: { children?: unknown[] };
+  try {
+    tree = unified().use(remarkParse).use(remarkMdx).parse(source) as {
+      children?: unknown[];
+    };
+  } catch {
+    return null;
+  }
+  const first = (tree.children ?? []).find((node) => !isMdxComment(node)) as
+    | {
+        type?: string;
+        position?: { start?: { offset?: number }; end?: { offset?: number } };
+      }
+    | undefined;
+  if (!first || first.type !== "heading") return null;
+  const title = headingText(first).trim();
+  const start = first.position?.start?.offset;
+  const end = first.position?.end?.offset;
+  if (!title || start === undefined || end === undefined) return null;
+  return { title, body: source.slice(0, start) + source.slice(end) };
+}
+
+function isMdxComment(node: unknown): boolean {
+  const typed = node as { type?: unknown; value?: unknown };
+  return (
+    typed.type === "mdxFlowExpression" &&
+    typeof typed.value === "string" &&
+    typed.value.trimStart().startsWith("/*")
+  );
+}
+
 function headingText(node: unknown): string {
   const typed = node as { value?: unknown; children?: unknown[] };
   if (typeof typed.value === "string") return typed.value;
