@@ -5,7 +5,7 @@
 // components only meet the query string client-side and read through a Server
 // Action like the other built-in system pages. No person to check anywhere
 // here — the token is the whole credential
-// (modules/accounts/link/link-actions.ts).
+// (modules/accounts/invitation/link-actions.ts).
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -15,8 +15,8 @@ import {
   readAccountLink,
   requestPasswordReset,
   resetPasswordWithLink,
-} from "@/modules/accounts/link/link-actions";
-import type { AuthError } from "@/modules/accounts/admin/auth-actions";
+} from "@/modules/accounts/invitation/link-actions";
+import type { AuthError } from "@/modules/accounts/auth-actions";
 import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { identityRefusal } from "@/modules/accounts/admin/rules";
 import { wikiConfig } from "@/wiki.config";
@@ -76,7 +76,7 @@ export async function resetPasswordLink(input: {
  * the way through for a wiki with no SMTP. What it does report is whether a
  * mail could leave at all — the same verdict for every address, since one
  * with no account makes the wiki prove it could have sent
- * (modules/accounts/link/mailer.ts). Only the failure travels back, never its
+ * (modules/accounts/invitation/mailer.ts). Only the failure travels back, never its
  * detail: the system page is open to anyone, and the reason names hosts and
  * accounts.
  */

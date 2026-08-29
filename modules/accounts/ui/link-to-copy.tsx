@@ -14,7 +14,7 @@ import { AlertTriangle, Check, Copy } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { MailFailure } from "@/modules/accounts/link/invitations";
+import type { MailFailure } from "@/modules/accounts/invitation/rules";
 
 export function LinkToCopy({
   url,

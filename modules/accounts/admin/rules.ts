@@ -16,7 +16,8 @@ import { REFUSALS } from "@/modules/permissions/rules";
  * What both ways of creating an account check before BetterAuth is asked
  * anything: the fields a person fills, in the words they filled them. It lives
  * here rather than in either transport because both reach it — free sign-up
- * from admin/auth-actions.ts, an accepted invitation from link/auth-actions.ts
+ * from the module's own auth-actions.ts, an accepted invitation from
+ * invitation/auth-actions.ts
  * — and a `"use server"` file exports no synchronous function to share.
  */
 export function identityRefusal(input: {

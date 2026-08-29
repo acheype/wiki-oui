@@ -109,7 +109,7 @@ type Entry = "connect" | "recover" | "activate";
  * requestPasswordReset refuses an unknown or disabled address — so it recovers
  * and never activates. `invitation` does both: **every** link lands there, a
  * forgotten password as much as a first invitation (one mint site, one page,
- * modules/accounts/link/account-link.ts).
+ * modules/accounts/invitation/account-link.ts).
  */
 const LOCKING_PAGES: Record<
   "signIn" | "forgotPassword" | "invitation",

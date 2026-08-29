@@ -1,9 +1,13 @@
 "use server";
 
 // The session transport (ADR 0023): the three Server Actions a person calls to
-// open, open again or close their own session. Nothing is decided here — the
-// rights are BetterAuth's for the password and modules/accounts/username.ts's
-// for the identity — so what is left is the round trip and where it lands.
+// open, open again or close their own session. It sits at the module's root
+// beside the auth.ts it transports — signing in is neither an administrator's
+// doing nor a link's, so neither sub-folder could hold it without lying.
+//
+// Nothing is decided here: BetterAuth answers for the password and
+// modules/accounts/admin/rules.ts for the identity a sign-up proposes. What is
+// left is the round trip and where it lands.
 
 import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
@@ -17,7 +21,7 @@ import {
 import {
   clearAccountLink,
   signUpRefusal,
-} from "@/modules/accounts/link/link-actions";
+} from "@/modules/accounts/invitation/link-actions";
 import { auth } from "@/modules/accounts/auth";
 import { destinationWithinWiki } from "@/lib/destination";
 import { signInMethod } from "@/modules/accounts/username";

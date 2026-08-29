@@ -7,7 +7,7 @@
 // mail or was pasted into a chat by hand.
 
 import { UserRoundPlus } from "lucide-react";
-import { acceptInvitationLink } from "@/modules/accounts/link/auth-actions";
+import { acceptInvitationLink } from "@/modules/accounts/invitation/auth-actions";
 import {
   IdentityFields,
   useIdentityFields,

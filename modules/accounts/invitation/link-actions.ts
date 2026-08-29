@@ -5,9 +5,9 @@ import {
   type LinkPurpose,
   type MailFailure,
   RESET_LIFETIME_DAYS,
-} from "@/modules/accounts/link/invitations";
-import { fingerprint, mintLink } from "@/modules/accounts/link/account-link";
-import { probeMailer, sendAccountLink } from "@/modules/accounts/link/mailer";
+} from "@/modules/accounts/invitation/rules";
+import { fingerprint, mintLink } from "@/modules/accounts/invitation/account-link";
+import { probeMailer, sendAccountLink } from "@/modules/accounts/invitation/mailer";
 import { joinGroupOnInvitation } from "@/modules/permissions/groups-onboarding";
 import type { NamedGroup } from "@/modules/permissions/groups-directory";
 import { prisma } from "@/lib/prisma";

@@ -4,8 +4,8 @@ import {
   type LinkPurpose,
   type MailFailure,
   expiresIn,
-} from "@/modules/accounts/link/invitations";
-import { sendAccountLink } from "@/modules/accounts/link/mailer";
+} from "@/modules/accounts/invitation/rules";
+import { sendAccountLink } from "@/modules/accounts/invitation/mailer";
 import { prisma } from "@/lib/prisma";
 import { absoluteUrl } from "@/lib/site-url";
 import { authPagePath } from "@/wiki.config";

@@ -6,7 +6,7 @@
 // and this one starts signed in.
 
 import { KeyRound } from "lucide-react";
-import { resetPasswordLink } from "@/modules/accounts/link/auth-actions";
+import { resetPasswordLink } from "@/modules/accounts/invitation/auth-actions";
 import {
   AuthFormError,
   NewPasswordField,

@@ -2,12 +2,12 @@ import {
   INVITATION_LIFETIME_DAYS,
   type InvitationReport,
   RESET_LIFETIME_DAYS,
-} from "@/modules/accounts/link/invitations";
+} from "@/modules/accounts/invitation/rules";
 import {
   type DeliveredLink,
   deliver,
   mintLink,
-} from "@/modules/accounts/link/account-link";
+} from "@/modules/accounts/invitation/account-link";
 import { assertAdmin } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
@@ -15,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 // compte): they never set a password, they hand over a single-use link. Every
 // action here is an administrator's, and the check sits here rather than in
 // the callers (ADR 0025). The link itself is minted next door, in
-// modules/accounts/link/account-link.ts.
+// modules/accounts/invitation/account-link.ts.
 
 export interface InvitationOutcome {
   report: InvitationReport;

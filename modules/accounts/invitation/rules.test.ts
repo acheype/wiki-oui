@@ -4,7 +4,7 @@ import {
   expiresIn,
   invitationSummaryLines,
   parseAddressList,
-} from "./invitations";
+} from "./rules";
 
 describe("parseAddressList", () => {
   it("reads what a mail client puts on the clipboard, separators mixed", () => {

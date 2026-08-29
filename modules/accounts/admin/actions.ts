@@ -35,9 +35,9 @@ import {
 } from "@/modules/accounts/admin/lifecycle";
 import type { AccountRefusal } from "@/modules/accounts/admin/rules";
 import { auth } from "@/modules/accounts/auth";
-import type { DeliveredLink } from "@/modules/accounts/link/account-link";
-import { parseAddressList } from "@/modules/accounts/link/invitations";
-import { isMailerConfigured } from "@/modules/accounts/link/mailer";
+import type { DeliveredLink } from "@/modules/accounts/invitation/account-link";
+import { parseAddressList } from "@/modules/accounts/invitation/rules";
+import { isMailerConfigured } from "@/modules/accounts/invitation/mailer";
 import { currentUsername } from "@/modules/permissions/person";
 import { wikiConfig } from "@/wiki.config";
 

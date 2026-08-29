@@ -39,7 +39,7 @@ import {
   type MailFailure,
   invitationSummaryLines,
   parseAddressList,
-} from "@/modules/accounts/link/invitations";
+} from "@/modules/accounts/invitation/rules";
 
 /** « Aucun groupe » — the invitation then joins nobody to anything. */
 const NO_GROUP = SELECT_NONE;
