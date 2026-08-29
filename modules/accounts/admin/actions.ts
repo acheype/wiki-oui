@@ -17,7 +17,7 @@ import {
   type UserRow,
   listPendingInvitations,
   listUsersWithGroups,
-} from "@/modules/accounts/admin/guards";
+} from "@/modules/accounts/access/guards";
 import {
   type InvitationOutcome,
   createResetLink,

@@ -36,11 +36,15 @@ export function fingerprint(token: string): string {
 }
 
 /**
- * Puts a live link on an address, replacing whatever was there: one door per
+ * Mints a live link on an address, replacing whatever was there: one door per
  * address, never two. This is where the duplicates of a pasted list actually
  * merge — the parser only reads, the unique index decides.
+ *
+ * Decides nothing itself, like mintRevision (modules/pages/access/guards.ts):
+ * the two callers sit at different rungs — admin/invite.ts behind assertAdmin,
+ * link-actions.ts behind nobody at all — so neither rung could live here.
  */
-export async function openLink(
+export async function mintLink(
   email: string,
   lifetimeDays: number,
   groupSlug: string | null

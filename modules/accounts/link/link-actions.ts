@@ -6,7 +6,7 @@ import {
   type MailFailure,
   RESET_LIFETIME_DAYS,
 } from "@/modules/accounts/link/invitations";
-import { fingerprint, openLink } from "@/modules/accounts/link/account-link";
+import { fingerprint, mintLink } from "@/modules/accounts/link/account-link";
 import { probeMailer, sendAccountLink } from "@/modules/accounts/link/mailer";
 import { joinGroupOnInvitation } from "@/modules/permissions/groups-onboarding";
 import type { NamedGroup } from "@/modules/permissions/groups-directory";
@@ -193,7 +193,7 @@ export async function requestPasswordReset(
     select: { disabledAt: true },
   });
   if (!user || user.disabledAt !== null) return probeMailer();
-  const url = await openLink(address, RESET_LIFETIME_DAYS, null);
+  const url = await mintLink(address, RESET_LIFETIME_DAYS, null);
   return sendAccountLink({ to: address, url, purpose: "reset" });
 }
 

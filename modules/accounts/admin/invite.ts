@@ -6,7 +6,7 @@ import {
 import {
   type DeliveredLink,
   deliver,
-  openLink,
+  mintLink,
 } from "@/modules/accounts/link/account-link";
 import { assertAdmin } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
@@ -67,7 +67,7 @@ export async function inviteAddresses(
       report.alreadyInvited.push(email);
       continue;
     }
-    const url = await openLink(email, INVITATION_LIFETIME_DAYS, groupSlug);
+    const url = await mintLink(email, INVITATION_LIFETIME_DAYS, groupSlug);
     report.invited.push(email);
     // Each link carries what became of its own mail: one verdict for the
     // batch would tell an address whose mail left that it failed.
@@ -80,7 +80,7 @@ export async function inviteAddresses(
 export async function resendInvitation(email: string): Promise<DeliveredLink> {
   await assertAdmin();
   const existing = await prisma.accountLink.findUnique({ where: { email } });
-  const url = await openLink(
+  const url = await mintLink(
     email,
     INVITATION_LIFETIME_DAYS,
     existing?.groupSlug ?? null
@@ -109,6 +109,6 @@ export async function createResetLink(
   // A disabled account gets no link: it would open on « ce lien n'est plus
   // valable », since a link never reopens an access somebody closed.
   if (!user || user.disabledAt) return null;
-  const url = await openLink(user.email, RESET_LIFETIME_DAYS, null);
+  const url = await mintLink(user.email, RESET_LIFETIME_DAYS, null);
   return deliver(user.email, url, "reset");
 }

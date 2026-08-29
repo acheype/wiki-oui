@@ -33,7 +33,7 @@ import {
   type AccountFilter,
   matchesAccountFilter,
 } from "@/modules/accounts/admin/rules";
-import type { PendingInvitation, UserRow } from "@/modules/accounts/admin/guards";
+import type { PendingInvitation, UserRow } from "@/modules/accounts/access/guards";
 import { formatDayMonth } from "@/lib/format";
 import { PATH_SEPARATOR } from "@/modules/permissions/groups-nesting";
 import type { NamedGroup } from "@/modules/permissions/groups-directory";

@@ -7,7 +7,7 @@
   "modules/forms/access/guards.ts",
   "modules/forms/forms.ts",
   "modules/accounts/auth.ts",
-  "modules/accounts/admin/guards.ts",
+  "modules/accounts/access/guards.ts",
   "modules/accounts/admin/invite.ts",
   "modules/accounts/admin/lifecycle.ts",
   "modules/accounts/link/account-link.ts",

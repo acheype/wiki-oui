@@ -46,7 +46,7 @@ import { ERASURE_KEEPS_CONTENT, deletionImpactLines } from "@/modules/accounts/a
 import type {
   PendingInvitation,
   UserRow,
-} from "@/modules/accounts/admin/guards";
+} from "@/modules/accounts/access/guards";
 import type { DeliveredLink } from "@/modules/accounts/link/account-link";
 
 /** « Personne » — the pages then read « Anonyme » (ADR 0024). */
