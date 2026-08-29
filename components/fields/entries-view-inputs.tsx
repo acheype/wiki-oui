@@ -24,7 +24,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { listEntryFieldChoices, listFormChoices } from "@/modules/forms/actions";
+import { listEntryFieldChoices } from "@/modules/forms/entry-actions";
+import { listFormChoices } from "@/modules/forms/form-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

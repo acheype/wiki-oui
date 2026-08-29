@@ -6,7 +6,7 @@
 // the caller announces what its configuration reads, and the payload holds
 // nothing else (pseudo-fields excepted: four tiny metadata values).
 
-import { listEntryFieldChoices } from "@/modules/forms/actions";
+import { listEntryFieldChoices } from "@/modules/forms/entry-actions";
 import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
 import type { ViewEntry } from "@/modules/entries-view/rules";
 import { readEntryData } from "@/modules/forms/form-descriptor";

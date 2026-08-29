@@ -9,7 +9,7 @@
 
 import { ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { countFieldReferences } from "@/modules/forms/actions";
+import { countFieldReferences } from "@/modules/forms/form-actions";
 import { AclInput, NO_FLOOR } from "@/modules/permissions/acl-input";
 import { Field } from "@/modules/forms/field-widget";
 import { RenameSlugDialog } from "@/components/ui/rename-slug-dialog";

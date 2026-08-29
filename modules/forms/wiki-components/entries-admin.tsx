@@ -14,7 +14,7 @@ import {
   canAddEntry,
   getEntryForm,
   listEntries,
-} from "@/modules/forms/actions";
+} from "@/modules/forms/entry-actions";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { EntryForm } from "../entry-form";

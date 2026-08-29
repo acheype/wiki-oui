@@ -41,7 +41,7 @@ import {
   countTitleImpact,
   renameForm,
   saveForm,
-} from "@/modules/forms/actions";
+} from "@/modules/forms/form-actions";
 import { NO_FLOOR } from "@/modules/permissions/acl-input";
 import { Field } from "@/modules/forms/field-widget";
 import { InfoNote } from "@/components/ui/info-note";

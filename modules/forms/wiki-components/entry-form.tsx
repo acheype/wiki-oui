@@ -1,4 +1,4 @@
-import { getEntryForm } from "@/modules/forms/actions";
+import { getEntryForm } from "@/modules/forms/entry-actions";
 import { EntryForm as EntryFormClient } from "@/modules/forms/entry-form";
 import { cn } from "@/lib/utils";
 

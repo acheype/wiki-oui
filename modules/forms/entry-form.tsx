@@ -12,8 +12,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState, useTransition } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
-import { type EntryFormData, saveEntry } from "@/modules/forms/actions";
-import { listFormOptions } from "@/modules/forms/actions";
+import {
+  type EntryFormData,
+  listFormOptions,
+  saveEntry,
+} from "@/modules/forms/entry-actions";
 import { Field } from "@/modules/forms/field-widget";
 import { SlugInlineEdit } from "@/components/ui/slug-input";
 import { Button } from "@/components/ui/button";

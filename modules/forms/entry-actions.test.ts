@@ -54,7 +54,7 @@ vi.mock("@/modules/pages/entries", async (importOriginal) => ({
   listEntrySnapshots,
 }));
 
-const { listUsedFieldValues } = await import("@/modules/forms/actions");
+const { listUsedFieldValues } = await import("@/modules/forms/entry-actions");
 
 const TAGS_FIELD = { type: "tags", name: "mots-cles", label: "Mots-clés" };
 

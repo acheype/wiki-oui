@@ -18,7 +18,7 @@ import {
   listForms,
   listFormChoices,
   listRightsDirectory,
-} from "@/modules/forms/actions";
+} from "@/modules/forms/form-actions";
 import { REFUSALS, type AclDirectory } from "@/modules/permissions/rules";
 import {
   AlertDialog,
