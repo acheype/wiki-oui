@@ -16,9 +16,9 @@ import {
   requestPasswordReset,
   resetPasswordWithLink,
 } from "@/modules/accounts/invitation/link-actions";
-import type { AuthError } from "@/modules/accounts/auth-actions";
+import type { AuthError } from "@/modules/accounts/session/auth-actions";
 import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
-import { identityRefusal } from "@/modules/accounts/admin/rules";
+import { identityRefusal } from "@/modules/accounts/session/rules";
 import { wikiConfig } from "@/wiki.config";
 
 /**

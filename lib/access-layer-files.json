@@ -10,7 +10,7 @@
   "modules/accounts/access/guards.ts",
   "modules/accounts/admin/invite.ts",
   "modules/accounts/admin/lifecycle.ts",
-  "modules/accounts/invitation/account-link.ts",
+  "modules/accounts/invitation/link.ts",
   "modules/accounts/invitation/link-actions.ts",
   "modules/permissions/groups-directory.ts",
   "modules/permissions/groups-onboarding.ts",

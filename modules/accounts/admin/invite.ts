@@ -7,7 +7,7 @@ import {
   type DeliveredLink,
   deliver,
   mintLink,
-} from "@/modules/accounts/invitation/account-link";
+} from "@/modules/accounts/invitation/link";
 import { assertAdmin } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
@@ -15,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 // compte): they never set a password, they hand over a single-use link. Every
 // action here is an administrator's, and the check sits here rather than in
 // the callers (ADR 0025). The link itself is minted next door, in
-// modules/accounts/invitation/account-link.ts.
+// modules/accounts/invitation/link.ts.
 
 export interface InvitationOutcome {
   report: InvitationReport;

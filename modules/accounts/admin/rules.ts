@@ -1,45 +1,13 @@
-// The rules of an account, pure and client-safe like modules/permissions/groups.ts
-// beside it: what both ways of creating one check before BetterAuth is asked
-// anything, and — the bulk of the file — the two permissions an administrator
-// has over an account that exists (docs/permissions.md § Fin d'un compte),
-// with what the system page says about them.
-// modules/accounts/admin/lifecycle.ts loads what these functions need and
-// writes their verdict back.
+// The end of an account (docs/permissions.md § Fin d'un compte): the two
+// permissions an administrator has over somebody else's account, and what the
+// system page says about them. Pure and client-safe, like
+// modules/permissions/groups.ts beside it — modules/accounts/admin/lifecycle.ts
+// loads what these functions need and writes their verdict back.
+// What the door asks of whoever is arriving lives elsewhere, in
+// modules/accounts/session/rules.ts.
 
-import { z } from "zod";
-import { isValidUsername } from "@/modules/accounts/username";
-import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { plural } from "@/lib/format";
 import { REFUSALS } from "@/modules/permissions/rules";
-
-/**
- * What both ways of creating an account check before BetterAuth is asked
- * anything: the fields a person fills, in the words they filled them. It lives
- * here rather than in either transport because both reach it — free sign-up
- * from the module's own auth-actions.ts, an accepted invitation from
- * invitation/auth-actions.ts
- * — and a `"use server"` file exports no synchronous function to share.
- */
-export function identityRefusal(input: {
-  name: string;
-  username: string;
-  email?: string;
-  password: string;
-}): string | null {
-  if (input.name.trim() === "") {
-    return "Le nom affiché est obligatoire.";
-  }
-  if (!isValidUsername(input.username)) {
-    return `Identifiant invalide : «\u00A0${input.username}\u00A0» (minuscules, chiffres et tirets).`;
-  }
-  if (input.email !== undefined && !z.email().safeParse(input.email.trim()).success) {
-    return "Cette adresse e-mail n'est pas valide.";
-  }
-  if (input.password.length < MIN_PASSWORD_LENGTH) {
-    return `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`;
-  }
-  return null;
-}
 
 /** Why an account action was refused, or null once it went through. */
 export type AccountRefusal = string | null;
@@ -53,18 +21,6 @@ export type AccountRefusal = string | null;
 export type AccountStatus = "active" | "disabled" | "invited";
 
 export type AccountFilter = "all" | AccountStatus;
-
-/**
- * What a disabled account is told when it tries to sign in. Said plainly, and
- * only ever after the right password: reaching this point proves the person
- * is the account's owner, so naming their state tells an attacker nothing
- * they could not already see.
- */
-export const ACCOUNT_DISABLED_MESSAGE =
-  "Ce compte est désactivé. Contactez un administrateur.";
-
-/** The code that carries the refusal out of BetterAuth and into the system page. */
-export const ACCOUNT_DISABLED_CODE = "ACCOUNT_DISABLED";
 
 /** The radio row above the list, in the order the spec draws it. */
 export const ACCOUNT_FILTERS: { value: AccountFilter; label: string }[] = [

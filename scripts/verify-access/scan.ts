@@ -407,7 +407,7 @@ export const EXEMPTIONS: readonly Exemption[] = [
   { file: "modules/accounts/invitation/link-actions.ts", function: "clearAccountLink", reason: "no person — runs during free sign-up, spending the invitation the address carried" },
   { file: "modules/accounts/invitation/link-actions.ts", function: "acceptInvitation", reason: "no person — the single-use token is the credential, the account does not exist yet" },
   { file: "modules/accounts/invitation/link-actions.ts", function: "resetPasswordWithLink", reason: "no person — the single-use token is the credential" },
-  { file: "modules/accounts/invitation/account-link.ts", function: "mintLink", reason: "the mechanical act of putting a single-use token on an address, like mintRevision — its two callers sit at different rungs, admin/invite.ts behind isAdmin and link-actions.ts (requestPasswordReset) behind nobody by design" },
+  { file: "modules/accounts/invitation/link.ts", function: "mintLink", reason: "the mechanical act of putting a single-use token on an address, like mintRevision — its two callers sit at different rungs, admin/invite.ts behind isAdmin and link-actions.ts (requestPasswordReset) behind nobody by design" },
   { file: "modules/permissions/groups-onboarding.ts", function: "joinGroupOnInvitation", reason: "no person — the invitation named the group, the token authorized the join" },
   { file: "modules/permissions/groups-onboarding.ts", function: "createAdminsGroupWith", reason: "no person — runs at installation, before any administrator exists (ADR 0027)" },
 

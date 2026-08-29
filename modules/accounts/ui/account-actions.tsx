@@ -47,7 +47,7 @@ import type {
   PendingInvitation,
   UserRow,
 } from "@/modules/accounts/access/guards";
-import type { DeliveredLink } from "@/modules/accounts/invitation/account-link";
+import type { DeliveredLink } from "@/modules/accounts/invitation/link";
 
 /** « Personne » — the pages then read « Anonyme » (ADR 0024). */
 const NOBODY = SELECT_NONE;

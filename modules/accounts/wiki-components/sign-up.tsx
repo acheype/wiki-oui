@@ -4,7 +4,7 @@ import { UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useId } from "react";
-import { signUp } from "@/modules/accounts/auth-actions";
+import { signUp } from "@/modules/accounts/session/auth-actions";
 import {
   IdentityFields,
   useIdentityFields,

@@ -6,7 +6,7 @@ import { username } from "better-auth/plugins";
 import {
   ACCOUNT_DISABLED_CODE,
   ACCOUNT_DISABLED_MESSAGE,
-} from "@/modules/accounts/admin/rules";
+} from "@/modules/accounts/session/rules";
 import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { prisma } from "@/lib/prisma";
 import { isValidUsername } from "@/modules/accounts/username";

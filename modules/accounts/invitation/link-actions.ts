@@ -6,7 +6,7 @@ import {
   type MailFailure,
   RESET_LIFETIME_DAYS,
 } from "@/modules/accounts/invitation/rules";
-import { fingerprint, mintLink } from "@/modules/accounts/invitation/account-link";
+import { fingerprint, mintLink } from "@/modules/accounts/invitation/link";
 import { probeMailer, sendAccountLink } from "@/modules/accounts/invitation/mailer";
 import { joinGroupOnInvitation } from "@/modules/permissions/groups-onboarding";
 import type { NamedGroup } from "@/modules/permissions/groups-directory";
