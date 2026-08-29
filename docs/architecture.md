@@ -154,6 +154,7 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 27. [Le service d'installation est gardé par un drapeau irréversible](adr/0027-installation-flag-irreversible.md)
 28. [Une page système est une page comme les autres ; `/api` est le seul segment réservé](adr/0028-system-pages-are-pages.md)
 29. [Le code est rangé par concept du domaine, et la profondeur dit la visibilité](adr/0029-modules-by-domain-concept.md)
+30. [Un module est profond : beaucoup de comportement derrière peu d'interface](adr/0030-deep-modules.md)
 
 ## Points validés avant code
 

@@ -4,7 +4,27 @@ Conception : [`docs/architecture.md`](docs/architecture.md) (+ ADR dans `docs/ad
 
 ## Organisation en modules
 
-**Le code est rangé par concept du domaine, et la profondeur dit la visibilité** (ADR 0029) : `modules/<concept>/`, un dossier par concept de `CONTEXT.md`. `app/` ne garde que les routes, `components/ui/` que les primitives shadcn, `lib/` que les utilitaires sans concept. Un gabarit unique par module : `access/guards.ts` (les gardes — lire et trancher dans le même appel, jamais importé d'un autre module, niché dans son propre sous-dossier pour que ce soit garanti par la profondeur, pas par son nom ; `access/` peut aussi contenir d'autres fichiers liés à la couche d'accès du module, ex. `access/page-rights.ts` et `access/admin-rights.ts`), `<sujet>.ts` (un sujet du module, nommé d'après le domaine et jamais d'après la forme du code), `actions.ts` (les Server Actions — `<sujet>-actions.ts` quand le module en a plusieurs, ex. `forms/form-actions.ts` et `forms/entry-actions.ts`), `rules.ts` (les règles pures), `ui/` (les composants React du module), `wiki-components/` (les composants wiki du module, quand il en a — le registre de l'ADR 0002 ; le module s'y déclare par une entrée dans `modules/authoring/registry/sources.ts`, que `scan.ts` balaie), `<sujet>/` (le même, regroupé dans son propre dossier pour le séparer du reste du module — ex. `accounts/invitation/`, `forms/field-rename/`, `entries-view/views/` ; un sujet peut avoir les deux, `forms/entry-title.ts` en public et `forms/entry-title/` en privé). Un fichier **racine** s'importe depuis n'importe quel module ; un fichier de **sous-dossier** ne s'importe que depuis son propre module — sauf `ui/`, que `app/` seul peut composer depuis l'extérieur, et `wiki-components/`, que `modules/authoring/registry/sources.ts` seul peut atteindre depuis l'extérieur en tant que table du registre. Une règle ESLint (`wikioui/module-seam`) le garde, imports relatifs et `import()` à gabarit compris.
+**Le code est rangé par concept du domaine** (ADR 0029) : `modules/<concept>/`, un dossier par concept de `CONTEXT.md`. Ailleurs, `app/` ne garde que les routes, `components/ui/` que les primitives shadcn, `lib/` que les utilitaires sans concept.
+
+### La profondeur dit la visibilité
+
+- Un fichier **à la racine** d'un module est **public** : n'importe quel module l'importe.
+- Un fichier **dans un sous-dossier** est **privé** : seul son propre module l'importe.
+- Deux sous-dossiers échappent à cette règle, et deux seulement : `ui/` et `wiki-components/` (voir le gabarit ci-dessous).
+- La règle ESLint `wikioui/module-seam` le garde, imports relatifs et `import()` à gabarit compris.
+- **Viser le module profond** (ADR 0030) : peu de fichiers et d'exports à la racine, toute la complexité dans les sous-dossiers.
+
+### Le gabarit d'un module
+
+| Contenu | Rôle |
+| --- | --- |
+| `<sujet>.ts` | Un sujet du module, nommé d'après le domaine et jamais d'après la forme du code. |
+| `rules.ts` | Les règles pures. |
+| `actions.ts` | Les Server Actions. `<sujet>-actions.ts` quand le module en a plusieurs (`forms/form-actions.ts`, `forms/entry-actions.ts`). |
+| `<sujet>/` | Un sujet regroupé dans son propre dossier, pour le séparer du reste du module (`accounts/invitation/`, `forms/field-rename/`, `entries-view/views/`). Un sujet peut avoir les deux : `forms/entry-title.ts` en public, `forms/entry-title/` en privé. |
+| `access/` | La couche d'accès du module (ADR 0025) : `guards.ts` pour les gardes — lire et trancher dans le même appel —, plus ses autres fichiers d'accès (`pages/access/page-rights.ts`). C'est un sous-dossier, donc la profondeur le rend privé, pas son nom. |
+| `ui/` | Les composants React du module. Privé, **sauf pour `app/`**, qui les compose. |
+| `wiki-components/` | Les composants wiki du module (ADR 0002), quand il en a. **Public** : le registre de composants l'atteint depuis l'extérieur, le module s'y déclarant par une entrée dans `modules/authoring/registry/sources.ts`. |
 
 ## Carte des modules
 
@@ -26,6 +46,10 @@ Une ligne par module : ce qu'il possède, quelle doc en détaille le fonctionnem
 - **Tout le code est en anglais** : noms de fichiers, composants (y compris les composants MDX du registre, ex. `<Button>`), props/attributs, variables, fonctions, clés de config, classes CSS. Le français est réservé à ce que voit ou tape l'utilisateur : textes d'UI, contenus seedés, slugs des pages spéciales, valeurs saisies par les auteurs (ex. noms d'icônes).
 - **Les commentaires sont toujours en anglais** (le reste — docs, ADR, UI — est en français).
 - **Préférer du code clair avec des noms explicites plutôt que des commentaires.** Un commentaire ne paraphrase jamais le code : il apporte une spécificité que le code ne peut pas montrer — la raison d'un choix, une contrainte externe, une référence d'ADR.
+- **Viser le module profond** (ADR 0030) : beaucoup de comportement derrière peu d'interface. Un fichier racine est public, un sous-dossier est privé (ADR 0029) — approfondir un module, c'est donc réduire le nombre de fichiers et d'exports à sa racine, et cacher le reste dans ses sous-dossiers.
+- **Faire le test de suppression avant d'ajouter un export racine.** Supprimer cette fonction : si la complexité disparaît, c'était un passe-plat ; si elle réapparaît chez N appelants, elle gagne sa place. Un export racine que personne n'importe depuis un autre module descend dans le sous-dossier de son sujet.
+- **Une seule exception, le transport** : un passe-plat `"use server"` est légitime, un composant client ne pouvant pas atteindre la couche d'accès (`canAddForm`, `listFormChoices`, `canAddEntry`, `readInvitation`).
+- **Préférer un test qui passe par la racine du module** : il décrit un comportement et survit aux refactorings internes. Tester directement un fichier privé reste admis quand la règle est du calcul pur (ex. `accounts/admin/rules.test.ts`).
 
 ## Règles de commit Git
 
