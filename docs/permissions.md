@@ -91,7 +91,7 @@ Une page sans propriétaire n'est modifiable que par les administrateurs — con
 
 Tant que le wiki n'a **jamais été installé**, toute adresse affiche le service d'installation (ADR 0027). Contrairement à une page système, ce n'est pas une page : il doit répondre avant qu'aucune page ne soit lisible — et il n'a pas d'adresse à lui pour autant : il vit sous le segment réservé (`/api/installation`) et le proxy y **réécrit** ce qui a été demandé, si bien que le visiteur garde son adresse et que le slug `installation` reste libre pour une page (ADR 0028). Le jour où le drapeau est posé, le service cesse de répondre. Le service impose le nom affiché **Wiki Admin** et l'identifiant **`wiki-admin`** — convention identique sur toutes les installations WikiOui — et ne demande que l'email et le mot de passe. Il crée le compte, l'ajoute à `@Admins`, lui attribue les pages spéciales, et pose `Settings.installedAt`.
 
-La condition est **irréversible** : vider `@Admins` ne rouvre pas le service. Reprendre la main sans administrateur exige un accès à la machine, pas une requête HTTP.
+L'installation est **irréversible** : vider `@Admins` ne rouvre pas le service. Reprendre la main sans administrateur exige un accès à la machine, pas une requête HTTP.
 
 ## Groupes
 
@@ -163,7 +163,7 @@ Un formulaire écrit avant l'onglet n'en porte aucun : les défauts du wiki rép
 
 **Créer une fiche ne consulte pas `createPage`.** Le droit du wiki commande les pages, celui du formulaire commande ses fiches : c'est ce qui permet à un wiki qui ne distribue aucune page d'accueillir quand même « chacun propose un événement ».
 
-**Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même cran que les actions structurantes d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que la personne n'a pas est **absent** de la liste des formulaires, jamais grisé.
+**Éditer la définition d'un formulaire** — les champs, le gabarit, ces trois réglages, l'identifiant, la suppression — est réservé à **son propriétaire ou à un administrateur**. Même condition que les actions structurantes d'une page, et pour la même raison : ce qui change là atteint toutes les fiches jamais écrites avec ce formulaire. Ce que la personne n'a pas est **absent** de la liste des formulaires, jamais grisé.
 
 ### Qui peut créer un formulaire
 
@@ -173,7 +173,7 @@ Le défaut est `{ scope: "restricted" }` **sans liste**. Sur une règle posée s
 
 **Une règle plutôt qu'une constante**, et c'est le point : les groupes, eux, sont codés en dur aux administrateurs, parce qu'ils portent un invariant — `@Admins` ne doit jamais être vide, quoi qu'on configure. Qui fabrique les formulaires n'est pas un invariant, c'est une politique éditoriale, et elle change d'une association à l'autre. « Administrateurs seulement » est d'ailleurs le cas particulier de la règle : partir de la règle donne cette sécurité par défaut sans fermer la porte, là où l'inverse demanderait de rouvrir la spec.
 
-**Le créateur devient propriétaire** de ce qu'il fabrique — c'est ce qui rend le cran du dessus cohérent : ouvrir la création à quelqu'un lui ouvre l'édition des siens, et d'aucun autre.
+**Le créateur devient propriétaire** de ce qu'il fabrique — c'est ce qui rend la condition du dessus cohérente : ouvrir la création à quelqu'un lui ouvre l'édition des siens, et d'aucun autre.
 
 Le bouton « Nouveau formulaire » **disparaît** pour qui n'a pas le droit, et `?nouveau` tapé à la main répond le même refus plutôt qu'un builder qui échouerait à l'enregistrement. La vérification tient dans la couche d'accès (`modules/forms/forms.ts`), pas dans le bouton qui la masque.
 
@@ -186,7 +186,7 @@ Le bouton « Nouveau formulaire » **disparaît** pour qui n'a pas le droit, et 
       administrateur peut changer leur accès.
 ```
 
-La dernière ligne est le cran des actions structurantes, tenu fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser l'action entière. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « ne vous appartiennent pas » plutôt que « appartiennent à quelqu'un d'autre », qui inventerait un détenteur. Et elle énonce la règle plutôt que le seul effet — le lecteur ne peut rien y faire lui-même, alors la phrase utile est celle qui nomme qui le peut.
+La dernière ligne est la condition des actions structurantes, tenue fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser l'action entière. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « ne vous appartiennent pas » plutôt que « appartiennent à quelqu'un d'autre », qui inventerait un détenteur. Et elle énonce la règle plutôt que le seul effet — le lecteur ne peut rien y faire lui-même, alors la phrase utile est celle qui nomme qui le peut.
 
 Le décompte comme l'écriture **laissent tomber un nom disparu** (ADR 0026) : un défaut qui nomme un compte ou un groupe effacé depuis n'accorde rien en douce — et les deux le font au même endroit, sinon la fiche resterait « à changer » pour toujours et l'écriture casserait sur la clé étrangère.
 
