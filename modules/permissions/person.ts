@@ -89,7 +89,7 @@ export async function isCurrentAdmin(): Promise<boolean> {
 /**
  * The check every action of the two administration system pages passes, at the
  * access layer rather than in each caller (ADR 0025) — modules/permissions/access/guards.ts
- * and modules/accounts/access/guards.ts both ask for it by name.
+ * and modules/accounts/admin/ both ask for it by name.
  */
 export async function assertAdmin(): Promise<void> {
   if (!(await isCurrentAdmin())) refuse("admin");

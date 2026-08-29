@@ -4,7 +4,7 @@ import { LogIn, LogOut, Trash2, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
-import { signOut } from "@/modules/accounts/auth-actions";
+import { signOut } from "@/modules/accounts/admin/auth-actions";
 import { DeleteOwnAccountDialog } from "@/modules/accounts/ui/delete-own-account-dialog";
 import { Button } from "@/components/ui/button";
 import {

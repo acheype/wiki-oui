@@ -261,7 +261,7 @@ describe("scanAccessGuards", () => {
          await prisma.user.update({ where: { username }, data: { name: "x" } });
        }`,
       {},
-      "modules/accounts/access/guards.ts"
+      "modules/accounts/admin/lifecycle.ts"
     );
     const findings = scanAccessGuards(file, USER, "write");
     expect(findings.map((f) => f.name)).toContain("leaky");
@@ -276,7 +276,7 @@ describe("scanAccessGuards", () => {
          await prisma.user.update({ where: { username }, data: { name: "x" } });
        }`,
       {},
-      "modules/accounts/access/guards.ts"
+      "modules/accounts/admin/lifecycle.ts"
     );
     expect(scanAccessGuards(file, USER, "write")).toEqual([]);
   });
@@ -288,7 +288,7 @@ describe("scanAccessGuards", () => {
          return prisma.user.findUnique({ where: { username } });
        }`,
       {},
-      "modules/accounts/access/guards.ts"
+      "modules/accounts/admin/lifecycle.ts"
     );
     expect(scanAccessGuards(file, USER, "write")).toEqual([]);
   });

@@ -11,7 +11,7 @@
 import { Plus } from "lucide-react";
 import { useEffect, useState, useTransition } from "react";
 import { listGroups } from "@/modules/permissions/group-actions";
-import { canSendMail, invitePeople } from "@/modules/accounts/actions";
+import { canSendMail, invitePeople } from "@/modules/accounts/admin/actions";
 import { LinkToCopy } from "@/modules/accounts/ui/link-to-copy";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,7 +39,7 @@ import {
   type MailFailure,
   invitationSummaryLines,
   parseAddressList,
-} from "@/modules/accounts/invitations";
+} from "@/modules/accounts/link/invitations";
 
 /** « Aucun groupe » — the invitation then joins nobody to anything. */
 const NO_GROUP = SELECT_NONE;

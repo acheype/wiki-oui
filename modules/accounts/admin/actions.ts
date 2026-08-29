@@ -3,8 +3,7 @@
 // Server Actions of the accounts system page (docs/permissions.md § Les
 // pages système). Reading them is an administrator's action — email
 // addresses are shown here and nowhere else — and the check lives behind
-// the guards, in modules/accounts/access/guards.ts, so none of these can
-// forget it.
+// the guards, in the files beside this one, so none of these can forget it.
 //
 // The two at the end are the exception, and are not called from that system page:
 // erasing one's own account belongs to the person, not to an administrator's
@@ -14,27 +13,31 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  type AccountDeletionImpact,
-  type AccountRefusal,
-  type DeliveredLink,
-  type InvitationOutcome,
   type PendingInvitation,
   type UserRow,
-  accountDeletionImpact,
-  createResetLink,
-  deleteAccount,
-  deleteOwnAccount,
-  inviteAddresses,
   listPendingInvitations,
   listUsersWithGroups,
-  ownDeletionImpact,
+} from "@/modules/accounts/admin/guards";
+import {
+  type InvitationOutcome,
+  createResetLink,
+  inviteAddresses,
   resendInvitation,
   revokeInvitation,
+} from "@/modules/accounts/admin/invite";
+import {
+  type AccountDeletionImpact,
+  accountDeletionImpact,
+  deleteAccount,
+  deleteOwnAccount,
+  ownDeletionImpact,
   setAccountDisabled,
-} from "@/modules/accounts/access/guards";
+} from "@/modules/accounts/admin/lifecycle";
+import type { AccountRefusal } from "@/modules/accounts/admin/rules";
 import { auth } from "@/modules/accounts/auth";
-import { parseAddressList } from "@/modules/accounts/invitations";
-import { isMailerConfigured } from "@/modules/accounts/mailer";
+import type { DeliveredLink } from "@/modules/accounts/link/account-link";
+import { parseAddressList } from "@/modules/accounts/link/invitations";
+import { isMailerConfigured } from "@/modules/accounts/link/mailer";
 import { currentUsername } from "@/modules/permissions/person";
 import { wikiConfig } from "@/wiki.config";
 

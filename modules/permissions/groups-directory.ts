@@ -370,7 +370,7 @@ function namePeople(
 /**
  * Who administers the wiki, directly — nesting never makes an administrator
  * (docs/permissions.md § Groupes), so this list is the whole answer. Read by
- * modules/accounts/access/guards.ts before it disables or erases anyone: the
+ * modules/accounts/admin/lifecycle.ts before it disables or erases anyone: the
  * memberships are this file's, whoever asks.
  */
 export async function listAdminUsernames(): Promise<string[]> {

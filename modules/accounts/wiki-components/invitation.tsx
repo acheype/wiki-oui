@@ -9,12 +9,12 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { readInvitation } from "@/modules/accounts/auth-actions";
+import { readInvitation } from "@/modules/accounts/link/auth-actions";
 import { AcceptInvitationForm } from "@/modules/accounts/ui/accept-invitation-form";
 import { ResetPasswordForm } from "@/modules/accounts/ui/reset-password-form";
 import { Button } from "@/components/ui/button";
-import type { AccountLinkTarget } from "@/modules/accounts/access/guards";
-import { INVITATION_TOKEN_PARAM } from "@/modules/accounts/invitations";
+import type { AccountLinkTarget } from "@/modules/accounts/link/link-actions";
+import { INVITATION_TOKEN_PARAM } from "@/modules/accounts/link/invitations";
 import { authPagePath } from "@/wiki.config";
 
 // Built-in component rendered by the `invitation` special page (ADR 0028):

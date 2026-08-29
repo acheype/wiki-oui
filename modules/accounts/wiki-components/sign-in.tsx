@@ -4,7 +4,7 @@ import { LogIn } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useId } from "react";
-import { signIn } from "@/modules/accounts/auth-actions";
+import { signIn } from "@/modules/accounts/admin/auth-actions";
 import { AuthFormError, useAuthForm } from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

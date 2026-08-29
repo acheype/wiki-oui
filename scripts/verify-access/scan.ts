@@ -21,7 +21,7 @@ import accessLayerFiles from "../../lib/access-layer-files.json";
 //
 // The list of files comes from lib/access-layer-files.json, shared with ESLint.
 // Six files are excluded from the scan (sweeps, seed and auth.ts) — each one
-// named in EXEMPTIONS with its reason. The remaining 13 files are scanned for
+// named in EXEMPTIONS with its reason. The remaining 17 files are scanned for
 // every watched table.
 //
 // The three primitives every access decision in this codebase bottoms out on
@@ -397,16 +397,17 @@ export const EXEMPTIONS: readonly Exemption[] = [
   { file: "modules/pages/access/guards.ts", function: "keepKnownPrincipals", reason: "filters ACL entries to principals that still exist — a pure filter, never content" },
   { file: "modules/pages/access/guards.ts", function: "bornWith", reason: "creates the rights a page is born with — the User read is keepKnownPrincipals, not content" },
   { file: "modules/pages/access/guards.ts", function: "bornWithDefaultRights", reason: "wrapper around bornWith for the wiki's defaults" },
-  { file: "modules/accounts/access/guards.ts", function: "readAccountLink", reason: "the token is the whole credential — the User read checks if the email already has an account" },
-  { file: "modules/accounts/access/guards.ts", function: "ownDeletionImpact", reason: "the person's own account — currentUsername() is the credential, not isAdmin" },
+  { file: "modules/accounts/link/link-actions.ts", function: "readAccountLink", reason: "the token is the whole credential — the User read checks if the email already has an account" },
+  { file: "modules/accounts/admin/lifecycle.ts", function: "ownDeletionImpact", reason: "the person's own account — currentUsername() is the credential, not isAdmin" },
 
   // --- account table writes (issue #21) --------------------------------------
 
-  { file: "modules/accounts/access/guards.ts", function: "deleteOwnAccount", reason: "the person's own account — currentUsername() is the credential, not isAdmin" },
-  { file: "modules/accounts/access/guards.ts", function: "requestPasswordReset", reason: "no person — anyone can ask, the link goes by mail or nowhere, nothing is revealed" },
-  { file: "modules/accounts/access/guards.ts", function: "clearAccountLink", reason: "no person — runs during free sign-up, spending the invitation the address carried" },
-  { file: "modules/accounts/access/guards.ts", function: "acceptInvitation", reason: "no person — the single-use token is the credential, the account does not exist yet" },
-  { file: "modules/accounts/access/guards.ts", function: "resetPasswordWithLink", reason: "no person — the single-use token is the credential" },
+  { file: "modules/accounts/admin/lifecycle.ts", function: "deleteOwnAccount", reason: "the person's own account — currentUsername() is the credential, not isAdmin" },
+  { file: "modules/accounts/link/link-actions.ts", function: "requestPasswordReset", reason: "no person — anyone can ask, the link goes by mail or nowhere, nothing is revealed" },
+  { file: "modules/accounts/link/link-actions.ts", function: "clearAccountLink", reason: "no person — runs during free sign-up, spending the invitation the address carried" },
+  { file: "modules/accounts/link/link-actions.ts", function: "acceptInvitation", reason: "no person — the single-use token is the credential, the account does not exist yet" },
+  { file: "modules/accounts/link/link-actions.ts", function: "resetPasswordWithLink", reason: "no person — the single-use token is the credential" },
+  { file: "modules/accounts/link/account-link.ts", function: "openLink", reason: "the link primitive — mints a token on an address; each caller answers for who may ask (admin/invite.ts on isAdmin, link-actions.ts on nobody)" },
   { file: "modules/permissions/groups-onboarding.ts", function: "joinGroupOnInvitation", reason: "no person — the invitation named the group, the token authorized the join" },
   { file: "modules/permissions/groups-onboarding.ts", function: "createAdminsGroupWith", reason: "no person — runs at installation, before any administrator exists (ADR 0027)" },
 
