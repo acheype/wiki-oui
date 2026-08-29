@@ -85,7 +85,7 @@ Une garde est rarement dans le fichier qui accède : `content.ts` lit la page, `
 
 #### Tables surveillées
 
-La liste des fichiers de la couche d'accès vit dans `lib/access-layer-files.json`, partagée avec ESLint (issue #23). Le scan en retire les balayages, le seed et `auth.ts` — 17 fichiers scannés pour chaque table.
+La liste des fichiers de la couche d'accès vit dans `lib/access-layer-files.json`, partagée avec ESLint (issue #23). Le scan en retire les balayages, le seed et `auth.ts` — 18 fichiers scannés pour chaque table.
 
 | Table | Lectures | Écritures | Pourquoi pas davantage |
 | --- | --- | --- | --- |

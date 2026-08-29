@@ -1,7 +1,7 @@
 // The end of an account (docs/permissions.md § Fin d'un compte): the two
 // permissions an administrator has over somebody else's account, and what the
 // system page says about them. Pure and client-safe, like
-// modules/permissions/groups.ts beside it — modules/accounts/admin/lifecycle.ts
+// modules/permissions/groups-nesting.ts — modules/accounts/admin/lifecycle.ts
 // loads what these functions need and writes their verdict back.
 // What the door asks of whoever is arriving lives elsewhere, in
 // modules/accounts/session/rules.ts.

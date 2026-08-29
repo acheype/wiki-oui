@@ -5,7 +5,7 @@
 // components only meet the query string client-side and read through a Server
 // Action like the other built-in system pages. No person to check anywhere
 // here — the token is the whole credential
-// (modules/accounts/invitation/link-actions.ts).
+// (modules/accounts/invitation/link.ts).
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -15,10 +15,12 @@ import {
   readAccountLink,
   requestPasswordReset,
   resetPasswordWithLink,
-} from "@/modules/accounts/invitation/link-actions";
-import type { AuthError } from "@/modules/accounts/session/auth-actions";
-import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
-import { identityRefusal } from "@/modules/accounts/session/rules";
+} from "@/modules/accounts/invitation/link";
+import {
+  type AuthError,
+  identityRefusal,
+  passwordRefusal,
+} from "@/modules/accounts/session/rules";
 import { wikiConfig } from "@/wiki.config";
 
 /**
@@ -58,11 +60,9 @@ export async function resetPasswordLink(input: {
   token: string;
   password: string;
 }): Promise<AuthError | void> {
-  if (input.password.length < MIN_PASSWORD_LENGTH) {
-    return {
-      error: `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`,
-    };
-  }
+  const tooShort = passwordRefusal(input.password);
+  if (tooShort) return { error: tooShort };
+
   const failure = await resetPasswordWithLink(input);
   if (failure) return { error: failure };
 

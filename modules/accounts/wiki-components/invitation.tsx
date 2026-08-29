@@ -13,7 +13,7 @@ import { readInvitation } from "@/modules/accounts/invitation/auth-actions";
 import { AcceptInvitationForm } from "@/modules/accounts/ui/accept-invitation-form";
 import { ResetPasswordForm } from "@/modules/accounts/ui/reset-password-form";
 import { Button } from "@/components/ui/button";
-import type { AccountLinkTarget } from "@/modules/accounts/invitation/link-actions";
+import type { AccountLinkTarget } from "@/modules/accounts/invitation/link";
 import { INVITATION_TOKEN_PARAM } from "@/modules/accounts/invitation/rules";
 import { authPagePath } from "@/wiki.config";
 

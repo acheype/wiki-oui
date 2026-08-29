@@ -1,12 +1,26 @@
 // What the door asks (docs/permissions.md § Comptes): the fields a person
 // fills to create an account, and what a refused sign-in is told. Pure and
-// client-safe, like modules/permissions/groups.ts — auth-actions.ts beside it
+// client-safe, like modules/permissions/groups-nesting.ts — auth-actions.ts beside it
 // carries these verdicts to BetterAuth, and modules/accounts/auth.ts reads the
 // refusal straight out of this file.
 
 import { z } from "zod";
 import { isValidUsername } from "@/modules/accounts/username";
 import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
+
+/** How a refusal travels back from a transport to the form that asked. */
+export type AuthError = { error: string };
+
+/**
+ * The floor BetterAuth enforces, said in the words the person reads. Both a
+ * new account and a reset by link land on it, so it is written once here
+ * rather than in each transport.
+ */
+export function passwordRefusal(password: string): string | null {
+  return password.length < MIN_PASSWORD_LENGTH
+    ? `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`
+    : null;
+}
 
 /**
  * What both ways of creating an account check before BetterAuth is asked
@@ -31,10 +45,7 @@ export function identityRefusal(input: {
   if (input.email !== undefined && !z.email().safeParse(input.email.trim()).success) {
     return "Cette adresse e-mail n'est pas valide.";
   }
-  if (input.password.length < MIN_PASSWORD_LENGTH) {
-    return `Le mot de passe doit faire au moins ${MIN_PASSWORD_LENGTH} caractères.`;
-  }
-  return null;
+  return passwordRefusal(input.password);
 }
 
 /**

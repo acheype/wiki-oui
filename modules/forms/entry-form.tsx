@@ -3,7 +3,7 @@
 // The generated entry form (docs/forms.md, ADR 0015): one form built from a
 // descriptor, shared by the three entry doors (<EntryForm>, /fiches?nouvelle,
 // /{slug}/edit). react-hook-form + Zod resolver derived from the descriptor;
-// the same schema validates server-side (form-actions.saveEntry).
+// the same schema validates server-side (entry-actions.saveEntry).
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Lock, Save } from "lucide-react";

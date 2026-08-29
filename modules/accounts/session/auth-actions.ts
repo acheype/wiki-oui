@@ -13,18 +13,17 @@ import { redirect } from "next/navigation";
 import {
   ACCOUNT_DISABLED_CODE,
   ACCOUNT_DISABLED_MESSAGE,
+  type AuthError,
   identityRefusal,
 } from "@/modules/accounts/session/rules";
 import {
   clearAccountLink,
   signUpRefusal,
-} from "@/modules/accounts/invitation/link-actions";
+} from "@/modules/accounts/invitation/link";
 import { auth } from "@/modules/accounts/auth";
 import { destinationWithinWiki } from "@/lib/destination";
 import { signInMethod } from "@/modules/accounts/username";
 import { wikiConfig } from "@/wiki.config";
-
-export type AuthError = { error: string };
 
 /** Where to land afterwards, home when nothing usable was carried. */
 function landing(destination: string | undefined): string {

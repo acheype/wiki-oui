@@ -103,7 +103,7 @@ Un groupe porte un **nom affiché** et un **slug** dérivé de lui à la créati
 
 Créer et modifier un groupe est réservé aux administrateurs en v0.5.
 
-Les **groupes effectifs** d'une personne (imbrication résolue) sont résolus **en mémoire**, une fois par requête HTTP, mémoïsés par le `cache()` de React — le motif déjà employé par `modules/pages/content.ts`. Deux requêtes suffisent : les appartenances directes de la personne, et les arêtes groupe→groupe, peu nombreuses par nature. La clôture est alors une fonction pure (`modules/permissions/groups.ts`), et ce sont les mêmes arêtes qui répondent au refus de cycle et au « via @Bureau › @Trésorerie » des pages système — là où une requête récursive n'aurait donné que la liste. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
+Les **groupes effectifs** d'une personne (imbrication résolue) sont résolus **en mémoire**, une fois par requête HTTP, mémoïsés par le `cache()` de React — le motif déjà employé par `modules/pages/content.ts`. Deux requêtes suffisent : les appartenances directes de la personne, et les arêtes groupe→groupe, peu nombreuses par nature. La clôture est alors une fonction pure (`modules/permissions/groups-nesting.ts`), et ce sont les mêmes arêtes qui répondent au refus de cycle et au « via @Bureau › @Trésorerie » des pages système — là où une requête récursive n'aurait donné que la liste. Jamais mis en session : retirer quelqu'un d'un groupe doit prendre effet immédiatement, pas au renouvellement de sa session.
 
 ## Le droit
 
@@ -245,7 +245,7 @@ Le fichier de configuration écrit des **usernames et des slugs de groupe** : c'
 
 ## Quel droit commande quelle action
 
-| Cran | Gestes |
+| Condition | Actions |
 | --- | --- |
 | Lecture | voir la page · voir le code wiki · historique et diffs · `/{slug}/raw` |
 | Écriture (+ lecture) | éditer · restaurer une révision · tags · uploader |
