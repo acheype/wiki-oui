@@ -1,10 +1,13 @@
 "use server";
 
-// The session transport (ADR 0023): the three Server Actions a person calls to
-// open, open again or close their own session. Nothing is decided here —
-// BetterAuth answers for the password, and rules.ts beside this file for the
-// identity a sign-up proposes. What is left is the round trip and where it
-// lands.
+// The transport of authentication (ADR 0023): the three Server Actions a
+// person calls to open, open again or close their own session. The public
+// half of the same subject is modules/accounts/auth.ts, the BetterAuth
+// configuration these three call.
+//
+// Nothing is decided here: BetterAuth answers for the password, and rules.ts
+// beside this file for the identity a sign-up proposes. What is left is the
+// round trip and where it lands.
 
 import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
@@ -15,7 +18,7 @@ import {
   ACCOUNT_DISABLED_MESSAGE,
   type AuthError,
   identityRefusal,
-} from "@/modules/accounts/session/rules";
+} from "@/modules/accounts/auth/rules";
 import {
   clearAccountLink,
   signUpRefusal,

@@ -9,7 +9,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { readInvitation } from "@/modules/accounts/invitation/auth-actions";
+import { readInvitation } from "@/modules/accounts/invitation/actions";
 import { AcceptInvitationForm } from "@/modules/accounts/ui/accept-invitation-form";
 import { ResetPasswordForm } from "@/modules/accounts/ui/reset-password-form";
 import { Button } from "@/components/ui/button";

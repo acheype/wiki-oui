@@ -16,7 +16,7 @@
 import { KeyRound, MailWarning } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
-import { requestPasswordLink } from "@/modules/accounts/invitation/auth-actions";
+import { requestPasswordLink } from "@/modules/accounts/invitation/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

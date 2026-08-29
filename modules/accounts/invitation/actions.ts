@@ -20,7 +20,7 @@ import {
   type AuthError,
   identityRefusal,
   passwordRefusal,
-} from "@/modules/accounts/session/rules";
+} from "@/modules/accounts/auth/rules";
 import { wikiConfig } from "@/wiki.config";
 
 /**

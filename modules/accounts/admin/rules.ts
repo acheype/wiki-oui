@@ -4,7 +4,7 @@
 // modules/permissions/groups-nesting.ts — modules/accounts/admin/lifecycle.ts
 // loads what these functions need and writes their verdict back.
 // What the door asks of whoever is arriving lives elsewhere, in
-// modules/accounts/session/rules.ts.
+// modules/accounts/auth/rules.ts.
 
 import { plural } from "@/lib/format";
 import { REFUSALS } from "@/modules/permissions/rules";

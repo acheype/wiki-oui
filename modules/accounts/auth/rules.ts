@@ -1,6 +1,6 @@
 // What the door asks (docs/permissions.md § Comptes): the fields a person
 // fills to create an account, and what a refused sign-in is told. Pure and
-// client-safe, like modules/permissions/groups-nesting.ts — auth-actions.ts beside it
+// client-safe, like modules/permissions/groups-nesting.ts — actions.ts beside it
 // carries these verdicts to BetterAuth, and modules/accounts/auth.ts reads the
 // refusal straight out of this file.
 
@@ -26,8 +26,8 @@ export function passwordRefusal(password: string): string | null {
  * What both ways of creating an account check before BetterAuth is asked
  * anything: the fields a person fills, in the words they filled them. It lives
  * here rather than in either transport because both reach it — free sign-up
- * from auth-actions.ts beside this file, an accepted invitation from
- * invitation/auth-actions.ts — and a `"use server"` file exports no
+ * from actions.ts beside this file, an accepted invitation from
+ * invitation/actions.ts — and a `"use server"` file exports no
  * synchronous function to share.
  */
 export function identityRefusal(input: {
