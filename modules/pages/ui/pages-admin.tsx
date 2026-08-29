@@ -46,7 +46,7 @@ import {
 // server-only imports (ADR 0025) a client bundle cannot take on, even for a
 // function that never touches them.
 import { hasForm } from "@/modules/pages/entry-page";
-import type { ManagedPage } from "@/modules/pages/rights";
+import type { ManagedPage } from "@/modules/pages/access/admin-rights";
 import {
   type AccessRule,
   type AclDirectory,

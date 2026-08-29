@@ -7,7 +7,7 @@ import {
   getPageRights,
   setPageRights,
   transferPageOwnership,
-} from "@/modules/pages/rights";
+} from "@/modules/pages/access/page-rights";
 import {
   type AccessRule,
   type AclDirectory,

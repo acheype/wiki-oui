@@ -14,7 +14,7 @@ import {
   handPagesTo,
   listManagedPages,
   replacePagesRights,
-} from "@/modules/pages/rights";
+} from "@/modules/pages/access/admin-rights";
 import { type AclDirectory, refusalMessage } from "@/modules/permissions/rules";
 
 // Server Actions of `gerer-pages` (docs/permissions.md § Les pages système). Reading

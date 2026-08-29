@@ -57,7 +57,7 @@ import {
   replacementNote,
 } from "@/modules/permissions/bulk";
 import { type MemberRef, refGroupSlug, refUsername } from "@/modules/permissions/groups-nesting";
-import type { ManagedPage } from "@/modules/pages/rights";
+import type { ManagedPage } from "@/modules/pages/access/admin-rights";
 import {
   type AccessRule,
   type AclDirectory,

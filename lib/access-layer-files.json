@@ -1,5 +1,7 @@
 [
   "modules/pages/access/guards.ts",
+  "modules/pages/access/page-rights.ts",
+  "modules/pages/access/admin-rights.ts",
   "modules/pages/content.ts",
   "modules/pages/revisions.ts",
   "modules/pages/rights.ts",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ManagedPage } from "@/modules/pages/rights";
+import type { ManagedPage } from "@/modules/pages/access/admin-rights";
 import { EVERYTHING, coherent, pagesMatching } from "./filters";
 
 function managed(slug: string, form?: { slug: string; name: string }): ManagedPage {

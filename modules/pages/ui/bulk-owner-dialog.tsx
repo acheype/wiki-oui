@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { InfoNote } from "@/components/ui/info-note";
 import { lotSubject } from "@/modules/permissions/bulk";
-import type { ManagedPage } from "@/modules/pages/rights";
+import type { ManagedPage } from "@/modules/pages/access/admin-rights";
 import type { Identity } from "@/modules/permissions/rules";
 import {
   ownerTransferNote,

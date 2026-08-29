@@ -10,7 +10,7 @@
 // server-only imports (ADR 0025) a client bundle cannot take on, even for a
 // function that never touches them.
 import { hasForm, isEntryPage } from "@/modules/pages/entry-page";
-import type { ManagedPage } from "@/modules/pages/rights";
+import type { ManagedPage } from "@/modules/pages/access/admin-rights";
 
 /** The three answers to « Type », and what each keeps of the list. */
 export const KINDS = [

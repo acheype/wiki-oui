@@ -12,7 +12,7 @@ import {
 // a missing check would change — the refusal comes back, and the write never
 // reaches the database.
 //
-// Spans modules/pages/content.ts, modules/pages/rights.ts and
+// Spans modules/pages/content.ts, modules/pages/access/page-rights.ts and
 // modules/pages/revisions.ts on purpose: this is a test of
 // modules/pages/access/guards.ts's own guards (assertStructuring,
 // assertAddress, assertCanWrite), exercised through every public function
@@ -67,7 +67,7 @@ vi.mock("@/modules/permissions/groups-directory", () => ({
 const { deletePageBySlug, renamePageSlug, writePageContent } = await import(
   "@/modules/pages/content"
 );
-const { setPageRights, transferPageOwnership } = await import("@/modules/pages/rights");
+const { setPageRights, transferPageOwnership } = await import("@/modules/pages/access/page-rights");
 const { writeRestoredRevision } = await import("@/modules/pages/revisions");
 
 /** A page Marie owns, closed to everyone else in both senses. */
