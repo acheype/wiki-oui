@@ -15,7 +15,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type PagesAdminData,
   loadManagedPages,
-} from "@/modules/pages/admin-actions";
+} from "@/modules/pages/admin/actions";
 import { BulkOwnerDialog } from "@/modules/pages/ui/bulk-owner-dialog";
 import { BulkRightsDialog } from "@/modules/pages/ui/bulk-rights-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -40,7 +40,7 @@ import {
   coherent,
   formsOf,
   pagesMatching,
-} from "@/modules/pages/filters/filters";
+} from "@/modules/pages/admin/filters";
 // hasForm from modules/pages/entry-page.ts, not modules/pages/content.ts:
 // this is a Client Component, and modules/pages/content.ts carries
 // server-only imports (ADR 0025) a client bundle cannot take on, even for a

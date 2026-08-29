@@ -3,7 +3,7 @@
 //
 // Stays at the root of modules/forms/, not nested in entry-title/, because
 // restoredEntryValues is a real cross-module dependency: modules/pages/
-// revisions.ts and modules/pages/actions.ts read it for restoring a fiche
+// revisions.ts and modules/pages/content-actions.ts read it for restoring a fiche
 // (an entry is a page — modules/pages/entry-page.ts). Nesting it would make
 // it private (ADR 0029, wikioui/module-seam) and break both callers.
 

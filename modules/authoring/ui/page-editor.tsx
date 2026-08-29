@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { discardUploadedFile, lintPage, savePage } from "@/modules/pages/actions";
+import { discardUploadedFile, lintPage, savePage } from "@/modules/pages/content-actions";
 import type { PageWarning } from "@/modules/pages/lint";
 import { Button } from "@/components/ui/button";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";

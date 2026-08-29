@@ -8,7 +8,7 @@
 import { KeyRound } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { handPagesOver } from "@/modules/pages/admin-actions";
+import { handPagesOver } from "@/modules/pages/admin/actions";
 import { PersonPicker } from "@/modules/pages/ui/person-picker";
 import { Button } from "@/components/ui/button";
 import {

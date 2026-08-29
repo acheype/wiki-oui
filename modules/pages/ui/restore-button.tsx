@@ -4,7 +4,7 @@ import { Loader2, RotateCcw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { restoreRevision } from "@/modules/pages/actions";
+import { restoreRevision } from "@/modules/pages/content-actions";
 import { Button } from "@/components/ui/button";
 
 export function RestoreButton({ revisionId }: { revisionId: string }) {

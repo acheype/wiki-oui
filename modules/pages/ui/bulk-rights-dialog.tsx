@@ -17,7 +17,7 @@ import {
   describeGrantTarget,
   giveAccess,
   replaceRights,
-} from "@/modules/pages/admin-actions";
+} from "@/modules/pages/admin/actions";
 import { AclInput, NO_FLOOR, PrincipalBox } from "@/modules/permissions/acl-input";
 import { Button } from "@/components/ui/button";
 import {

@@ -3,7 +3,7 @@
 import { Trash2 } from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { deletePage } from "@/modules/pages/actions";
+import { deletePage } from "@/modules/pages/content-actions";
 import {
   AlertDialog,
   AlertDialogAction,

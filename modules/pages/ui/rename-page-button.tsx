@@ -1,7 +1,7 @@
 "use client";
 
 import { Signpost } from "lucide-react";
-import { countSlugReferences, renamePage } from "@/modules/pages/actions";
+import { countSlugReferences, renamePage } from "@/modules/pages/content-actions";
 import {
   RenameSlugDialog,
   impactParts,

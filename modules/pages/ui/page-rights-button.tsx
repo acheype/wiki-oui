@@ -13,7 +13,7 @@ import {
   type PageRightsForm,
   loadPageRights,
   savePageRights,
-} from "@/modules/pages/rights-actions";
+} from "@/modules/pages/rights/actions";
 import { Field } from "@/modules/forms/field-widget";
 import { OwnerTransfer } from "@/modules/pages/ui/owner-transfer";
 import { signInLockout } from "@/modules/pages/ui/labels";
