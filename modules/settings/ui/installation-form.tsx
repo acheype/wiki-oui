@@ -2,7 +2,7 @@
 
 import { Info, Sprout } from "lucide-react";
 import { useId } from "react";
-import { installWiki } from "@/modules/settings/actions";
+import { installWiki } from "../installation/actions";
 import { AuthFormError, useAuthForm } from "@/components/ui/auth-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
