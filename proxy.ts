@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { INSTALLATION_PATH } from "@/modules/settings/installation";
-import { isInstalled } from "@/modules/settings/settings";
+import { isInstalled } from "@/modules/settings/state";
 
 // While the wiki has never been installed, every address shows the
 // installation service — and once it has, that service stops existing (ADR

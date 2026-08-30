@@ -425,7 +425,7 @@ export const EXEMPTIONS: readonly Exemption[] = [
 
   // --- Settings writes (issue #23) -------------------------------------------
 
-  { file: "modules/settings/settings.ts", function: "markInstalled", reason: "the one-way door — runs at installation, before any administrator exists (ADR 0027)" },
+  { file: "modules/settings/installation/state.ts", function: "markInstalled", reason: "the one-way door — runs at installation, before any administrator exists (ADR 0027)" },
 ];
 
 /**

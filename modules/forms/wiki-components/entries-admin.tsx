@@ -17,7 +17,7 @@ import {
 } from "@/modules/forms/entry-actions";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
-import { EntryForm } from "../entry-form";
+import { EntryForm } from "../ui/entry-form";
 
 // Built-in component rendered by the `fiches` special page (ADR 0014). The
 // system page reads the URL via useSearchParams, hence the Suspense boundary.
