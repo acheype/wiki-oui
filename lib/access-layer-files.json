@@ -17,7 +17,7 @@
   "modules/permissions/groups-onboarding.ts",
   "modules/permissions/access/guards.ts",
   "modules/permissions/person.ts",
-  "modules/settings/installation/state.ts",
+  "modules/settings/installed.ts",
   "lib/slug-rename-db.ts",
   "modules/forms/entry-title/sweep.ts",
   "modules/forms/field-rename/sweep.ts",

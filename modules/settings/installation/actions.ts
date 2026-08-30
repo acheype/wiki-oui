@@ -7,7 +7,7 @@ import { auth } from "@/modules/accounts/auth";
 import { createAdminsGroupWith } from "@/modules/permissions/groups-onboarding";
 import { INSTALLER, MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { assignPagesOwner } from "@/modules/pages/rights";
-import { isInstalled, markInstalled } from "./state";
+import { isInstalled, markInstalled } from "../installed";
 import { specialSlugs, wikiConfig } from "@/wiki.config";
 
 export type InstallError = { error: string };
