@@ -9,7 +9,7 @@ import {
   type FormDescriptor,
   fieldReferencePattern,
   valueToText,
-} from "./form-descriptor";
+} from "../form-descriptor";
 
 // Escapes MDX-significant characters in author-supplied text. Component and
 // expression openers become HTML entities (they render as literal `<`/`{`);

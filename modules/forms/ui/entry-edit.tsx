@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import type { EntryFormData } from "@/modules/forms/entry-actions";
-import { EntryForm } from "@/modules/forms/entry-form";
+import { EntryForm } from "./entry-form";
 
 export function EntryEdit({ form }: { form: EntryFormData }) {
   return (

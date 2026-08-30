@@ -29,7 +29,7 @@ import {
 } from "@/modules/forms/form-descriptor";
 import { slugify } from "@/lib/slug";
 import { authPagePath } from "@/wiki.config";
-import { formSourcedFields, toWidgetSpec } from "@/modules/forms/ui/field-adapter";
+import { formSourcedFields, toWidgetSpec } from "./field-adapter";
 
 export function EntryForm({
   form,

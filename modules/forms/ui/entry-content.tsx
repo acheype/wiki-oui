@@ -1,6 +1,6 @@
 import { EntryView } from "@/modules/forms/ui/entry-view";
 import { Prose } from "@/components/ui/prose";
-import { renderTemplateSource } from "@/modules/forms/entry-render";
+import { renderTemplateSource } from "../entry/render";
 import { formSourcedValues, readEntryData } from "@/modules/forms/form-descriptor";
 import { readableFormById } from "@/modules/forms/forms";
 import { renderMdx } from "@/modules/authoring/mdx";

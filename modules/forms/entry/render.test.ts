@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { FormDescriptor } from "./form-descriptor";
-import { escapeMdxText, renderTemplateSource } from "./entry-render";
+import type { FormDescriptor } from "../form-descriptor";
+import { escapeMdxText, renderTemplateSource } from "./render";
 
 describe("escapeMdxText", () => {
   it("neutralizes component and expression openers", () => {

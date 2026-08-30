@@ -6,7 +6,7 @@
 // next door, in form-actions.ts.
 
 import { revalidatePath } from "next/cache";
-import { scopeRefusal } from "@/modules/forms/refusal";
+import { scopeRefusal } from "./entry/refusal";
 import {
   type EntryData,
   type FormDescriptor,

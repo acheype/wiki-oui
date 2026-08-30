@@ -1,5 +1,5 @@
 import { getEntryForm } from "@/modules/forms/entry-actions";
-import { EntryForm as EntryFormClient } from "@/modules/forms/entry-form";
+import { EntryForm as EntryFormClient } from "../ui/entry-form";
 import { cn } from "@/lib/utils";
 
 // Built-in that inserts a form's entry form into any page (docs/forms.md).
