@@ -2,9 +2,9 @@
 // surface, and the resolved context the view renderers consume. Pure types +
 // tiny resolution helpers — no React.
 
-import type { EntriesViewData } from "@/modules/entries-view/actions";
-import type { Period } from "@/modules/entries-view/rules";
-import type { ViewEntry } from "@/modules/entries-view/rules";
+import type { EntriesViewData } from "../core/actions";
+import type { Period } from "../core/rules";
+import type { ViewEntry } from "../view-entry";
 
 export const VIEW_NAMES = [
   "list",

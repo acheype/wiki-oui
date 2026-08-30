@@ -8,15 +8,7 @@ import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
 import { valueToText } from "@/modules/forms/form-descriptor";
 import { isPseudoField } from "@/modules/forms/pseudo-fields";
 import { fold } from "@/lib/fold";
-
-/** One entry as the view consumes it: referenced field values only. */
-export interface ViewEntry {
-  slug: string;
-  title: string;
-  // Field values under their names; pseudo-fields under their $ names
-  // ($createdAt/$editedAt as ISO datetimes, $form as the form slug).
-  values: Record<string, unknown>;
-}
+import type { ViewEntry } from "../view-entry";
 
 /** The value a view reads for a field name (pseudo-fields included). */
 export function entryValue(entry: ViewEntry, field: string): unknown {

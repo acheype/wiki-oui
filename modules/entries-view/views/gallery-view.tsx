@@ -8,7 +8,7 @@
 import { ChevronLeft, ChevronRight, ImageIcon, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { ViewEntry } from "@/modules/entries-view/rules";
+import type { ViewEntry } from "../view-entry";
 import { imageUrl } from "@/lib/image-url";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import type { ViewContext } from "./types";

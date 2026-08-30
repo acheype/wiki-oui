@@ -10,7 +10,7 @@ import Autoplay from "embla-carousel-autoplay";
 import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { ViewEntry } from "@/modules/entries-view/rules";
+import type { ViewEntry } from "../view-entry";
 import { imageUrl } from "@/lib/image-url";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";

@@ -7,8 +7,8 @@
 
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import { entryValue } from "@/modules/entries-view/rules";
-import type { ViewEntry } from "@/modules/entries-view/rules";
+import { entryValue } from "../core/rules";
+import type { ViewEntry } from "../view-entry";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 import { WikiFrame } from "@/modules/pages/wiki-frame";

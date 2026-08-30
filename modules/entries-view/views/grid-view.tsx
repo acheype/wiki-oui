@@ -7,7 +7,7 @@
 
 import { ImageIcon } from "lucide-react";
 import { imageUrl } from "@/lib/image-url";
-import type { ViewEntry } from "@/modules/entries-view/rules";
+import type { ViewEntry } from "../view-entry";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";

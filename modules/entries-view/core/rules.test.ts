@@ -12,8 +12,8 @@ import {
   searchEntries,
   sortEntries,
   splitPseudo,
-  type ViewEntry,
 } from "./rules";
+import type { ViewEntry } from "../view-entry";
 import { sampleEntries, FALLBACK_SAMPLE_DESCRIPTOR } from "@/modules/forms/sample-entries";
 
 const entry = (
