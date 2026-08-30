@@ -41,13 +41,17 @@ The BazaR equivalent: structured content next to prose. A **FormBuilder** (14 fi
 
 Reading those entries back. `<EntriesView>` packs the nine entries-display views (list, grid, table, map, calendar, agenda, directory, carousel, photo gallery) into a single component, with instant client-side search/filter/sort, multi-form sources, per-field color & icon, and a shared entry popup. Along the way: automatic entry titles moved from a read-time computation to a write-time one (stored, never stale — [ADR 0020](docs/adr/0020-automatic-title-stored-at-write.md)), a chrome-free `/{slug}/iframe` handler behind the `<Iframe>` component, and a Docker image with a step-by-step VPS deployment guide.
 
+### v0.5 — Users & rights
+
+Who sees what, who edits what. BetterAuth authenticates, WikiOui authorizes: three access levels (visitor, user, admin), nested groups, and a scope-based rights model at four tiers — page, form, field and site configuration. System pages for user/group management and page rights; account pages (sign in, sign up, forgot password, invitation) as regular wiki pages; an irreversible installation flag. A single access layer, enforced by ESLint and verified at build time. Along the way, the codebase was reorganized by domain concept (`modules/<concept>/`, [ADR 0029](docs/adr/0029-modules-by-domain-concept.md) and [ADR 0030](docs/adr/0030-deep-modules.md)) — depth-based visibility enforced by an ESLint rule, each module aiming for a deep interface (few exports, much hidden behavior), lazy wiki-component loading, and a pinned editing toolbar.
+
 ### Backlog (not yet scheduled)
 
-Access rights & authentication, admin pages (dashboard, site management), search/filter by tags, an overlay-modal history view, a hot-editable `Settings` table, and the per-feature leftovers (conditional fields, exports, the remaining YesWiki views). See [`docs/architecture.md`](docs/architecture.md) for the full list.
+Admin pages (dashboard, site management), file management gallery, search/filter by tags, an overlay-modal history view, a hot-editable `Settings` table, rate limiting, and the per-feature leftovers (conditional fields, exports, the remaining YesWiki views). See [`docs/architecture.md`](docs/architecture.md) for the full list.
 
 ## Tech stack
 
-Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind CSS · CodeMirror 6 (editor) · Zod · `next-mdx-remote` + `remark-gfm` + `mdx-annotations` (MDX pipeline) · FullCalendar, Embla, Leaflet (entries views) · Vitest · pnpm.
+Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind CSS · CodeMirror 6 (editor) · Zod · BetterAuth (authentication) · `next-mdx-remote` + `remark-gfm` + `mdx-annotations` (MDX pipeline) · FullCalendar, Embla, Leaflet (entries views) · Vitest · pnpm.
 
 ## Getting started
 
