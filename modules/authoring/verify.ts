@@ -17,7 +17,7 @@ import {
   fieldProp,
 } from "./descriptor";
 import type { ComponentBuilderSpec } from "./descriptors";
-import { readDescriptorSource } from "./descriptor-source";
+import { readDescriptorSource } from "./registry/descriptor-source";
 import {
   listWikiComponentFiles,
   tagCollisionMessage,

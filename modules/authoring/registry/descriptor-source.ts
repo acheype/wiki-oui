@@ -1,6 +1,6 @@
 import { LineCounter, isMap, isScalar, parseDocument } from "yaml";
-import type { LineLookup } from "./descriptor";
-import { type WikiComponentModule, readWikiComponentFile } from "./registry/scan";
+import type { LineLookup } from "../descriptor";
+import { type WikiComponentModule, readWikiComponentFile } from "./scan";
 
 // Reads a co-located descriptor YAML *with source positions* (ADR 0013): the
 // raw parsed data for the meta-schema (ADR 0015 — typing happens at

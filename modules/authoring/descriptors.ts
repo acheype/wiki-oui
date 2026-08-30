@@ -5,7 +5,7 @@ import {
   pascalCase,
   validateDescriptor,
 } from "./descriptor";
-import { readDescriptorSource } from "./descriptor-source";
+import { readDescriptorSource } from "./registry/descriptor-source";
 import {
   type WikiComponentModule,
   listWikiComponentFiles,
