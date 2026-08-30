@@ -1,7 +1,7 @@
 // Typed config module (ADR 0004): nothing here is hot-editable in the MVP.
 // Operator-facing settings move to a `Settings` table once auth/admin lands.
 
-import type { AccessRule } from "@/lib/permissions";
+import type { AccessRule } from "@/modules/permissions/rules";
 
 export interface WikiConfig {
   /** Target of the `/` redirect. */
@@ -22,9 +22,9 @@ export interface WikiConfig {
     footer: string;
   };
   /**
-   * Special pages hosting an account screen (ADR 0028). Every screen of the
-   * wiki is a page, signing in included: these slugs are named here because
-   * the chrome and the mails have to link to them.
+   * Special pages hosting an account system page (ADR 0028). Every system
+   * page of the wiki is a page, signing in included: these slugs are named
+   * here because the chrome and the mails have to link to them.
    */
   authPages: {
     signIn: string;
@@ -39,7 +39,7 @@ export interface WikiConfig {
    * who may create a page and a form, and what a page is born with. This file
    * is the only place a human writes rights by hand, and the only one where no
    * cascade can play — it names usernames and group slugs all the same, so
-   * that what it writes reads like what a screen shows (ADR 0024).
+   * that what it writes reads like what the interface shows (ADR 0024).
    *
    * The defaults are *copied* at creation, never linked (ADR 0026): changing
    * one here touches nothing that already exists.
@@ -102,7 +102,7 @@ export const wikiConfig = {
     forgotPassword: "mot-de-passe-oublie",
     invitation: "invitation",
   },
-  // formulaires/fiches host the form-administration screens (ADR 0014),
+  // formulaires/fiches host the form-administration system pages (ADR 0014),
   // gerer-utilisateurs the accounts and groups ones and gerer-pages the rights
   // of the whole wiki (docs/permissions.md).
   otherSpecialPages: [
@@ -158,7 +158,7 @@ export const specialSlugs: readonly string[] = [
   ...wikiConfig.otherSpecialPages,
 ];
 
-/** The wiki page an account screen lives on, as a link (`/connexion`). */
+/** The wiki page an account system page lives on, as a link (`/connexion`). */
 export function authPagePath(page: keyof WikiConfig["authPages"]): string {
   return `/${wikiConfig.authPages[page]}`;
 }

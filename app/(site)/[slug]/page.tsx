@@ -2,23 +2,20 @@ import { FilePlus2 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { DoubleClickToEdit } from "@/components/page/double-click-to-edit";
-import { EntryContent } from "@/components/forms/entry-content";
-import { AccessRefused } from "@/components/page/access-refused";
-import { PageActions } from "@/components/page/page-actions";
-import { Prose } from "@/components/page/prose";
+import { DoubleClickToEdit } from "@/modules/pages/ui/double-click-to-edit";
+import { EntryContent } from "@/modules/forms/ui/entry-content";
+import { AccessRefused } from "@/modules/pages/ui/access-refused";
+import { PageActions } from "@/modules/pages/ui/page-actions";
+import { Prose } from "@/components/ui/prose";
 import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
-import { renderMdx } from "@/lib/mdx";
-import {
-  personCanCreatePage,
-  personPermissions,
-  getPageWithCurrent,
-  isEntryPage,
-  isRefused,
-} from "@/lib/pages";
+import { renderMdx } from "@/modules/authoring/mdx";
+import { isEntryPage } from "@/modules/pages/entry-page";
+import { getPageWithCurrent } from "@/modules/pages/content";
+import { isRefused, currentCanCreatePage } from "@/modules/pages/rights";
+import { currentPermissions } from "@/modules/permissions/person";
 import { isValidSlug } from "@/lib/slug";
-import { displayName } from "@/lib/username";
+import { displayName } from "@/modules/accounts/username";
 
 // Wiki content is edited live; never serve a build-time snapshot.
 export const dynamic = "force-dynamic";
@@ -44,7 +41,7 @@ export default async function ShowPage({ params }: Props) {
 
   const page = await getPageWithCurrent(slug);
   if (!page) {
-    return (await personCanCreatePage()) ? (
+    return (await currentCanCreatePage()) ? (
       <PageNotYetCreated slug={slug} />
     ) : (
       <PageNotFound slug={slug} />
@@ -54,7 +51,7 @@ export default async function ShowPage({ params }: Props) {
     return <AccessRefused slug={slug} ownerName={page.ownerName} />;
   }
 
-  const permissions = await personPermissions(page);
+  const permissions = await currentPermissions(page);
 
   return (
     <div className="flex flex-1 flex-col">

@@ -1,5 +1,5 @@
-import { Prose } from "@/components/page/prose";
-import { renderMdx } from "@/lib/mdx";
+import { Prose } from "@/components/ui/prose";
+import { renderMdx } from "@/modules/authoring/mdx";
 
 // ComponentBuilder preview (docs/component-builder.md): the modal's iframe
 // loads GET /api/render?source=… — a chrome-free page (outside the (site)

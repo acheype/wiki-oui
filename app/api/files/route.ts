@@ -1,8 +1,8 @@
-import { FILE_FAMILIES } from "@/lib/component-descriptor";
-import { fileFamily, listFiles, saveFile } from "@/lib/files";
+import { FILE_FAMILIES } from "@/modules/authoring/descriptor";
+import { fileFamily, listFiles, saveFile } from "@/modules/files/storage";
 import { formatFileSize } from "@/lib/format";
-import { canContributeSomewhere } from "@/lib/pages";
-import { UPLOAD_REFUSED } from "@/lib/permissions";
+import { canContributeSomewhere } from "@/modules/pages/rights";
+import { REFUSALS } from "@/modules/permissions/rules";
 import { wikiConfig } from "@/wiki.config";
 
 // Upload service (ADR 0012): a mutation carried by an API service because
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   // A wiki configured open therefore accepts anonymous uploads — that is
   // intended, and rate limiting is another job (backlog).
   if (!(await canContributeSomewhere())) {
-    return Response.json({ error: UPLOAD_REFUSED }, { status: 403 });
+    return Response.json({ error: REFUSALS.upload }, { status: 403 });
   }
 
   const form = await request.formData().catch(() => null);

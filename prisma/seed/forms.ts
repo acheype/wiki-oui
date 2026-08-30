@@ -4,7 +4,7 @@
 // migration table (docs/reference/yeswiki-form-migration.md). They exist so a
 // fresh install has real forms + entries to exercise <EntriesView> with.
 
-import type { FormDescriptor } from "../../lib/form-descriptor";
+import type { FormDescriptor } from "../../modules/forms/form-descriptor";
 
 export interface FormSeed {
   slug: string;

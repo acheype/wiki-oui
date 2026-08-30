@@ -22,7 +22,7 @@ model User {
   image           String? // avatar, uploaded into files/ (ADR 0012)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
-  username        String? // public identifier, slug pattern (lib/username.ts)
+  username        String? // public identifier, slug pattern (modules/accounts/username.ts)
   // The plugin's, and always equal to `username` here: it exists to keep the
   // casing someone typed while `username` is stored normalized, and our
   // usernameValidator admits none. Not a display name — that is `name`.
@@ -214,8 +214,9 @@ model Page {
   // collection on the other — and in an ordinary wiki the vast majority of
   // pages have no row in PageAcl at all, so the common case is decided
   // without touching it. No default here on purpose: the wiki's defaults are
-  // copied at creation by lib/permissions.ts, never linked (ADR 0026), and a
-  // second default in the database would be a second source of truth.
+  // copied at creation by bornWith (modules/pages/queries/queries.ts), never
+  // linked (ADR 0026), and a second default in the database would be a second
+  // source of truth.
   readScope  Scope
   writeScope Scope
   acls       PageAcl[]

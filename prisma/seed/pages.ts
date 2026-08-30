@@ -1,6 +1,6 @@
 // Example MDX pages seeded alongside the special pages (docs/entries-view.md):
 // the WikiOui counterpart of YesWiki's default install content (see
-// docs/reference/yeswiki-seed/), minus every admin/config screen (no auth, no
+// docs/reference/yeswiki-seed/), minus every admin/config system page (no auth, no
 // theme editor, no config file, no user management — none of it exists yet).
 // Regular pages, not "special" ones: created once, then left alone like any
 // other page a user might edit.

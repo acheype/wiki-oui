@@ -7,7 +7,7 @@ export function isValidSlug(value: string): boolean {
 
 /**
  * The one URL segment WikiOui serves itself (ADR 0012, 0028): every other
- * address is a wiki page. The installation screen lives under it too and is
+ * address is a wiki page. The installation service lives under it too and is
  * presented by rewriting whatever address was asked for (ADR 0027), so
  * `installation` stays an ordinary slug — free for a page, which opens as
  * soon as the wiki is installed.

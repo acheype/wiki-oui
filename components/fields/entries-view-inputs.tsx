@@ -24,7 +24,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Plus, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { listEntryFieldChoices, listFormChoices } from "@/app/form-actions";
+import { listEntryFieldChoices } from "@/modules/forms/entry-actions";
+import { listFormChoices } from "@/modules/forms/form-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,17 +37,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Icon } from "@/components/wiki/internal/icon";
-import type { LiteralValue, StructuredValue } from "@/lib/component-descriptor";
+import { Icon } from "@/components/ui/icon";
+import type { LiteralValue, StructuredValue } from "@/modules/authoring/descriptor";
 import {
   type EntryFieldChoice,
   type FieldChoiceOption,
   autoColorMapping,
   fieldChoiceOptions,
   resolveColorMapping,
-} from "@/lib/entry-fields";
-import type { FormFieldType } from "@/lib/form-descriptor";
-import type { PseudoField } from "@/lib/pseudo-fields";
+} from "@/modules/forms/entry-fields";
+import type { FormFieldType } from "@/modules/forms/form-descriptor";
+import type { PseudoField } from "@/modules/forms/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { IconPicker } from "./icon-picker";
 

@@ -2,27 +2,24 @@ import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { EntryView } from "@/components/forms/entry-view";
-import { AccessRefused } from "@/components/page/access-refused";
-import { Prose } from "@/components/page/prose";
-import { CodeToggle } from "@/components/revisions/code-toggle";
-import { DiffView } from "@/components/revisions/diff-view";
-import { RestoreButton } from "@/components/revisions/restore-button";
-import { RevisionTimeline } from "@/components/revisions/timeline";
+import { EntryView } from "@/modules/forms/ui/entry-view";
+import { AccessRefused } from "@/modules/pages/ui/access-refused";
+import { Prose } from "@/components/ui/prose";
+import { CodeToggle } from "@/modules/pages/ui/code-toggle";
+import { DiffView } from "@/modules/pages/ui/diff-view";
+import { RestoreButton } from "@/modules/pages/ui/restore-button";
+import { RevisionTimeline } from "@/modules/pages/ui/timeline";
 import { Button } from "@/components/ui/button";
-import { readableForm } from "@/lib/field-rights-db";
 import { formatDateTime } from "@/lib/format";
-import { getFormById } from "@/lib/forms";
-import { renderMdx } from "@/lib/mdx";
-import {
-  personCanWrite,
-  getPageWithRevisions,
-  isEntryPage,
-  isRefused,
-} from "@/lib/pages";
+import { readableFormById } from "@/modules/forms/forms";
+import { renderMdx } from "@/modules/authoring/mdx";
+import { isEntryPage } from "@/modules/pages/entry-page";
+import { getPageWithRevisions } from "@/modules/pages/revisions";
+import { isRefused } from "@/modules/pages/rights";
+import { currentCanWrite } from "@/modules/permissions/person";
 import { isValidSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
-import { displayName } from "@/lib/username";
+import { displayName } from "@/modules/accounts/username";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +54,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
 
   const page = await getPageWithRevisions(slug);
   if (!page) redirect(`/${slug}`);
-  // The history is a read action, so a refusal lands on the same screen the
+  // The history is a read action, so a refusal lands on the same view the
   // page itself would have shown — reached from its own address.
   if (isRefused(page)) {
     return <AccessRefused slug={slug} ownerName={page.ownerName} />;
@@ -70,18 +67,18 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
   const revisions = page.revisions; // oldest first
   // Reading the history is a read action, putting a revision back is a write
   // (docs/permissions.md § Quel droit commande quelle action): whoever may only
-  // read gets the whole screen, minus the button.
-  const writable = await personCanWrite(page);
+  // read gets the whole page, minus the button.
+  const writable = await currentCanWrite(page);
 
   // An entry snapshots JSON `data`, not MDX (ADR 0014): the code/diff views
   // work on a pretty-printed JSON of the values, the preview renders the
   // entry's default view (below).
-  const form = isEntryPage(page) ? await getFormById(page.formId) : null;
   // The history is another way of reading a fiche, so the fields cut from its
   // rendering are cut from every revision of it too (docs/permissions.md §
   // Champ) — the JSON of a snapshot would otherwise hand over what the fiche
-  // itself withholds.
-  const seen = form ? await readableForm(form.schema) : null;
+  // itself withholds. The gate makes that cut as it reads the form.
+  const form = isEntryPage(page) ? await readableFormById(page.formId) : null;
+  const seen = form?.seen ?? null;
   const sourceOf = (revision: { content: string | null; data: unknown }) =>
     seen
       ? JSON.stringify(seen.readableValues(revision.data), null, 2)

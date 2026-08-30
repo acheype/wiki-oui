@@ -1,6 +1,6 @@
 # Formulaires & fiches (spec WikiOui v0.3)
 
-Reprise de la fonctionnalité **Bazar** de YesWiki : un **formulaire** définit une structure de champs ; une **fiche** est une instance saisie via ce formulaire. Décisions de fond dans les ADR [0014](adr/0014-formulaires-et-fiches.md) (modèle) et [0015](adr/0015-shared-field-renderer-zod.md) (renderer partagé + Zod) ; analyse préalable dans [`research/formulaires-fiches-architecture.md`](research/formulaires-fiches-architecture.md). La table de migration depuis l'ancien format YesWiki (`***`) est dans [`reference/yeswiki-form-migration.md`](reference/yeswiki-form-migration.md).
+Reprise de la fonctionnalité **Bazar** de YesWiki : un **formulaire** définit une structure de champs ; une **fiche** est une instance saisie via ce formulaire. Décisions de fond dans les ADR [0014](adr/0014-forms-and-entries.md) (modèle) et [0015](adr/0015-shared-field-renderer-zod.md) (renderer partagé + Zod) ; analyse préalable dans [`research/formulaires-fiches-architecture.md`](research/formulaires-fiches-architecture.md). La table de migration depuis l'ancien format YesWiki (`***`) est dans [`reference/yeswiki-form-migration.md`](reference/yeswiki-form-migration.md).
 
 ## Le modèle en deux phrases
 
@@ -71,7 +71,7 @@ L'interface de construction d'un formulaire, sur le modèle du ComponentBuilder 
 - **Palette** des types de champs → **drag & drop** (dnd-kit) vers le canvas, réordonnancement inclus ;
 - clic sur un champ du canvas → **panneau de paramétrage** (les paramètres du type, générés par le renderer de champs partagé — ADR 0015) ;
 - champ **`title` présent par défaut** dans tout nouveau formulaire, non supprimable (voir « Titre & slug ») ;
-- en-tête : bouton Enregistrer aligné sur la rangée du champ Nom ; dessous, la ligne Identifiant — chip éditable en place dérivé du nom à la création (règle commune des identités), chip + petit bouton « Changer » à l'édition (dialogue de renommage ADR 0016, sans avertissement : les URLs `?id=` sont des écrans d'admin, l'accès normal passe par les composants des pages wiki) ;
+- en-tête : bouton Enregistrer aligné sur la rangée du champ Nom ; dessous, la ligne Identifiant — chip éditable en place dérivé du nom à la création (règle commune des identités), chip + petit bouton « Changer » à l'édition (dialogue de renommage ADR 0016, sans avertissement : les URLs `?id=` sont des pages système d'admin, l'accès normal passe par les composants des pages wiki) ;
 - onglet/section **Gabarit** : éditeur CodeMirror existant (coloration MDX, barre d'outils, aide-mémoire) + **aperçu** rendu sur des valeurs d'exemple, via la mécanique d'aperçu existante ;
 - onglet **Accès** : qui peut créer une fiche, et l'accès en lecture et en écriture qu'une fiche reçoit à sa naissance — voir [`permissions.md`](permissions.md) § Formulaire. Éditer la définition d'un formulaire y est réservé à son propriétaire ou à un administrateur ;
 - **Enregistrer** valide le descripteur par le méta-schéma Zod + les règles croisées, avec messages ciblés.
@@ -173,7 +173,7 @@ Une fiche naît malgré tout avec un tag de Page : le nom de son formulaire, pos
 
 | Composant | Rôle |
 | --- | --- |
-| `<FormsAdmin>` | L'écran d'administration des formulaires (page spéciale `formulaires`) |
+| `<FormsAdmin>` | La page système d'administration des formulaires (page spéciale `formulaires`) |
 | `<EntriesAdmin>` | Liste des fiches + saisie (page spéciale `fiches`) |
 | `<EntryForm id>` | Formulaire de saisie inséré dans une page (descripteur YAML, type `form-list`) |
 | `<EntriesView>` | Vues des fiches (v0.4) — spec [`entries-view.md`](entries-view.md) |

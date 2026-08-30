@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getEntryForm } from "@/app/form-actions";
-import { PageEditor } from "@/components/editor/page-editor";
-import { EntryEdit } from "@/components/forms/entry-edit";
-import { AccessRefused } from "@/components/page/access-refused";
-import { loadComponentBuilders } from "@/lib/component-descriptors";
-import {
-  personCanCreatePage,
-  personCanWrite,
-  getPageWithForm,
-  hasForm,
-  isRefused,
-  listPageSlugs,
-  listPageTags,
-} from "@/lib/pages";
-import { CREATE_REFUSED, WRITE_REFUSED } from "@/lib/permissions";
+import { getEntryForm } from "@/modules/forms/entry-actions";
+import { PageEditor } from "@/modules/authoring/ui/page-editor";
+import { EntryEdit } from "@/modules/forms/ui/entry-edit";
+import { AccessRefused } from "@/modules/pages/ui/access-refused";
+import { loadComponentBuilders } from "@/modules/authoring/descriptors";
+import { hasForm } from "@/modules/pages/entry-page";
+import { getPageWithForm, listPageSlugs, listPageTags } from "@/modules/pages/content";
+import { isRefused, currentCanCreatePage } from "@/modules/pages/rights";
+import { currentCanWrite } from "@/modules/permissions/person";
+import { REFUSALS } from "@/modules/permissions/rules";
 import { isValidSlug } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
@@ -45,18 +40,18 @@ export default async function EditPage({ params }: Props) {
   // The editor is reached by its address as well as by the hidden « Modifier »
   // button, so the write right is checked here too — with its own wording,
   // since « vous n'avez pas accès » would be untrue of a page one can read.
-  if (existing && !(await personCanWrite(existing))) {
+  if (existing && !(await currentCanWrite(existing))) {
     return (
       <AccessRefused
         slug={slug}
         ownerName={existing.owner?.name ?? null}
-        message={WRITE_REFUSED}
+        message={REFUSALS.write}
       />
     );
   }
-  if (!existing && !(await personCanCreatePage())) {
+  if (!existing && !(await currentCanCreatePage())) {
     return (
-      <AccessRefused slug={slug} ownerName={null} message={CREATE_REFUSED} />
+      <AccessRefused slug={slug} ownerName={null} message={REFUSALS.createPage} />
     );
   }
 

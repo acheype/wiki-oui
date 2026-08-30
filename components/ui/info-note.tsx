@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// The « ⓘ » remark the screens put under a widget to say what cannot be
+// The « ⓘ » remark the system pages put under a widget to say what cannot be
 // changed. It used to be the character, which every font places on its own
 // baseline — visibly below the sentence it introduces.
 //

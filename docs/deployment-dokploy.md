@@ -157,7 +157,7 @@ SMTP_FROM=WikiOui <wiki@mondomaine.fr>
 
 `SMTP_HOST` suffit à activer l'envoi, le reste se déduit : le port vaut **587** par défaut, et `SMTP_SECURE` vaut **true** sur le port 465 (chiffré dès le premier octet) et **false** ailleurs (chiffrement négocié par STARTTLS). `SMTP_USER` et `SMTP_PASS` ne servent qu'aux serveurs qui demandent une authentification — c'est le cas général. Le mot de passe s'écrit tel quel, sans encodage.
 
-Avec ces réglages, le «&nbsp;mot de passe oublié&nbsp;» devient autonome ; sans eux, cet écran renvoie vers un administrateur. **Si un envoi échoue** — mot de passe refusé, port fermé, certificat invalide — l'écran le dit au lieu de laisser croire au départ du courriel : l'administrateur voit le message exact du serveur sous «&nbsp;Détail de l'erreur d'envoi&nbsp;», et la même ligne part dans les journaux du conteneur (`[wikioui] SMTP — …`), seule trace disponible quand personne n'était devant l'écran.
+Avec ces réglages, le «&nbsp;mot de passe oublié&nbsp;» devient autonome ; sans eux, cette page renvoie vers un administrateur. **Si un envoi échoue** — mot de passe refusé, port fermé, certificat invalide — l'interface le dit au lieu de laisser croire au départ du courriel : l'administrateur voit le message exact du serveur sous «&nbsp;Détail de l'erreur d'envoi&nbsp;», et la même ligne part dans les journaux du conteneur (`[wikioui] SMTP — …`), seule trace disponible quand personne n'était devant l'écran.
 
 ### Fichiers uploadés : le volume persistant
 
@@ -200,7 +200,7 @@ Votre wiki est maintenant accessible sur `https://wiki.mondomaine.fr`.
 
 ## 8. Vérifier et maintenir l'installation
 
-- **Installer le wiki** : à la toute première visite, quelle que soit l'adresse demandée, l'écran d'installation s'affiche. Il crée le compte administrateur : il ne vous demande qu'une adresse e-mail et un mot de passe, le nom affiché (« Wiki Admin ») et l'identifiant (`wiki-admin`) étant les mêmes sur toutes les installations WikiOui. Faites-le **dès la fin du déploiement** : tant que personne ne l'a fait, le premier visiteur venu le peut. Une fois installé, cet écran n'existe plus définitivement ([ADR 0027](adr/0027-installation-drapeau-irreversible.md)).
+- **Installer le wiki** : à la toute première visite, quelle que soit l'adresse demandée, le service d'installation s'affiche. Il crée le compte administrateur : il ne vous demande qu'une adresse e-mail et un mot de passe, le nom affiché (« Wiki Admin ») et l'identifiant (`wiki-admin`) étant les mêmes sur toutes les installations WikiOui. Faites-le **dès la fin du déploiement** : tant que personne ne l'a fait, le premier visiteur venu le peut. Une fois installé, ce service n'existe plus définitivement ([ADR 0027](adr/0027-installation-flag-irreversible.md)).
 - **Ouvrir le wiki** : la page d'accueil (« page-principale ») s'affiche avec un message de bienvenue et des liens vers l'aide-mémoire et un bac à sable pour s'exercer.
 - **Mettre à jour** : un nouveau `git push` sur la branche suivie, ou un clic sur **Deploy** dans Dokploy, reconstruit l'image et relance le conteneur — migrations et seed rejoués sans danger (voir l'étape 6).
 - **Sauvegarder** : deux éléments à sauvegarder régulièrement — un export de la base (`pg_dump`, automatisable depuis l'onglet **Backups** du service PostgreSQL en voie A) et le contenu du volume `/app/files`.

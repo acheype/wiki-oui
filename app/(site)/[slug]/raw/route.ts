@@ -1,8 +1,9 @@
-import { getRawContent, isRefused } from "@/lib/pages";
+import { getRawContent } from "@/modules/pages/content";
+import { isRefused } from "@/modules/pages/rights";
 import { isValidSlug } from "@/lib/slug";
 
 // /{slug}/raw, the equivalent of YesWiki's /raw (docs/permissions.md): a
-// handler whose response is text rather than a screen is a route.ts (a
+// handler whose response is text rather than a page is a route.ts (a
 // service dressed as a page.tsx renders HTML, per /api/render), living beside
 // edit/ and revisions/ under the same [slug]. All the deciding — the right to
 // read, the fields a fiche withholds, the order and shape of what comes
@@ -52,7 +53,7 @@ export async function GET(request: Request, { params }: Params) {
   // "content" to isolate, so it keeps showing every field plus metadata,
   // exactly what ?all also gives back. ?all switches a page to that same
   // full JSON view, the one this handler always served before this default.
-  // Dispatched on `raw.kind` — set once, inside the door (ADR 0025) from
+  // Dispatched on `raw.kind` — set once, inside the access layer (ADR 0025) from
   // `formId`/`form`, the same pair every fiche-or-page branch there reads —
   // rather than guessed here from the response's own shape.
   const all = url.searchParams.has("all");
