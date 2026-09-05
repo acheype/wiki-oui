@@ -64,7 +64,7 @@ La fiche dépliée est rendue **sans son titre** (la ligne le porte déjà) et *
 | `visualFit` | Cadrage du visuel | avancé : `cover` (défaut, rogne) · `contain` (entière) |
 | `textLines` | Lignes de texte | avancé, défaut 3 — troncature de la zone de texte (le sous-titre reste sur une ligne) |
 
-Toute la carte est cliquable (`entryDisplay`, défaut popup).
+Toute la carte est cliquable (`entryDisplay`, défaut modale).
 
 ### Tableau (`table`)
 
@@ -116,7 +116,7 @@ Choisir la vue Agenda **pré-remplit** `period` = `future` (modifiable) — un a
 
 ### Annuaire (`directory`)
 
-Liste alphabétique groupée par initiale du titre, **index de lettres** cliquable (lettres vides grisées) collé en haut. Aucun paramètre spécifique ; tri masqué (alphabétique par construction) ; `entryDisplay` défaut popup.
+Liste alphabétique groupée par initiale du titre, **index de lettres** cliquable (lettres vides grisées) collé en haut. Aucun paramètre spécifique ; tri masqué (alphabétique par construction) ; `entryDisplay` défaut modale.
 
 ### Carrousel (`carousel`)
 
@@ -127,7 +127,7 @@ Liste alphabétique groupée par initiale du titre, **index de lettres** cliquab
 | `autoplay` | Défilement automatique | coché par défaut |
 | `interval` | Durée par image | avancé, défaut 5 s |
 
-Le clic sur une diapositive applique `entryDisplay` (défaut popup). Pas de recherche ni de pagination ; le tri règle l'ordre de défilement.
+Le clic sur une diapositive applique `entryDisplay` (défaut modale). Pas de recherche ni de pagination ; le tri règle l'ordre de défilement.
 
 ### Galerie photo (`gallery`)
 
@@ -141,7 +141,7 @@ Grille justifiée moderne, **zoom au survol** avec voile révélant le titre —
 
 ### Lors du clic, afficher la fiche (`entryDisplay`)
 
-`popup` (**première position et défaut** partout sauf Carte) · `current-tab` · `new-tab` — plus, sur la Carte seulement : `sidebar` (défaut Carte) et `map-popup`. La popup affiche le rendu `show` réel de la fiche (gabarit ou rendu par défaut, sans chrome), se ferme par croix/clic dehors/Échap en restituant l'état exact (filtres, scroll, pagination), et porte un lien « Ouvrir la page de la fiche ↗ » collé en bas. Elle est **aussi large que la colonne de contenu du site** et sans cadre autour de la fiche : on y lit la fiche exactement comme sur sa page. Prop absente = défaut de la vue (le composant tranche).
+`modal` (**première position et défaut** partout sauf Carte) · `current-tab` · `new-tab` — plus, sur la Carte seulement : `sidebar` (défaut Carte) et `map-popup`. La **modale** affiche le rendu `show` réel de la fiche (gabarit ou rendu par défaut, sans chrome), rendu en RSC inline (ADR 0022). Son titre monte dans la barre d'en-tête, le corps ne le répète donc pas. Elle vit dans l'URL — `?modale={slug}` — donc elle se partage, le bouton retour la ferme (Échap, croix et clic dehors aussi), et l'état de la vue sous-jacente (recherche, filtres, tri, pagination) survit intact, aucun aller-retour serveur n'ayant lieu. **Aussi large que la colonne de contenu du site**, elle porte un lien « Ouvrir la page » collé en bas. Prop absente = défaut de la vue (le composant tranche).
 
 ### Recherche
 
@@ -199,7 +199,7 @@ Tri visible pour Liste, Grille, Tableau, Carrousel, Galerie ; masqué pour Carte
 - **Builder 100 % descripteur** (ADR 0018) : le YAML d'EntriesView utilise six nouveaux types génériques — `view-picker` (tuiles), `form-field` (sélecteur de champ·s des formulaires choisis, options chargées par Server Action selon la valeur du champ frère `form`, filtrables par types de champs, pseudo-champs déclarables), `field-rows` (lignes ordonnées champ + titre éditable + extra optionnel), `color-mapping`, `icon-mapping`, `map-view`. Tous réutilisables par de futurs composants.
 - **Props structurées en expressions littérales** (ADR 0019) : `filters={[{ field: "type", title: "Type de structure" }]}` — le bac à sable les rend déjà (`modules/authoring/literal-props.ts`) ; le chantier est le **round-trip** du builder (parser l'AST du littéral, régénérer). Multi-formulaires : `form="associations"` ou `form={["associations", "evenements"]}` (même prop).
 - **Données** : composant client, chargement complet par **Server Action en lecture** (motif ADR 0014) — recherche, filtres, tri, compteurs et pagination s'exécutent **en mémoire** (latence zéro). Garde-fous : la Server Action ne renvoie que les **champs référencés** par la configuration (zones, colonnes, filtres, tri, recherche), et les longues listes sont paginées ou virtualisées. Si l'échelle l'exige un jour, le filtrage serveur deviendra une optimisation interne sans changer la balise.
-- **Popup fiche** : rendue par le vrai pipeline (mécanique d'aperçu existante), pas une re-implémentation.
+- **Modale fiche** : rendue en RSC inline par le vrai pipeline (`<PageBody>`), pas une re-implémentation.
 
 ## Table de traduction YesWiki → WikiOui
 
@@ -245,7 +245,7 @@ Le contrat de migration : toute donnée YesWiki (actions `{{bazar…}}`) doit tr
 | `champ` / `ordre` (tri, défaut croissant) | `sortField` / `sortOrder` (défaut `$createdAt` + `desc`) |
 | `sortfields` (« tri dynamique ») | `sortOptions` (« Tris proposés aux visiteurs ») |
 | `datefilter` (futur, past, `>-1M`, `>-0D&<+1M`, `>-2Y`, `>-7D&<+7D`, today) | `period` (`future`, `past`, `last-30-days`, `next-30-days`, `last-2-years`, `one-week-around`, `today`) + `periodField` explicite (YesWiki visait `bf_date_debut_evenement` en dur) |
-| `entrydisplay` (direct/newtab/modal/sidebar/popup) | `entryDisplay` (`current-tab`/`new-tab`/`popup`/`sidebar`/`map-popup`) — popup en tête et par défaut, `sidebar` défaut Carte |
+| `entrydisplay` (direct/newtab/modal/sidebar/popup) | `entryDisplay` (`current-tab`/`new-tab`/`modal`/`sidebar`/`map-popup`) — modal en tête et par défaut, `sidebar` défaut Carte |
 | `showexportbuttons`, export iCal, `exportallcolumns` | **Backlog** (chantier export) |
 | `showmapinlistview` | **Abandonné** |
 | `extraFields` : `id_typeannonce`, `owner`, `date_creation_fiche`, `date_maj_fiche` | Pseudo-champs `$form`, `$owner`, `$createdAt`, `$editedAt` |

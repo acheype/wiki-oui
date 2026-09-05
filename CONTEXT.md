@@ -102,7 +102,7 @@ Composant intégré qui transforme la liste imbriquée écrite entre ses balises
 _Avoid_: auto-listing des pages, barre de navigation codée en dur
 
 **Bouton (`<Button>`)**:
-Composant intégré affichant un bouton défini par un libellé (`text`), un lien (`link`, page du wiki ou URL) et éventuellement une icône (`icon`, un identifiant Iconify complet — `lucide:settings` — choisi au sélecteur d'icônes depuis la v0.2 ; les noms français de la liste blanche du MVP n'existent plus). S'y ajoutent la couleur, le texte affiché au survol, l'ouverture du lien en popup, la position et l'ouverture dans une nouvelle fenêtre. Dans le contenu d'une page il prend l'apparence d'un bouton pleine forme ; dans un slot du bandeau, celle d'un bouton discret de barre de navigation — la différence est purement CSS. Utilisé comme item parent d'un `<Menu>`, il en devient le déclencheur (ex. la roue crantée de `page-rapide-haut`). Son interface graphique de configuration est son ComponentBuilder (`button.yaml`).
+Composant intégré affichant un bouton défini par un libellé (`text`), un lien (`link`, page du wiki ou URL) et éventuellement une icône (`icon`, un identifiant Iconify complet — `lucide:settings` — choisi au sélecteur d'icônes depuis la v0.2 ; les noms français de la liste blanche du MVP n'existent plus). S'y ajoutent la couleur, le texte affiché au survol, l'ouverture du lien en modale, la position et l'ouverture dans une nouvelle fenêtre. Dans le contenu d'une page il prend l'apparence d'un bouton pleine forme ; dans un slot du bandeau, celle d'un bouton discret de barre de navigation — la différence est purement CSS. Utilisé comme item parent d'un `<Menu>`, il en devient le déclencheur (ex. la roue crantée de `page-rapide-haut`). Son interface graphique de configuration est son ComponentBuilder (`button.yaml`).
 _Avoid_: bouton d'action serveur (il ne déclenche pas de mutation)
 
 **Formulaire**:
@@ -128,6 +128,10 @@ _Avoid_: bazarliste, une action par forme d'affichage
 **Vue de fiches**:
 L'une des neuf formes d'affichage d'EntriesView — Liste, Grille, Tableau, Carte, Calendrier, Agenda, Annuaire, Carrousel, Galerie photo — choisie par la prop `view` (sélecteur en tuiles du builder, aperçu en direct). Chaque vue a ses paramètres propres ; zones, filtres, tri et « Lors du clic, afficher la fiche » sont communs.
 _Avoid_: template d'affichage, Blocs (ancien nom YesWiki de la Grille), Photobox (ancien nom de la Galerie photo)
+
+**Modale**:
+La fenêtre qui affiche une page ou une fiche **en place**, au-dessus de la page courante, sans son chrome (ni bandeau, ni barre d'actions). Rendue en RSC inline, jamais dans une iframe (ADR 0022). Il n'en existe **qu'un seul niveau** : ouvrir une fiche depuis une modale **remplace** son contenu, jamais ne l'empile. Son état vit dans l'URL — `?modale={slug}`, un slug interne — donc elle se partage, le bouton retour la ferme, un rechargement la conserve. Ouverte par un `<WikiLink>` ou un `<Button>` en cible modale, par un clic sur une fiche d'`<EntriesView>`, ou pour l'aide-mémoire de l'éditeur (celui-ci sans `?modale=`, faute de garde de saisie dans l'éditeur).
+_Avoid_: popup, lightbox, calque (la mini-fiche Leaflet `map-popup` est une vraie popup ancrée au marqueur, un autre objet)
 
 **Zone**:
 Un emplacement nommé d'une vue de fiches (Titre, Sous-titre, Texte, Pied, Visuel, Légende, Badge) auquel l'auteur associe un champ. Le **Badge** est la petite info mise en avant, posée en surimpression du visuel d'une carte de Grille.
