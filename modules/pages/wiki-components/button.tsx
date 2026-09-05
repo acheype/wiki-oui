@@ -25,8 +25,8 @@ export type ButtonProps = {
   /** Replaces YesWiki's Bootstrap `btn-block`. */
   fullWidth?: boolean;
   newWindow?: boolean;
-  /** Opens the linked content in a popup (works towards wiki pages). */
-  popup?: "none" | "click" | "hover";
+  /** Opens the linked content in a modal (works towards wiki pages). */
+  modal?: "none" | "click" | "hover";
   /**
    * Advanced: vanish instead of navigating to a page this reader may not
    * read (docs/permissions.md § Liens et boutons vers l'inaccessible).
@@ -56,7 +56,7 @@ export async function Button({
   float = "none",
   fullWidth = false,
   newWindow = false,
-  popup = "none",
+  modal = "none",
   hideIfNoAccess = false,
 }: ButtonProps) {
   if (await hiddenIfNoAccess(link ?? "", hideIfNoAccess)) return null;
@@ -70,7 +70,7 @@ export async function Button({
       float={float}
       fullWidth={fullWidth}
       newWindow={newWindow}
-      popup={popup}
+      modal={modal}
     />
   );
 }

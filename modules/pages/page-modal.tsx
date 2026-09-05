@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 // history.pushState (never router.push): no server round-trip, so the state
 // of an <EntriesView> underneath — search, filters, sort, page — survives
 // intact, and the modal becomes shareable, back-navigable and reload-proof.
-// A hover-triggered modal (<Button popup="hover">) is the one exception: a
+// A hover-triggered modal (<Button modal="hover">) is the one exception: a
 // weak intention writes nothing to the URL and opens on local state alone.
 
 type Loaded = { title: string | null; body: ReactNode };
@@ -36,14 +36,12 @@ type Loaded = { title: string | null; body: ReactNode };
 type ModalApi = {
   /** A click: pushes ?modale={slug}, so the modal is shareable and pops on Back. */
   open: (slug: string) => void;
-  /** A hover (<Button popup="hover">): opens on local state, no URL entry. */
+  /** A hover (<Button modal="hover">): opens on local state, no URL entry. */
   openLocal: (slug: string) => void;
   /** Warm the cache ahead of a likely open. */
   preload: (slug: string) => void;
 };
 
-// A memory bound, not a freshness policy: wiki content is edited live, but a
-// modal reopened within one visit reading a few seconds stale is fine.
 const MAX_CACHE = 20;
 // A mouse sweeping a table crosses every row; a real aim rests. The delay
 // filters the sweep out of preloading better than any cache cap could.
@@ -88,9 +86,9 @@ export function useModal(): ModalApi {
 }
 
 // The trigger of an internal modal link (WikiLink target=modal) and of the
-// popup <Button>: a real <a href="/{slug}">, so right-click, middle-click and
+// modal <Button>: a real <a href="/{slug}">, so right-click, middle-click and
 // Ctrl+click open a tab with no code. A plain click opens the modal instead;
-// a hover warms the cache after a short rest — or, for <Button popup="hover">,
+// a hover warms the cache after a short rest — or, for <Button modal="hover">,
 // opens the modal on local state without touching the URL (ADR 0022).
 export function ModalTrigger({
   slug,

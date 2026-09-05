@@ -69,7 +69,7 @@ const BUTTON_PROP_NAMES: (keyof ButtonProps)[] = [
   "float",
   "fullWidth",
   "newWindow",
-  "popup",
+  "modal",
   "hideIfNoAccess",
 ];
 

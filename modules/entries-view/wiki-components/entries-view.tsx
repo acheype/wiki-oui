@@ -236,7 +236,7 @@ export function EntriesView({
 
   // The Tableau owns its sort UI (clickable headers) through the context;
   // the Carte's map-popup opens the common modal directly.
-  context.openPopup = (slug) => {
+  context.openModal = (slug) => {
     if (!data.sample) modal.open(slug);
   };
   context.sort = activeSort;

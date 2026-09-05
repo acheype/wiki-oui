@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { WikiFrame } from "@/modules/pages/ui/wiki-frame";
 
-// Client innard of WikiLink's modal target — also the popup rendering of
+// Client innard of WikiLink's external modal target — also the external
 // <Button> (trigger "hover" opens on mouse-over).
 export function ModalLink({
   href,

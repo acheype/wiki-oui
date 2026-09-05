@@ -6,7 +6,7 @@
 // A marker click applies entryDisplay directly: `sidebar` (default — a
 // panel beside a still-living map, bottom sheet on mobile) or `map-popup`
 // (a Leaflet-anchored mini card whose « Voir la fiche » opens the common
-// modal); the tab/popup displays go through the common openEntry.
+// modal); the tab displays go through the common openEntry.
 //
 // Markers are managed imperatively (L.marker into a markercluster group):
 // react-leaflet has no cluster story on v5, and the imperative layer is
@@ -149,7 +149,7 @@ export function MapEntriesView({ context }: { context: ViewContext }) {
               if (display === "sidebar") setSelectedSlug(slug);
               else if (display !== "map-popup") context.openEntry(slug);
             }}
-            onOpenModal={(slug) => context.openPopup?.(slug)}
+            onOpenModal={(slug) => context.openModal?.(slug)}
           />
         </MapContainer>
       </div>
