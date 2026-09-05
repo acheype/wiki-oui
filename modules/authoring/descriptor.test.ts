@@ -580,8 +580,8 @@ function entriesDescriptor(): ComponentDescriptor {
         label: "Lors du clic, afficher la fiche",
         type: "list",
         prop: "entryDisplay",
-        default: "popup",
-        options: { popup: "En popup", "new-tab": "Nouvel onglet" },
+        default: "modal",
+        options: { modal: "En modale", "new-tab": "Nouvel onglet" },
         showif: { view: "/^(list|grid)$/" },
       },
       mapDisplay: {
@@ -589,7 +589,7 @@ function entriesDescriptor(): ComponentDescriptor {
         type: "list",
         prop: "entryDisplay",
         default: "sidebar",
-        options: { popup: "En popup", sidebar: "En panneau latéral" },
+        options: { modal: "En modale", sidebar: "En panneau latéral" },
         showif: { view: "map" },
       },
       filters: {
@@ -717,7 +717,7 @@ describe("prop alias — one prop, several fields (docs/entries-view.md)", () =>
         form: "a",
         view: "map",
         mapDisplay: "sidebar",
-        display: "popup",
+        display: "modal",
       })
     ).toBe('<EntriesView form="a" view="map" />');
     // Away from the default, the alias writes under its prop name.
@@ -725,23 +725,23 @@ describe("prop alias — one prop, several fields (docs/entries-view.md)", () =>
       generateTag("EntriesView", entriesDescriptor(), entriesDefaults, {
         form: "a",
         view: "map",
-        mapDisplay: "popup",
+        mapDisplay: "modal",
       })
-    ).toBe('<EntriesView form="a" view="map" entryDisplay="popup" />');
+    ).toBe('<EntriesView form="a" view="map" entryDisplay="modal" />');
   });
 
   it("routes the attribute to the visible carrier on re-edit", () => {
     const tag = findComponentTag(
-      '<EntriesView form="a" view="map" entryDisplay="popup" />',
+      '<EntriesView form="a" view="map" entryDisplay="modal" />',
       0
     )!.tag;
     const state = tagToBuilderState(entriesDescriptor(), entriesDefaults, tag);
-    expect(state.values.mapDisplay).toBe("popup");
-    expect(state.values.display).toBe("popup"); // untouched default
+    expect(state.values.mapDisplay).toBe("modal");
+    expect(state.values.display).toBe("modal"); // untouched default
   });
 
   it("round-trips a tag carrying an aliased prop unchanged", () => {
-    const source = '<EntriesView form="a" view="map" entryDisplay="popup" />';
+    const source = '<EntriesView form="a" view="map" entryDisplay="modal" />';
     const tag = findComponentTag(source, 0)!.tag;
     const state = tagToBuilderState(entriesDescriptor(), entriesDefaults, tag);
     expect(

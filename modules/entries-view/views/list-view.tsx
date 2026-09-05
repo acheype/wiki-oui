@@ -11,7 +11,7 @@ import { entryValue } from "../core/rules";
 import type { ViewEntry } from "../view-entry";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
-import { InlinePageBody } from "@/modules/pages/page-modal";
+import { InlinePageBody, usePreloadHandlers } from "@/modules/pages/page-modal";
 import type { ViewContext } from "./types";
 
 export function ListView({ context }: { context: ViewContext }) {
@@ -62,6 +62,9 @@ function ListRow({
   const { props } = context;
   const color = context.colorOf(entry);
   const icon = context.iconOf(entry);
+  // Warms the cache the click will read — whether it opens the modal
+  // (openOnClick) or unfolds InlinePageBody in place (both share it).
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
   const title = props.titleField
     ? context.textOf(entry, props.titleField) || entry.title
     : entry.title;
@@ -111,6 +114,7 @@ function ListRow({
           className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-accent/50"
           aria-expanded={expandable ? expanded : undefined}
           onClick={onToggle}
+          {...preload}
         >
           {header}
         </button>

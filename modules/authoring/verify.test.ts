@@ -357,7 +357,7 @@ describe("checkSignature — structured types", () => {
     const signature = entriesSignature();
     signature.props.entryDisplay = {
       tsOptional: true,
-      type: { kind: "union", values: ["popup", "sidebar"] },
+      type: { kind: "union", values: ["modal", "sidebar"] },
       destructuringDefault: { unverifiable: true },
     };
     const descriptor = entriesViewDescriptor();
@@ -366,7 +366,7 @@ describe("checkSignature — structured types", () => {
       type: "list",
       prop: "entryDisplay",
       default: "sidebar",
-      options: { popup: "En popup", sidebar: "Panneau" },
+      options: { modal: "En modale", sidebar: "Panneau" },
       showif: { view: "map" },
     };
     const { errors } = checkSignature("EntriesView", descriptor, signature);

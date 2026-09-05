@@ -165,7 +165,7 @@ Le menu « Composants » ne liste que les descripteurs qui émettent des balises
 | `showif: { champ: valeur-ou-regex }` (ambigu) | Valeur nue = égalité stricte ; regex explicite entre `/…/` |
 | `nobtn` (bouton rendu comme lien) | Non repris — un bouton est un bouton, un lien est un lien ; on ne mélange pas les composants |
 | `new-window` (liste à option unique, dans `class`) | Prop `newWindow` (checkbox) |
-| `modal` / `modalbox-hover` (dans `class`) | Prop `popup` (`click` / `hover`) |
+| `modal` / `modalbox-hover` (dans `class`) | Prop `modal` (`click` / `hover`) |
 | Action fourre-tout `attach` (image + PDF + fichier) | Éclatée en trois composants : `Image`, `Pdf`, `FileLink` |
 | `onlyEdit` / `onlyAdd` (asymétries ajout/édition) | Non repris (pas de besoin pour l'instant) — tout builder insère **et** réédite |
 | Type `form-field`, `needFormField` | Supprimés (bazar au backlog) |

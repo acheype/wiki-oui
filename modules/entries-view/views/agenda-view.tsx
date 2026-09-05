@@ -6,7 +6,7 @@
 // days that have events. Title/subtitle zones like the Liste.
 
 import { entryDay, entryValue } from "../core/rules";
-import { useRowPreload } from "./row-preload";
+import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import type { ViewEntry } from "../view-entry";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
@@ -108,7 +108,7 @@ function AgendaRow({
     ? context.textOf(entry, props.subtitleField)
     : "";
   const date = new Date(`${day}T00:00:00`);
-  const preload = useRowPreload(() => context.preloadEntry(entry.slug));
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
 
   return (
     <button

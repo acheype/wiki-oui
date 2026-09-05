@@ -6,7 +6,7 @@
 // 2 then 1 columns as the viewport narrows.
 
 import { ImageIcon } from "lucide-react";
-import { useRowPreload } from "./row-preload";
+import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import { imageUrl } from "@/lib/image-url";
 import type { ViewEntry } from "../view-entry";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
@@ -161,7 +161,7 @@ function CardShell({
   accent?: string;
   children: React.ReactNode;
 }) {
-  const preload = useRowPreload(() => context.preloadEntry(entry.slug));
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
   return (
     <button
       type="button"

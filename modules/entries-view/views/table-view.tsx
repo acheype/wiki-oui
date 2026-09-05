@@ -8,7 +8,7 @@
 
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { useRowPreload } from "./row-preload";
+import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import { toast } from "sonner";
 import { deletePage } from "@/modules/pages/content-actions";
 import { Button } from "@/components/ui/button";
@@ -155,7 +155,7 @@ function Row({
   context: ViewContext;
 }) {
   const color = context.colorOf(entry);
-  const preload = useRowPreload(() => context.preloadEntry(entry.slug));
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
   return (
     <tr
       className="cursor-pointer transition-colors hover:bg-accent/50"

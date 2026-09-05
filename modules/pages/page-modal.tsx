@@ -85,6 +85,30 @@ export function useModal(): ModalApi {
   return useContext(ModalContext);
 }
 
+// Hover/focus/touch handlers that warm the modal cache for one target, with
+// the mouse-sweep debounce (ADR 0022): a pointer crossing a table's rows rests
+// nowhere long enough to fire a read, a real aim does. Focus and touch are
+// explicit intentions, so they warm at once. Shared by ModalTrigger's click
+// path and by every <EntriesView> row that opens the modal.
+export function usePreloadHandlers(preload: () => void) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancel = () => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+  return {
+    onMouseEnter: () => {
+      cancel();
+      timer.current = setTimeout(preload, HOVER_PRELOAD_MS);
+    },
+    onMouseLeave: cancel,
+    onFocus: preload,
+    onTouchStart: preload,
+  };
+}
+
 // The trigger of an internal modal link (WikiLink target=modal) and of the
 // modal <Button>: a real <a href="/{slug}">, so right-click, middle-click and
 // Ctrl+click open a tab with no code. A plain click opens the modal instead;
@@ -100,39 +124,27 @@ export function ModalTrigger({
   trigger?: "click" | "hover";
 }) {
   const { open, openLocal, preload } = useModal();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const cancelPreload = () => {
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
-  };
+  const preloadHandlers = usePreloadHandlers(() => preload(slug));
+  // A hover trigger opens on mouse-over (local, no URL); a click trigger warms
+  // the cache on the same event instead.
+  const handlers =
+    trigger === "hover"
+      ? { ...preloadHandlers, onMouseEnter: () => openLocal(slug) }
+      : preloadHandlers;
 
   return (
     <a
       href={`/${slug}`}
       {...rest}
+      {...handlers}
       onClick={(event) => {
         // Leave new-tab / new-window intents to the browser and the real href.
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
           return;
         }
         event.preventDefault();
-        cancelPreload();
         open(slug);
       }}
-      onMouseEnter={() => {
-        if (trigger === "hover") {
-          openLocal(slug);
-        } else {
-          cancelPreload();
-          timer.current = setTimeout(() => preload(slug), HOVER_PRELOAD_MS);
-        }
-      }}
-      onMouseLeave={cancelPreload}
-      onFocus={() => preload(slug)}
-      onTouchStart={() => preload(slug)}
     >
       {children}
     </a>
@@ -269,18 +281,11 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           </DialogTitle>
           {shownSlug && (
             <>
-              {/* contain: the sandbox lets a literal style={{position:'fixed'}}
-                  through, which would otherwise cover the whole page. `layout
-                  paint` clips it and makes the box the containing block of any
-                  `fixed` inside; `isolate` keeps an inner z-index below the
-                  overlay (ADR 0022). Radix portals escape the box on purpose. */}
-              <div className="isolate" style={{ contain: "layout paint" }}>
-                <ModalErrorBoundary resetKey={shownSlug}>
-                  <Suspense fallback={<BodySkeleton />}>
-                    {shown?.body ?? <BodySkeleton />}
-                  </Suspense>
-                </ModalErrorBoundary>
-              </div>
+              {/* The body, error boundary and containment are InlinePageBody's:
+                  the modal shows a page in place exactly as the other inline
+                  surfaces do. The title above is resolved from the same cached
+                  read (usePageBody(shownSlug)). */}
+              <InlinePageBody slug={shownSlug} />
               {/* Sticky: the body is as tall as the page, so a long one would
                   otherwise push this link out of sight. */}
               <a
