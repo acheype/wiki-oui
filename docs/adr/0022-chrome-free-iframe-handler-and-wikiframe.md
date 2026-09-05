@@ -1,6 +1,6 @@
 # Rendu chrome-free : handler `/{slug}/iframe` et brique `WikiFrame`
 
-Le rendu d'une page ou d'une fiche **dans une iframe** — popup d'`<EntriesView>`, ligne dépliée de la vue Liste, panneau de la Carte, modale d'un `<Lien>`/`<Button>` en cible modale — passe désormais par **une seule route de rendu sans chrome** (`/{slug}/iframe`) et **une seule brique de mise en cadre** (`WikiFrame`).
+Le rendu d'une page ou d'une fiche **dans une iframe** — popup d'`<EntriesView>`, ligne dépliée de la vue Liste, panneau de la Carte, modale d'un `<WikiLink>`/`<Button>` en cible modale — passe désormais par **une seule route de rendu sans chrome** (`/{slug}/iframe`) et **une seule brique de mise en cadre** (`WikiFrame`).
 
 ## Contexte
 
@@ -30,11 +30,11 @@ Pas d'allowlist d'origines en config : `postMessage` n'est pas soumis à CORS, e
 
 ## Conséquences
 
-- Un `<Lien target="modal">` vers une page interne n'affiche plus ni le chrome ni « Modifier / Supprimer » (régression historique corrigée).
+- Un `<WikiLink target="modal">` vers une page interne n'affiche plus ni le chrome ni « Modifier / Supprimer » (régression historique corrigée).
 - **Sécurité** : une cible **externe** reste sandboxée (ADR 0002 : `sandbox` sans `allow-top-navigation`, `referrer-policy`, http(s) seul) ; une cible **interne** est same-origin et non sandboxée (elle doit exécuter nos composants client, ex. la carte Leaflet). La hauteur `postMessage` n'est pas sensible → `targetOrigin: "*"` côté émetteur (le parent peut être n'importe quelle instance WikiOui, dont l'origine est inconnue d'avance).
 - Fichiers : `app/(bare)/[slug]/iframe/page.tsx`, `components/wiki/internal/wiki-frame.tsx`, `components/wiki/internal/wiki-frame-emitter.tsx`. Suppressions : `app/api/render/entry/` et l'ancien `entry-frame.tsx`. (`GET /api/render`, l'aperçu MDX du ComponentBuilder, est indépendant et subsiste.)
 - Le composant auteur `<Iframe>` (ex-`<Embed>`) s'appuie sur `WikiFrame` et embarque page interne **ou** URL externe (voir [`component-builder.md`](../component-builder.md)).
 
 ## Hors périmètre (backlog)
 
-- **Auto-hauteur des sites tiers via `iframe-resizer`.** `WikiFrame` dimensionne déjà toute cible cross-origin qui parle **notre** protocole `postMessage` (`wikioui:resize`) — donc une autre instance WikiOui. Prendre en charge un site tiers quelconque via *son* protocole (bibliothèque `iframe-resizer`) n'apporterait qu'un gain étroit : le site cible doit avoir installé le script enfant (rarement sous le contrôle de l'auteur), au prix d'une dépendance tierce (licence GPLv3/commerciale). Différé. Une option avancée sur `<Iframe>` (et `<Lien>`) activerait alors l'écoute de ce protocole pour les cibles externes.
+- **Auto-hauteur des sites tiers via `iframe-resizer`.** `WikiFrame` dimensionne déjà toute cible cross-origin qui parle **notre** protocole `postMessage` (`wikioui:resize`) — donc une autre instance WikiOui. Prendre en charge un site tiers quelconque via *son* protocole (bibliothèque `iframe-resizer`) n'apporterait qu'un gain étroit : le site cible doit avoir installé le script enfant (rarement sous le contrôle de l'auteur), au prix d'une dépendance tierce (licence GPLv3/commerciale). Différé. Une option avancée sur `<Iframe>` (et `<WikiLink>`) activerait alors l'écoute de ce protocole pour les cibles externes.
