@@ -49,6 +49,33 @@ const MAX_CACHE = 20;
 // filters the sweep out of preloading better than any cache cap could.
 export const HOVER_PRELOAD_MS = 100;
 
+// One cache for the whole tab, shared by the modal host and every inline
+// surface (the unfolded Liste row, the Carte panel, the editor cheat sheet):
+// a hover that warms it pays off wherever the fiche is next shown. Capped as
+// a memory bound, not a freshness policy — wiki content is edited live, but a
+// body reread seconds stale within one visit is fine.
+const bodyCache = new Map<string, Loaded>();
+const inFlight = new Map<string, Promise<Loaded>>();
+
+function loadPageBody(slug: string): Promise<Loaded> {
+  const cached = bodyCache.get(slug);
+  if (cached) return Promise.resolve(cached);
+  const pending = inFlight.get(slug);
+  if (pending) return pending;
+  const promise = readPageBody(slug)
+    .then((loaded) => {
+      if (bodyCache.size >= MAX_CACHE) {
+        const oldest = bodyCache.keys().next().value;
+        if (oldest !== undefined) bodyCache.delete(oldest);
+      }
+      bodyCache.set(slug, loaded);
+      return loaded;
+    })
+    .finally(() => inFlight.delete(slug));
+  inFlight.set(slug, promise);
+  return promise;
+}
+
 const noop = () => undefined;
 const ModalContext = createContext<ModalApi>({
   open: noop,
@@ -114,81 +141,86 @@ export function ModalTrigger({
   );
 }
 
+// Loads a page's inline body (and title) once, reusing the shared cache a
+// hover may have warmed; null until the target's own load resolves. The
+// inline counterpart of the modal host, for a surface that shows a page in
+// place: the unfolded Liste row, the Carte panel, the editor cheat sheet.
+export function usePageBody(
+  slug: string | null
+): (Loaded & { slug: string }) | null {
+  const [resolved, setResolved] = useState<(Loaded & { slug: string }) | null>(
+    null
+  );
+  useEffect(() => {
+    // A cache hit is read synchronously below, so the effect only fetches a
+    // miss — and only setState in the async callback, never in its body.
+    if (!slug || bodyCache.has(slug)) return;
+    let live = true;
+    void loadPageBody(slug).then(
+      (loaded) => live && setResolved({ slug, ...loaded }),
+      () => live && setResolved({ slug, title: null, body: <LoadFailed /> })
+    );
+    return () => {
+      live = false;
+    };
+  }, [slug]);
+
+  if (!slug) return null;
+  const cached = bodyCache.get(slug);
+  if (cached) return { slug, ...cached };
+  return resolved?.slug === slug ? resolved : null;
+}
+
+// A page shown in place, chrome-free (ADR 0022): the same RSC body as the
+// modal, streamed under an error boundary, wrapped in the containment that
+// keeps an author's literal style={{position:'fixed'}} from covering the
+// surface (Radix portals escape it on purpose).
+export function InlinePageBody({ slug }: { slug: string }) {
+  const loaded = usePageBody(slug);
+  return (
+    <div className="isolate" style={{ contain: "layout paint" }}>
+      {loaded ? (
+        <ModalErrorBoundary resetKey={slug}>
+          <Suspense fallback={<BodySkeleton />}>{loaded.body}</Suspense>
+        </ModalErrorBoundary>
+      ) : (
+        <BodySkeleton />
+      )}
+    </div>
+  );
+}
+
 export function ModalProvider({ children }: { children: ReactNode }) {
   const [urlSlug, setUrlSlug] = useState<string | null>(null);
   const [localSlug, setLocalSlug] = useState<string | null>(null);
   const slug = urlSlug ?? localSlug;
 
-  // The rendered content outlives the close animation: keep it until the
-  // dialog is fully gone (the PageEditor motif), so a long fiche does not
-  // flash empty on the way out.
-  const [current, setCurrent] = useState<(Loaded & { slug: string }) | null>(
-    null
-  );
+  // The last slug shown outlives the close animation (the PageEditor motif):
+  // captured in render — a primitive, so no update loop — and kept resolving
+  // while the dialog fades, so a long fiche never flashes empty on the way
+  // out. Cache hits show at once; a miss falls to a skeleton in the body.
+  const [shownSlug, setShownSlug] = useState<string | null>(null);
+  if (slug !== null && slug !== shownSlug) setShownSlug(slug);
+  const shown = usePageBody(shownSlug);
 
-  const cache = useRef(new Map<string, Loaded>());
-  const inFlight = useRef(new Map<string, Promise<Loaded>>());
   // Did we push a ?modale= entry ourselves? On close, Back pops it; a modal
   // reached by a direct link (nothing of ours below) is stripped in place
   // instead, so closing never walks off the site.
   const pushed = useRef(false);
 
-  const load = useCallback((target: string): Promise<Loaded> => {
-    const cached = cache.current.get(target);
-    if (cached) return Promise.resolve(cached);
-    const pending = inFlight.current.get(target);
-    if (pending) return pending;
-    const promise = readPageBody(target)
-      .then((loaded) => {
-        if (cache.current.size >= MAX_CACHE) {
-          const oldest = cache.current.keys().next().value;
-          if (oldest !== undefined) cache.current.delete(oldest);
-        }
-        cache.current.set(target, loaded);
-        return loaded;
-      })
-      .finally(() => inFlight.current.delete(target));
-    inFlight.current.set(target, promise);
-    return promise;
+  const preload = useCallback((target: string) => {
+    if (isValidSlug(target)) void loadPageBody(target).catch(() => undefined);
   }, []);
 
-  const preload = useCallback(
-    (target: string) => {
-      if (isValidSlug(target)) void load(target).catch(() => undefined);
-    },
-    [load]
-  );
-
-  useEffect(() => {
-    if (!slug) return; // keep the last content while the dialog closes
-    let live = true;
-    const cached = cache.current.get(slug);
-    if (cached) {
-      setCurrent({ slug, ...cached });
-      return;
-    }
-    setCurrent({ slug, title: null, body: null }); // loading
-    void load(slug).then(
-      (loaded) => live && setCurrent({ slug, ...loaded }),
-      () => live && setCurrent({ slug, title: null, body: <LoadFailed /> })
-    );
-    return () => {
-      live = false;
-    };
-  }, [slug, load]);
-
-  const open = useCallback(
-    (target: string) => {
-      if (!isValidSlug(target)) return;
-      void load(target).catch(() => undefined); // usually warmed by preload
-      setLocalSlug(null);
-      const params = new URLSearchParams(window.location.search);
-      params.set("modale", target);
-      pushed.current = true;
-      window.history.pushState(null, "", `${window.location.pathname}?${params}`);
-    },
-    [load]
-  );
+  const open = useCallback((target: string) => {
+    if (!isValidSlug(target)) return;
+    void loadPageBody(target).catch(() => undefined); // usually warmed already
+    setLocalSlug(null);
+    const params = new URLSearchParams(window.location.search);
+    params.set("modale", target);
+    pushed.current = true;
+    window.history.pushState(null, "", `${window.location.pathname}?${params}`);
+  }, []);
 
   const openLocal = useCallback((target: string) => {
     if (isValidSlug(target)) setLocalSlug(target);
@@ -230,17 +262,14 @@ export function ModalProvider({ children }: { children: ReactNode }) {
             layout): a fiche reads in the modal much as on its own page. */}
         <DialogContent className="max-h-[85vh] gap-2 overflow-y-auto sm:max-w-5xl">
           <DialogTitle
-            className={cn(
-              "pr-8 text-base",
-              !current?.title && "sr-only"
-            )}
+            className={cn("pr-8 text-base", !shown?.title && "sr-only")}
           >
             {/* A visible stored title (ADR 0020) or leading heading; else the
                 slug, sr-only — the page's identity is what a screen reader
                 needs to hear when it has no title of its own. */}
-            {current?.title ?? current?.slug ?? ""}
+            {shown?.title ?? shownSlug ?? ""}
           </DialogTitle>
-          {current && (
+          {shownSlug && (
             <>
               {/* contain: the sandbox lets a literal style={{position:'fixed'}}
                   through, which would otherwise cover the whole page. `layout
@@ -248,16 +277,16 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                   `fixed` inside; `isolate` keeps an inner z-index below the
                   overlay (ADR 0022). Radix portals escape the box on purpose. */}
               <div className="isolate" style={{ contain: "layout paint" }}>
-                <ModalErrorBoundary resetKey={current.slug}>
+                <ModalErrorBoundary resetKey={shownSlug}>
                   <Suspense fallback={<BodySkeleton />}>
-                    {current.body ?? <BodySkeleton />}
+                    {shown?.body ?? <BodySkeleton />}
                   </Suspense>
                 </ModalErrorBoundary>
               </div>
               {/* Sticky: the body is as tall as the page, so a long one would
                   otherwise push this link out of sight. */}
               <a
-                href={`/${current.slug}`}
+                href={`/${shownSlug}`}
                 className="sticky -bottom-2 -mx-6 -mb-6 flex items-center gap-1 border-t bg-popover px-6 py-3 text-sm text-muted-foreground hover:text-foreground"
               >
                 Ouvrir la page

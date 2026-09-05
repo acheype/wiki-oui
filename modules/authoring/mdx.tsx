@@ -212,9 +212,9 @@ export function firstHeadingText(source: string): string | null {
 }
 
 // The title a page wears at its top, and the source left once it is taken
-// off — null when the page does not open with one. `?title=hidden` uses it to
-// hand the title to a container that will show it itself (a modal's own
-// title bar), instead of the page repeating it inside the frame.
+// off — null when the page does not open with one. <PageBody hideTitle> uses
+// it to drop the title for a container that shows it itself (a modal's own
+// title bar, an unfolded Liste row), instead of the page repeating it.
 //
 // « Opens with » is read on the rendered page, so leading comments (which
 // render to nothing) do not count as a first block. Only the heading's own

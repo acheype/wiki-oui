@@ -1,9 +1,9 @@
 "use client";
 
-// A page framed at its natural height, the single primitive behind every
-// in-iframe rendering (popup, unfolded Liste row, map panel, ModalLink, the
-// <Iframe> component). One iframe, one height sensor picked by what the origin
-// allows:
+// A page framed at its natural height. Since the modal and the in-place
+// renders went inline (ADR 0022), only two callers remain: the <Iframe>
+// component and ModalLink's external target. One iframe, one height sensor
+// picked by what the origin allows:
 //
 //   - internal target -> loads the chrome-free /{slug}/iframe render, which is
 //     same-origin: the height is read straight from its [data-wiki-frame] box
@@ -27,22 +27,12 @@ export type FrameRatio = keyof typeof RATIO_CLASSES;
 
 export function WikiFrame({
   target,
-  hideTitle = false,
   ratio = "landscape",
   title,
   className,
-  onTitle,
 }: {
   /** Internal slug or wiki href, or an external http(s) URL. */
   target: string;
-  /** Internal only: drop the page title (a container already names it). */
-  hideTitle?: boolean;
-  /**
-   * Internal only, and only alongside `hideTitle`: called with the title the
-   * render took off, so the container can show it — undefined while nothing
-   * is read yet, and for a page that has no title of its own.
-   */
-  onTitle?: (title: string | undefined) => void;
   /** External fallback box when no height is measured or messaged. */
   ratio?: FrameRatio;
   title?: string;
@@ -59,7 +49,7 @@ export function WikiFrame({
   const src = external
     ? target
     : slug && isValidSlug(slug)
-      ? `/${slug}/iframe${hideTitle ? "?title=hidden" : ""}`
+      ? `/${slug}/iframe`
       : null;
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -67,11 +57,6 @@ export function WikiFrame({
   // Internal only: the embedded page's <title>, read same-origin, becomes the
   // frame's accessible name (WCAG H64) when the caller passes none.
   const [docTitle, setDocTitle] = useState<string>();
-  // Read inside the load handler, which the [src] effect binds once.
-  const onTitleRef = useRef(onTitle);
-  useEffect(() => {
-    onTitleRef.current = onTitle;
-  }, [onTitle]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -79,7 +64,6 @@ export function WikiFrame({
     // A fresh target starts unmeasured so the previous height never lingers.
     setHeight(undefined);
     setDocTitle(undefined);
-    onTitleRef.current?.(undefined);
     let observer: ResizeObserver | undefined;
 
     // Same-origin: read the render box directly. Cross-origin: contentDocument
@@ -93,8 +77,6 @@ export function WikiFrame({
         return; // cross-origin, walled off
       }
       if (!box) return;
-      // What `?title=hidden` took off, for whoever asked to hide it.
-      onTitleRef.current?.(box.dataset.wikiTitle || undefined);
       const measure = () => setHeight(box.getBoundingClientRect().height);
       measure();
       observer = new ResizeObserver(measure);
