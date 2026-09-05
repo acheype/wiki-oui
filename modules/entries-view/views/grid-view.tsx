@@ -6,6 +6,7 @@
 // 2 then 1 columns as the viewport narrows.
 
 import { ImageIcon } from "lucide-react";
+import { useRowPreload } from "./row-preload";
 import { imageUrl } from "@/lib/image-url";
 import type { ViewEntry } from "../view-entry";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
@@ -160,10 +161,12 @@ function CardShell({
   accent?: string;
   children: React.ReactNode;
 }) {
+  const preload = useRowPreload(() => context.preloadEntry(entry.slug));
   return (
     <button
       type="button"
       onClick={() => context.openEntry(entry.slug)}
+      {...preload}
       className={cn(
         "overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md",
         className

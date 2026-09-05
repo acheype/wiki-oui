@@ -1,6 +1,7 @@
 import { AccountMenu } from "@/modules/accounts/ui/account-menu";
 import { getLayoutContents } from "@/modules/pages/content";
 import { TitleSlot, renderSlot } from "@/modules/pages/ui/layout-slot";
+import { ModalProvider } from "@/modules/pages/page-modal";
 import { StickyTopBar } from "@/modules/pages/ui/sticky-top-bar";
 import { currentIdentity, isCurrentAdmin } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";
@@ -35,7 +36,7 @@ export default async function SiteLayout({
   ]);
 
   return (
-    <>
+    <ModalProvider>
       <StickyTopBar>
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5">
           <TitleSlot
@@ -88,6 +89,6 @@ export default async function SiteLayout({
           </div>
         </footer>
       )}
-    </>
+    </ModalProvider>
   );
 }

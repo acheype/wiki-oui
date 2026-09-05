@@ -6,7 +6,7 @@
 // pagination run in memory — latency zero. The chrome here is common to all
 // views; each view renderer lives in views/.
 
-import { ChevronDown, ExternalLink, ListFilter, Search, X } from "lucide-react";
+import { ChevronDown, ListFilter, Search, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -16,11 +16,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -50,7 +45,7 @@ import { AgendaView } from "../views/agenda-view";
 import { CalendarView } from "../views/calendar-view";
 import { CarouselView } from "../views/carousel-view";
 import { DirectoryView } from "../views/directory-view";
-import { WikiFrame } from "@/modules/pages/wiki-frame";
+import { useModal } from "@/modules/pages/page-modal";
 
 // Leaflet touches window at import time: the map view loads client-only.
 const MapEntriesView = dynamic(
@@ -159,7 +154,10 @@ export function EntriesView({
     sort: null as { field: string; order: "asc" | "desc" } | null,
     page: 0,
   }));
-  const [popupSlug, setPopupSlug] = useState<string | null>(null);
+  // The site's single modal host (ADR 0022): opening a fiche pushes
+  // ?modale={slug} rather than mounting a dialog here, so the modal is
+  // shareable and this view's in-memory state survives it.
+  const modal = useModal();
 
   if (data === null) {
     return (
@@ -210,13 +208,21 @@ export function EntriesView({
       : entries;
 
   /* --- resolved styling + context --- */
-  const context = buildContext(paged, data, props, (slug) => {
-    if (data.sample) return;
-    const display = props.entryDisplay ?? defaultEntryDisplay(view);
-    if (display === "new-tab") window.open(`/${slug}`, "_blank");
-    else if (display === "current-tab") window.location.assign(`/${slug}`);
-    else setPopupSlug(slug);
-  });
+  const context = buildContext(
+    paged,
+    data,
+    props,
+    (slug) => {
+      if (data.sample) return;
+      const display = props.entryDisplay ?? defaultEntryDisplay(view);
+      if (display === "new-tab") window.open(`/${slug}`, "_blank");
+      else if (display === "current-tab") window.location.assign(`/${slug}`);
+      else modal.open(slug);
+    },
+    (slug) => {
+      if (!data.sample) modal.preload(slug);
+    }
+  );
 
   const filters = props.filters ?? EMPTY_ROWS;
   const sortOptions = props.sortOptions ?? EMPTY_ROWS;
@@ -231,7 +237,7 @@ export function EntriesView({
   // The Tableau owns its sort UI (clickable headers) through the context;
   // the Carte's map-popup opens the common modal directly.
   context.openPopup = (slug) => {
-    if (!data.sample) setPopupSlug(slug);
+    if (!data.sample) modal.open(slug);
   };
   context.sort = activeSort;
   context.onSort = (field) =>
@@ -317,8 +323,6 @@ export function EntriesView({
           )}
         </div>
       </div>
-
-      <EntryPopup slug={popupSlug} onClose={() => setPopupSlug(null)} />
     </div>
   );
 }
@@ -428,7 +432,8 @@ function buildContext(
   entries: ViewEntry[],
   data: EntriesViewData,
   props: EntriesViewProps,
-  openEntry: (slug: string) => void
+  openEntry: (slug: string) => void,
+  preloadEntry: (slug: string) => void
 ): ViewContext {
   const labelOf = (field: string): string => {
     if (isPseudoField(field)) return PSEUDO_FIELD_LABELS[field];
@@ -495,6 +500,7 @@ function buildContext(
     data,
     props,
     openEntry,
+    preloadEntry,
     colorOf: (entry) => {
       if (!props.colorField) return undefined;
       const value = firstValue(entry, props.colorField);
@@ -759,47 +765,5 @@ function Pagination({
         </Button>
       </div>
     </div>
-  );
-}
-
-/* ------------------------------------------------------------------ *
- * Entry popup — the entry's real "show" rendering, chrome-free
- * ------------------------------------------------------------------ */
-
-function EntryPopup({
-  slug,
-  onClose,
-}: {
-  slug: string | null;
-  onClose: () => void;
-}) {
-  // The last slug survives the close animation (the PageEditor motif):
-  // render-time capture, no effect needed.
-  const [lastSlug, setLastSlug] = useState<string | null>(null);
-  if (slug !== null && slug !== lastSlug) setLastSlug(slug);
-  const shown = slug ?? lastSlug;
-
-  return (
-    <Dialog open={slug !== null} onOpenChange={(open) => !open && onClose()}>
-      {/* As wide as the page's content column (max-w-5xl in the site layout):
-          a fiche must read in the popup exactly as it reads on its page. */}
-      <DialogContent className="max-h-[85vh] gap-2 overflow-y-auto sm:max-w-5xl">
-        <DialogTitle className="sr-only">Fiche</DialogTitle>
-        {shown && (
-          <>
-            <WikiFrame target={shown} />
-            {/* Sticky: the frame is as tall as the fiche, so a long one would
-                otherwise push this link out of sight. */}
-            <a
-              href={`/${shown}`}
-              className="sticky -bottom-6 -mx-6 -mb-6 flex items-center gap-1 border-t bg-popover px-6 py-3 text-sm text-muted-foreground hover:text-foreground"
-            >
-              Ouvrir la page de la fiche
-              <ExternalLink className="size-3.5" aria-hidden />
-            </a>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
   );
 }

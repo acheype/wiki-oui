@@ -17,6 +17,7 @@ import { isWikiHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 import { ModalLink } from "./modal-link";
+import { ModalTrigger } from "../page-modal";
 import { WikiLinkView } from "../wiki-link-view";
 import type { ButtonColor, ButtonProps } from "../wiki-components/button";
 
@@ -113,9 +114,17 @@ function ButtonLink({
   popup: "none" | "click" | "hover";
 }) {
   if (popup !== "none") {
-    const href = isWikiHref(link) ? `/${link}` : link;
+    // Internal target: the single modal host (ADR 0022), which reads a hover
+    // trigger as a URL-free local open. External: the sandboxed frame.
+    if (isWikiHref(link)) {
+      return (
+        <ModalTrigger slug={link} trigger={popup} {...rest}>
+          {children}
+        </ModalTrigger>
+      );
+    }
     return (
-      <ModalLink href={href} trigger={popup} {...rest}>
+      <ModalLink href={link} trigger={popup} {...rest}>
         {children}
       </ModalLink>
     );

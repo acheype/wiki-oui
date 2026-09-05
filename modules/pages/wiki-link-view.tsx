@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { isExternalHref, isWikiHref } from "@/lib/slug";
 import { ModalLink } from "./ui/modal-link";
+import { ModalTrigger } from "./page-modal";
 import type { WikiLinkProps } from "./wiki-components/wiki-link";
 
 // Split from the `WikiLink` the registry serves (wiki-components/wiki-link.tsx,
@@ -30,6 +31,16 @@ export function WikiLinkView({
   const resolvedHref = isInternal ? `/${href}` : href;
 
   if (target === "modal") {
+    // Internal target: the single modal host, driven by ?modale={slug} (ADR
+    // 0022). An external target keeps the sandboxed frame — no URL, no RSC
+    // inline — since the browser gives its isolation for free.
+    if (isInternal && !isExternal) {
+      return (
+        <ModalTrigger slug={href} {...rest}>
+          {children}
+        </ModalTrigger>
+      );
+    }
     return (
       <ModalLink href={resolvedHref} {...rest}>
         {children}

@@ -146,6 +146,9 @@ export interface ViewContext {
   props: EntriesViewProps;
   /** Applies the resolved entryDisplay; no-op on sample entries. */
   openEntry: (slug: string) => void;
+  /** Warms the modal cache ahead of a likely open (a row hover); no-op on
+   * sample entries. A mouse sweeping a table debounces it away (ADR 0022). */
+  preloadEntry: (slug: string) => void;
   /** Resolved color for an entry (colorField + palette + overrides). */
   colorOf: (entry: ViewEntry) => string | undefined;
   /** Resolved Iconify icon for an entry (iconField + mapping). */

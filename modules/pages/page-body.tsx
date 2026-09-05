@@ -1,11 +1,11 @@
-import { notFound } from "next/navigation";
 import { EntryContent } from "@/modules/forms/entry-content";
 import { AccessRefused } from "@/modules/pages/ui/access-refused";
+import { PageNotFound, PageNotYetCreated } from "@/modules/pages/ui/missing-page";
 import { Prose } from "@/components/ui/prose";
 import { leadingHeading, renderMdx } from "@/modules/authoring/mdx";
 import { isEntryPage } from "@/modules/pages/entry-page";
 import { getPageWithCurrent } from "@/modules/pages/content";
-import { isRefused } from "@/modules/pages/rights";
+import { isRefused, currentCanCreatePage } from "@/modules/pages/rights";
 
 // The chrome-free "show" of a page, read and rendered from its slug alone:
 // the composition that used to live inside app/(bare)/[slug]/iframe (ADR
@@ -25,7 +25,17 @@ export async function PageBody({
   hideTitle?: boolean;
 }): Promise<React.ReactNode> {
   const page = await getPageWithCurrent(slug);
-  if (!page) notFound();
+  // An absent page is an invitation to write it, not a dead end: a link
+  // followed to nothing — including one opened in the modal — says why it
+  // shows nothing (docs/permissions.md § Ce que voit qui n'a pas le droit
+  // gates the create offer).
+  if (!page) {
+    return (await currentCanCreatePage()) ? (
+      <PageNotYetCreated slug={slug} />
+    ) : (
+      <PageNotFound slug={slug} />
+    );
+  }
 
   // A page the reader may not see shows the same refusal as the page itself,
   // in its compact form (docs/permissions.md § Liens et boutons vers
