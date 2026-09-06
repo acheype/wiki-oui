@@ -287,7 +287,7 @@ function TagPreview({ source, height }: { source: string; height?: string }) {
           style={{ height: height ?? "120px" }}
         />
       )}
-      <p className="font-mono text-xs text-muted-foreground">{source}</p>
+      <p className="font-mono text-xs break-all text-muted-foreground">{source}</p>
     </div>
   );
 }
