@@ -47,7 +47,12 @@ export async function EntryView({
         {rows.map(
           (row) =>
             row && (
-              <div key={row.field.name} className="grid gap-1">
+              // An image fills its box with no optical whitespace above it,
+              // where text carries some: it needs a touch more label gap.
+              <div
+                key={row.field.name}
+                className={row.field.type === "image" || row.field.type === "geolocation" ? "grid gap-2" : "grid gap-1"}
+              >
                 {row.field.type !== "customContent" && (
                   <dt className="text-sm font-medium text-muted-foreground">
                     {row.field.label}
@@ -113,7 +118,7 @@ async function renderField(
         <img
           src={imageUrl(String(value), box)}
           alt=""
-          className="h-auto max-w-full rounded-md"
+          className="mx-auto block h-auto max-w-full rounded-md"
         />
       );
     }
