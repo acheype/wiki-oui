@@ -17,7 +17,6 @@ import { useSearchParams } from "next/navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { readPageBody } from "@/modules/pages/content-actions";
 import { isValidSlug } from "@/lib/slug";
-import { cn } from "@/lib/utils";
 
 // The one modal of the whole site (ADR 0022): a single <Dialog> hosted here,
 // filled inline from a page's RSC body instead of an iframe's second document.
@@ -271,12 +270,11 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         {/* As wide as the page's content column (max-w-5xl in the site
             layout): a fiche reads in the modal much as on its own page. */}
         <DialogContent className="max-h-[85vh] gap-2 overflow-y-auto sm:max-w-5xl">
-          <DialogTitle
-            className={cn("pr-8 text-base", !shown?.title && "sr-only")}
-          >
-            {/* A visible stored title (ADR 0020) or leading heading; else the
-                slug, sr-only — the page's identity is what a screen reader
-                needs to hear when it has no title of its own. */}
+          {/* A stored title (ADR 0020) or leading heading, else the slug —
+              either way the page's identity, so shown large like an h1 of its
+              own. ModalLink names a WikiOui target the same way; only a bare
+              external URL (no slug) drops to its muted tier. */}
+          <DialogTitle className="truncate pr-8 text-lg font-semibold">
             {shown?.title ?? shownSlug ?? ""}
           </DialogTitle>
           {shownSlug && (

@@ -60,7 +60,9 @@ export function ModalLink({
               className={cn(
                 "truncate pr-6",
                 typeof title === "string"
-                  ? "text-base"
+                  ? // A detected title reads as one: the h1 size of a page of
+                    // its own (text-lg font-semibold).
+                    "text-lg font-semibold"
                   : title === null
                     ? "text-sm font-normal text-muted-foreground"
                     : "sr-only"

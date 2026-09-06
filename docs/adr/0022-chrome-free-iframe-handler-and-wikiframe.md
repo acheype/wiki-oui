@@ -39,7 +39,22 @@ Un cache `Map<slug, {title, body}>` plafonné à **20**, partagé par l'hôte et
 
 ### Le titre
 
-Le titre est calculé une fois (`pageTitle`, la règle de `leadingHeading`) et sert à l'en-tête comme au corps, qui le retire (`<PageBody hideTitle>`). Une fiche montre son titre stocké ([ADR 0020](0020-stored-entry-title.md)) ; une page qui ouvre sur un titre `#` le montre ; une page sans titre, ou refusée, ou inexistante, met un `DialogTitle` **sr-only** portant le slug — l'identité de la page, ce qu'une personne au lecteur d'écran a besoin d'entendre.
+Le titre est calculé une fois (`pageTitle`, la règle de `leadingHeading`) et sert à l'en-tête comme au corps, qui le retire (`<PageBody hideTitle>`). Les deux modales — la modale RSC inline (cible interne) et la modale à iframe (`ModalLink`, cible externe) — **nomment leur cible de la même façon**, sur deux niveaux visuels :
+
+- **En grand** (`text-lg font-semibold`, la taille d'un `#` de page) : l'**identité de la page**. Un titre stocké ([ADR 0020](0020-stored-entry-title.md)), un titre d'ouverture `#`, ou **à défaut le slug** — un slug identifie la page autant qu'un titre.
+- **Discret** (petit, grisé) : une **URL externe anonyme**, seul cas où la modale n'a aucune identité de page à afficher.
+
+**Modale interne** (`page-modal.tsx`) : le titre de la page, sinon — page sans titre, refusée ou inexistante — le **slug, affiché en grand** (plus jamais `sr-only`). Le `DialogTitle` reste l'exigence d'accessibilité de `Dialog`, désormais toujours visible.
+
+**Modale externe** (`modal-link.tsx`) : la cible est une iframe cross-origin, dont la modale ne peut pas lire le DOM. Le titre voyage par `postMessage` (`WikiFrameResizeEmitter` l'émet, `WikiFrame` le reçoit et le passe à `ModalLink` par `onTitle`). La modale **classe la cible à l'instant du rendu**, sur le suffixe `/{slug}/iframe` que l'auteur écrit pour un embed WikiOui : un embed attend son message, un site tiers ne l'attend pas.
+
+| État | Ce que reçoit `ModalLink` | Affichage |
+| --- | --- | --- |
+| Embed WikiOui, en attente | `undefined` | l'URL, **`sr-only`** — nom accessible, jamais montré, pour qu'un titre qui arrive ne remplace rien à l'écran |
+| Embed WikiOui | le titre `string` posté — titre réel **ou slug**, car `generateMetadata` retombe sur le slug (`title: (await pageTitle(slug)) ?? slug`) | **en grand** |
+| Site tiers (URL sans `/iframe`) | `null` **dès le rendu** — un site tiers ne poste rien | l'**URL**, discrète |
+
+Un site tiers est donc connu d'avance : son contenu s'affiche **aussitôt** dans une boîte à ratio, sans attendre, et l'URL nomme la barre dès le rendu. Le délai de **600 ms** n'est plus que le **filet de sécurité d'un embed WikiOui** qui, en erreur, ne posterait jamais son message : passé ce délai, la modale retombe sur l'URL.
 
 ### Le confinement CSS
 

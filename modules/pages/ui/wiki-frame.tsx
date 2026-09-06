@@ -59,6 +59,11 @@ export function WikiFrame({
   onTitle?: (title: string | null | undefined) => void;
 }) {
   const external = isExternalHref(target);
+  // A WikiOui embed is the external target an author declares with the
+  // /{slug}/iframe suffix (ADR 0022): it alone speaks our postMessage
+  // protocol. Any other external URL is a third-party site — no message
+  // will come, so it is classified here, up front, and never waits.
+  const wikiOuiEmbed = external && /\/iframe(?:[?#]|$)/.test(target);
   // ModalLink passes a resolved path ("/{slug}"), while other callers pass a
   // bare slug — strip the leading slash so wikiHrefSlug always sees a slug.
   const bare = !external && target.startsWith("/") ? target.slice(1) : target;
@@ -97,17 +102,21 @@ export function WikiFrame({
     setDocTitle(undefined);
     setTimedOut(false);
     titleSeen.current = false;
-    onTitleRef.current?.(undefined);
+    // A third-party site sends no title, and we know it up front — fall
+    // back to the URL at once, no wait. A WikiOui embed keeps waiting.
+    onTitleRef.current?.(external && !wikiOuiEmbed ? null : undefined);
     let observer: ResizeObserver | undefined;
     let revealTimer: ReturnType<typeof setTimeout> | undefined;
 
     // Same-origin: read the render box directly. Cross-origin: contentDocument
     // access throws, and the postMessage listener below takes over.
     const onLoad = () => {
-      // Once the content has loaded, a WikiOui target messages its height in a
-      // beat; wait that beat, then reveal the ratio box for a target that never
-      // will. Started here, not on mount, so a slow network never trips it.
-      if (sized) {
+      // A WikiOui embed messages its height in a beat; wait that beat, then
+      // reveal the ratio box as a safety net if the message never comes (an
+      // errored page). A third-party site is classified up front and never
+      // reaches here. Started on load, not on mount, so a slow network never
+      // trips it.
+      if (sized && wikiOuiEmbed) {
         if (revealTimer) clearTimeout(revealTimer);
         revealTimer = setTimeout(() => {
           setTimedOut(true);
@@ -166,16 +175,18 @@ export function WikiFrame({
       observer?.disconnect();
       if (revealTimer) clearTimeout(revealTimer);
     };
-  }, [src, sized]);
+  }, [src, sized, external, wikiOuiEmbed]);
 
   if (!src) return null;
 
   if (external) {
-    // `sized`: hide behind a skeleton until the height is known (or the wait
-    // elapses), so no ratio box with its own scrollbar flashes before the
-    // frame sizes to content. In page flow (not `sized`), the ratio box shows
-    // at once and the frame lazy-loads.
-    const measuring = sized && height === undefined && !timedOut;
+    // `sized` hides a WikiOui embed behind a skeleton until its height is
+    // known (or the safety wait elapses), so no ratio box with its own
+    // scrollbar flashes before the frame sizes to content. A third-party
+    // site sends no height, so it is not held back — it shows in the ratio
+    // box at once. In page flow (not `sized`), the ratio box shows at once too.
+    const measuring =
+      sized && wikiOuiEmbed && height === undefined && !timedOut;
     return (
       <div>
         {measuring && (
