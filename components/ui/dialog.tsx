@@ -5,6 +5,12 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -38,7 +44,7 @@ function DialogClose({
 // was meant to sit behind. Paint order therefore comes from the z-index alone:
 //   50  dialog overlay        52  alert overlay        60  popover, menu,
 //   51  dialog content        53  alert content            select, tooltip
-// An alert confirms a dialog (page-rights-button), hence above it; the floating
+// An alert confirms a dialog (page-rights-dialog), hence above it; the floating
 // layers open from inside either, hence above both.
 function DialogOverlay({
   className,
@@ -77,17 +83,24 @@ function DialogContent({
       >
         {children}
         {showCloseButton && (
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-4 right-4"
-              size="icon-sm"
-            >
-              <XIcon
-              />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogPrimitive.Close>
+          // « Fermer » on every dialog's cross, hover and screen reader alike.
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DialogPrimitive.Close data-slot="dialog-close" asChild>
+                  <Button
+                    variant="ghost"
+                    className="absolute top-4 right-4"
+                    size="icon-sm"
+                    aria-label="Fermer"
+                  >
+                    <XIcon />
+                  </Button>
+                </DialogPrimitive.Close>
+              </TooltipTrigger>
+              <TooltipContent>Fermer</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </DialogPrimitive.Content>
     </DialogPortal>

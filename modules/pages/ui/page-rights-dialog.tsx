@@ -6,8 +6,11 @@
 // so what a page's rights look like is what a form's and a field's will. The
 // owner heads it, since they are the floor both senses stand on, and handing
 // the page over is done from there.
+//
+// Mounted open by the action-bar overflow menu (page-actions-menu.tsx), so it
+// carries no trigger of its own.
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   type PageRightsForm,
@@ -33,33 +36,29 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import type { AccessRule } from "@/modules/permissions/rules";
 
-export function PageRightsButton({
+export function PageRightsDialog({
   slug,
-  children,
+  onClose,
 }: {
   slug: string;
-  children: React.ReactNode;
+  onClose: () => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [rights, setRights] = useState<PageRightsForm | null>(null);
   const [read, setRead] = useState<AccessRule>({ scope: "restricted" });
   const [write, setWrite] = useState<AccessRule>({ scope: "restricted" });
   const [saving, startSaving] = useTransition();
   const [confirming, setConfirming] = useState(false);
 
-  function openWith(next: boolean) {
-    setOpen(next);
-    if (!next) return;
-    // Read on opening rather than on rendering the bar: the bar is on every
-    // page, and this is a query nobody has asked for until they click.
-    setRights(null);
+  // Read on mount rather than on rendering the bar: the bar is on every page,
+  // and this is a query nobody has asked for until they open the menu — the
+  // dialog is mounted only then.
+  useEffect(() => {
     loadPageRights(slug).then((loaded) => {
       if ("error" in loaded) {
-        setOpen(false);
+        onClose();
         toast.error(loaded.error);
         return;
       }
@@ -68,7 +67,8 @@ export function PageRightsButton({
       setRead(loaded.rights.read);
       setWrite(loaded.rights.write);
     });
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug]);
 
   function save() {
     startSaving(async () => {
@@ -77,7 +77,7 @@ export function PageRightsButton({
         toast.error(result.error);
         return;
       }
-      setOpen(false);
+      onClose();
       toast.success(`Les droits de ${subject} ont été enregistrés.`);
     });
   }
@@ -90,12 +90,7 @@ export function PageRightsButton({
   const lockout = signInLockout([slug], read);
 
   return (
-    <Dialog open={open} onOpenChange={openWith}>
-      <DialogTrigger asChild>
-        <Button type="button" variant="ghost" size="sm">
-          {children}
-        </Button>
-      </DialogTrigger>
+    <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Accès à {subject}</DialogTitle>
@@ -112,7 +107,7 @@ export function PageRightsButton({
               // The floor of both senses just moved, and unsaved scopes would
               // now be posed against another owner: the modal closes on the
               // action it just carried out, and reopens on the new floor.
-              onTransferred={() => setOpen(false)}
+              onTransferred={onClose}
             />
             <Field
               id="page-read-acl"
@@ -132,7 +127,7 @@ export function PageRightsButton({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={onClose}>
             Annuler
           </Button>
           <Button

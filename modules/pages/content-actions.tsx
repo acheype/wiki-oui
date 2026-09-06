@@ -18,6 +18,7 @@ import {
   countPageSlugReferences,
   deletePageBySlug,
   addressablePage,
+  getPageWithCurrent,
   slugExists,
   listAllPageSlugs,
   pageTitle,
@@ -27,6 +28,7 @@ import {
 import { PageBody } from "@/modules/pages/page-body";
 import { getRevisionToRestore, writeRestoredRevision } from "@/modules/pages/revisions";
 import { isRefused } from "@/modules/pages/rights";
+import { currentPermissions } from "@/modules/permissions/person";
 import { REFUSALS, refusalMessage } from "@/modules/permissions/rules";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
@@ -47,11 +49,26 @@ export type SaveResult = ActionError | { unchanged: true } | { saved: true };
  *
  * A legitimate "use server" pass-through (CLAUDE.md): a client host cannot
  * reach the access layer, and the gates are <PageBody>'s own, unchanged.
+ * `canWrite` rides along so the modal header may offer « Modifier » exactly
+ * where the page bar would (getPageWithCurrent is memoized, so it is the same
+ * read the body streams from, not a second query).
  */
 export async function readPageBody(
   slug: string
-): Promise<{ title: string | null; body: React.ReactNode }> {
-  return { title: await pageTitle(slug), body: <PageBody slug={slug} hideTitle /> };
+): Promise<{ title: string | null; canWrite: boolean; body: React.ReactNode }> {
+  const page = await getPageWithCurrent(slug);
+  // « Modifier » only where the reader may write, and only for a page they can
+  // see: a refused page shows its refusal in the body, never an edit
+  // affordance (docs/permissions.md).
+  const canWrite =
+    page !== null && !isRefused(page)
+      ? (await currentPermissions(page)).write
+      : false;
+  return {
+    title: await pageTitle(slug),
+    canWrite,
+    body: <PageBody slug={slug} hideTitle />,
+  };
 }
 
 /**

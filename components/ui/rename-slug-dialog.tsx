@@ -1,7 +1,7 @@
 "use client";
 
 import { TriangleAlert } from "lucide-react";
-import { useId, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,8 @@ import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 // the action.
 export function RenameSlugDialog({
   trigger,
+  open: controlledOpen,
+  onOpenChange,
   title,
   currentLabel,
   current,
@@ -39,8 +41,14 @@ export function RenameSlugDialog({
   rename,
   onRenamed,
 }: {
-  /** The action-bar button; wrapped in DialogTrigger asChild. */
-  trigger: React.ReactNode;
+  /**
+   * The action-bar button; wrapped in DialogTrigger asChild. Omit when the
+   * dialog is opened from elsewhere (e.g. an overflow menu item driving `open`).
+   */
+  trigger?: React.ReactNode;
+  /** Controlled open, for a caller that opens the dialog from its own affordance. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   /** e.g. « Adresse actuelle » / « Identifiant actuel ». */
   currentLabel: string;
@@ -61,23 +69,35 @@ export function RenameSlugDialog({
   /** Called after a successful rename; absent when the action navigates itself. */
   onRenamed?: (newSlug: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const [newSlug, setNewSlug] = useState("");
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
+  const open = controlledOpen ?? uncontrolledOpen;
+  // Prefilled with the current identifier (selected on focus): confirm stays
+  // disabled until the value actually moves.
+  const [newSlug, setNewSlug] = useState(current);
   const [impact, setImpact] = useState<SlugReferenceImpact>();
   const [isPending, startTransition] = useTransition();
   const formId = useId();
   const inputId = useId();
 
   function handleOpenChange(nextOpen: boolean) {
-    setOpen(nextOpen);
-    if (nextOpen) {
-      // Prefilled with the current identifier (selected on focus): confirm
-      // stays disabled until the value actually moves.
+    if (controlledOpen === undefined) setUncontrolledOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+    // The uncontrolled trigger path reopens the same mounted instance, so it
+    // resets and re-counts here. A controlled caller mounts the dialog already
+    // open and does that once on mount instead (below).
+    if (controlledOpen === undefined && nextOpen) {
       setNewSlug(current);
       setImpact(undefined);
       fetchImpact().then(setImpact);
     }
   }
+
+  useEffect(() => {
+    if (controlledOpen === undefined) return;
+    fetchImpact().then(setImpact);
+    // Count once on mount; the controlled caller mounts the dialog per opening.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const ready = isValidSlug(newSlug) && newSlug !== current;
 
@@ -88,14 +108,14 @@ export function RenameSlugDialog({
         toast.error(result.error);
         return;
       }
-      setOpen(false);
+      handleOpenChange(false);
       onRenamed?.(newSlug);
     });
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -141,7 +161,7 @@ export function RenameSlugDialog({
           <p className="text-sm text-muted-foreground">{note}</p>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>
             Annuler
           </Button>
           <Button type="submit" form={formId} disabled={!ready || isPending}>

@@ -1,19 +1,20 @@
-import { History, Pencil, UsersRound } from "lucide-react";
+import { History, Pencil } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { PagePermissions } from "@/modules/permissions/rules";
 import { specialSlugs } from "@/wiki.config";
-import { DeletePageButton } from "./delete-page-button";
-import { PageRightsButton } from "./page-rights-button";
-import { RenamePageButton } from "./rename-page-button";
+import { PageActionsMenu } from "./page-actions-menu";
 
 // What is not on offer is absent, never greyed out (docs/permissions.md § Ce
 // que voit qui n'a pas le droit): an offer that cannot be taken up informs
 // nobody, and a disabled button invites a click that will never work.
 //
-// The three rungs of the ladder come decided (modules/permissions/rules.ts): the bar
-// reads which permissions are open, never who is looking at it.
+// The bar foregrounds the two actions taken often — Modifier (the daily one)
+// and Historique — and folds the rare, structuring ones behind « ⋯ »
+// (page-actions-menu.tsx). The three rungs of the ladder come decided
+// (modules/permissions/rules.ts): the bar reads which permissions are open,
+// never who is looking at it.
 export function PageActions({
   slug,
   tags,
@@ -51,23 +52,11 @@ export function PageActions({
             Historique
           </Link>
         </Button>
-        {/* Posing the rights is a mutation, so it opens a modal from here
-            rather than a /{slug}/droits handler (docs/permissions.md). It is
-            called « Accès » because that is what the reader is after — who
-            gets in — where « Droits » names the machinery. Handing the page
-            over is in there too: same rung, and the modal names the owner. */}
-        {permissions.structuring && (
-          <PageRightsButton slug={slug}>
-            <UsersRound />
-            Accès
-          </PageRightsButton>
-        )}
-        {!special && (
-          <>
-            {permissions.address && <RenamePageButton slug={slug} />}
-            {permissions.structuring && <DeletePageButton slug={slug} />}
-          </>
-        )}
+        <PageActionsMenu
+          slug={slug}
+          special={special}
+          permissions={permissions}
+        />
       </div>
     </div>
   );
