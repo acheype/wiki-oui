@@ -12,24 +12,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { Maximize2, Pencil, X } from "lucide-react";
+import { Maximize2, Pencil } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
-  DialogTitle,
+  DialogIconLink,
+  DialogTitleBar,
 } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { readPageBody } from "@/modules/pages/content-actions";
 import { isValidSlug } from "@/lib/slug";
-import { cn } from "@/lib/utils";
 
 // The one modal of the whole site (ADR 0022): a single <Dialog> hosted here,
 // filled inline from a page's RSC body instead of an iframe's second document.
@@ -290,53 +282,35 @@ export function ModalProvider({ children }: { children: ReactNode }) {
           showCloseButton={false}
           className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl"
         >
-          <div className="flex items-center gap-1 border-b px-6 py-2.5">
-            {/* A stored title (ADR 0020) or leading heading, else the slug —
-                either way the page's identity, so shown large like an h1 of its
-                own. ModalLink names a WikiOui target the same way; only a bare
-                external URL (no slug) drops to its muted tier. */}
-            <DialogTitle className="min-w-0 flex-1 truncate pr-2 text-lg font-semibold">
-              {shown?.title ?? shownSlug ?? ""}
-            </DialogTitle>
-            <TooltipProvider delayDuration={300}>
-              {/* The fiche's forward actions live on the title row as icons: the
-                  two moves that lead out of the peek — edit, and open it full.
-                  The rare structuring actions (accès, adresse, suppression) stay
-                  on the full page, whose deliberate context they belong to, and
-                  which never stacks a second dialog over this one (ADR 0022). */}
-              {shownSlug && (
+          {/* A stored title (ADR 0020) or leading heading, else the slug —
+              either way the page's identity, so shown large like an h1 of its
+              own. The forward actions — edit, and open it full — are the two
+              moves that lead out of the peek; the rare structuring actions
+              stay on the full page, which never stacks a second dialog over
+              this one (ADR 0022). */}
+          <DialogTitleBar
+            titleClassName="text-lg font-semibold"
+            actions={
+              shownSlug && (
                 <>
                   {shown?.canWrite && (
-                    <ModalIconLink
+                    <DialogIconLink
                       href={`/${shownSlug}/edit`}
                       label="Modifier"
                       icon={<Pencil className="size-4" />}
                     />
                   )}
-                  <ModalIconLink
+                  <DialogIconLink
                     href={`/${shownSlug}`}
                     label="Ouvrir en pleine page"
                     icon={<Maximize2 className="size-4" />}
                   />
                 </>
-              )}
-              {/* A hairline sets the close apart: leaving the modal is not one
-                  of the actions on the fiche. */}
-              <div className="mx-1 h-6 w-px bg-border" aria-hidden />
-              {/* Sized to the title's line and on the same row, so the cross
-                  reads as its sibling rather than a footnote in a corner. */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DialogClose asChild>
-                    <Button variant="ghost" size="icon" aria-label="Fermer">
-                      <X className="size-5" />
-                    </Button>
-                  </DialogClose>
-                </TooltipTrigger>
-                <TooltipContent>Fermer</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+              )
+            }
+          >
+            {shown?.title ?? shownSlug ?? ""}
+          </DialogTitleBar>
           {shownSlug && (
             // The body scrolls alone (min-h-0 lets the flex child shrink), so
             // the rounded corners and the header never move. The body, error
@@ -364,34 +338,6 @@ function ModalUrlSync({ onSlug }: { onSlug: (slug: string | null) => void }) {
     onSlug(slug);
   }, [slug, onSlug]);
   return null;
-}
-
-// An icon-only header action: a real <a href> — so middle-click and Ctrl+click
-// still open a tab — styled as a ghost icon button, its label read out by a
-// tooltip. Wrap the group in a TooltipProvider.
-function ModalIconLink({
-  href,
-  label,
-  icon,
-}: {
-  href: string;
-  label: string;
-  icon: ReactNode;
-}) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <a
-          href={href}
-          aria-label={label}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-        >
-          {icon}
-        </a>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
 }
 
 function BodySkeleton() {

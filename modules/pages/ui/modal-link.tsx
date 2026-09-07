@@ -1,14 +1,14 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  DialogIconLink,
+  DialogTitleBar,
 } from "@/components/ui/dialog";
 import { WikiFrame } from "@/modules/pages/ui/wiki-frame";
-import { cn } from "@/lib/utils";
 
 // Client innard of WikiLink's external modal target — also the external
 // <Button> (trigger "hover" opens on mouse-over). An internal target never
@@ -48,30 +48,42 @@ export function ModalLink({
       </a>
       <Dialog open={open} onOpenChange={setOpen}>
         {/* As wide as the page's content column (max-w-5xl in the site
-            layout): the target must read as it reads on its own page. Height
-            follows the frame, capped so a long page scrolls inside the modal. */}
-        <DialogContent className="max-h-[85vh] gap-3 overflow-y-auto sm:max-w-5xl">
-          <DialogHeader>
-            {/* While waiting (undefined), the URL stays the accessible name
-                but hidden, so a WikiOui title arriving a beat later never
-                visibly replaces it. It shows only once the frame settles
-                without a title (null): a non-WikiOui target. */}
-            <DialogTitle
-              className={cn(
-                "truncate pr-6",
-                typeof title === "string"
-                  ? // A detected title reads as one: the h1 size of a page of
-                    // its own (text-lg font-semibold).
-                    "text-lg font-semibold"
-                  : title === null
-                    ? "text-sm font-normal text-muted-foreground"
-                    : "sr-only"
-              )}
-            >
-              {title || href}
-            </DialogTitle>
-          </DialogHeader>
-          <WikiFrame target={href} onTitle={setTitle} sized />
+            layout): the target must read as it reads on its own page.
+            overflow-hidden keeps the rounded corners intact while the frame
+            below scrolls; the title bar stays put. */}
+        <DialogContent
+          showCloseButton={false}
+          className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-5xl"
+        >
+          {/* No wiki page actions here — the target is a third party — just a
+              way out to a real tab beside the close. While waiting (undefined),
+              the URL stays the accessible name but hidden (sr-only), so a
+              WikiOui title arriving a beat later never visibly replaces it; it
+              shows only once the frame settles without a title (null): a
+              non-WikiOui target, then muted. A detected title reads as an h1
+              (text-lg font-semibold). */}
+          <DialogTitleBar
+            titleClassName={
+              typeof title === "string"
+                ? "text-lg font-semibold"
+                : title === null
+                  ? "text-sm font-normal text-muted-foreground"
+                  : "sr-only"
+            }
+            actions={
+              <DialogIconLink
+                href={href}
+                label="Ouvrir dans un nouvel onglet"
+                icon={<ExternalLink className="size-4" />}
+                newTab
+              />
+            }
+          >
+            {title || href}
+          </DialogTitleBar>
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+            <WikiFrame target={href} onTitle={setTitle} sized />
+          </div>
         </DialogContent>
       </Dialog>
     </>
