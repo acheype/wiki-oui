@@ -38,14 +38,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { AccessRule } from "@/modules/permissions/rules";
+import type { PageDialogProps } from "@/modules/pages/ui/page-dialog";
 
-export function PageRightsDialog({
-  slug,
-  onClose,
-}: {
-  slug: string;
-  onClose: () => void;
-}) {
+export function PageRightsDialog({ slug, onClose }: PageDialogProps) {
   const [rights, setRights] = useState<PageRightsForm | null>(null);
   const [read, setRead] = useState<AccessRule>({ scope: "restricted" });
   const [write, setWrite] = useState<AccessRule>({ scope: "restricted" });

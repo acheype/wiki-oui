@@ -44,24 +44,26 @@ export async function EntryView({
         <h1 className="mb-6 text-3xl font-semibold tracking-tight">{title}</h1>
       )}
       <dl className="grid gap-5">
-        {rows.map(
-          (row) =>
-            row && (
-              // An image fills its box with no optical whitespace above it,
-              // where text carries some: it needs a touch more label gap.
-              <div
-                key={row.field.name}
-                className={row.field.type === "image" || row.field.type === "geolocation" ? "grid gap-2" : "grid gap-1"}
-              >
-                {row.field.type !== "customContent" && (
-                  <dt className="text-sm font-medium text-muted-foreground">
-                    {row.field.label}
-                  </dt>
-                )}
-                <dd>{row.rendered}</dd>
-              </div>
-            )
-        )}
+        {rows.map((row) => {
+          if (!row) return null;
+          // A photo or a map fills its box with no optical whitespace above it,
+          // where text carries some: both need a touch more label gap.
+          const filledMedia =
+            row.field.type === "image" || row.field.type === "geolocation";
+          return (
+            <div
+              key={row.field.name}
+              className={filledMedia ? "grid gap-2" : "grid gap-1"}
+            >
+              {row.field.type !== "customContent" && (
+                <dt className="text-sm font-medium text-muted-foreground">
+                  {row.field.label}
+                </dt>
+              )}
+              <dd>{row.rendered}</dd>
+            </div>
+          );
+        })}
       </dl>
     </div>
   );

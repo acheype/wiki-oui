@@ -15,7 +15,8 @@ import {
   isCurrentAdmin,
 } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
-import { WITH_RIGHTS, currentCanCreatePage } from "@/modules/pages/rights";
+import { getPageWithCurrent } from "@/modules/pages/content";
+import { WITH_RIGHTS, currentCanCreatePage, isRefused } from "@/modules/pages/rights";
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { wikiConfig } from "@/wiki.config";
 
@@ -67,6 +68,20 @@ export async function ifReadable<T extends Decidable>(
 /** The backstop of every content write; the views refuse long before it. */
 export async function assertCanWrite(page: PageRights): Promise<void> {
   if (!(await currentCanWrite(page))) refuse("write");
+}
+
+/**
+ * May the current person write this page? Read and decided in one call
+ * (ADR 0025), for an affordance a client offers before it can reach this layer
+ * — the modal's « Modifier », the same answer permissions.write gives the page
+ * bar. Reads through getPageWithCurrent, so it shares <PageBody>'s cached query
+ * rather than adding one; a page that has gone, or one the reader may not even
+ * see (getPageWithCurrent already applies ifReadable), offers no edit.
+ */
+export async function canWritePage(slug: string): Promise<boolean> {
+  const page = await getPageWithCurrent(slug);
+  if (!page || isRefused(page)) return false;
+  return currentCanWrite(page);
 }
 
 export async function assertCanCreatePage(): Promise<void> {

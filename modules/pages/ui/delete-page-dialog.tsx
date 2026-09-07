@@ -13,16 +13,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import type { PageDialogProps } from "@/modules/pages/ui/page-dialog";
 
 // « Supprimer » — mounted open by the action-bar overflow menu
 // (page-actions-menu.tsx), so it carries no trigger of its own.
-export function DeletePageDialog({
-  slug,
-  onClose,
-}: {
-  slug: string;
-  onClose: () => void;
-}) {
+export function DeletePageDialog({ slug, onClose }: PageDialogProps) {
   const [isPending, startTransition] = useTransition();
 
   return (

@@ -7,18 +7,13 @@ import {
   impactTotal,
 } from "@/components/ui/rename-slug-dialog";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
+import type { PageDialogProps } from "@/modules/pages/ui/page-dialog";
 
 // « Changer l'adresse » (ADR 0016): the admin action that renames a page slug.
 // Mounted open by the action-bar overflow menu (page-actions-menu.tsx), so it
 // carries no trigger of its own. On success renamePage redirects to the new
 // address itself.
-export function RenamePageDialog({
-  slug,
-  onClose,
-}: {
-  slug: string;
-  onClose: () => void;
-}) {
+export function RenamePageDialog({ slug, onClose }: PageDialogProps) {
   return (
     <RenameSlugDialog
       open
