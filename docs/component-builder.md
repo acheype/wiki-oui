@@ -11,7 +11,7 @@ Le format du descripteur s'inspire de l'Actions Builder de YesWiki ([`reference/
 
 ## Le descripteur
 
-**Un YAML = un composant.** Pas de groupes d'actions : le nom du composant vient du nom de fichier (`button.yaml` → `<Button>`), et tous les champs vivent dans un seul bloc `properties`.
+**Un YAML = un composant.** Pas de groupes d'actions : le nom du composant vient du nom de fichier (`button.yaml` → `<Button>`), et ses champs vivent dans un bloc `properties`. Un composant **feuille** (`<Button … />`) s'arrête là ; un composant **wrapper**, qui comporte du contenu entre ses balises, peut ajouter une section `children:` pour que le builder gère une liste de balises filles (voir « Composants wrapper »).
 
 ```yaml
 label: Bouton                       # nom affiché dans le menu « Composants »
@@ -129,16 +129,64 @@ Une valeur littérale ambiguë (le texte `notNull`, une valeur commençant par `
 - **Masqué = vide** : un champ masqué n'émet jamais sa prop dans le MDX généré, et compte comme vide pour les `showif` qui pointent sur lui (le masquage cascade).
 - **Factorisation** : une condition partagée par plusieurs champs se factorise avec les ancres YAML natives (`&image` / `*image`).
 
-## Cible de sérialisation
+## Composants wrapper
 
-Par défaut, un builder émet la **balise JSX** de son composant (`<Button … />`) et sait la re-parser. Un descripteur peut déclarer une autre cible avec la clé `emits` ; la seule alternative est le lien markdown :
+Un composant **wrapper** enveloppe du contenu entre ses balises (`<Tabs>…</Tabs>`, `<Menu>…</Menu>`), là où un composant **feuille** porte tout dans ses props (`<Button … />`). La règle qui tranche (ADR 0031) : le **contenu** — le MDX écrit par l'auteur — vit dans les enfants, la **config** dans les props. Un composant n'est donc wrapper que si ses enfants sont du contenu.
+
+Un wrapper à descripteur s'édite de deux façons, selon qu'il déclare ou non une section `children:`.
+
+### Contenu libre (sans `children:`)
+
+Le builder ne gère que les **props** du wrapper ; le contenu entre les balises est composé **librement** par l'auteur dans l'éditeur, et **préservé** tel quel à la réédition. C'est le modèle de `<Menu>` (ADR 0010), dont la liste imbriquée s'écrit à la main.
+
+### Liste d'enfants gérée (avec `children:`)
+
+Quand on veut que l'interface graphique **crée et gère une liste de balises filles**, le wrapper déclare une section `children:` à côté de `properties`. Elle décrit l'**enfant répétable** : le composant qu'il émet, son libellé, et le bloc `properties` de **ses** props. La balise fille correspond à un composant du **registre de composants** — elle est donc rendue —, mais **sans descripteur** : comme elle ne s'insère qu'avec son wrapper, ses propriétés sont décrites directement dans `children`, pas dans un YAML à elle. Exemple avec `<Tabs>`/`<Tab>` :
 
 ```yaml
-# modules/pages/wiki-components/wiki-link.yaml
-emits: markdown-link      # émet [texte](cible){{ target: '…' }} au lieu de <WikiLink …/>
+label: Onglets
+previewHeight: 300px
+properties:              # props du wrapper <Tabs>
+  display:
+    type: list
+    default: segmented
+    options: { … }
+  orientation:
+    type: list
+    default: horizontal
+    options: { … }
+children:                # l'enfant répétable, sans descripteur propre
+  component: Tab         # émet <Tab …>…contenu MDX…</Tab>
+  label: Onglet
+  properties:            # props de chaque enfant
+    title:
+      label: Titre
+      type: text
+      required: true
+    icon:
+      label: Icône
+      type: icon
 ```
 
-Le menu « Composants » ne liste que les descripteurs qui émettent des balises de composant ; `wiki-link` a ses portes dédiées (bouton « Ajouter un lien », bouton flottant d'édition de lien). Le moteur — champs, `advanced`, `showif`, aperçu, mapping inverse, idempotence — est identique dans les deux cas.
+Le contenu d'un enfant n'est **pas** une prop : c'est le MDX écrit entre ses balises, dans l'éditeur. Le builder génère la structure, l'auteur remplit le contenu :
+
+```mdx
+<Tabs display="segmented">
+  <Tab title="Présentation" icon="lucide:info">
+Contenu de la présentation…
+  </Tab>
+  <Tab title="Contact">
+Contenu de contact…
+  </Tab>
+</Tabs>
+```
+
+Le builder tire alors de la section `children:` :
+
+- **Un builder à deux étages** : les `properties` du wrapper deviennent les champs **globaux** ; la section `children:` devient une **liste répétable** d'enfants — ajouter, réordonner, supprimer —, chacun portant les champs de ses propres `properties`.
+- **Contenu préservé** : le round-trip conserve le MDX de chaque enfant ; seuls son ordre et ses props changent. Un rappel en pied indique que le contenu s'écrit entre les balises, dans l'éditeur.
+- **Suppression d'un enfant non vide** : avertissement de confirmation — le builder connaît le contenu de chaque enfant.
+- **Vérification** : la vérification par signature (voir « Vérification ») s'applique au composant enfant comme à tout composant à props.
 
 ## Table de traduction YesWiki → WikiOui
 
@@ -167,6 +215,12 @@ Le menu « Composants » ne liste que les descripteurs qui émettent des balises
 | `new-window` (liste à option unique, dans `class`) | Prop `newWindow` (checkbox) |
 | `modal` / `modalbox-hover` (dans `class`) | Prop `modal` (`click` / `hover`) |
 | Action fourre-tout `attach` (image + PDF + fichier) | Éclatée en trois composants : `Image`, `Pdf`, `FileLink` |
+| Action `tabs` : `titles` + blocs `{{tab}}…{{end elem="tab"}}` | `<Tabs>` avec un `<Tab title="…">` par titre ; contenu MDX inline, appariement positionnel |
+| Action `tabs` : `selectedtab=N` (1-based) | `default="<slug du Nᵉ onglet>"` (`1`/absent → premier, omis) |
+| Action `tabs` : `btnsize` / `btncolor` / `bottom_nav` / `counter_on_bottom_nav` | Non repris |
+| Action `nav` : `nav-links` (`link` page + `title`) | `<Tabs>` avec un `<Tab title="…">` par lien ; le contenu de la page liée est rapatrié dans l'onglet |
+| Action `nav` : `class` (`nav-tabs`/`nav-pills`/`nav-justified`/`nav-stacked`) | `display` (`underline`/`segmented`) + `fullWidth` (justifié) + `orientation="vertical"` (stacked) |
+| Action `nav` : `hideifnoaccess` | Non repris — onglet natif sans page liée |
 | `onlyEdit` / `onlyAdd` (asymétries ajout/édition) | Non repris (pas de besoin pour l'instant) — tout builder insère **et** réédite |
 | Type `form-field`, `needFormField` | Supprimés (bazar au backlog) |
 | Type `color` | Non repris (aucun composant v0.2 ne l'utilise ; réintroductible) |
@@ -175,4 +229,13 @@ Le menu « Composants » ne liste que les descripteurs qui émettent des balises
 | `mapped` | Non repris |
 | `position` (ordre dans le menu) | Non repris — menu trié alphabétiquement par `label` |
 | `doclink` | Non repris — la documentation des composants vit dans l'aide-mémoire |
-| `isWrapper` / `wrappedContentExample` | Non repris en v0.2 — l'édition des composants wrapper (ex. `<Menu>`) est au backlog, avec préservation des enfants à la réédition |
+| `isWrapper` / `wrappedContentExample` | Non repris. Un composant est un wrapper dès lors qu'il comporte du **contenu** à l'intérieur (ADR 0031), préservé à la réédition. |
+
+### Cas particuliers de migration
+
+**Réécriture des URLs (`nav`)** — chaque onglet `nav` était une page distincte, donc un lien wiki vers cette page doit pointer vers l'onglet après fusion :
+
+1. Construire la carte `ancien-slug-page → (slug-page-hôte, slug-onglet)`, avec `slug-onglet = slugify(title)`.
+2. Le contenu de chaque page-onglet devient le contenu de son `<Tab>`.
+3. Réécrire tout lien wiki vers `ancien-slug-page` en `slug-page-hôte#slug-onglet` — même mécanique que « Changer l'adresse » (ADR 0016).
+4. Retirer les pages-onglets une fois rapatriées.
