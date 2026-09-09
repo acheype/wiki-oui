@@ -663,25 +663,29 @@ function matchAttribute(
 ): { parsed: TagAttribute; length: number } | null {
   const name = source.match(/^[A-Za-z_][A-Za-z0-9_-]*/)?.[0];
   if (!name) return null;
-  if (!source.slice(name.length).startsWith("=")) {
-    // Bare attribute: JSX shorthand for true.
+  // JSX tolerates blanks around the `=` (`text = "x"`, even across a newline):
+  // they carry no meaning, so a tag written that way still gets the pencil. A
+  // bare attribute is one with no `=` at all — JSX shorthand for true.
+  const equals = source.slice(name.length).match(/^\s*=\s*/);
+  if (!equals) {
     return {
       parsed: { name, raw: name, value: true, literal: true },
       length: name.length,
     };
   }
-  const rest = source.slice(name.length + 1);
+  const valueStart = name.length + equals[0].length;
+  const rest = source.slice(valueStart);
   const quoted = rest.match(/^"([^"]*)"|^'([^']*)'/);
   if (quoted) {
     const text = quoted[1] ?? quoted[2];
     return {
       parsed: {
         name,
-        raw: source.slice(0, name.length + 1 + quoted[0].length),
+        raw: source.slice(0, valueStart + quoted[0].length),
         value: text.replaceAll("&quot;", '"'),
         literal: true,
       },
-      length: name.length + 1 + quoted[0].length,
+      length: valueStart + quoted[0].length,
     };
   }
   if (!rest.startsWith("{")) return null;
@@ -692,11 +696,11 @@ function matchAttribute(
   return {
     parsed: {
       name,
-      raw: source.slice(0, name.length + 1 + expression.length),
+      raw: source.slice(0, valueStart + expression.length),
       value: literal?.value,
       literal: literal !== null,
     },
-    length: name.length + 1 + expression.length,
+    length: valueStart + expression.length,
   };
 }
 

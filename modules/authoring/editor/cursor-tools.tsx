@@ -26,6 +26,8 @@ import { createRoot } from "react-dom/client";
 import {
   emitsMarkdownLink,
   findComponentTag,
+  type LiteralValue,
+  parseLiteral,
   TAG_SCAN_WINDOW,
   tagToBuilderState,
   type PropValues,
@@ -64,8 +66,28 @@ const LINK_MARKDOWN = /^\[([^\]]*)\]\(\s*<?([^)>\s]*)>?\s*\)/;
 // key left outside that range would survive untouched, duplicated the moment
 // generateMarkdownLink rewrites it into a fresh annotation of its own.
 const LINK_ANNOTATION = /^\{\{([^}]*)\}\}/;
-const TARGET_KEY = /target:\s*'(_blank|modal)'/;
-const HIDE_IF_NO_ACCESS_KEY = /hideIfNoAccess:\s*true/;
+
+// The trailing {{ … }} block is an mdx-annotations object literal (ADR 0006).
+// Reading it back with the component builder's own literal parser — rather
+// than key-spotting regexes — makes the graphical editor blind to whatever
+// blanks, key order or quote style the author typed: none of them change the
+// annotation's meaning. An annotation that is not a plain literal object reads
+// as the defaults, the same value it would render as.
+function readLinkAnnotation(inner: string): {
+  target: LinkTarget;
+  hideIfNoAccess: boolean;
+} {
+  const parsed = parseLiteral(`{${inner}}`)?.value;
+  const record =
+    parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, LiteralValue>)
+      : {};
+  const target = record.target;
+  return {
+    target: target === "_blank" || target === "modal" ? target : "self",
+    hideIfNoAccess: record.hideIfNoAccess === true,
+  };
+}
 
 export function linkAtCursor(state: EditorState): LinkInfo | null {
   const range = state.selection.main;
@@ -84,14 +106,14 @@ export function linkAtCursor(state: EditorState): LinkInfo | null {
       const after = state
         .sliceDoc(node.to, Math.min(node.to + 80, state.doc.length))
         .match(LINK_ANNOTATION);
-      const annotation = after?.[1] ?? "";
+      const annotation = readLinkAnnotation(after?.[1] ?? "");
       return {
         from: node.from,
         to: node.to + (after?.[0].length ?? 0),
         text: match[1],
         href: match[2],
-        target: (TARGET_KEY.exec(annotation)?.[1] as LinkTarget | undefined) ?? "self",
-        hideIfNoAccess: HIDE_IF_NO_ACCESS_KEY.test(annotation),
+        target: annotation.target,
+        hideIfNoAccess: annotation.hideIfNoAccess,
       };
     }
   }

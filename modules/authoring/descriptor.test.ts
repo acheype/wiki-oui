@@ -480,6 +480,30 @@ describe("idempotence", () => {
     expect(normalized).toBe('<Button text="Go" color="success" newWindow />');
     expect(roundTrip(normalized)).toBe(normalized);
   });
+
+  // Blanks around the `=` are valid JSX and change no value, so a tag spaced
+  // by hand — including across tabs and a newline — stays editable and folds
+  // to the same fixpoint as its tight form.
+  it("normalizes blanks around the = (spaces, tabs, newline)", () => {
+    const roundTrip = (source: string) => {
+      const state = tagToBuilderState(
+        fullButtonDescriptor(),
+        fullButtonDefaults,
+        tagAt(source)!
+      )!;
+      return generateTag(
+        "Button",
+        fullButtonDescriptor(),
+        fullButtonDefaults,
+        state.values,
+        state.unknownAttributes
+      );
+    };
+    expect(roundTrip('<Button text = "Go" color\t=\t"success" />')).toBe(
+      '<Button text="Go" color="success" />'
+    );
+    expect(roundTrip('<Button text =\n  "Go" />')).toBe('<Button text="Go" />');
+  });
 });
 
 describe("findComponentTag", () => {
