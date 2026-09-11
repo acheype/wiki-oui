@@ -18,6 +18,7 @@ import { Icon } from "@/components/ui/icon";
 import { childSlug } from "@/modules/authoring/descriptor";
 import { cn } from "@/lib/utils";
 import type { TabProps } from "./tab";
+import { UnderlineIndicators } from "./tabs/underline-indicators";
 
 // Built-in wrapper (ADR 0031): renders the <Tab> children written between its
 // tags as a tab group. Config lives in props, content in the children — each
@@ -89,6 +90,12 @@ export function Tabs({
     defaultSlug && slugs.includes(defaultSlug) ? defaultSlug : slugs[0];
   const [value, setValue] = useState(initial);
 
+  // Underline (`line` variant) swaps the per-tab bar for two shared indicators
+  // that slide (underline-indicators.tsx): the grey one follows the hovered
+  // tab, the black one the active tab. Other displays keep their own look.
+  const isUnderline = display === "underline";
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
   // A `#slug` anchor opens (and scrolls to) the matching tab (ADR 0031). Each
   // <Tabs> answers only for its own slugs, so several groups on one page do
   // not fight over the hash. hashchange keeps an in-page link working.
@@ -113,16 +120,19 @@ export function Tabs({
   // How the panel demarcates its zone, per display:
   // - segmented / separated: a detached thin-bordered card below the tabs (the
   //   root gap sets it off);
-  // - folder: no card — a single separator line, the active folder merging into
-  //   it. Horizontal takes the line from the tab list's bottom border; vertical
-  //   draws it here as the content's left border, which the active tab overlaps;
-  // - underline: no box either — the content clears the underline the same way.
+  // - folder: no card — a single separator line carried by the tab list (its
+  //   bottom border when horizontal, its right border when vertical), which the
+  //   active tab overlaps to merge into the content. The panel only clears it;
+  // - underline: no box either — the content clears the underline bar. It sits
+  //   closer than the folder line (pt-3), the panel having no border to meet.
   const flowsPast = orientation === "vertical" ? "pl-5" : "pt-5";
   const contentClass =
     display === "folder"
-      ? cn(flowsPast, orientation === "vertical" && "border-l")
+      ? flowsPast
       : display === "underline"
-        ? flowsPast
+        ? orientation === "vertical"
+          ? flowsPast
+          : "pt-3"
         : "rounded-lg border p-4";
 
   return (
@@ -136,12 +146,37 @@ export function Tabs({
         variant={variant}
         className={cn(
           fullWidth && "w-full",
+          // Anchor the absolute sliding indicators to the list.
+          isUnderline && "relative",
+          // Full-width folder tabs fill the line to the edge, dropping the
+          // trailing segment; a matching pad restores it so the line starts and
+          // ends the same length past the tabs (the leading one is the variant's
+          // pl-6).
+          fullWidth && display === "folder" && "group-data-horizontal/tabs:pr-6",
           // The segmented track is a fixed h-9 by default; let its padded pills
           // set a taller height (the wiki wants roomier segments).
           display === "segmented" && "group-data-horizontal/tabs:h-auto"
         )}
+        // The grey highlight fades out when the pointer or focus leaves the list.
+        onPointerLeave={isUnderline ? () => setHoveredIndex(null) : undefined}
+        onBlur={
+          isUnderline
+            ? (event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node))
+                  setHoveredIndex(null);
+              }
+            : undefined
+        }
       >
-        {tabs.map((tab) => (
+        {isUnderline && (
+          <UnderlineIndicators
+            activeIndex={slugs.indexOf(value ?? "")}
+            hoveredIndex={hoveredIndex}
+            orientation={orientation}
+            deps={slugKey}
+          />
+        )}
+        {tabs.map((tab, index) => (
           // text-base: tab titles match the page's body size, not the
           // primitive's smaller text-sm. Folder tabs stay content-sized on
           // their full-width line unless fullWidth stretches them.
@@ -156,6 +191,11 @@ export function Tabs({
                 "px-3 py-1.5 group-data-horizontal/tabs:h-auto",
               fullWidth ? "flex-1" : display === "folder" ? "flex-none" : undefined
             )}
+            // The shared grey highlight follows the hovered (or focused) tab.
+            onPointerEnter={
+              isUnderline ? () => setHoveredIndex(index) : undefined
+            }
+            onFocus={isUnderline ? () => setHoveredIndex(index) : undefined}
           >
             {tab.icon && <Icon id={tab.icon} />}
             {tab.title}
