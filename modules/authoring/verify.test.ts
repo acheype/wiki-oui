@@ -407,3 +407,39 @@ describe("extractSignature — structured shapes", () => {
     });
   });
 });
+
+describe("checkSignature on a wrapper child (ADR 0031)", () => {
+  const childDescriptor: ComponentDescriptor = {
+    label: "Onglet",
+    properties: {
+      title: { label: "Titre", type: "text", required: true },
+      icon: { label: "Icône", type: "icon" },
+    },
+  };
+  const tabSignature: ComponentSignature = {
+    file: "modules/pages/wiki-components/tab.tsx",
+    props: {
+      title: { tsOptional: false, type: { kind: "string" } },
+      icon: { tsOptional: true, type: { kind: "string" } },
+    },
+  };
+  const options = {
+    yamlFile: "modules/pages/wiki-components/tabs.yaml",
+    pathBase: ["children"] as (string | number)[],
+  };
+
+  it("accepts a child whose fields match its component", () => {
+    const result = checkSignature("Tab", childDescriptor, tabSignature, undefined, options);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("reports the parent YAML when a runtime-required child prop lacks required", () => {
+    const descriptor: ComponentDescriptor = {
+      label: "Onglet",
+      properties: { title: { label: "Titre", type: "text" } },
+    };
+    const [error] = checkSignature("Tab", descriptor, tabSignature, undefined, options).errors;
+    expect(error).toContain("modules/pages/wiki-components/tabs.yaml");
+    expect(error).toContain('field "title" must set "required: true"');
+  });
+});

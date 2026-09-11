@@ -6,6 +6,7 @@ import { z } from "zod";
 import { FORM_FIELD_TYPES } from "@/modules/forms/form-descriptor";
 import { SCOPES } from "@/modules/permissions/rules";
 import { PSEUDO_FIELDS } from "@/modules/forms/pseudo-fields";
+import { slugify } from "@/lib/slug";
 
 const FIELD_TYPES = [
   "text",
@@ -207,6 +208,18 @@ const descriptorFieldSchema = z.object({
   showif: z.record(z.string(), z.unknown()).optional(),
 });
 
+// A wrapper's managed child list (ADR 0031): the repeated child tag it emits
+// between its own tags, described here rather than in a YAML of its own — the
+// child never inserts alone, so it carries no descriptor. `properties` are the
+// child's props, the same field block a root component declares.
+const childrenDescriptorSchema = z.object({
+  /** The child component tag, e.g. "Tab" — a registry component, no descriptor. */
+  component: z.string().min(1),
+  /** Singular label for one child, e.g. "Onglet". */
+  label: z.string(),
+  properties: z.record(z.string(), descriptorFieldSchema),
+});
+
 export const componentDescriptorSchema = z.object({
   label: z.string(),
   description: z.string().optional(),
@@ -214,10 +227,40 @@ export const componentDescriptorSchema = z.object({
   /** Serialization target; JSX component tag unless "markdown-link". */
   emits: z.literal("markdown-link").optional(),
   properties: z.record(z.string(), descriptorFieldSchema),
+  /** Present on a wrapper whose child list the builder manages (ADR 0031). */
+  children: childrenDescriptorSchema.optional(),
 });
 
 export type DescriptorField = z.infer<typeof descriptorFieldSchema>;
+export type ChildrenDescriptor = z.infer<typeof childrenDescriptorSchema>;
 export type ComponentDescriptor = z.infer<typeof componentDescriptorSchema>;
+
+/** A wrapper managing its children (ADR 0031) declares a `children:` section. */
+export function isWrapperDescriptor(
+  descriptor: ComponentDescriptor
+): descriptor is ComponentDescriptor & { children: ChildrenDescriptor } {
+  return descriptor.children !== undefined;
+}
+
+// A child descriptor reuses the whole field engine, so its props parse,
+// generate and verify exactly like a root component's. The synthetic
+// descriptor lets generateTag/tagToBuilderState/checkSignature treat a child
+// tag (e.g. <Tab>) as any other tag emitter.
+export function childDescriptor(
+  children: ChildrenDescriptor
+): ComponentDescriptor {
+  return { label: children.label, properties: children.properties };
+}
+
+// A wrapper child derives its anchor slug from its title (ADR 0031). The field
+// name and the derivation are shared by the renderer (tabs.tsx), the builder's
+// collision guard (component-builder.tsx) and the lint pass (pages/lint.ts),
+// so one change to the rule reaches all three.
+export const CHILD_SLUG_FIELD = "title";
+
+export function childSlug(values: Record<string, unknown>): string {
+  return slugify(String(values[CHILD_SLUG_FIELD] ?? ""));
+}
 
 /** True for wiki-link: serialized as a markdown link, kept out of the menu. */
 export function emitsMarkdownLink(descriptor: ComponentDescriptor): boolean {
@@ -319,11 +362,30 @@ export function validateDescriptor(
   }
   const descriptor = result.data;
 
-  for (const [field, spec] of Object.entries(descriptor.properties)) {
+  validatePropertiesBlock(descriptor.properties, at, []);
+  // A wrapper's managed children reuse the same field engine (ADR 0031), so
+  // its props are validated exactly like a root component's — only their path
+  // is nested under "children" so messages point at the right YAML line.
+  if (descriptor.children) {
+    validatePropertiesBlock(descriptor.children.properties, at, ["children"]);
+  }
+  return descriptor;
+}
+
+// Cross-field rules of one field block (root component or a wrapper's
+// children). `base` prefixes the descriptor path so an error points at the
+// right line whether the block sits at the root or under "children".
+function validatePropertiesBlock(
+  properties: Record<string, DescriptorField>,
+  at: (...candidates: (string | number)[][]) => string,
+  base: (string | number)[]
+): void {
+  const path = (...rest: (string | number)[]) => [...base, "properties", ...rest];
+  for (const [field, spec] of Object.entries(properties)) {
     if (spec.type === "divider") continue;
     for (const [target, condition] of Object.entries(spec.showif ?? {})) {
-      const where = at(["properties", field, "showif", target], ["properties", field]);
-      if (!(target in descriptor.properties)) {
+      const where = at(path(field, "showif", target), path(field));
+      if (!(target in properties)) {
         throw new Error(
           `${where}: showif of "${field}" points at unknown field "${target}"`
         );
@@ -344,25 +406,25 @@ export function validateDescriptor(
       if (typeof fallback !== "string" || !options.includes(fallback)) {
         const got = fallback === undefined ? "undefined" : `"${fallback}"`;
         throw new Error(
-          `${at(["properties", field, "default"], ["properties", field])}: ${spec.type} field "${field}" needs a default among its options (${options.join(", ")}), got ${got}`
+          `${at(path(field, "default"), path(field))}: ${spec.type} field "${field}" needs a default among its options (${options.join(", ")}), got ${got}`
         );
       }
       for (const icon of Object.keys(spec.icons ?? {})) {
         if (!options.includes(icon)) {
           throw new Error(
-            `${at(["properties", field, "icons", icon], ["properties", field])}: ${spec.type} field "${field}" declares an icon for unknown option "${icon}"`
+            `${at(path(field, "icons", icon), path(field))}: ${spec.type} field "${field}" declares an icon for unknown option "${icon}"`
           );
         }
       }
       for (const [option, targets] of Object.entries(spec.prefill ?? {})) {
-        const where = at(["properties", field, "prefill", option], ["properties", field]);
+        const where = at(path(field, "prefill", option), path(field));
         if (!options.includes(option)) {
           throw new Error(
             `${where}: ${spec.type} field "${field}" declares a prefill for unknown option "${option}"`
           );
         }
         for (const target of Object.keys(targets)) {
-          if (!(target in descriptor.properties)) {
+          if (!(target in properties)) {
             throw new Error(
               `${where}: prefill of "${field}" targets unknown field "${target}"`
             );
@@ -372,22 +434,22 @@ export function validateDescriptor(
     }
     if (spec.type === "form-field" || spec.type === "field-rows") {
       const source = spec.formFrom ?? "form";
-      if (!(source in descriptor.properties)) {
+      if (!(source in properties)) {
         throw new Error(
-          `${at(["properties", field, "formFrom"], ["properties", field])}: ${spec.type} field "${field}" reads its forms from unknown sibling "${source}"`
+          `${at(path(field, "formFrom"), path(field))}: ${spec.type} field "${field}" reads its forms from unknown sibling "${source}"`
         );
       }
     }
     if (spec.type === "color-mapping" || spec.type === "icon-mapping") {
       const source = spec.fieldFrom;
-      if (source === undefined || !(source in descriptor.properties)) {
+      if (source === undefined || !(source in properties)) {
         throw new Error(
-          `${at(["properties", field, "fieldFrom"], ["properties", field])}: ${spec.type} field "${field}" needs "fieldFrom" pointing at a sibling form-field, got ${source === undefined ? "nothing" : `unknown "${source}"`}`
+          `${at(path(field, "fieldFrom"), path(field))}: ${spec.type} field "${field}" needs "fieldFrom" pointing at a sibling form-field, got ${source === undefined ? "nothing" : `unknown "${source}"`}`
         );
       }
-      if (descriptor.properties[source].type !== "form-field") {
+      if (properties[source].type !== "form-field") {
         throw new Error(
-          `${at(["properties", field, "fieldFrom"], ["properties", field])}: ${spec.type} field "${field}" points "fieldFrom" at "${source}", which is not a form-field`
+          `${at(path(field, "fieldFrom"), path(field))}: ${spec.type} field "${field}" points "fieldFrom" at "${source}", which is not a form-field`
         );
       }
     }
@@ -396,7 +458,7 @@ export function validateDescriptor(
   // Aliased fields (same emitted prop) rely on disjoint showif to never be
   // visible together; requiring showif on every alias is the checkable part.
   const carriers = new Map<string, string[]>();
-  for (const [field, spec] of Object.entries(descriptor.properties)) {
+  for (const [field, spec] of Object.entries(properties)) {
     if (spec.type === "divider") continue;
     const prop = fieldProp(field, spec);
     carriers.set(prop, [...(carriers.get(prop) ?? []), field]);
@@ -404,14 +466,13 @@ export function validateDescriptor(
   for (const [prop, fields] of carriers) {
     if (fields.length < 2) continue;
     for (const field of fields) {
-      if (!descriptor.properties[field].showif) {
+      if (!properties[field].showif) {
         throw new Error(
-          `${at(["properties", field], [])}: fields ${fields.map((name) => `"${name}"`).join(", ")} all emit prop "${prop}", so each needs a showif keeping them apart`
+          `${at(path(field), [])}: fields ${fields.map((name) => `"${name}"`).join(", ")} all emit prop "${prop}", so each needs a showif keeping them apart`
         );
       }
     }
   }
-  return descriptor;
 }
 
 // Human wording for the first meta-schema violation, preserving the messages
@@ -532,13 +593,15 @@ function holds(condition: unknown, value: PropValue): boolean {
 // interface: omit whatever the reader can infer (the omission rule) so the
 // source stays short. Fields carrying a YAML `value` pre-fill are the
 // exception: their prop is always written, even unchanged.
-export function generateTag(
-  name: string,
+// The visible, non-default attributes a tag carries, in descriptor order,
+// unknown ones appended verbatim. Shared by the self-closing leaf tag
+// (generateTag) and the wrapper open tag (modules/authoring/wrapper.ts).
+export function tagAttributes(
   descriptor: ComponentDescriptor,
   defaults: PropDefaults,
   values: PropValues,
   unknownAttributes: string[] = []
-): string {
+): string[] {
   const visible = visibleFields(descriptor, defaults, values);
   const attributes: string[] = [];
   for (const [field, spec] of Object.entries(descriptor.properties)) {
@@ -552,6 +615,17 @@ export function generateTag(
     attributes.push(serializeAttribute(fieldProp(field, spec), value));
   }
   attributes.push(...unknownAttributes);
+  return attributes;
+}
+
+export function generateTag(
+  name: string,
+  descriptor: ComponentDescriptor,
+  defaults: PropDefaults,
+  values: PropValues,
+  unknownAttributes: string[] = []
+): string {
+  const attributes = tagAttributes(descriptor, defaults, values, unknownAttributes);
   const body = attributes.length > 0 ? ` ${attributes.join(" ")}` : "";
   return `<${name}${body} />`;
 }
@@ -614,6 +688,19 @@ export interface ParsedTag {
 function parseTagPrefix(
   source: string
 ): { tag: ParsedTag; length: number } | null {
+  const open = parseOpenTag(source);
+  return open && open.selfClosing ? { tag: open.tag, length: open.length } : null;
+}
+
+// Parses one opening tag, self-closing (`… />`) or not (`… >`), reporting
+// which and how far it reaches. The wrapper round-trip (modules/authoring/
+// wrapper.ts) reads a non-self-closing open tag then hunts its matching close;
+// parseTagPrefix keeps the self-closing-only contract the leaf pencil rests
+// on. Returns null on anything not fully understood — same invariant as
+// findComponentTag: a span is only returned when every character was read.
+export function parseOpenTag(
+  source: string
+): { tag: ParsedTag; length: number; selfClosing: boolean } | null {
   const open = source.match(/^<([A-Z][A-Za-z0-9]*)/);
   if (!open) return null;
   const name = open[1];
@@ -623,7 +710,10 @@ function parseTagPrefix(
     const spacing = source.slice(offset).match(/^\s*/)![0];
     offset += spacing.length;
     if (source.startsWith("/>", offset)) {
-      return { tag: { name, attributes }, length: offset + 2 };
+      return { tag: { name, attributes }, length: offset + 2, selfClosing: true };
+    }
+    if (source.startsWith(">", offset)) {
+      return { tag: { name, attributes }, length: offset + 1, selfClosing: false };
     }
     if (spacing === "") return null;
     const attribute = matchAttribute(source.slice(offset));

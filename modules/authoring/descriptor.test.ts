@@ -939,3 +939,46 @@ describe("prefill — choice-driven sibling seeding (docs/entries-view.md)", () 
     );
   });
 });
+
+describe("wrapper children (ADR 0031)", () => {
+  it("validates a well-formed children block", () => {
+    const descriptor = {
+      label: "Onglets",
+      properties: {},
+      children: {
+        component: "Tab",
+        label: "Onglet",
+        properties: { title: { label: "Titre", type: "text", required: true } },
+      },
+    };
+    expect(() =>
+      validateDescriptor("modules/pages/wiki-components/tabs.yaml", descriptor)
+    ).not.toThrow();
+  });
+
+  it("checks a child field like a root one, pointing under children", () => {
+    const descriptor = {
+      label: "Onglets",
+      properties: {},
+      children: {
+        component: "Tab",
+        label: "Onglet",
+        properties: { color: { label: "C", type: "list", options: { a: "A" } } },
+      },
+    };
+    expect(() =>
+      validateDescriptor("modules/pages/wiki-components/tabs.yaml", descriptor)
+    ).toThrow(/list field "color" needs a default/);
+  });
+
+  it("rejects an empty child component", () => {
+    const descriptor = {
+      label: "Onglets",
+      properties: {},
+      children: { component: "", label: "Onglet", properties: {} },
+    };
+    expect(() =>
+      validateDescriptor("modules/pages/wiki-components/tabs.yaml", descriptor)
+    ).toThrow();
+  });
+});
