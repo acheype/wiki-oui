@@ -110,7 +110,7 @@ Composant intégré affichant un bouton défini par un libellé (`text`), un lie
 _Avoid_: bouton d'action serveur (il ne déclenche pas de mutation)
 
 **Onglets (`<Tabs>`)**:
-Composant **wrapper** qui présente plusieurs **onglets** dans la page, chacun un `<Tab>` portant un titre, une icône facultative et son contenu MDX écrit entre ses balises. `<Tabs>` règle l'affichage (souligné, groupé, dossiers), le sens (horizontal, vertical), la pleine largeur et l'onglet ouvert par défaut (le premier sinon). Un onglet est adressable par l'ancre `#<slug>` dérivée de son titre. `<Tab>` n'a pas de descripteur : il ne s'insère pas seul, ses onglets se créent dans le ComponentBuilder de `<Tabs> (ADR 0031).
+Composant **wrapper** qui présente plusieurs **onglets** dans la page, chacun un `<Tab>` portant un titre, une icône facultative et son contenu MDX écrit entre ses balises. `<Tabs>` règle l'affichage (souligné, groupé, pastilles, dossiers), le sens (horizontal, vertical), la pleine largeur et l'onglet ouvert par défaut (le premier sinon). Un onglet est adressable par l'ancre `#<slug>` dérivée de son titre. `<Tab>` n'a pas de descripteur : il ne s'insère pas seul, ses onglets se créent dans le ComponentBuilder de `<Tabs> (ADR 0031).
 _Avoid_: onglet pour désigner `<Tabs>` (c'est le groupe)
 
 **Formulaire**:
