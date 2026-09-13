@@ -42,10 +42,10 @@ export function RenameSlugDialog({
   onRenamed,
 }: {
   /**
-   * The action-bar button; wrapped in DialogTrigger asChild. Omit when the
+   * The action-bar button; DialogTrigger renders it. Omit when the
    * dialog is opened from elsewhere (e.g. an overflow menu item driving `open`).
    */
-  trigger?: React.ReactNode;
+  trigger?: React.ReactElement;
   /** Controlled open, for a caller that opens the dialog from its own affordance. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -115,7 +115,7 @@ export function RenameSlugDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {trigger && <DialogTrigger render={trigger} />}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>

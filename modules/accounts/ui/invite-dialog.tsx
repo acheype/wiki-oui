@@ -93,11 +93,9 @@ export function InviteDialog({ onInvited }: { onInvited: () => void }) {
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button>
-          <Plus />
-          Inviter des personnes
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <Plus />
+        Inviter des personnes
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>

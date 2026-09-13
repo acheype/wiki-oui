@@ -74,7 +74,7 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
   // it, never greyed out.
   const [canCreate, setCanCreate] = useState(false);
   const filterRef = useRef<HTMLInputElement>(null);
-  const [, startTransition] = useTransition();
+  const [isDeleting, startTransition] = useTransition();
 
   useEffect(() => {
     listForms().then(setForms);
@@ -90,15 +90,15 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
   function confirmDelete() {
     if (!toDelete) return;
     const slug = toDelete.slug;
-    setToDelete(null);
     startTransition(async () => {
       const result = await deleteForm(slug);
       if ("error" in result) {
         toast.error(result.error);
-      } else {
-        toast.success("Formulaire supprimé.");
-        setForms((current) => current?.filter((form) => form.slug !== slug) ?? null);
+        return;
       }
+      toast.success("Formulaire supprimé.");
+      setForms((current) => current?.filter((form) => form.slug !== slug) ?? null);
+      setToDelete(null);
     });
   }
 
@@ -212,7 +212,7 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
+            <AlertDialogAction disabled={isDeleting} onClick={confirmDelete}>
               Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>

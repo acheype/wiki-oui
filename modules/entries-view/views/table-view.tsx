@@ -7,7 +7,7 @@
 // Modifier / Supprimer column. Pagination comes from the common chrome.
 
 import { Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import { toast } from "sonner";
 import { deletePage } from "@/modules/pages/content-actions";
@@ -249,6 +249,7 @@ function ActionsCell({
 }) {
   const [confirming, setConfirming] = useState(false);
   const [deleted, setDeleted] = useState(false);
+  const [isPending, startTransition] = useTransition();
   if (deleted) return <td />;
   return (
     <td className="px-2 py-1.5 text-right whitespace-nowrap">
@@ -295,14 +296,17 @@ function ActionsCell({
                   // reaching a refusal means the right went away in between —
                   // and a row that vanished anyway would report a deletion
                   // the wiki did not make.
-                  onClick={async () => {
-                    const result = await deletePage(entry.slug);
-                    if (result?.error) {
-                      toast.error(result.error);
-                      return;
-                    }
-                    setDeleted(true);
-                  }}
+                  disabled={isPending}
+                  onClick={() =>
+                    startTransition(async () => {
+                      const result = await deletePage(entry.slug);
+                      if (result?.error) {
+                        toast.error(result.error);
+                        return;
+                      }
+                      setDeleted(true);
+                    })
+                  }
                 >
                   Supprimer
                 </AlertDialogAction>

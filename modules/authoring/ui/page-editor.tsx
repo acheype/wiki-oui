@@ -62,7 +62,7 @@ export function PageEditor({
   const [tags, setTags] = useState(initialTags);
   const [builderDialog, setBuilderDialog] =
     useState<BuilderDialogState | null>(null);
-  // The Radix close animation fades the dialog out after builderDialog is
+  // The close animation fades the dialog out after builderDialog is
   // nulled, so keep the last state around to render the fading content.
   const lastBuilderDialog = useRef<BuilderDialogState | null>(null);
   if (builderDialog) lastBuilderDialog.current = builderDialog;

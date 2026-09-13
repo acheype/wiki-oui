@@ -13,7 +13,6 @@ function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
 }
 
-// Above the dialog tiers: these open from inside a dialog (components/ui/dialog.tsx).
 function PopoverContent({
   className,
   align = "center",
@@ -35,7 +34,7 @@ function PopoverContent({
         side={side}
         sideOffset={sideOffset}
         anchor={anchor}
-        className="isolate z-60"
+        className="isolate z-50"
       >
         <PopoverPrimitive.Popup
           data-slot="popover-content"

@@ -39,7 +39,9 @@ export function DeletePageDialog({ slug, onClose }: PageDialogProps) {
                 const result = await deletePage(slug);
                 if (result?.error) {
                   toast.error(result.error);
+                  return;
                 }
+                onClose();
               })
             }
           >

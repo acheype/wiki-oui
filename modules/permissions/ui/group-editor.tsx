@@ -167,17 +167,15 @@ export function GroupEditor({
             />
             <DeleteGroupButton
               group={group}
-              onDelete={() =>
-                startTransition(async () => {
-                  const result = await deleteGroup(group.slug);
-                  if (result && "error" in result) {
-                    toast.error(result.error);
-                    return;
-                  }
-                  toast.success(`@${group.name} a été supprimé.`);
-                  onDeleted();
-                })
-              }
+              onDelete={async () => {
+                const result = await deleteGroup(group.slug);
+                if (result && "error" in result) {
+                  toast.error(result.error);
+                  return;
+                }
+                toast.success(`@${group.name} a été supprimé.`);
+                onDeleted();
+              }}
             />
           </>
         )}
@@ -409,11 +407,11 @@ function RenameGroupDialog({
         if (next) setName(group.name);
       }}
     >
-      <DialogTrigger asChild>
-        <Button type="button" variant="ghost" size="sm">
-          <Pencil />
-          Renommer
-        </Button>
+      <DialogTrigger
+        render={<Button type="button" variant="ghost" size="sm" />}
+      >
+        <Pencil />
+        Renommer
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -455,21 +453,25 @@ function DeleteGroupButton({
   onDelete,
 }: {
   group: GroupDetailWithRights;
-  onDelete: () => void;
+  /** Leaves the group page on success, which unmounts the alert with it. */
+  onDelete: () => Promise<void>;
 }) {
+  const [isPending, startTransition] = useTransition();
   const impact = groupDeletionImpact(group.name, group.pagesGranting);
   return (
     <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 />
-          Supprimer
-        </Button>
+      <AlertDialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+          />
+        }
+      >
+        <Trash2 />
+        Supprimer
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -485,7 +487,12 @@ function DeleteGroupButton({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction onClick={onDelete}>Supprimer</AlertDialogAction>
+          <AlertDialogAction
+            disabled={isPending}
+            onClick={() => startTransition(onDelete)}
+          >
+            Supprimer
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

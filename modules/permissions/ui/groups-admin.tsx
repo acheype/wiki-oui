@@ -154,11 +154,9 @@ function NewGroupDialog({ onCreated }: { onCreated: (slug: string) => void }) {
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button>
-          <Plus />
-          Nouveau groupe
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <Plus />
+        Nouveau groupe
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

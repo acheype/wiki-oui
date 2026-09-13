@@ -25,7 +25,6 @@ function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
   return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
 }
 
-// Above the dialog tiers: these open from inside a dialog (components/ui/dialog.tsx).
 function TooltipContent({
   className,
   side = "top",
@@ -46,7 +45,7 @@ function TooltipContent({
         alignOffset={alignOffset}
         side={side}
         sideOffset={sideOffset}
-        className="isolate z-60"
+        className="isolate z-50"
       >
         <TooltipPrimitive.Popup
           data-slot="tooltip-content"

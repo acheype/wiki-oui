@@ -378,7 +378,7 @@ export function EditorToolbar({
 // The cheat sheet's own page, shown in place: the dialog wears the title the
 // inline render dropped (readPageBody resolves it), so it is written once. A
 // page opening with no heading hands nothing over, and the fallback only
-// names the dialog for a screen reader (Radix wants a name). The two
+// names the dialog for a screen reader (a dialog needs a name). The two
 // usePageBody reads — here and inside <InlinePageBody> — share one cached
 // fetch.
 function CheatSheet() {
