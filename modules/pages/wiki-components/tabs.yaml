@@ -1,0 +1,41 @@
+# ComponentBuilder descriptor of <Tabs> (docs/component-builder.md, ADR 0031).
+# A wrapper: its own props here, its repeatable <Tab> child under `children:`.
+# The open tab (`default`) is not a field — the builder sets it from a radio.
+label: Onglets
+description: Regrouper du contenu en onglets
+previewHeight: 300px
+properties:
+  display:
+    label: Apparence
+    type: list
+    default: segmented
+    options:
+      segmented: Segments
+      separated: Pastilles
+      underline: Soulignement
+      folder: Dossiers
+  orientation:
+    label: Orientation
+    type: list
+    default: horizontal
+    options:
+      horizontal: Horizontale
+      vertical: Verticale
+  fullWidth:
+    label: Onglets sur toute la largeur
+    type: checkbox
+    default: false
+    # Sans objet en vertical : les onglets y occupent déjà toute la largeur.
+    showif:
+      orientation: horizontal
+children:
+  component: Tab
+  label: Onglet
+  properties:
+    title:
+      label: Titre
+      type: text
+      required: true
+    icon:
+      label: Icône
+      type: icon

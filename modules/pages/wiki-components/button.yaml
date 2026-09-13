@@ -33,8 +33,8 @@ properties:
     label: Texte affiché au survol
     type: text
     advanced: true
-  popup:
-    label: Ouvrir le contenu du lien dans une popup
+  modal:
+    label: Ouvrir le contenu du lien dans une modale
     hint: Fonctionne vers une page de ce wiki
     type: list
     default: none
@@ -49,7 +49,7 @@ properties:
     default: false
     advanced: true
     showif:
-      popup: none
+      modal: none
   float:
     label: Position
     type: list

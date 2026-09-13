@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { SwipeRow } from "./swipe-row";
-import { WikiFrame } from "@/modules/pages/wiki-frame";
+import { InlinePageBody, usePageBody } from "@/modules/pages/page-modal";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -115,7 +115,6 @@ export function EditorToolbar({
   onRequestUpload: () => void;
 }) {
   const [helpOpen, setHelpOpen] = useState(false);
-  const [helpTitle, setHelpTitle] = useState<string>();
 
   // Alphabetical labels; markdown-link emitters (wiki-link) have their own
   // doors and stay out of the menu (docs/component-builder.md).
@@ -345,23 +344,35 @@ export function EditorToolbar({
       </SwipeRow>
 
       {/* Read over the text being written, not in another tab: the cheat
-          sheet answers a question asked mid-sentence. Same frame as every
-          other in-place page rendering (WikiFrame), the chrome-free
-          /aide-memoire/iframe render. */}
+          sheet answers a question asked mid-sentence. Rendered inline (ADR
+          0022), deliberately without ?modale=: the editor has no unsaved-work
+          guard, so a history entry would teach that Back is harmless — when a
+          Back too far leaves the editor and loses the draft in silence. */}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="max-h-[85vh] gap-3 overflow-y-auto sm:max-w-5xl">
-          <DialogHeader>
-            {/* The dialog wears the title the frame took off (hideTitle), so
-                it is written once. A page that opens with no heading hands
-                nothing over: the fallback then only names the dialog for a
-                screen reader, Radix asking every dialog for a name. */}
-            <DialogTitle className={cn(!helpTitle && "sr-only")}>
-              {helpTitle ?? "Aide-mémoire"}
-            </DialogTitle>
-          </DialogHeader>
-          <WikiFrame target="aide-memoire" hideTitle onTitle={setHelpTitle} />
+          {helpOpen && <CheatSheet />}
         </DialogContent>
       </Dialog>
     </TooltipProvider>
+  );
+}
+
+// The cheat sheet's own page, shown in place: the dialog wears the title the
+// inline render dropped (readPageBody resolves it), so it is written once. A
+// page opening with no heading hands nothing over, and the fallback only
+// names the dialog for a screen reader (Radix wants a name). The two
+// usePageBody reads — here and inside <InlinePageBody> — share one cached
+// fetch.
+function CheatSheet() {
+  const loaded = usePageBody("aide-memoire");
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle className={cn(!loaded?.title && "sr-only")}>
+          {loaded?.title ?? "Aide-mémoire"}
+        </DialogTitle>
+      </DialogHeader>
+      <InlinePageBody slug="aide-memoire" />
+    </>
   );
 }

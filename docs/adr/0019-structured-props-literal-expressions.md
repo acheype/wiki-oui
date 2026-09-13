@@ -15,7 +15,7 @@ Le bac à sable accepte déjà les expressions **purement littérales** (`lib/md
 
 - L'expression littérale est la **forme canonique** des props structurées : le builder la génère, et sait la re-parser (round-trip sur l'AST du littéral, comme pour les props scalaires).
 - La règle « expression → abandonnée à la réédition » est **raffinée** : elle ne vaut plus que pour les champs de types scalaires ; un champ de type structuré (`field-rows`, mappings, `form` multiple) parse le littéral et le réédite.
-- Alternatives rejetées : un mini-langage en chaîne (`filters="type|Type,commune"` — illisible, fragile à l'échappement, hostile à l'édition au clavier) et des balises enfants (`<Filter …/>` — fait d'EntriesView un wrapper alors que l'édition des wrappers est au backlog, et éclate la config en deux niveaux).
+- Alternatives rejetées : un mini-langage en chaîne (`filters="type|Type,commune"` — illisible, fragile à l'échappement, hostile à l'édition au clavier) et des balises enfants (`<Filter …/>` — les filtres sont de la **config**, qui vit dans les props et non dans le contenu (ADR 0031) ; les loger en enfants ferait d'EntriesView un wrapper pour rien et éclaterait la config en deux niveaux).
 
 ## Conséquences
 

@@ -11,7 +11,7 @@ import { entryValue } from "../core/rules";
 import type { ViewEntry } from "../view-entry";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
-import { WikiFrame } from "@/modules/pages/wiki-frame";
+import { InlinePageBody, usePreloadHandlers } from "@/modules/pages/page-modal";
 import type { ViewContext } from "./types";
 
 export function ListView({ context }: { context: ViewContext }) {
@@ -62,6 +62,9 @@ function ListRow({
   const { props } = context;
   const color = context.colorOf(entry);
   const icon = context.iconOf(entry);
+  // Warms the cache the click will read — whether it opens the modal
+  // (openOnClick) or unfolds InlinePageBody in place (both share it).
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
   const title = props.titleField
     ? context.textOf(entry, props.titleField) || entry.title
     : entry.title;
@@ -111,6 +114,7 @@ function ListRow({
           className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-accent/50"
           aria-expanded={expandable ? expanded : undefined}
           onClick={onToggle}
+          {...preload}
         >
           {header}
         </button>
@@ -158,14 +162,13 @@ function ExpandedEntry({
       </dl>
     );
   }
-  // The row header already carries the title: the render drops it rather than
-  // repeating it two lines below. Padding lives on this wrapper, not on the
-  // iframe itself: Tailwind's Preflight makes the iframe border-box, so
-  // padding on the element would eat into the height WikiFrame measures from
-  // the (unpadded) child document, leaving it short and forcing a scrollbar.
+  // The row header already carries the title, so the inline render drops it
+  // (readPageBody hides it) rather than repeating it two lines below. No
+  // iframe, no height handshake: the body flows in the row at its natural
+  // height (ADR 0022).
   return (
     <div className="px-3 py-3">
-      <WikiFrame target={entry.slug} hideTitle />
+      <InlinePageBody slug={entry.slug} />
     </div>
   );
 }

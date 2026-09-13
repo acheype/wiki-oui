@@ -93,6 +93,7 @@ export function PageEditor({
           initial: {
             values: info.values,
             unknownAttributes: info.unknownAttributes,
+            wrapper: info.wrapper,
           },
           range: { from: info.from, to: info.to },
         }),

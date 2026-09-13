@@ -48,6 +48,10 @@ _Avoid_: Latest, dernière révision (trompeur : peut être une restauration)
 Un élément riche insérable dans le contenu d'une page (ex. Bouton, Image). Rendu via une syntaxe façon MDX, mais seuls les composants d'une liste blanche sont autorisés (voir Registre de composants). Les composants intégrés sont rendus dès le MVP ; l'*authoring* (menu « Composants », ComponentBuilder) est arrivé en v0.2.
 _Avoid_: Widget, plugin, action
 
+**Composant wrapper**:
+Un composant qui comporte du **contenu** à l'intérieur de ses balises (`<Tabs>…</Tabs>`, `<Menu>…</Menu>`), par opposition à un composant **feuille**, sans contenu, qui se ferme d'un coup (`<Button … />`). Ce contenu est du MDX écrit par l'auteur, préservé à la réédition par le ComponentBuilder (ADR 0031). La config d'un composant reste toujours dans ses propriétés, jamais dans son contenu.
+_Avoid_: conteneur, HOC (jargon React)
+
 **Propriété**:
 Un paramètre d'un composant, écrit dans sa balise (`<Button text="Salut" />`) et décrit par une clé du bloc `properties` de son descripteur — qui en fixe le type, le défaut et les valeurs possibles. Le descripteur est le **contrat** : ce qu'il promet fait référence, pas ce qu'un composant tolère (`width="200"` rend, mais `type: number` promet un nombre — c'est signalé). En code, une propriété est une **prop** React ; « attribut » ne désigne que la syntaxe JSX écrite dans la balise, et ne sort jamais dans un texte d'UI. Ce qu'un auteur écrit et que le descripteur ne décrit pas est ignoré au rendu et signalé à l'enregistrement (`modules/pages/lint.ts`).
 _Avoid_: Attribut, paramètre, option, champ (le champ est le widget du builder, pas la propriété qu'il alimente)
@@ -102,8 +106,12 @@ Composant intégré qui transforme la liste imbriquée écrite entre ses balises
 _Avoid_: auto-listing des pages, barre de navigation codée en dur
 
 **Bouton (`<Button>`)**:
-Composant intégré affichant un bouton défini par un libellé (`text`), un lien (`link`, page du wiki ou URL) et éventuellement une icône (`icon`, un identifiant Iconify complet — `lucide:settings` — choisi au sélecteur d'icônes depuis la v0.2 ; les noms français de la liste blanche du MVP n'existent plus). S'y ajoutent la couleur, le texte affiché au survol, l'ouverture du lien en popup, la position et l'ouverture dans une nouvelle fenêtre. Dans le contenu d'une page il prend l'apparence d'un bouton pleine forme ; dans un slot du bandeau, celle d'un bouton discret de barre de navigation — la différence est purement CSS. Utilisé comme item parent d'un `<Menu>`, il en devient le déclencheur (ex. la roue crantée de `page-rapide-haut`). Son interface graphique de configuration est son ComponentBuilder (`button.yaml`).
+Composant intégré affichant un bouton défini par un libellé (`text`), un lien (`link`, page du wiki ou URL) et éventuellement une icône (`icon`, un identifiant Iconify complet — `lucide:settings` — choisi au sélecteur d'icônes depuis la v0.2 ; les noms français de la liste blanche du MVP n'existent plus). S'y ajoutent la couleur, le texte affiché au survol, l'ouverture du lien en modale, la position et l'ouverture dans une nouvelle fenêtre. Dans le contenu d'une page il prend l'apparence d'un bouton pleine forme ; dans un slot du bandeau, celle d'un bouton discret de barre de navigation — la différence est purement CSS. Utilisé comme item parent d'un `<Menu>`, il en devient le déclencheur (ex. la roue crantée de `page-rapide-haut`). Son interface graphique de configuration est son ComponentBuilder (`button.yaml`).
 _Avoid_: bouton d'action serveur (il ne déclenche pas de mutation)
+
+**Onglets (`<Tabs>`)**:
+Composant **wrapper** qui présente plusieurs **onglets** dans la page, chacun un `<Tab>` portant un titre, une icône facultative et son contenu MDX écrit entre ses balises. `<Tabs>` règle l'affichage (souligné, groupé, pastilles, dossiers), le sens (horizontal, vertical), la pleine largeur et l'onglet ouvert par défaut (le premier sinon). Un onglet est adressable par l'ancre `#<slug>` dérivée de son titre. `<Tab>` n'a pas de descripteur : il ne s'insère pas seul, ses onglets se créent dans le ComponentBuilder de `<Tabs> (ADR 0031).
+_Avoid_: onglet pour désigner `<Tabs>` (c'est le groupe)
 
 **Formulaire**:
 Une définition de champs de saisie (une liste de champs typés et paramétrés), construite en ligne via le FormBuilder et stockée en base (entité `Form` — **pas** une page, ADR 0014). Identifié par un **id slug** unique dérivé de son `name`, personnalisable à la création puis modifiable seulement par « Changer l'identifiant » — le même retcon intégral que « Changer l'adresse » (ADR 0016), qui réécrit `<EntryForm id>`, les `sourceFormId` et les gabarits. Sa suppression emporte ses fiches (confirmation explicite). Jamais historisé : enregistrer écrase.
@@ -128,6 +136,10 @@ _Avoid_: bazarliste, une action par forme d'affichage
 **Vue de fiches**:
 L'une des neuf formes d'affichage d'EntriesView — Liste, Grille, Tableau, Carte, Calendrier, Agenda, Annuaire, Carrousel, Galerie photo — choisie par la prop `view` (sélecteur en tuiles du builder, aperçu en direct). Chaque vue a ses paramètres propres ; zones, filtres, tri et « Lors du clic, afficher la fiche » sont communs.
 _Avoid_: template d'affichage, Blocs (ancien nom YesWiki de la Grille), Photobox (ancien nom de la Galerie photo)
+
+**Modale**:
+La fenêtre qui affiche une page ou une fiche **en place**, au-dessus de la page courante, sans son chrome (ni bandeau, ni barre d'actions). Rendue en RSC inline, jamais dans une iframe (ADR 0022). Il n'en existe **qu'un seul niveau** : ouvrir une fiche depuis une modale **remplace** son contenu, jamais ne l'empile. Son état vit dans l'URL — `?modale={slug}`, un slug interne — donc elle se partage, le bouton retour la ferme, un rechargement la conserve. Ouverte par un `<WikiLink>` ou un `<Button>` en cible modale, par un clic sur une fiche d'`<EntriesView>`, ou pour l'aide-mémoire de l'éditeur (celui-ci sans `?modale=`, faute de garde de saisie dans l'éditeur).
+_Avoid_: popup, lightbox, calque (la mini-fiche Leaflet `map-popup` est une vraie popup ancrée au marqueur, un autre objet)
 
 **Zone**:
 Un emplacement nommé d'une vue de fiches (Titre, Sous-titre, Texte, Pied, Visuel, Légende, Badge) auquel l'auteur associe un champ. Le **Badge** est la petite info mise en avant, posée en surimpression du visuel d'une carte de Grille.

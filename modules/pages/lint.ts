@@ -6,7 +6,10 @@ import {
   type PropKind,
   type PropValue,
   type PropValues,
+  CHILD_SLUG_FIELD,
+  childSlug,
   fieldProp,
+  isWrapperDescriptor,
   propKind,
   propKindFits,
   visibleFields,
@@ -46,6 +49,15 @@ export function lintPageSource(
   const warnings: PageWarning[] = [];
   const known = new Set(registry);
   const specs = new Map(builders.map((spec) => [spec.name, spec]));
+
+  // Anchor slugs of every wrapper child (<Tab>) on the page: a slug shared by
+  // two tabs makes a `#slug` link ambiguous, so it is flagged after the walk.
+  const childComponents = new Set(
+    builders
+      .filter((spec) => isWrapperDescriptor(spec.descriptor))
+      .map((spec) => spec.descriptor.children!.component)
+  );
+  const tabSlugs: { slug: string; line?: number }[] = [];
 
   // MDX that does not parse cannot be walked — and saving must stay possible:
   // the page is the author's, broken or not, and it will say so itself (the
@@ -112,6 +124,18 @@ export function lintPageSource(
         message: `Le composant «\u00A0${name}\u00A0» n'existe pas. Il ne sera pas affiché.`,
       });
       return;
+    }
+
+    // A wrapper child (<Tab>) has no descriptor: no checkable props, but its
+    // title feeds an anchor slug collected here for the collision pass below.
+    if (childComponents.has(name)) {
+      const title = (node.attributes ?? []).find(
+        (attribute) =>
+          attribute.type === "mdxJsxAttribute" &&
+          attribute.name === CHILD_SLUG_FIELD
+      );
+      const slug = childSlug({ [CHILD_SLUG_FIELD]: attributeValue(title?.value) });
+      if (slug) tabSlugs.push({ slug, line });
     }
 
     // menu, entries-admin and forms-admin carry no .yaml: their props cannot
@@ -222,6 +246,23 @@ export function lintPageSource(
       }
     }
   });
+
+  // Anchor collision: a slug carried by more than one tab makes a `#slug` link
+  // ambiguous. Never blocking (a work in progress is tolerated); at render each
+  // group activates its own matching tab, and within a group the first wins.
+  const slugCounts = new Map<string, number>();
+  for (const { slug } of tabSlugs) {
+    slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
+  }
+  const flagged = new Set<string>();
+  for (const { slug, line } of tabSlugs) {
+    if ((slugCounts.get(slug) ?? 0) < 2 || flagged.has(slug)) continue;
+    flagged.add(slug);
+    warnings.push({
+      line,
+      message: `Plusieurs onglets partagent l'ancre « #${slug} ». Un lien vers « #${slug} » sera ambigu.`,
+    });
+  }
 
   return warnings;
 }

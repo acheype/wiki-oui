@@ -7,6 +7,8 @@
 import { directoryGroups } from "../core/rules";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
+import { usePreloadHandlers } from "@/modules/pages/page-modal";
+import type { ViewEntry } from "../view-entry";
 import type { ViewContext } from "./types";
 
 const ALPHABET = ["#", ..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"];
@@ -48,42 +50,56 @@ export function DirectoryView({ context }: { context: ViewContext }) {
             {group.letter}
           </h3>
           <ul className="grid gap-0.5 sm:grid-cols-2 lg:grid-cols-3">
-            {group.entries.map((entry) => {
-              const color = context.colorOf(entry);
-              const icon = context.iconOf(entry);
-              return (
-                <li key={entry.slug}>
-                  <button
-                    type="button"
-                    onClick={() => context.openEntry(entry.slug)}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
-                      "hover:bg-accent hover:text-accent-foreground"
-                    )}
-                  >
-                    {color && (
-                      <span
-                        className="size-2 shrink-0 rounded-full"
-                        style={{ backgroundColor: color }}
-                        aria-hidden
-                      />
-                    )}
-                    {icon && (
-                      <span
-                        className="shrink-0 text-muted-foreground [&_svg]:size-4"
-                        aria-hidden
-                      >
-                        <Icon id={icon} />
-                      </span>
-                    )}
-                    <span className="truncate">{entry.title}</span>
-                  </button>
-                </li>
-              );
-            })}
+            {group.entries.map((entry) => (
+              <DirectoryEntry key={entry.slug} entry={entry} context={context} />
+            ))}
           </ul>
         </section>
       ))}
     </div>
+  );
+}
+
+// Its own component (not an inline map body) so the hover preload can hold a
+// per-row debounce timer (ADR 0022).
+function DirectoryEntry({
+  entry,
+  context,
+}: {
+  entry: ViewEntry;
+  context: ViewContext;
+}) {
+  const color = context.colorOf(entry);
+  const icon = context.iconOf(entry);
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={() => context.openEntry(entry.slug)}
+        {...preload}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
+          "hover:bg-accent hover:text-accent-foreground"
+        )}
+      >
+        {color && (
+          <span
+            className="size-2 shrink-0 rounded-full"
+            style={{ backgroundColor: color }}
+            aria-hidden
+          />
+        )}
+        {icon && (
+          <span
+            className="shrink-0 text-muted-foreground [&_svg]:size-4"
+            aria-hidden
+          >
+            <Icon id={icon} />
+          </span>
+        )}
+        <span className="truncate">{entry.title}</span>
+      </button>
+    </li>
   );
 }

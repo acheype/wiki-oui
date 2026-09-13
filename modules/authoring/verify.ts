@@ -13,8 +13,10 @@ import {
   type FieldType,
   type LineLookup,
   type PropValue,
+  childDescriptor,
   emitsMarkdownLink,
   fieldProp,
+  pascalCase,
 } from "./descriptor";
 import type { ComponentBuilderSpec } from "./descriptors";
 import { readDescriptorSource } from "./registry/descriptor-source";
@@ -102,6 +104,10 @@ interface CheckContext {
   name: string;
   file: string;
   yamlFile: string;
+  // Prefix under which this block's fields live in the YAML (["children"] for a
+  // wrapper's child, [] for a root component) — so a message points at the
+  // right line even though the child has no descriptor file of its own.
+  pathBase: (string | number)[];
   lineOf?: LineLookup;
 }
 
@@ -109,7 +115,7 @@ interface CheckContext {
 // the field, then the bare file — so a message points at the offending key.
 function yamlRef(ctx: CheckContext, ...candidates: (string | number)[][]): string {
   for (const candidate of candidates) {
-    const line = ctx.lineOf?.(candidate);
+    const line = ctx.lineOf?.(candidate.length ? [...ctx.pathBase, ...candidate] : candidate);
     if (line !== undefined) return `${ctx.yamlFile}:${line}`;
   }
   return ctx.yamlFile;
@@ -128,14 +134,18 @@ export function checkSignature(
   name: string,
   descriptor: ComponentDescriptor,
   signature: ComponentSignature,
-  lineOf?: LineLookup
+  lineOf?: LineLookup,
+  // A wrapper's child is checked against the parent's YAML (the child has
+  // none), its fields living under `children:` — hence the overrides.
+  options?: { yamlFile?: string; pathBase?: (string | number)[] }
 ): SignatureCheck {
   const errors: string[] = [];
   const warnings: string[] = [];
   const ctx: CheckContext = {
     name,
     file: signature.file,
-    yamlFile: signature.file.replace(/\.tsx$/, ".yaml"),
+    yamlFile: options?.yamlFile ?? signature.file.replace(/\.tsx$/, ".yaml"),
+    pathBase: options?.pathBase ?? [],
     lineOf,
   };
 
@@ -571,6 +581,14 @@ export async function verifyDescriptorSignatures(
     skipAddingFilesFromTsConfig: true,
   });
 
+  // A wrapper's child (ADR 0031) is a registry component with no descriptor:
+  // locate its source by tag name across every module's wiki-components/.
+  const allComponents = await listWikiComponentFiles(".tsx");
+  const componentPathOf = (tag: string): string | undefined => {
+    const file = allComponents.find(({ base }) => pascalCase(base) === tag);
+    return file ? wikiComponentPath(file.module, file.base, ".tsx") : undefined;
+  };
+
   const errors: string[] = [];
   const warnings: string[] = [];
   for (const spec of tagEmitters) {
@@ -579,10 +597,40 @@ export async function verifyDescriptorSignatures(
       path.join(process.cwd(), relativeFile)
     );
     const signature = extractSignature(sourceFile, spec.name, relativeFile);
+    const yamlFile = wikiComponentPath(spec.module, spec.base, ".yaml");
     const { lineOf } = await readDescriptorSource(spec.module, spec.base);
     const result = checkSignature(spec.name, spec.descriptor, signature, lineOf);
     errors.push(...result.errors);
     warnings.push(...result.warnings);
+
+    // The child's props are described in the wrapper's `children:` block and
+    // checked against the child component's own source, the same way.
+    const children = spec.descriptor.children;
+    if (!children) continue;
+    const childFile = componentPathOf(children.component);
+    if (!childFile) {
+      errors.push(
+        `${yamlFile}: <${spec.name}> declares child "${children.component}", which is not a registered component`
+      );
+      continue;
+    }
+    const childSource = project.addSourceFileAtPath(
+      path.join(process.cwd(), childFile)
+    );
+    const childSignature = extractSignature(
+      childSource,
+      children.component,
+      childFile
+    );
+    const childResult = checkSignature(
+      children.component,
+      childDescriptor(children),
+      childSignature,
+      lineOf,
+      { yamlFile, pathBase: ["children"] }
+    );
+    errors.push(...childResult.errors);
+    warnings.push(...childResult.warnings);
   }
 
   for (const warning of warnings) {

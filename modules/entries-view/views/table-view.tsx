@@ -8,6 +8,7 @@
 
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import { toast } from "sonner";
 import { deletePage } from "@/modules/pages/content-actions";
 import { Button } from "@/components/ui/button";
@@ -154,11 +155,13 @@ function Row({
   context: ViewContext;
 }) {
   const color = context.colorOf(entry);
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
   return (
     <tr
       className="cursor-pointer transition-colors hover:bg-accent/50"
       style={color ? { boxShadow: `inset 3px 0 0 0 ${color}` } : undefined}
       onClick={() => context.openEntry(entry.slug)}
+      {...preload}
     >
       {columns.map((column, index) => (
         <td key={index} className="px-3 py-2">

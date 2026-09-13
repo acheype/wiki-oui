@@ -194,7 +194,7 @@ properties:
     options:
       sidebar: Dans un panneau latéral
       map-popup: Dans une mini-fiche sur la carte
-      popup: Dans une popup
+      modal: Dans une modale
       current-tab: Dans l'onglet courant
       new-tab: Dans un nouvel onglet
     showif:
@@ -310,9 +310,9 @@ properties:
     label: Lors du clic, afficher la fiche
     type: list
     prop: entryDisplay
-    default: popup
+    default: modal
     options: &display-options
-      popup: Dans une popup
+      modal: Dans une modale
       current-tab: Dans l'onglet courant
       new-tab: Dans un nouvel onglet
     showif:
@@ -322,7 +322,7 @@ properties:
     label: Lors du clic, afficher la fiche
     type: list
     prop: entryDisplay
-    default: popup
+    default: modal
     options: *display-options
     showif:
       view: /^(grid|table|directory|agenda)$/

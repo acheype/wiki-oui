@@ -357,7 +357,7 @@ describe("checkSignature — structured types", () => {
     const signature = entriesSignature();
     signature.props.entryDisplay = {
       tsOptional: true,
-      type: { kind: "union", values: ["popup", "sidebar"] },
+      type: { kind: "union", values: ["modal", "sidebar"] },
       destructuringDefault: { unverifiable: true },
     };
     const descriptor = entriesViewDescriptor();
@@ -366,7 +366,7 @@ describe("checkSignature — structured types", () => {
       type: "list",
       prop: "entryDisplay",
       default: "sidebar",
-      options: { popup: "En popup", sidebar: "Panneau" },
+      options: { modal: "En modale", sidebar: "Panneau" },
       showif: { view: "map" },
     };
     const { errors } = checkSignature("EntriesView", descriptor, signature);
@@ -405,5 +405,41 @@ describe("extractSignature — structured shapes", () => {
       kind: "object",
       keys: ["lat", "lng", "zoom"],
     });
+  });
+});
+
+describe("checkSignature on a wrapper child (ADR 0031)", () => {
+  const childDescriptor: ComponentDescriptor = {
+    label: "Onglet",
+    properties: {
+      title: { label: "Titre", type: "text", required: true },
+      icon: { label: "Icône", type: "icon" },
+    },
+  };
+  const tabSignature: ComponentSignature = {
+    file: "modules/pages/wiki-components/tab.tsx",
+    props: {
+      title: { tsOptional: false, type: { kind: "string" } },
+      icon: { tsOptional: true, type: { kind: "string" } },
+    },
+  };
+  const options = {
+    yamlFile: "modules/pages/wiki-components/tabs.yaml",
+    pathBase: ["children"] as (string | number)[],
+  };
+
+  it("accepts a child whose fields match its component", () => {
+    const result = checkSignature("Tab", childDescriptor, tabSignature, undefined, options);
+    expect(result.errors).toEqual([]);
+  });
+
+  it("reports the parent YAML when a runtime-required child prop lacks required", () => {
+    const descriptor: ComponentDescriptor = {
+      label: "Onglet",
+      properties: { title: { label: "Titre", type: "text" } },
+    };
+    const [error] = checkSignature("Tab", descriptor, tabSignature, undefined, options).errors;
+    expect(error).toContain("modules/pages/wiki-components/tabs.yaml");
+    expect(error).toContain('field "title" must set "required: true"');
   });
 });

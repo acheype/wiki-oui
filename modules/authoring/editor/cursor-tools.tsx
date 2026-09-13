@@ -26,11 +26,19 @@ import { createRoot } from "react-dom/client";
 import {
   emitsMarkdownLink,
   findComponentTag,
+  isWrapperDescriptor,
+  type LiteralValue,
+  parseLiteral,
   TAG_SCAN_WINDOW,
   tagToBuilderState,
   type PropValues,
   type Range,
 } from "@/modules/authoring/descriptor";
+import {
+  type WrapperEdit,
+  findWrapperAtCursor,
+  wrapperShapeOf,
+} from "./wrapper";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import {
   addTableColumn,
@@ -64,8 +72,28 @@ const LINK_MARKDOWN = /^\[([^\]]*)\]\(\s*<?([^)>\s]*)>?\s*\)/;
 // key left outside that range would survive untouched, duplicated the moment
 // generateMarkdownLink rewrites it into a fresh annotation of its own.
 const LINK_ANNOTATION = /^\{\{([^}]*)\}\}/;
-const TARGET_KEY = /target:\s*'(_blank|modal)'/;
-const HIDE_IF_NO_ACCESS_KEY = /hideIfNoAccess:\s*true/;
+
+// The trailing {{ … }} block is an mdx-annotations object literal (ADR 0006).
+// Reading it back with the component builder's own literal parser — rather
+// than key-spotting regexes — makes the graphical editor blind to whatever
+// blanks, key order or quote style the author typed: none of them change the
+// annotation's meaning. An annotation that is not a plain literal object reads
+// as the defaults, the same value it would render as.
+function readLinkAnnotation(inner: string): {
+  target: LinkTarget;
+  hideIfNoAccess: boolean;
+} {
+  const parsed = parseLiteral(`{${inner}}`)?.value;
+  const record =
+    parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, LiteralValue>)
+      : {};
+  const target = record.target;
+  return {
+    target: target === "_blank" || target === "modal" ? target : "self",
+    hideIfNoAccess: record.hideIfNoAccess === true,
+  };
+}
 
 export function linkAtCursor(state: EditorState): LinkInfo | null {
   const range = state.selection.main;
@@ -84,14 +112,14 @@ export function linkAtCursor(state: EditorState): LinkInfo | null {
       const after = state
         .sliceDoc(node.to, Math.min(node.to + 80, state.doc.length))
         .match(LINK_ANNOTATION);
-      const annotation = after?.[1] ?? "";
+      const annotation = readLinkAnnotation(after?.[1] ?? "");
       return {
         from: node.from,
         to: node.to + (after?.[0].length ?? 0),
         text: match[1],
         href: match[2],
-        target: (TARGET_KEY.exec(annotation)?.[1] as LinkTarget | undefined) ?? "self",
-        hideIfNoAccess: HIDE_IF_NO_ACCESS_KEY.test(annotation),
+        target: annotation.target,
+        hideIfNoAccess: annotation.hideIfNoAccess,
       };
     }
   }
@@ -102,17 +130,29 @@ export type ComponentInfo = Range & {
   spec: ComponentBuilderSpec;
   values: PropValues;
   unknownAttributes: string[];
+  // Present when the tag is a managed-children wrapper (ADR 0031): its child
+  // list and open child, so the builder re-edits it in its two-stage form.
+  wrapper?: WrapperEdit;
 };
 
-// Enclosing well-formed component tag whose descriptor is known. Malformed
-// tags, unknown components and non-literal props get no pencil
-// (docs/component-builder.md).
+// Enclosing well-formed component tag whose descriptor is known. A self-closing
+// leaf tag wins over any wrapper enclosing it — the cursor inside a <Button> in
+// a tab edits the button, not the <Tabs>. Malformed tags, unknown components
+// and non-literal props get no pencil (docs/component-builder.md).
 export function componentAtCursor(
   state: EditorState,
   builders: ComponentBuilderSpec[]
 ): ComponentInfo | null {
   const range = state.selection.main;
   if (!range.empty) return null;
+  return leafAtCursor(state, builders) ?? wrapperAtCursor(state, builders);
+}
+
+function leafAtCursor(
+  state: EditorState,
+  builders: ComponentBuilderSpec[]
+): ComponentInfo | null {
+  const range = state.selection.main;
   // Slice the parser's own scan window out of the document (not the whole doc).
   const windowFrom = Math.max(0, range.head - TAG_SCAN_WINDOW);
   const windowTo = Math.min(state.doc.length, range.head + TAG_SCAN_WINDOW);
@@ -136,6 +176,38 @@ export function componentAtCursor(
     to: windowFrom + found.to,
     spec,
     ...builderState,
+  };
+}
+
+// The innermost wrapper (<Tabs>) enclosing the cursor, read into its child
+// list. Scans the whole document: a wrapper spans more than the leaf window,
+// its close tag reachable far below the open one.
+function wrapperAtCursor(
+  state: EditorState,
+  builders: ComponentBuilderSpec[]
+): ComponentInfo | null {
+  const wrappers = builders.filter((builder) =>
+    isWrapperDescriptor(builder.descriptor)
+  );
+  if (wrappers.length === 0) return null;
+  const found = findWrapperAtCursor(
+    wrappers.map(wrapperShapeOf),
+    state.doc.toString(),
+    state.selection.main.head
+  );
+  if (!found) return null;
+  const spec = wrappers.find((builder) => builder.name === found.shape.name);
+  if (!spec) return null;
+  return {
+    from: found.from,
+    to: found.to,
+    spec,
+    values: found.draft.values,
+    unknownAttributes: found.draft.unknownAttributes,
+    wrapper: {
+      children: found.draft.children,
+      defaultChild: found.draft.defaultChild,
+    },
   };
 }
 

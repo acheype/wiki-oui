@@ -4,7 +4,13 @@ import * as React from "react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { XIcon } from "lucide-react"
 
 function Dialog({
@@ -38,7 +44,7 @@ function DialogClose({
 // was meant to sit behind. Paint order therefore comes from the z-index alone:
 //   50  dialog overlay        52  alert overlay        60  popover, menu,
 //   51  dialog content        53  alert content            select, tooltip
-// An alert confirms a dialog (page-rights-button), hence above it; the floating
+// An alert confirms a dialog (page-rights-dialog), hence above it; the floating
 // layers open from inside either, hence above both.
 function DialogOverlay({
   className,
@@ -77,20 +83,105 @@ function DialogContent({
       >
         {children}
         {showCloseButton && (
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-4 right-4"
-              size="icon-sm"
-            >
-              <XIcon
-              />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogPrimitive.Close>
+          <DialogCloseButton className="absolute top-4 right-4" />
         )}
       </DialogPrimitive.Content>
     </DialogPortal>
+  )
+}
+
+// The one close cross, so every dialog wears it the same: a ghost icon button
+// carrying « Fermer » for hover and screen reader alike. `className` places it —
+// pinned in a corner for the standard dialog, in flow on a custom header row
+// (modules/pages/page-modal.tsx). Self-contained (its own TooltipProvider), so
+// a caller drops it in without wiring one.
+function DialogCloseButton({ className }: { className?: string }) {
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <DialogPrimitive.Close data-slot="dialog-close" asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Fermer"
+              className={className}
+            >
+              <XIcon className="size-5" />
+            </Button>
+          </DialogPrimitive.Close>
+        </TooltipTrigger>
+        <TooltipContent>Fermer</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
+
+// An icon-only action in a dialog's title bar: a real <a href> — so middle-
+// click and Ctrl+click still open a tab — styled as a ghost icon button, its
+// label read out by a tooltip. `newTab` opens a third-party target in a new
+// tab. Needs a TooltipProvider ancestor; DialogTitleBar wraps the group.
+function DialogIconLink({
+  href,
+  label,
+  icon,
+  newTab = false,
+}: {
+  href: string
+  label: string
+  icon: React.ReactNode
+  newTab?: boolean
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a
+          href={href}
+          aria-label={label}
+          {...(newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+        >
+          {icon}
+        </a>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+// The shared modal title bar (ADR 0022): the page's or target's name, an
+// optional group of icon actions, a hairline, then the shared close cross — so
+// every modal that carries a header wears the same one. Actions sit in a
+// TooltipProvider here, so a caller passes bare DialogIconLinks. The title's
+// size/weight is the caller's (a resolved title reads as an h1, a bare URL
+// stays muted), on top of the shared truncate.
+function DialogTitleBar({
+  children,
+  titleClassName,
+  actions,
+}: {
+  children: React.ReactNode
+  titleClassName?: string
+  actions?: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center gap-1 border-b px-6 py-2.5">
+      {/* The title keeps its flex-1 box even while it is visually hidden — a
+          framed target whose title has not been messaged yet (sr-only) — so
+          the actions and the close never drift left waiting for it to land. */}
+      <div className="min-w-0 flex-1 pr-2">
+        <DialogTitle className={cn("truncate", titleClassName)}>
+          {children}
+        </DialogTitle>
+      </div>
+      {actions && (
+        <TooltipProvider delayDuration={300}>{actions}</TooltipProvider>
+      )}
+      {/* A hairline sets the close apart: leaving the modal is not one of the
+          actions on its content. */}
+      <div className="mx-1 h-6 w-px bg-border" aria-hidden />
+      <DialogCloseButton />
+    </div>
   )
 }
 
@@ -163,7 +254,10 @@ function DialogDescription({
 export {
   Dialog,
   DialogClose,
+  DialogCloseButton,
   DialogContent,
+  DialogIconLink,
+  DialogTitleBar,
   DialogDescription,
   DialogFooter,
   DialogHeader,

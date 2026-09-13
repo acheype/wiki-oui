@@ -1,6 +1,5 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import { deletePage } from "@/modules/pages/content-actions";
@@ -13,25 +12,16 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import type { PageDialogProps } from "@/modules/pages/ui/page-dialog";
 
-export function DeletePageButton({ slug }: { slug: string }) {
+// « Supprimer » — mounted open by the action-bar overflow menu
+// (page-actions-menu.tsx), so it carries no trigger of its own.
+export function DeletePageDialog({ slug, onClose }: PageDialogProps) {
   const [isPending, startTransition] = useTransition();
 
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 />
-          Supprimer
-        </Button>
-      </AlertDialogTrigger>
+    <AlertDialog open onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Supprimer «&nbsp;{slug}&nbsp;» ?</AlertDialogTitle>

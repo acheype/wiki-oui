@@ -1,7 +1,8 @@
 import { cache } from "react";
-import { hasForm } from "@/modules/pages/entry-page";
+import { hasForm, isEntryPage } from "@/modules/pages/entry-page";
 import { readableForm } from "@/modules/permissions/readable-form";
-import { type EntryData, orderedEntryData } from "@/modules/forms/form-descriptor";
+import { type EntryData, orderedEntryData, readEntryData } from "@/modules/forms/form-descriptor";
+import { leadingHeading } from "@/modules/authoring/mdx";
 import { type AccessRule, pageRule } from "@/modules/permissions/rules";
 import {
   currentCanRead,
@@ -56,6 +57,23 @@ export const getPageWithCurrent = cache(async (slug: string) => {
   });
   return page && ifReadable(page);
 });
+
+/**
+ * The title a chrome-free surface shows for a page: a fiche's stored title
+ * (ADR 0020), the heading an MDX page opens with, or null when the page has
+ * no title of its own, is refused, or does not exist — the surface then names
+ * itself (the modal falls back to an sr-only slug). Reads through cache(), so
+ * it shares <PageBody>'s query rather than adding one.
+ */
+export async function pageTitle(slug: string): Promise<string | null> {
+  const page = await getPageWithCurrent(slug);
+  if (!page || isRefused(page)) return null;
+  if (isEntryPage(page)) {
+    const stored = readEntryData(page.current?.data).title;
+    return typeof stored === "string" && stored.trim() ? stored : null;
+  }
+  return leadingHeading(page.current?.content ?? "")?.title ?? null;
+}
 
 /**
  * « Cette adresse est-elle déjà prise ? » — a boolean and nothing else. A page

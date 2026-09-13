@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { leadingHeading } from "./mdx";
 
 // The title a page opens with, taken off for a container that shows it
-// itself (`?title=hidden`, app/(bare)/[slug]/iframe). Parsed to mdast like
+// itself (<PageBody hideTitle>, modules/pages/page-body.tsx). Parsed to mdast like
 // firstHeadingText, so a `#` inside a code fence is never a heading — and
 // unlike it, only a heading the page *opens* with counts.
 describe("leadingHeading", () => {

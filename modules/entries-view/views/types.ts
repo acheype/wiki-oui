@@ -21,7 +21,7 @@ export const VIEW_NAMES = [
 export type ViewName = (typeof VIEW_NAMES)[number];
 
 export type EntryDisplay =
-  | "popup"
+  | "modal"
   | "current-tab"
   | "new-tab"
   | "sidebar"
@@ -107,7 +107,7 @@ export interface EntriesViewProps {
   interval?: number;
 
   /* Communs */
-  /** Absent = the view's own default (popup everywhere, sidebar on the map). */
+  /** Absent = the view's own default (modal everywhere, sidebar on the map). */
   entryDisplay?: EntryDisplay;
   search?: boolean;
   searchFields?: string | string[];
@@ -131,7 +131,7 @@ export interface EntriesViewProps {
 
 /** The view's own entryDisplay when the prop is absent (the component picks). */
 export function defaultEntryDisplay(view: ViewName): EntryDisplay {
-  return view === "map" ? "sidebar" : "popup";
+  return view === "map" ? "sidebar" : "modal";
 }
 
 /** Grid caps at 3 columns, the Agenda flows on one (docs/entries-view.md). */
@@ -146,6 +146,9 @@ export interface ViewContext {
   props: EntriesViewProps;
   /** Applies the resolved entryDisplay; no-op on sample entries. */
   openEntry: (slug: string) => void;
+  /** Warms the modal cache ahead of a likely open (a row hover); no-op on
+   * sample entries. A mouse sweeping a table debounces it away (ADR 0022). */
+  preloadEntry: (slug: string) => void;
   /** Resolved color for an entry (colorField + palette + overrides). */
   colorOf: (entry: ViewEntry) => string | undefined;
   /** Resolved Iconify icon for an entry (iconField + mapping). */
@@ -159,5 +162,5 @@ export interface ViewContext {
   /** Header click: same field flips the order, a new field starts ascending. */
   onSort?: (field: string) => void;
   /** Opens the common entry modal directly (the map-popup's Voir la fiche). */
-  openPopup?: (slug: string) => void;
+  openModal?: (slug: string) => void;
 }

@@ -20,9 +20,12 @@ import {
   addressablePage,
   slugExists,
   listAllPageSlugs,
+  pageTitle,
   renamePageSlug,
   writePageContent,
 } from "@/modules/pages/content";
+import { canWritePage } from "@/modules/pages/access/guards";
+import { PageBody } from "@/modules/pages/page-body";
 import { getRevisionToRestore, writeRestoredRevision } from "@/modules/pages/revisions";
 import { isRefused } from "@/modules/pages/rights";
 import { REFUSALS, refusalMessage } from "@/modules/permissions/rules";
@@ -33,6 +36,31 @@ import { specialSlugs, wikiConfig } from "@/wiki.config";
 
 export type ActionError = { error: string };
 export type SaveResult = ActionError | { unchanged: true } | { saved: true };
+
+/**
+ * The modal's content, rendered inline as an RSC payload (ADR 0022): a page's
+ * chrome-free body, streamed straight to the single dialog host without the
+ * iframe's second document, bundle and hydration. The title is a string,
+ * resolved before the return, so the dialog names itself immediately; the body
+ * is an *unawaited* element, so React streams it under the host's Suspense
+ * boundary. getPageWithCurrent being memoized (cache()), the title read and
+ * <PageBody>'s read are one query.
+ *
+ * A legitimate "use server" pass-through (CLAUDE.md): a client host cannot
+ * reach the access layer, and the gates are <PageBody>'s own, unchanged.
+ * `canWrite` is that layer's canWritePage guard forwarded — the modal header
+ * offers « Modifier » exactly where the page bar would, decided there, not
+ * here.
+ */
+export async function readPageBody(
+  slug: string
+): Promise<{ title: string | null; canWrite: boolean; body: React.ReactNode }> {
+  return {
+    title: await pageTitle(slug),
+    canWrite: await canWritePage(slug),
+    body: <PageBody slug={slug} hideTitle />,
+  };
+}
 
 /**
  * What the render will silently ignore in this source (ADR 0002). Separate

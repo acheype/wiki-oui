@@ -14,8 +14,10 @@ import formaTheme from "@fullcalendar/react/themes/forma";
 import timeGridPlugin from "@fullcalendar/react/timegrid";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/forma/theme.css";
+import { useRef } from "react";
 import { entryDay, entryValue } from "../core/rules";
 import { cn } from "@/lib/utils";
+import { HOVER_PRELOAD_MS } from "@/modules/pages/page-modal";
 import type { ViewContext } from "./types";
 
 const INITIAL_VIEWS: Record<string, string> = {
@@ -32,6 +34,9 @@ const PLANNING_VIEWS: Record<string, string> = {
 
 export function CalendarView({ context }: { context: ViewContext }) {
   const { entries, props } = context;
+  // FullCalendar events are not React components, so the sweep debounce is one
+  // shared timer here rather than per-row handlers (ADR 0022).
+  const preloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startField = props.startDateField;
 
   if (!startField) {
@@ -95,6 +100,19 @@ export function CalendarView({ context }: { context: ViewContext }) {
         eventClick={(info) => {
           info.jsEvent.preventDefault();
           context.openEntry(info.event.id);
+        }}
+        eventMouseEnter={(info) => {
+          if (preloadTimer.current) clearTimeout(preloadTimer.current);
+          preloadTimer.current = setTimeout(
+            () => context.preloadEntry(info.event.id),
+            HOVER_PRELOAD_MS
+          );
+        }}
+        eventMouseLeave={() => {
+          if (preloadTimer.current) {
+            clearTimeout(preloadTimer.current);
+            preloadTimer.current = null;
+          }
         }}
         eventClass="cursor-pointer"
         dayMaxEventRows={compact ? 2 : undefined}

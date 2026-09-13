@@ -8,6 +8,7 @@
 import { ChevronLeft, ChevronRight, ImageIcon, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import type { ViewEntry } from "../view-entry";
 import { imageUrl } from "@/lib/image-url";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
@@ -56,6 +57,7 @@ export function GalleryView({ context }: { context: ViewContext }) {
             setOpenIndex(null);
             context.openEntry(slug);
           }}
+          onPreloadEntry={context.preloadEntry}
         />
       )}
     </>
@@ -114,6 +116,7 @@ function Lightbox({
   onIndex,
   onClose,
   onOpenEntry,
+  onPreloadEntry,
 }: {
   entries: ViewEntry[];
   field: string;
@@ -121,9 +124,13 @@ function Lightbox({
   onIndex: (index: number) => void;
   onClose: () => void;
   onOpenEntry: (slug: string) => void;
+  onPreloadEntry: (slug: string) => void;
 }) {
   const entry = entries[index];
   const value = String(entry.values[field]);
+  // The one clean spot to warm the modal in the Galerie: this button opens it
+  // directly (the tile click only opens this viewer). ADR 0022.
+  const preload = usePreloadHandlers(() => onPreloadEntry(entry.slug));
 
   const step = useCallback(
     (delta: number) => onIndex((index + delta + entries.length) % entries.length),
@@ -190,6 +197,7 @@ function Lightbox({
           size="sm"
           className="border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
           onClick={() => onOpenEntry(entry.slug)}
+          {...preload}
         >
           Voir la fiche
         </Button>

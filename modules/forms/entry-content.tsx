@@ -1,13 +1,13 @@
 import { EntryView } from "@/modules/forms/ui/entry-view";
 import { Prose } from "@/components/ui/prose";
-import { renderTemplateSource } from "../entry/render";
+import { renderTemplateSource } from "./entry/render";
 import { formSourcedValues, readEntryData } from "@/modules/forms/form-descriptor";
 import { readableFormById } from "@/modules/forms/forms";
 import { renderMdx } from "@/modules/authoring/mdx";
 import { listPagesWithCurrent } from "@/modules/pages/content";
 
 // The entry "show" rendering (ADR 0014), shared by the page at /[slug] and
-// the chrome-free popup service (docs/entries-view.md): the form's MDX
+// the chrome-free modal render (docs/entries-view.md): the form's MDX
 // template with {champ} values substituted (escaped) compiled through the
 // sandboxed pipeline, or the auto-generated default view without a template.
 export async function EntryContent({

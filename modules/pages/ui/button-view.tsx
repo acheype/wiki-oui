@@ -17,6 +17,7 @@ import { isWikiHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
 import { ModalLink } from "./modal-link";
+import { ModalTrigger } from "../page-modal";
 import { WikiLinkView } from "../wiki-link-view";
 import type { ButtonColor, ButtonProps } from "../wiki-components/button";
 
@@ -61,7 +62,7 @@ export function ButtonView({
   float = "none",
   fullWidth = false,
   newWindow = false,
-  popup = "none",
+  modal = "none",
 }: Omit<ButtonProps, "hideIfNoAccess">) {
   const iconOnly = Boolean(icon) && !text;
 
@@ -90,7 +91,7 @@ export function ButtonView({
       title={title ?? (iconOnly ? (text ?? icon) : undefined)}
     >
       {link ? (
-        <ButtonLink link={link} newWindow={newWindow} popup={popup}>
+        <ButtonLink link={link} newWindow={newWindow} modal={modal}>
           {content}
         </ButtonLink>
       ) : (
@@ -104,18 +105,26 @@ export function ButtonView({
 function ButtonLink({
   link,
   newWindow,
-  popup,
+  modal,
   children,
   ...rest
 }: React.ComponentPropsWithoutRef<"a"> & {
   link: string;
   newWindow: boolean;
-  popup: "none" | "click" | "hover";
+  modal: "none" | "click" | "hover";
 }) {
-  if (popup !== "none") {
-    const href = isWikiHref(link) ? `/${link}` : link;
+  if (modal !== "none") {
+    // Internal target: the single modal host (ADR 0022), which reads a hover
+    // trigger as a URL-free local open. External: the sandboxed frame.
+    if (isWikiHref(link)) {
+      return (
+        <ModalTrigger slug={link} trigger={modal} {...rest}>
+          {children}
+        </ModalTrigger>
+      );
+    }
     return (
-      <ModalLink href={href} trigger={popup} {...rest}>
+      <ModalLink href={link} trigger={modal} {...rest}>
         {children}
       </ModalLink>
     );

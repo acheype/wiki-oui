@@ -276,3 +276,55 @@ describe("what must never be flagged", () => {
     expect(lint("Voir [cette page](/pas-encore-creee).")).toEqual([]);
   });
 });
+
+// Wrapper children (<Tab>) derive a `#slug` anchor from their title; two tabs
+// on one page sharing a slug make a link ambiguous (ADR 0031).
+const TABS_REGISTRY = [...REGISTRY, "Tabs", "Tab"];
+const TABS_BUILDERS = [
+  ...BUILDERS,
+  {
+    base: "tabs",
+    name: "Tabs",
+    defaults: {},
+    descriptor: {
+      label: "Onglets",
+      properties: {
+        display: {
+          label: "Apparence",
+          type: "list",
+          default: "segmented",
+          options: { segmented: "Segments", underline: "Soulignement" },
+        },
+      },
+      children: {
+        component: "Tab",
+        label: "Onglet",
+        properties: {
+          title: { label: "Titre", type: "text", required: true },
+          icon: { label: "Icône", type: "icon" },
+        },
+      },
+    },
+  },
+] as unknown as ComponentBuilderSpec[];
+
+const lintTabs = (source: string) =>
+  lintPageSource(source, TABS_REGISTRY, TABS_BUILDERS, EXISTING).map((w) => w.message);
+
+describe("tab anchor slugs", () => {
+  it("warns when two groups share a slug", () => {
+    const source = `<Tabs>\n  <Tab title="Info">a</Tab>\n</Tabs>\n\n<Tabs>\n  <Tab title="Info">b</Tab>\n</Tabs>\n`;
+    const found = lintTabs(source).filter((m) => m.includes("#info"));
+    expect(found).toHaveLength(1);
+  });
+
+  it("warns on a duplicate slug inside one group", () => {
+    const source = `<Tabs>\n  <Tab title="Info">a</Tab>\n  <Tab title="Info">b</Tab>\n</Tabs>\n`;
+    expect(lintTabs(source).some((m) => m.includes("#info"))).toBe(true);
+  });
+
+  it("stays silent when every tab has its own slug", () => {
+    const source = `<Tabs>\n  <Tab title="Un">a</Tab>\n  <Tab title="Deux">b</Tab>\n</Tabs>\n`;
+    expect(lintTabs(source).some((m) => m.includes("ancre"))).toBe(false);
+  });
+});

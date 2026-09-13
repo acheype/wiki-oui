@@ -6,7 +6,7 @@
 // A marker click applies entryDisplay directly: `sidebar` (default — a
 // panel beside a still-living map, bottom sheet on mobile) or `map-popup`
 // (a Leaflet-anchored mini card whose « Voir la fiche » opens the common
-// modal); the tab/popup displays go through the common openEntry.
+// modal); the tab displays go through the common openEntry.
 //
 // Markers are managed imperatively (L.marker into a markercluster group):
 // react-leaflet has no cluster story on v5, and the imperative layer is
@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import { entryValue } from "../core/rules";
 import type { ViewEntry } from "../view-entry";
+import { InlinePageBody } from "@/modules/pages/page-modal";
 import { imageUrl } from "@/lib/image-url";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";
@@ -148,7 +149,7 @@ export function MapEntriesView({ context }: { context: ViewContext }) {
               if (display === "sidebar") setSelectedSlug(slug);
               else if (display !== "map-popup") context.openEntry(slug);
             }}
-            onOpenModal={(slug) => context.openPopup?.(slug)}
+            onOpenModal={(slug) => context.openModal?.(slug)}
           />
         </MapContainer>
       </div>
@@ -184,15 +185,12 @@ export function MapEntriesView({ context }: { context: ViewContext }) {
               Aperçu indisponible sur une fiche d&apos;exemple.
             </p>
           ) : (
-            // A docked panel of fixed height: the frame fills it and scrolls
-            // internally, so it wants no auto-height (not a WikiFrame) — only
-            // the shared chrome-free route. p-4 matches the sample paragraph
-            // above (the route itself renders flush, with no baked-in padding).
-            <iframe
-              src={`/${encodeURIComponent(selectedSlug)}/iframe`}
-              title="Fiche"
-              className="min-h-0 w-full flex-1 bg-background p-4"
-            />
+            // A docked panel of fixed height: the body renders inline (ADR
+            // 0022) and this container scrolls it, the map staying alive
+            // beside it. p-4 gives the flush render its breathing room.
+            <div className="min-h-0 flex-1 overflow-y-auto p-4">
+              <InlinePageBody slug={selectedSlug} />
+            </div>
           )}
         </aside>
       )}

@@ -11,6 +11,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ViewEntry } from "../view-entry";
+import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import { imageUrl } from "@/lib/image-url";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";
@@ -102,6 +103,7 @@ function Slide({
 }) {
   const { props } = context;
   const value = String(entry.values[field]);
+  const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
   // Caption: the chosen field (default "title", the ever-present title
   // field); captionField="" means no text over the image.
   const captionField = props.captionField ?? "title";
@@ -115,6 +117,7 @@ function Slide({
       type="button"
       className="relative min-w-0 flex-[0_0_100%]"
       onClick={() => context.openEntry(entry.slug)}
+      {...preload}
     >
       {value === SAMPLE_IMAGE ? (
         <span

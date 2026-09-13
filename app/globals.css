@@ -188,6 +188,79 @@
 
 /* --- MDX rendering: @tailwindcss/typography fixes --------------------- */
 
+/* Page content vertical rhythm. The typography plugin sizes its margins for
+   long-form articles: 1.25em between paragraphs, wide gaps around list items
+   and headings. A wiki reads denser. Every vertical gap of rendered page
+   content is retuned from the variables below — change a value once and it
+   moves everywhere it applies. Units stay in em, so the spacing scales with
+   the text. These rules sit outside @layer, so they win over the plugin's own
+   (layered) styles whatever their specificity. */
+.prose {
+  --prose-space-paragraph: 0.75em;      /* above and below a paragraph */
+  --prose-space-heading-top: 1.2em;     /* above a heading (h1–h4) */
+  --prose-space-heading-bottom: 0.4em;  /* below a heading */
+  --prose-space-list: 0.5em;           /* above and below a whole list */
+  --prose-space-item: 0.25em;           /* between two list items */
+  --prose-space-item-inner: 0.25em;     /* paragraphs inside a loose item */
+  --prose-space-list-nested: 0.25em;    /* a list nested inside an item */
+  --prose-space-blockquote: 1em;        /* above and below a quote */
+  --prose-space-pre: 1em;               /* above and below a code block */
+  --prose-space-media: 1.25em;          /* above and below an image or figure */
+  --prose-space-hr: 2em;                /* above and below a horizontal rule */
+}
+/* Honor not-prose. These plain descendant selectors sit outside @layer, so
+   they would otherwise leak into islands the plugin deliberately resets
+   (EntriesView, view chrome). The :not(.not-prose *) guard mirrors the
+   plugin's own exclusion, so not-prose keeps its full meaning. */
+.prose p:not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-paragraph);
+  margin-bottom: var(--prose-space-paragraph);
+}
+.prose :is(h1, h2, h3, h4):not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-heading-top);
+  margin-bottom: var(--prose-space-heading-bottom);
+}
+.prose :is(ul, ol):not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-list);
+  margin-bottom: var(--prose-space-list);
+}
+.prose li:not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-item);
+  margin-bottom: var(--prose-space-item);
+}
+.prose li:not(.not-prose, .not-prose *) > p {
+  margin-top: var(--prose-space-item-inner);
+  margin-bottom: var(--prose-space-item-inner);
+}
+.prose :is(ul, ol) :is(ul, ol):not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-list-nested);
+  margin-bottom: var(--prose-space-list-nested);
+}
+.prose blockquote:not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-blockquote);
+  margin-bottom: var(--prose-space-blockquote);
+}
+.prose pre:not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-pre);
+  margin-bottom: var(--prose-space-pre);
+}
+.prose :is(figure, img, video):not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-media);
+  margin-bottom: var(--prose-space-media);
+}
+.prose hr:not(.not-prose, .not-prose *) {
+  margin-top: var(--prose-space-hr);
+  margin-bottom: var(--prose-space-hr);
+}
+/* Keep the content flush with its container, whatever its first and last
+   elements are — the pseudo-class outranks the element rules above. */
+.prose > :first-child:not(.not-prose, .not-prose *) {
+  margin-top: 0;
+}
+.prose > :last-child:not(.not-prose, .not-prose *) {
+  margin-bottom: 0;
+}
+
 /* The plugin renders literal backticks around inline code (::before/::after)
    and no background: swap them for a chip. */
 .prose code::before,
