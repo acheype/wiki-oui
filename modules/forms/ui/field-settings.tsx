@@ -48,7 +48,7 @@ const SOURCE_LABELS = { inline: "Paires saisies", form: "Fiches d'un formulaire"
 
 // One label map feeds both the select (which shows the chosen label) and its
 // items, so the two never drift apart.
-function SelectItems({ labels }: { labels: Record<string, string> }) {
+function LabelMapItems({ labels }: { labels: Record<string, string> }) {
   return Object.entries(labels).map(([value, label]) => (
     <SelectItem key={value} value={value}>
       {label}
@@ -466,7 +466,7 @@ function TypeSpecificSettings({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItems labels={SUBTYPE_LABELS} />
+                <LabelMapItems labels={SUBTYPE_LABELS} />
               </SelectContent>
             </Select>
           </div>
@@ -628,7 +628,7 @@ function OptionsSettings({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItems labels={SOURCE_LABELS} />
+            <LabelMapItems labels={SOURCE_LABELS} />
           </SelectContent>
         </Select>
       </div>
@@ -673,7 +673,7 @@ function OptionsSettings({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItems labels={fillingModeLabels} />
+              <LabelMapItems labels={fillingModeLabels} />
             </SelectContent>
           </Select>
         </div>
