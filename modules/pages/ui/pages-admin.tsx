@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  SELECT_NONE,
   Select,
   SelectContent,
   SelectItem,
@@ -55,9 +54,6 @@ import {
 import { ruleSummary } from "@/modules/pages/ui/labels";
 import { ANONYMOUS } from "@/modules/accounts/username";
 
-/** « Tous » in the formulaire filter: Radix refuses an item with no value. */
-const EVERY_FORM = SELECT_NONE;
-
 export function PagesAdmin() {
   const [data, setData] = useState<PagesAdminData | null>(null);
   const [criteria, setCriteria] = useState<Criteria>(EVERYTHING);
@@ -79,6 +75,10 @@ export function PagesAdmin() {
   const pages = data.pages;
   const visible = pagesMatching(pages, criteria);
   const forms = formsOf(pages);
+  const formItems = [
+    { value: null, label: "Tous" },
+    ...forms.map((form) => ({ value: form.slug, label: form.name })),
+  ];
   const selected = visible.filter((page) => selection.includes(page.slug));
   const allShown = visible.length > 0 && selected.length === visible.length;
 
@@ -149,19 +149,17 @@ export function PagesAdmin() {
             Formulaire
           </Label>
           <Select
-            value={criteria.formSlug ?? EVERY_FORM}
-            onValueChange={(value) =>
-              narrow({ formSlug: value === EVERY_FORM ? null : value })
-            }
+            items={formItems}
+            value={criteria.formSlug}
+            onValueChange={(formSlug) => narrow({ formSlug })}
           >
             <SelectTrigger id="form-filter" className="w-64">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={EVERY_FORM}>Tous</SelectItem>
-              {forms.map((form) => (
-                <SelectItem key={form.slug} value={form.slug}>
-                  {form.name}
+              {formItems.map((item) => (
+                <SelectItem key={item.value ?? ""} value={item.value}>
+                  {item.label}
                 </SelectItem>
               ))}
             </SelectContent>

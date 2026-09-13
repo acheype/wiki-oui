@@ -531,19 +531,26 @@ function SortMenu({
   labelOf: (field: string) => string;
   onChange: (sort: { field: string; order: "asc" | "desc" }) => void;
 }) {
+  const items = options.map((option) => ({
+    value: option.field,
+    label: option.title ?? labelOf(option.field),
+  }));
   return (
     <Select
+      items={items}
       value={active.field}
-      onValueChange={(field) => onChange({ field, order: active.order })}
+      onValueChange={(field) => {
+        if (field !== null) onChange({ field, order: active.order });
+      }}
     >
       <SelectTrigger size="sm" className="w-fit gap-1">
         <span className="text-muted-foreground">Trier par</span>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {options.map((option) => (
-          <SelectItem key={option.field} value={option.field}>
-            {option.title ?? labelOf(option.field)}
+        {items.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
           </SelectItem>
         ))}
       </SelectContent>

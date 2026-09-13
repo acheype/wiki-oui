@@ -266,8 +266,11 @@ export function FieldWidget({
     case "list":
       return (
         <Select
-          value={typeof value === "string" ? value : undefined}
-          onValueChange={onChange}
+          items={spec.options ?? {}}
+          value={typeof value === "string" ? value : null}
+          onValueChange={(picked) => {
+            if (picked !== null) onChange(picked);
+          }}
         >
           <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
             <SelectValue placeholder={spec.placeholder} />
@@ -868,8 +871,11 @@ function FormListInput({
 
   return (
     <Select
-      value={value !== "" ? value : undefined}
-      onValueChange={onChange}
+      items={choices.map((form) => ({ value: form.slug, label: form.name }))}
+      value={value !== "" ? value : null}
+      onValueChange={(picked) => {
+        if (picked !== null) onChange(picked);
+      }}
     >
       <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
         <SelectValue placeholder="Choisir un formulaire…" />
