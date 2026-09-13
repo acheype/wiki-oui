@@ -152,16 +152,22 @@ export function EditorToolbar({
 
         <DropdownMenu>
           <Tooltip>
-            <TooltipTrigger render={<DropdownMenuTrigger asChild />}>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onMouseDown={(event) => event.preventDefault()}
-                aria-label="Titre"
-              >
-                <Heading />
-              </Button>
+            <TooltipTrigger
+              render={
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onMouseDown={(event) => event.preventDefault()}
+                      aria-label="Titre"
+                    />
+                  }
+                />
+              }
+            >
+              <Heading />
             </TooltipTrigger>
             <TooltipContent>Titre</TooltipContent>
           </Tooltip>
@@ -169,7 +175,7 @@ export function EditorToolbar({
             {[1, 2, 3, 4].map((level) => (
               <DropdownMenuItem
                 key={level}
-                onSelect={() => {
+                onClick={() => {
                   if (viewRef.current) setHeading(viewRef.current, level);
                 }}
               >
@@ -210,16 +216,22 @@ export function EditorToolbar({
 
         <DropdownMenu>
           <Tooltip>
-            <TooltipTrigger render={<DropdownMenuTrigger asChild />}>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onMouseDown={(event) => event.preventDefault()}
-                aria-label="Alignement"
-              >
-                <AlignCenter />
-              </Button>
+            <TooltipTrigger
+              render={
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onMouseDown={(event) => event.preventDefault()}
+                      aria-label="Alignement"
+                    />
+                  }
+                />
+              }
+            >
+              <AlignCenter />
             </TooltipTrigger>
             <TooltipContent>Alignement</TooltipContent>
           </Tooltip>
@@ -233,7 +245,7 @@ export function EditorToolbar({
             ).map(([alignment, label, Icon]) => (
               <DropdownMenuItem
                 key={alignment}
-                onSelect={() => {
+                onClick={() => {
                   if (viewRef.current) setAlignment(viewRef.current, alignment);
                 }}
               >
@@ -289,16 +301,22 @@ export function EditorToolbar({
         {menuBuilders.length > 0 && (
           <DropdownMenu>
             <Tooltip>
-              <TooltipTrigger render={<DropdownMenuTrigger asChild />}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onMouseDown={(event) => event.preventDefault()}
-                  aria-label="Composants"
-                >
-                  <Puzzle />
-                </Button>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onMouseDown={(event) => event.preventDefault()}
+                        aria-label="Composants"
+                      />
+                    }
+                  />
+                }
+              >
+                <Puzzle />
               </TooltipTrigger>
               <TooltipContent>Composants</TooltipContent>
             </Tooltip>
@@ -306,7 +324,7 @@ export function EditorToolbar({
               {menuBuilders.map((builder) => (
                 <DropdownMenuItem
                   key={builder.name}
-                  onSelect={() => onRequestComponent(builder)}
+                  onClick={() => onRequestComponent(builder)}
                 >
                   {builder.descriptor.label}
                 </DropdownMenuItem>

@@ -53,11 +53,11 @@ export function AccountMenu({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm" disabled={isPending}>
-            <UserRound />
-            {identity.name}
-          </Button>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="sm" disabled={isPending} />}
+        >
+          <UserRound />
+          {identity.name}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel className="font-mono text-xs font-normal text-muted-foreground">
@@ -65,7 +65,7 @@ export function AccountMenu({
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onSelect={() => startTransition(async () => void (await signOut()))}
+            onClick={() => startTransition(async () => void (await signOut()))}
           >
             <LogOut />
             Se déconnecter
@@ -76,7 +76,7 @@ export function AccountMenu({
               reaches — v0.5 has no profile system page yet. */}
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => setErasing(true)}
+            onClick={() => setErasing(true)}
           >
             <Trash2 />
             Supprimer mon compte…

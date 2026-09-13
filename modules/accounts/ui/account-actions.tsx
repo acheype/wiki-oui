@@ -95,22 +95,24 @@ export function AccountActions({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={isPending}
-            aria-label={`Actions sur le compte de ${user.name}`}
-          >
-            <MoreHorizontal />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isPending}
+              aria-label={`Actions sur le compte de ${user.name}`}
+            />
+          }
+        >
+          <MoreHorizontal />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {/* Not offered to a disabled account: a link would open on « ce lien
               n'est plus valable », and an action that cannot be taken informs
               nobody (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
           {!user.disabled && (
-            <DropdownMenuItem onSelect={resetPassword}>
+            <DropdownMenuItem onClick={resetPassword}>
               <KeyRound />
               Envoyer un lien de mot de passe
             </DropdownMenuItem>
@@ -119,14 +121,14 @@ export function AccountActions({
               author of the action out on the spot, and « se déconnecter » is
               what they were after. */}
           {!own && (
-            <DropdownMenuItem onSelect={toggleDisabled}>
+            <DropdownMenuItem onClick={toggleDisabled}>
               <UserMinus />
               {user.disabled ? "Réactiver le compte" : "Désactiver le compte"}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => setDeleting(true)}
+            onClick={() => setDeleting(true)}
           >
             <Trash2 />
             {own ? "Supprimer mon compte…" : "Supprimer le compte…"}
