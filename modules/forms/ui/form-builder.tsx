@@ -113,14 +113,6 @@ export type CanvasField = FormField & {
 let nextId = 0;
 const freshId = () => `field-${nextId++}`;
 
-/**
- * Which button asked for a save. The title-recompute confirmation sits
- * between the click and the write (ADR 0020), so what resumes on the other
- * side of it has to be remembered — applying the defaults saves too, and must
- * not come back as a plain save.
- */
-type SaveIntent = "save" | "apply";
-
 // The default title field present in every new form (docs/forms.md). The
 // palette names the type explicitly ("Titre de la fiche"); the label stored
 // here is what an author fills in and a reader sees, where "Titre" suffices.
@@ -203,11 +195,14 @@ export function FormBuilder({
   const [titleImpact, setTitleImpact] = useState<TitleRecomputeImpact | null>(
     null
   );
-  /** Which save that confirmation is holding up, so it resumes the right one. */
-  const [titleIntent, setTitleIntent] = useState<SaveIntent>("save");
-  /** Pending « Appliquer ces accès… » awaiting confirmation. */
-  const [defaultsImpact, setDefaultsImpact] =
-    useState<EntryRightsImpact | null>(null);
+  /**
+   * Pending « Appliquer ces accès… » awaiting confirmation, with the title
+   * recompute the same save would trigger (null when titles stay as they are).
+   */
+  const [applyImpact, setApplyImpact] = useState<{
+    rights: EntryRightsImpact;
+    titles: TitleRecomputeImpact | null;
+  } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -320,10 +315,11 @@ export function FormBuilder({
     return true;
   }
 
-  async function persist() {
-    if (!(await persistOnly())) return;
+  async function persist(): Promise<boolean> {
+    if (!(await persistOnly())) return false;
     toast.success("Formulaire enregistré.");
     onSaved(slug);
+    return true;
   }
 
   function reportIssues(issues: FormDescriptorIssue[]) {
@@ -336,54 +332,50 @@ export function FormBuilder({
   }
 
   /** Saves, then rewrites the rights of the form's fiches from its defaults. */
-  async function persistAndApply() {
-    if (!(await persistOnly())) return;
+  async function persistAndApply(): Promise<boolean> {
+    if (!(await persistOnly())) return false;
     const result = await applyEntryDefaults(slug, permissions);
     if (result) {
       toast.error(result.error);
-      return;
+      return false;
     }
     toast.success("Formulaire enregistré, accès appliqués aux fiches.");
     onSaved(slug);
+    return true;
   }
 
   /**
-   * What every save waits on, whichever button asked for it: an unfinished
-   * form, then a title recompute the admin has to accept. False means
-   * something stopped it — either reported, or now sitting behind a modal
-   * that will resume it, which is why the intent travels with the count.
+   * Refuses an unfinished form before any confirmation opens. A confirmation
+   * would otherwise announce entries being rewritten by a save the server is
+   * about to turn down — and it is a modal, so the refusal would arrive only
+   * after the admin had accepted it. Same engine as saveForm's own verdict
+   * (ADR 0015); the server still owns the decision, this only spares a
+   * confirmation that leads nowhere.
    */
-  async function clearedToSave(intent: SaveIntent): Promise<boolean> {
-    const descriptor = toDescriptor(fields, permissions);
-    // Refuse an unfinished form before anything else. The title-recompute
-    // confirmation below would otherwise announce entries being rewritten
-    // by a save the server is about to turn down — and it is a modal, so
-    // the refusal would arrive only after the admin had accepted it. Same
-    // engine as saveForm's own verdict (ADR 0015); the server still owns
-    // the decision, this only spares a confirmation that leads nowhere.
-    const issues = formAuthoringIssues(descriptor);
-    if (issues.length > 0) {
-      reportIssues(issues);
-      return false;
-    }
-    // Changing the automatic title's template — or switching it on —
-    // rewrites the stored title of every entry (ADR 0020). The server
-    // owns the detection and returns null when this save leaves the
-    // titles alone; otherwise the admin sees the count first.
-    if (!isNew) {
-      const impact = await countTitleImpact(slug, descriptor);
-      if (impact && impact.updated + impact.skipped > 0) {
-        setTitleIntent(intent);
-        setTitleImpact(impact);
-        return false;
-      }
-    }
-    return true;
+  function reportUnfinished(): boolean {
+    const issues = formAuthoringIssues(toDescriptor(fields, permissions));
+    if (issues.length > 0) reportIssues(issues);
+    return issues.length > 0;
+  }
+
+  /**
+   * Changing the automatic title's template — or switching it on — rewrites
+   * the stored title of every entry (ADR 0020). The server owns the detection
+   * and returns null when this save leaves the titles alone; otherwise the
+   * admin sees the count first.
+   */
+  async function titleRecompute(): Promise<TitleRecomputeImpact | null> {
+    if (isNew) return null;
+    const impact = await countTitleImpact(slug, toDescriptor(fields, permissions));
+    return impact && impact.updated + impact.skipped > 0 ? impact : null;
   }
 
   function save() {
     startTransition(async () => {
-      if (await clearedToSave("save")) await persist();
+      if (reportUnfinished()) return;
+      const impact = await titleRecompute();
+      if (impact) setTitleImpact(impact);
+      else await persist();
     });
   }
 
@@ -392,11 +384,18 @@ export function FormBuilder({
    * Défauts): the one path from the defaults to what already exists. It counts
    * against the rules the tab shows rather than those in base — the action
    * saves the form on its way, so what the confirmation announces is what it is
-   * about to hold, and the two cannot disagree.
+   * about to hold, and the two cannot disagree. That save passes the checks a
+   * plain save does, and before the confirmation: a gabarit changed in the
+   * same sitting is announced in the same modal rather than in a second one,
+   * so it cannot rewrite every title on the quiet.
    */
   function askToApply() {
     startTransition(async () => {
-      const counted = await countEntryDefaults(slug, permissions);
+      if (reportUnfinished()) return;
+      const [counted, titles] = await Promise.all([
+        countEntryDefaults(slug, permissions),
+        titleRecompute(),
+      ]);
       if ("error" in counted) {
         toast.error(counted.error);
         return;
@@ -405,17 +404,7 @@ export function FormBuilder({
         toast.error("Ce formulaire n'existe plus.");
         return;
       }
-      setDefaultsImpact(counted.impact);
-    });
-  }
-
-  // Accepted the numbers: the save the action drags along still passes the
-  // checks a plain save does, so a gabarit changed in the same sitting cannot
-  // rewrite every title on the quiet.
-  function applyDefaults() {
-    setDefaultsImpact(null);
-    startTransition(async () => {
-      if (await clearedToSave("apply")) await persistAndApply();
+      setApplyImpact({ rights: counted.impact, titles });
     });
   }
 
@@ -557,7 +546,7 @@ export function FormBuilder({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Recalculer le titre des fiches ?
+              Recalculer le titre des fiches&nbsp;?
             </AlertDialogTitle>
             <AlertDialogDescription>
               {titleImpact && (
@@ -568,12 +557,12 @@ export function FormBuilder({
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                const resume =
-                  titleIntent === "apply" ? persistAndApply : persist;
-                setTitleImpact(null);
-                startTransition(resume);
-              }}
+              disabled={isPending}
+              onClick={() =>
+                startTransition(async () => {
+                  if (await persist()) setTitleImpact(null);
+                })
+              }
             >
               Enregistrer et recalculer
             </AlertDialogAction>
@@ -582,17 +571,35 @@ export function FormBuilder({
       </AlertDialog>
 
       <AlertDialog
-        open={defaultsImpact !== null}
-        onOpenChange={(open) => !open && setDefaultsImpact(null)}
+        open={applyImpact !== null}
+        onOpenChange={(open) => !open && setApplyImpact(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Appliquer ces accès aux fiches existantes ?
+              {applyImpact?.titles
+                ? "Enregistrer et modifier les fiches existantes\u00A0?"
+                : "Appliquer ces accès aux fiches existantes\u00A0?"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {defaultsImpact && (
-                <ImpactSentences {...entryRightsNote(defaultsImpact)} />
+            <AlertDialogDescription render={<div className="grid gap-3" />}>
+              {applyImpact?.titles ? (
+                // Two effects of one save, each under its own heading so the
+                // reader does not take the title count for part of the rights.
+                <>
+                  <p>L&apos;enregistrement modifie les fiches existantes sur deux points.</p>
+                  <ImpactSection heading="1. Accès">
+                    <ImpactSentences {...entryRightsNote(applyImpact.rights)} />
+                  </ImpactSection>
+                  <ImpactSection heading="2. Titres">
+                    <TitleImpactSentence impact={applyImpact.titles} />
+                  </ImpactSection>
+                </>
+              ) : (
+                applyImpact && (
+                  <p>
+                    <ImpactSentences {...entryRightsNote(applyImpact.rights)} />
+                  </p>
+                )
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -603,15 +610,36 @@ export function FormBuilder({
                 not have touched. */}
             <AlertDialogAction
               disabled={
-                defaultsImpact !== null && appliesNothing(defaultsImpact)
+                isPending ||
+                (applyImpact !== null && appliesNothing(applyImpact.rights))
               }
-              onClick={applyDefaults}
+              onClick={() =>
+                startTransition(async () => {
+                  if (await persistAndApply()) setApplyImpact(null);
+                })
+              }
             >
               Enregistrer et appliquer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+/** One of the effects a save announces, under a heading of its own. */
+function ImpactSection({
+  heading,
+  children,
+}: {
+  heading: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <p className="font-medium text-foreground">{heading}</p>
+      <p>{children}</p>
     </div>
   );
 }
@@ -747,9 +775,9 @@ function TitleImpactSentence({ impact }: { impact: TitleRecomputeImpact }) {
     <>
       {updated > 0 ? (
         <>
-          <strong>{updated}</strong> fiche{updated > 1 ? "s" : ""} verr
-          {updated > 1 ? "ont" : "a"} son titre recalculé depuis le nouveau
-          gabarit.
+          <strong>{updated}</strong>{" "}
+          {updated > 1 ? "fiches verront leur titre" : "fiche verra son titre"}{" "}
+          recalculé depuis le nouveau gabarit.
         </>
       ) : (
         <>Aucune fiche ne change de titre.</>
@@ -757,8 +785,10 @@ function TitleImpactSentence({ impact }: { impact: TitleRecomputeImpact }) {
       {skipped > 0 && (
         <>
           <br />
-          <strong>{skipped}</strong> fiche conserver{skipped > 1 ? "ont" : "a"} le
-          sien : le gabarit produit une chaîne vide pour {skipped > 1 ? "elles" : "elle"}.
+          <strong>{skipped}</strong>{" "}
+          {skipped > 1 ? "fiches conserveront le leur" : "fiche conservera le sien"}
+          &nbsp;: le gabarit produit une chaîne vide pour{" "}
+          {skipped > 1 ? "elles" : "elle"}.
         </>
       )}
     </>

@@ -239,8 +239,8 @@ export function entryRightsNote(impact: EntryRightsImpact): {
     lines.push(
       plural(
         impact.refused,
-        "fiche ne vous appartient pas : seul son propriétaire ou un administrateur peut changer son accès.",
-        "fiches ne vous appartiennent pas : seul leur propriétaire ou un administrateur peut changer leur accès."
+        "fiche ne vous appartient pas\u00A0: seul son propriétaire ou un administrateur peut changer son accès.",
+        "fiches ne vous appartiennent pas\u00A0: seul leur propriétaire ou un administrateur peut changer leur accès."
       )
     );
   }
