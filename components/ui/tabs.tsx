@@ -1,8 +1,7 @@
 "use client"
 
-import * as React from "react"
+import { Tabs as TabsPrimitive } from "@base-ui/react/tabs"
 import { cva, type VariantProps } from "class-variance-authority"
-import { Tabs as TabsPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
@@ -10,7 +9,7 @@ function Tabs({
   className,
   orientation = "horizontal",
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Root>) {
+}: TabsPrimitive.Root.Props) {
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
@@ -56,31 +55,31 @@ const tabsListVariants = cva(
 function TabsList({
   className,
   variant = "default",
+  // WikiOui's choice over Base UI's default: an arrow key activates the tab
+  // it lands on, not only focuses it.
+  activateOnFocus = true,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.List> &
-  VariantProps<typeof tabsListVariants>) {
+}: TabsPrimitive.List.Props & VariantProps<typeof tabsListVariants>) {
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
       data-variant={variant}
+      activateOnFocus={activateOnFocus}
       className={cn(tabsListVariants({ variant }), className)}
       {...props}
     />
   )
 }
 
-function TabsTrigger({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+function TabsTrigger({ className, ...props }: TabsPrimitive.Tab.Props) {
   return (
-    <TabsPrimitive.Trigger
+    <TabsPrimitive.Tab
       data-slot="tabs-trigger"
       className={cn(
         // Base. h-auto in vertical: the horizontal h-[calc(100%-1px)] would
         // pin a stacked tab's height and swallow its padding, so vertical tabs
         // take their height from their own py instead.
-        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all group-data-vertical/tabs:h-auto group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 dark:text-muted-foreground dark:hover:text-foreground group-data-[variant=default]/tabs-list:data-active:shadow-sm group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "relative inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-md border border-transparent px-2 py-1 text-sm font-medium whitespace-nowrap text-foreground/60 transition-all group-data-vertical/tabs:h-auto group-data-vertical/tabs:w-full group-data-vertical/tabs:justify-start hover:text-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-disabled:pointer-events-none aria-disabled:opacity-50 dark:text-muted-foreground dark:hover:text-foreground group-data-[variant=default]/tabs-list:data-active:shadow-sm group-data-[variant=line]/tabs-list:data-active:shadow-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         // Underline look: plain text on a transparent track. The grey hover
         // pill and the underline bar are drawn once, as sliding indicators, by
         // the wiki wrapper (wiki-components/tabs/underline-indicators.tsx) — not
@@ -107,12 +106,9 @@ function TabsTrigger({
   )
 }
 
-function TabsContent({
-  className,
-  ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+function TabsContent({ className, ...props }: TabsPrimitive.Panel.Props) {
   return (
-    <TabsPrimitive.Content
+    <TabsPrimitive.Panel
       data-slot="tabs-content"
       className={cn("flex-1 text-sm outline-none", className)}
       {...props}

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 // grey highlight that slides under the hovered tab and a black bar that slides
 // to the active one. Both are shared — one element that moves — replacing the
 // `line` variant's per-tab `after` bar and `hover:bg-muted`
-// (components/ui/tabs.tsx). Purely decorative: Radix keeps the roles and the
+// (components/ui/tabs.tsx). Purely decorative: Base UI keeps the roles and the
 // keyboard, these are aria-hidden.
 //
 // The indicators are rendered as the list's own children, so the list is just

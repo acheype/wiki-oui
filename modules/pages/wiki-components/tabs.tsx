@@ -4,6 +4,7 @@ import {
   Children,
   isValidElement,
   useEffect,
+  useRef,
   useState,
   type ReactElement,
   type ReactNode,
@@ -22,7 +23,7 @@ import { UnderlineIndicators } from "./tabs/underline-indicators";
 
 // Built-in wrapper (ADR 0031): renders the <Tab> children written between its
 // tags as a tab group. Config lives in props, content in the children — each
-// <Tab> holds arbitrary MDX. Client (Radix + the anchor listener below).
+// <Tab> holds arbitrary MDX. Client (Base UI + the anchor listener below).
 //
 // Like <Menu> (menu.tsx), it reads its children by prop shape, not by
 // node.type, which breaks across the RSC boundary: a <Tab> is any element
@@ -101,18 +102,29 @@ export function Tabs({
   // not fight over the hash. hashchange keeps an in-page link working.
   // Joined into one key so the effect re-binds only when the slugs change.
   const slugKey = slugs.join("|");
+  // An inactive tab's panel is not rendered, so its element only exists once
+  // the tab is open: the scroll then waits for the render that opens it.
+  const pendingScroll = useRef<string | null>(null);
   useEffect(() => {
     const groupSlugs = slugKey ? slugKey.split("|") : [];
     const applyHash = () => {
       const hash = decodeURIComponent(window.location.hash.slice(1));
       if (!groupSlugs.includes(hash)) return;
       setValue(hash);
-      document.getElementById(hash)?.scrollIntoView({ block: "nearest" });
+      const openPanel = document.getElementById(hash);
+      if (openPanel) openPanel.scrollIntoView({ block: "nearest" });
+      else pendingScroll.current = hash;
     };
     applyHash();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
   }, [slugKey]);
+  useEffect(() => {
+    const target = pendingScroll.current;
+    if (target === null || target !== value) return;
+    pendingScroll.current = null;
+    document.getElementById(target)?.scrollIntoView({ block: "nearest" });
+  }, [value]);
 
   if (tabs.length === 0) return null;
 
