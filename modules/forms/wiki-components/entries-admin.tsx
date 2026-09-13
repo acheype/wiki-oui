@@ -69,11 +69,12 @@ function EntriesList({ formSlug }: { formSlug?: string }) {
           {formSlug ? `Fiches${formName ? ` — ${formName}` : ""}` : "Toutes les fiches"}
         </h1>
         {formSlug && canAdd && (
-          <Button asChild>
-            <Link href={`/fiches?nouvelle&formulaire=${formSlug}`}>
-              <FilePlus2 />
-              Nouvelle fiche
-            </Link>
+          <Button
+            nativeButton={false}
+            render={<Link href={`/fiches?nouvelle&formulaire=${formSlug}`} />}
+          >
+            <FilePlus2 />
+            Nouvelle fiche
           </Button>
         )}
       </div>
@@ -100,11 +101,14 @@ function EntriesList({ formSlug }: { formSlug?: string }) {
                   modifiée le {formatDateTime(entry.updatedAt)}
                 </p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/${entry.slug}/edit`}>
-                  <Pencil />
-                  Éditer
-                </Link>
+              <Button
+                variant="ghost"
+                size="sm"
+                nativeButton={false}
+                render={<Link href={`/${entry.slug}/edit`} />}
+              >
+                <Pencil />
+                Éditer
               </Button>
             </li>
           ))}

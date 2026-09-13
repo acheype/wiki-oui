@@ -39,18 +39,24 @@ export function PageActions({
       </div>
       <div className="flex items-center gap-1">
         {permissions.write && (
-          <Button asChild variant="ghost" size="sm">
-            <Link href={`/${slug}/edit`}>
-              <Pencil />
-              Modifier
-            </Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            nativeButton={false}
+            render={<Link href={`/${slug}/edit`} />}
+          >
+            <Pencil />
+            Modifier
           </Button>
         )}
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/${slug}/revisions`}>
-            <History />
-            Historique
-          </Link>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<Link href={`/${slug}/revisions`} />}
+        >
+          <History />
+          Historique
         </Button>
         <PageActionsMenu
           slug={slug}

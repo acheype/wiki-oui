@@ -34,13 +34,18 @@ export function AccountMenu({
 
   if (!identity) {
     return (
-      <Button asChild variant="ghost" size="sm">
-        <Link
-          href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
-        >
-          <LogIn />
-          Se connecter
-        </Link>
+      <Button
+        variant="ghost"
+        size="sm"
+        nativeButton={false}
+        render={
+          <Link
+            href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
+          />
+        }
+      >
+        <LogIn />
+        Se connecter
       </Button>
     );
   }

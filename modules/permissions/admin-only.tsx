@@ -17,8 +17,13 @@ export async function AdminOnly({ children }: { children: React.ReactNode }) {
       <Lock className="size-4" aria-hidden />
       <span className="flex-1">Réservé aux administrateurs.</span>
       {!identity && (
-        <Button asChild variant="outline" size="sm">
-          <Link href={authPagePath("signIn")}>Se connecter</Link>
+        <Button
+          variant="outline"
+          size="sm"
+          nativeButton={false}
+          render={<Link href={authPagePath("signIn")} />}
+        >
+          Se connecter
         </Button>
       )}
     </div>

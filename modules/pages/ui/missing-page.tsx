@@ -21,8 +21,8 @@ export function PageNotYetCreated({ slug }: { slug: string }) {
           première sauvegarde.
         </p>
       </div>
-      <Button asChild>
-        <Link href={`/${slug}/edit`}>Créer cette page</Link>
+      <Button nativeButton={false} render={<Link href={`/${slug}/edit`} />}>
+        Créer cette page
       </Button>
     </div>
   );

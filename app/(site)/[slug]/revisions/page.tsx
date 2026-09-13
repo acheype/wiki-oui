@@ -110,11 +110,14 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
             {revisions.length} révision{revisions.length > 1 ? "s" : ""}
           </span>
         </h1>
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/${slug}`}>
-            <ArrowLeft />
-            Retour à la page
-          </Link>
+        <Button
+          variant="ghost"
+          size="sm"
+          nativeButton={false}
+          render={<Link href={`/${slug}`} />}
+        >
+          <ArrowLeft />
+          Retour à la page
         </Button>
       </div>
 

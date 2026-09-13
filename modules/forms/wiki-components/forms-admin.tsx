@@ -107,11 +107,9 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex-1 text-lg font-semibold">Formulaires</h1>
         {canCreate && (
-          <Button asChild>
-            <Link href="?nouveau">
-              <Plus />
-              Nouveau formulaire
-            </Link>
+          <Button nativeButton={false} render={<Link href="?nouveau" />}>
+            <Plus />
+            Nouveau formulaire
           </Button>
         )}
       </div>
@@ -150,11 +148,18 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
                   permissions this person has, and leaves the others out
                   (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
               {form.canCreateEntry && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link href={`/fiches?nouvelle&formulaire=${form.slug}`}>
-                    <FilePlus2 />
-                    Nouvelle fiche
-                  </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  nativeButton={false}
+                  render={
+                    <Link
+                      href={`/fiches?nouvelle&formulaire=${form.slug}`}
+                    />
+                  }
+                >
+                  <FilePlus2 />
+                  Nouvelle fiche
                 </Button>
               )}
               {form.canEdit && (
@@ -260,8 +265,13 @@ function BuilderView({ editSlug }: { editSlug: string | null }) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">{REFUSALS.createForm}</p>
-        <Button asChild variant="outline" className="w-fit">
-          <Link href="/formulaires">Retour à la liste</Link>
+        <Button
+          variant="outline"
+          className="w-fit"
+          nativeButton={false}
+          render={<Link href="/formulaires" />}
+        >
+          Retour à la liste
         </Button>
       </div>
     );
@@ -272,8 +282,13 @@ function BuilderView({ editSlug }: { editSlug: string | null }) {
         <p className="text-sm text-muted-foreground">
           Ce formulaire est introuvable.
         </p>
-        <Button asChild variant="outline" className="w-fit">
-          <Link href="/formulaires">Retour à la liste</Link>
+        <Button
+          variant="outline"
+          className="w-fit"
+          nativeButton={false}
+          render={<Link href="/formulaires" />}
+        >
+          Retour à la liste
         </Button>
       </div>
     );

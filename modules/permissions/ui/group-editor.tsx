@@ -87,8 +87,13 @@ export function GroupEditor({
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">Ce groupe est introuvable.</p>
-        <Button asChild variant="outline" className="w-fit">
-          <Link href={pathname}>Retour aux groupes</Link>
+        <Button
+          variant="outline"
+          className="w-fit"
+          nativeButton={false}
+          render={<Link href={pathname} />}
+        >
+          Retour aux groupes
         </Button>
       </div>
     );

@@ -152,17 +152,21 @@ function AlertDialogAction({
   className,
   variant = "default",
   size = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action> &
   Pick<React.ComponentProps<typeof Button>, "variant" | "size">) {
   return (
-    <Button variant={variant} size={size} asChild>
-      <AlertDialogPrimitive.Action
-        data-slot="alert-dialog-action"
-        className={cn(className)}
-        {...props}
-      />
-    </Button>
+    <AlertDialogPrimitive.Action
+      data-slot="alert-dialog-action"
+      className={cn(className)}
+      {...props}
+      asChild
+    >
+      <Button variant={variant} size={size}>
+        {children}
+      </Button>
+    </AlertDialogPrimitive.Action>
   )
 }
 
@@ -170,17 +174,21 @@ function AlertDialogCancel({
   className,
   variant = "outline",
   size = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel> &
   Pick<React.ComponentProps<typeof Button>, "variant" | "size">) {
   return (
-    <Button variant={variant} size={size} asChild>
-      <AlertDialogPrimitive.Cancel
-        data-slot="alert-dialog-cancel"
-        className={cn(className)}
-        {...props}
-      />
-    </Button>
+    <AlertDialogPrimitive.Cancel
+      data-slot="alert-dialog-cancel"
+      className={cn(className)}
+      {...props}
+      asChild
+    >
+      <Button variant={variant} size={size}>
+        {children}
+      </Button>
+    </AlertDialogPrimitive.Cancel>
   )
 }
 

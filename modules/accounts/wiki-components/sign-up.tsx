@@ -52,8 +52,12 @@ function ClosedSignUp() {
         Sur ce wiki, les comptes naissent d&apos;une invitation. Demandez-en
         une à un administrateur : il vous enverra un lien pour créer le vôtre.
       </p>
-      <Button asChild variant="outline">
-        <Link href={authPagePath("signIn")}>Aller à la connexion</Link>
+      <Button
+        variant="outline"
+        nativeButton={false}
+        render={<Link href={authPagePath("signIn")} />}
+      >
+        Aller à la connexion
       </Button>
     </div>
   );

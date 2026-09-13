@@ -82,26 +82,24 @@ export function ButtonView({
 
   return (
     <UIButton
-      asChild={Boolean(link)}
-      type={link ? undefined : "button"}
+      nativeButton={!link}
+      render={
+        link ? (
+          <ButtonLink link={link} newWindow={newWindow} modal={modal} />
+        ) : undefined
+      }
       size={iconOnly ? "icon" : "default"}
       variant={colorStyles[color].variant}
       className={className}
       aria-label={iconOnly ? (title ?? text ?? icon) : undefined}
       title={title ?? (iconOnly ? (text ?? icon) : undefined)}
     >
-      {link ? (
-        <ButtonLink link={link} newWindow={newWindow} modal={modal}>
-          {content}
-        </ButtonLink>
-      ) : (
-        content
-      )}
+      {content}
     </UIButton>
   );
 }
 
-// Forwards the props UIButton's asChild slot injects (className, title…).
+// Forwards the props UIButton's render prop injects (className, title…).
 function ButtonLink({
   link,
   newWindow,

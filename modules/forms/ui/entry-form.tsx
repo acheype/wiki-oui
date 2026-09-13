@@ -68,12 +68,17 @@ function CreationRefused({
       {/* Offered only to a visitor: someone already signed in has nothing to
           gain from signing in again, and the button would read as a promise. */}
       {!signedIn && (
-        <Button asChild variant="outline" size="sm">
-          <Link
-            href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
-          >
-            Se connecter
-          </Link>
+        <Button
+          variant="outline"
+          size="sm"
+          nativeButton={false}
+          render={
+            <Link
+              href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
+            />
+          }
+        >
+          Se connecter
         </Button>
       )}
     </div>

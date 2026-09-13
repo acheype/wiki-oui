@@ -85,8 +85,12 @@ function SpentLink() {
         Un lien ne fonctionne qu&apos;une seule fois, et pas indéfiniment.
         Demandez-en un nouveau à un administrateur du wiki.
       </p>
-      <Button asChild variant="outline">
-        <Link href={authPagePath("signIn")}>Aller à la connexion</Link>
+      <Button
+        variant="outline"
+        nativeButton={false}
+        render={<Link href={authPagePath("signIn")} />}
+      >
+        Aller à la connexion
       </Button>
     </div>
   );

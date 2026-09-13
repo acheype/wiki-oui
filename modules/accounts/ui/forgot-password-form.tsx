@@ -49,8 +49,12 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           Ce wiki n&apos;envoie pas de courriel. Demandez à un administrateur un
           lien de mot de passe : il pourra vous le transmettre directement.
         </p>
-        <Button asChild variant="outline">
-          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={authPagePath("signIn")} />}
+        >
+          Retour à la connexion
         </Button>
       </div>
     );
@@ -68,8 +72,12 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           Un administrateur peut aussi vous transmettre un lien de mot de passe
           directement, sans courriel.
         </p>
-        <Button asChild variant="outline">
-          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={authPagePath("signIn")} />}
+        >
+          Retour à la connexion
         </Button>
       </div>
     );
@@ -86,8 +94,12 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           Si un compte utilise cette adresse, un lien vient de lui être envoyé.
           Il est valable 24 heures et ne fonctionne qu&apos;une seule fois.
         </p>
-        <Button asChild variant="outline">
-          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
+        <Button
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={authPagePath("signIn")} />}
+        >
+          Retour à la connexion
         </Button>
       </div>
     );

@@ -62,12 +62,16 @@ export async function AccessRefused({
       {/* Offered only to a visitor: someone already signed in has nothing to
           gain from signing in again, and the button would read as a promise. */}
       {!identity && (
-        <Button asChild size={compact ? "sm" : "default"}>
-          <Link
-            href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(`/${slug}`)}`}
-          >
-            Se connecter
-          </Link>
+        <Button
+          size={compact ? "sm" : "default"}
+          nativeButton={false}
+          render={
+            <Link
+              href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(`/${slug}`)}`}
+            />
+          }
+        >
+          Se connecter
         </Button>
       )}
     </div>

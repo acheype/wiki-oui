@@ -254,16 +254,15 @@ function ActionsCell({
     <td className="px-2 py-1.5 text-right whitespace-nowrap">
       {permissions.write && (
         <Button
-          asChild
           variant="ghost"
           size="icon"
           className="size-7"
           aria-label="Modifier la fiche"
           onClick={(event) => event.stopPropagation()}
+          nativeButton={false}
+          render={<a href={sample ? undefined : `/${entry.slug}/edit`} />}
         >
-          <a href={sample ? undefined : `/${entry.slug}/edit`}>
-            <Pencil className="size-3.5" />
-          </a>
+          <Pencil className="size-3.5" />
         </Button>
       )}
       {permissions.structuring && (

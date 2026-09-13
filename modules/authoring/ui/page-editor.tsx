@@ -306,8 +306,14 @@ export function PageEditor({
             the icons on one line — the tools carry an indicator under them
             and the buttons do not. */}
         <div className="ml-auto flex shrink-0 items-center gap-2 pt-1.5 max-sm:pb-1.5">
-          <Button asChild variant="ghost" size="sm" disabled={isPending}>
-            <Link href={`/${slug}`}>Annuler</Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isPending}
+            nativeButton={false}
+            render={<Link href={`/${slug}`} />}
+          >
+            Annuler
           </Button>
           <Button size="sm" onClick={save} disabled={isPending}>
             {isPending ? <Loader2 className="animate-spin" /> : <Save />}
