@@ -605,13 +605,16 @@ export function FormBuilder({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
-            {/* The button reads the same count the sentences do: it stays out
+            {/* The button reads the same counts the sentences do: it stays out
                 of reach rather than reporting a success over fiches it would
-                not have touched. */}
+                not have touched. Either block writing is enough — a recomputed
+                title is a write even when no right changes. */}
             <AlertDialogAction
               disabled={
                 isPending ||
-                (applyImpact !== null && appliesNothing(applyImpact.rights))
+                (applyImpact !== null &&
+                  appliesNothing(applyImpact.rights) &&
+                  !applyImpact.titles?.updated)
               }
               onClick={() =>
                 startTransition(async () => {
