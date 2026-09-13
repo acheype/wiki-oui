@@ -48,10 +48,11 @@ export function RevisionTimeline({
     <TooltipProvider delay={200}>
       <div className="overflow-x-auto pb-1">
         <ol className="relative mx-2 flex min-w-max items-start gap-8 px-4 pt-1">
-          {/* Connecting rail behind the dots */}
+          {/* Connecting rail behind the dots, through their centre: the
+              list's pt-1 (4px) plus half a 13px dot, less half the 1px rail. */}
           <div
             aria-hidden
-            className="absolute left-0 right-0 top-[13px] h-px bg-border"
+            className="absolute left-0 right-0 top-[10px] h-px bg-border"
           />
           {revisions.map((revision) => {
             const selected = revision.id === selectedId;
