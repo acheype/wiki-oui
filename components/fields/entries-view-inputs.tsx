@@ -251,6 +251,10 @@ export function EntryFieldSelect({
     })),
   ];
 
+  const showsPlaceholder =
+    value === undefined ||
+    (value !== "" && !options.some((option) => option.name === value));
+
   // « Aucun » emits "" (not undefined): an empty string survives as an
   // explicit prop when the field has a non-empty default (captionField=""
   // = no caption), and still omits itself when the default is empty too.
@@ -262,9 +266,11 @@ export function EntryFieldSelect({
     >
       <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
         {/* The select sees « Aucun » and « nothing chosen yet » as the same
-            null: only the prop tells them apart, so the placeholder is
-            forced while the value is still undefined. */}
-        <SelectValue>{value === undefined ? placeholder : undefined}</SelectValue>
+            null, and shows the raw name of a field not loaded yet: the
+            placeholder is forced in both cases. */}
+        <SelectValue placeholder={placeholder}>
+          {showsPlaceholder ? placeholder : undefined}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {items.map((item) => (
