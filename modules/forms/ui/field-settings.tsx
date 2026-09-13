@@ -115,7 +115,7 @@ export function FieldSettings({
         <label className="flex items-center gap-2 text-sm font-normal">
           <Checkbox
             checked={field.required === true}
-            onCheckedChange={(checked) => patch({ required: checked === true })}
+            onCheckedChange={(checked) => patch({ required: checked })}
           />
           Champ obligatoire
         </label>
@@ -502,7 +502,7 @@ function TypeSpecificSettings({
             <Checkbox
               checked={field.allowMdx === true}
               onCheckedChange={(checked) =>
-                onChange({ allowMdx: checked === true })
+                onChange({ allowMdx: checked })
               }
             />
             Autoriser la mise en forme MDX de la valeur
@@ -537,7 +537,7 @@ function TypeSpecificSettings({
           <Checkbox
             checked={field.initTodayButton === true}
             onCheckedChange={(checked) =>
-              onChange({ initTodayButton: checked === true })
+              onChange({ initTodayButton: checked })
             }
           />
           Proposer un bouton «&nbsp;Aujourd&apos;hui&nbsp;»
@@ -769,7 +769,7 @@ function GeolocationSettings({
         <Checkbox
           checked={field.geolocateButton === true}
           onCheckedChange={(checked) =>
-            onChange({ geolocateButton: checked === true })
+            onChange({ geolocateButton: checked })
           }
         />
         Bouton «&nbsp;Depuis ma position&nbsp;»
@@ -791,7 +791,7 @@ function TitleSettings({
         <Checkbox
           checked={field.automatic === true}
           onCheckedChange={(checked) =>
-            onChange({ automatic: checked === true })
+            onChange({ automatic: checked })
           }
         />
         Titre automatique (calculé depuis un gabarit)

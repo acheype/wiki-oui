@@ -710,7 +710,7 @@ function FilterGroup({
                   onChange({
                     ...active,
                     [field]:
-                      checked === true
+                      checked
                         ? [...picked, value]
                         : picked.filter((item) => item !== value),
                   })

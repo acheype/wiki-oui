@@ -21,7 +21,7 @@ Deux décisions de fond, détaillées plus bas :
 | 2 | **Rendre & valider** une fiche (saisie) | `react-hook-form` + `@hookform/resolvers` (zod) + `<Form>` shadcn, **branchés sur le renderer de champs partagé** (voir plus bas) |
 | 3 | **Construire** le formulaire (WYSIWYG) | UI maison + **dnd-kit** (ou Pragmatic drag-and-drop d'Atlassian) pour l'ordre/ajout des champs |
 
-Rien de ceci n'introduit d'écosystème parallèle : brique 2 est exactement ce pour quoi le composant `<Form>` de shadcn existe (Radix pour l'accessibilité, Tailwind pour le thème, zod pour la validation), et brique 3 est un ComponentBuilder qui, au lieu de produire du MDX, produit un descripteur.
+Rien de ceci n'introduit d'écosystème parallèle : brique 2 est exactement ce pour quoi le composant `<Form>` de shadcn existe (Base UI pour l'accessibilité, Tailwind pour le thème, zod pour la validation), et brique 3 est un ComponentBuilder qui, au lieu de produire du MDX, produit un descripteur.
 
 ## À quoi sert Zod ?
 

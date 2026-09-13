@@ -200,7 +200,7 @@ export function PagesAdmin() {
                 <Checkbox
                   checked={selection.includes(page.slug)}
                   aria-label={`Sélectionner ${page.slug}`}
-                  onCheckedChange={(checked) => toggle(page.slug, checked === true)}
+                  onCheckedChange={(checked) => toggle(page.slug, checked)}
                 />
                 <span className="flex min-w-0 flex-1 items-center gap-2">
                   <Link

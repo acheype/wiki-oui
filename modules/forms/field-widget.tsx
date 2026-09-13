@@ -205,7 +205,7 @@ export function Field({
         <Label className="flex items-center gap-2 font-normal">
           <Checkbox
             checked={value === true}
-            onCheckedChange={(checked) => onChange(checked === true)}
+            onCheckedChange={(checked) => onChange(checked)}
           />
           {spec.label}
           {spec.required && <RequiredMark />}
@@ -322,7 +322,7 @@ export function FieldWidget({
             <Label key={optionValue} className="flex items-center gap-2 font-normal">
               <Checkbox
                 checked={selected.includes(optionValue)}
-                onCheckedChange={(checked) => toggle(optionValue, checked === true)}
+                onCheckedChange={(checked) => toggle(optionValue, checked)}
               />
               {label}
             </Label>
