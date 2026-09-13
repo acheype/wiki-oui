@@ -1,11 +1,14 @@
 "use client";
 
-import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useRender } from "@base-ui/react/use-render";
 import {
-  Popover,
-  PopoverAnchor,
-  PopoverContent,
-} from "@/components/ui/popover";
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactElement,
+} from "react";
+import { Popover, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 /**
@@ -140,22 +143,27 @@ export function SuggestionPopover({
   suggestions: Suggestions;
   /** Slugs and file names read better monospaced; words do not. */
   optionClassName?: string;
-  children: ReactNode;
+  children: ReactElement;
 }) {
+  // The field is the anchor, not a trigger: it opens the panel by typing.
+  const anchorRef = useRef<HTMLElement>(null);
+  const field = useRender({ render: children, ref: anchorRef });
+
   return (
     <Popover open={suggestions.shown}>
-      <PopoverAnchor asChild>{children}</PopoverAnchor>
+      {field}
       <PopoverContent
+        anchor={anchorRef}
         id={suggestions.listboxId}
         role="listbox"
         aria-label="Suggestions"
         align="start"
         sideOffset={4}
-        className="max-h-64 w-(--radix-popover-trigger-width) min-w-56 gap-0 overflow-y-auto p-1"
+        className="max-h-64 w-(--anchor-width) min-w-56 gap-0 overflow-y-auto p-1"
         // The field keeps the focus throughout — the panel is a list one
         // reads, never a place one lands.
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        onCloseAutoFocus={(event) => event.preventDefault()}
+        initialFocus={false}
+        finalFocus={false}
       >
         {suggestions.items.map((item, index) => (
           <button

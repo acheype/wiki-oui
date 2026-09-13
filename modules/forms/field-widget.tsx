@@ -637,22 +637,24 @@ function DateInput({
   return (
     <div className="flex items-center gap-2">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            aria-invalid={invalid}
-            className={cn(
-              "w-52 justify-start font-normal",
-              !selected && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="size-4" aria-hidden />
-            {selected
-              ? format(selected, "d MMMM yyyy", { locale: fr })
-              : "Choisir une date"}
-          </Button>
+        <PopoverTrigger
+          render={
+            <Button
+              id={id}
+              type="button"
+              variant="outline"
+              aria-invalid={invalid}
+              className={cn(
+                "w-52 justify-start font-normal",
+                !selected && "text-muted-foreground"
+              )}
+            />
+          }
+        >
+          <CalendarIcon className="size-4" aria-hidden />
+          {selected
+            ? format(selected, "d MMMM yyyy", { locale: fr })
+            : "Choisir une date"}
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar

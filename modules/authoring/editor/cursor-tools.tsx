@@ -212,7 +212,7 @@ function wrapperAtCursor(
 }
 
 // Deliberately not the toolbar's ToolButton: the strips render in a detached
-// React root where the Radix TooltipProvider is out of reach, so the label is
+// React root where the toolbar's TooltipProvider is out of reach, so the label is
 // a native title and the look comes from the .cm-wiki-strip CSS.
 function StripButton({
   label,

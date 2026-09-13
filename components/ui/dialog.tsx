@@ -97,19 +97,19 @@ function DialogContent({
 // a caller drops it in without wiring one.
 function DialogCloseButton({ className }: { className?: string }) {
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delay={300}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Fermer"
-              className={className}
-            >
-              <XIcon className="size-5" />
-            </Button>
-          </DialogPrimitive.Close>
+        <TooltipTrigger
+          render={<DialogPrimitive.Close data-slot="dialog-close" asChild />}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Fermer"
+            className={className}
+          >
+            <XIcon className="size-5" />
+          </Button>
         </TooltipTrigger>
         <TooltipContent>Fermer</TooltipContent>
       </Tooltip>
@@ -134,15 +134,17 @@ function DialogIconLink({
 }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <a
-          href={href}
-          aria-label={label}
-          {...(newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-        >
-          {icon}
-        </a>
+      <TooltipTrigger
+        render={
+          <a
+            href={href}
+            aria-label={label}
+            {...(newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+            className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+          />
+        }
+      >
+        {icon}
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -175,7 +177,7 @@ function DialogTitleBar({
         </DialogTitle>
       </div>
       {actions && (
-        <TooltipProvider delayDuration={300}>{actions}</TooltipProvider>
+        <TooltipProvider delay={300}>{actions}</TooltipProvider>
       )}
       {/* A hairline sets the close apart: leaving the modal is not one of the
           actions on its content. */}

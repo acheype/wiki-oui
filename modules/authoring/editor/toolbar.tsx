@@ -78,20 +78,22 @@ function ToolButton({
 }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          // Keep the editor selection: the button must not steal focus.
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => {
-            if (viewRef.current) command(viewRef.current);
-          }}
-          aria-label={label}
-        >
-          {children}
-        </Button>
+      <TooltipTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            // Keep the editor selection: the button must not steal focus.
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              if (viewRef.current) command(viewRef.current);
+            }}
+            aria-label={label}
+          />
+        }
+      >
+        {children}
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -129,7 +131,7 @@ export function EditorToolbar({
   );
 
   return (
-    <TooltipProvider delayDuration={400}>
+    <TooltipProvider delay={400}>
       {/* One row, whatever the width: a second row of tools would eat the
           text it serves. Narrower than its tools, it scrolls sideways and
           says so, under an indicator of our own (SwipeRow). Takes the bar's
@@ -150,18 +152,16 @@ export function EditorToolbar({
 
         <DropdownMenu>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onMouseDown={(event) => event.preventDefault()}
-                  aria-label="Titre"
-                >
-                  <Heading />
-                </Button>
-              </DropdownMenuTrigger>
+            <TooltipTrigger render={<DropdownMenuTrigger asChild />}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onMouseDown={(event) => event.preventDefault()}
+                aria-label="Titre"
+              >
+                <Heading />
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Titre</TooltipContent>
           </Tooltip>
@@ -210,18 +210,16 @@ export function EditorToolbar({
 
         <DropdownMenu>
           <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onMouseDown={(event) => event.preventDefault()}
-                  aria-label="Alignement"
-                >
-                  <AlignCenter />
-                </Button>
-              </DropdownMenuTrigger>
+            <TooltipTrigger render={<DropdownMenuTrigger asChild />}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onMouseDown={(event) => event.preventDefault()}
+                aria-label="Alignement"
+              >
+                <AlignCenter />
+              </Button>
             </TooltipTrigger>
             <TooltipContent>Alignement</TooltipContent>
           </Tooltip>
@@ -271,17 +269,19 @@ export function EditorToolbar({
         </ToolButton>
 
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={onRequestUpload}
-              aria-label="Uploader un fichier"
-            >
-              <Upload />
-            </Button>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={onRequestUpload}
+                aria-label="Uploader un fichier"
+              />
+            }
+          >
+            <Upload />
           </TooltipTrigger>
           <TooltipContent>Uploader un fichier</TooltipContent>
         </Tooltip>
@@ -289,18 +289,16 @@ export function EditorToolbar({
         {menuBuilders.length > 0 && (
           <DropdownMenu>
             <Tooltip>
-              <TooltipTrigger asChild>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    onMouseDown={(event) => event.preventDefault()}
-                    aria-label="Composants"
-                  >
-                    <Puzzle />
-                  </Button>
-                </DropdownMenuTrigger>
+              <TooltipTrigger render={<DropdownMenuTrigger asChild />}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onMouseDown={(event) => event.preventDefault()}
+                  aria-label="Composants"
+                >
+                  <Puzzle />
+                </Button>
               </TooltipTrigger>
               <TooltipContent>Composants</TooltipContent>
             </Tooltip>
@@ -326,17 +324,19 @@ export function EditorToolbar({
         />
         <div className="ml-auto">
           <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => setHelpOpen(true)}
-                aria-label="Aide-mémoire"
-              >
-                <CircleQuestionMark />
-              </Button>
+            <TooltipTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => setHelpOpen(true)}
+                  aria-label="Aide-mémoire"
+                />
+              }
+            >
+              <CircleQuestionMark />
             </TooltipTrigger>
             <TooltipContent>Aide-mémoire</TooltipContent>
           </Tooltip>

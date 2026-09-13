@@ -320,11 +320,11 @@ function AddMemberPopover({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="sm">
-          <Plus />
-          Ajouter…
-        </Button>
+      <PopoverTrigger
+        render={<Button type="button" variant="ghost" size="sm" />}
+      >
+        <Plus />
+        Ajouter…
       </PopoverTrigger>
       <PopoverContent className="grid w-72 gap-2 p-3" align="start">
         <Input
