@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -548,11 +548,7 @@ function SortMenu({
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
+        <SelectItems items={items} />
       </SelectContent>
     </Select>
   );

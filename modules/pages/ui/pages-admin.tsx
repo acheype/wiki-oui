@@ -25,7 +25,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -157,11 +157,7 @@ export function PagesAdmin() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {formItems.map((item) => (
-                <SelectItem key={item.value ?? ""} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
+              <SelectItems items={formItems} />
             </SelectContent>
           </Select>
         </div>

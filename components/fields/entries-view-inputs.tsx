@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -203,6 +203,19 @@ function PartialBadge({ carriers }: { carriers?: string[] }) {
   );
 }
 
+/** A field as a select option: its label, flagged when only some forms carry it. */
+function fieldItem(option: FieldChoiceOption) {
+  return {
+    value: option.name,
+    label: (
+      <>
+        {option.label}
+        <PartialBadge carriers={option.partialTo} />
+      </>
+    ),
+  };
+}
+
 export function EntryFieldSelect({
   id,
   spec,
@@ -240,15 +253,7 @@ export function EntryFieldSelect({
     ...(spec.required
       ? []
       : [{ value: null, label: <span className="text-muted-foreground">Aucun</span> }]),
-    ...options.map((option) => ({
-      value: option.name,
-      label: (
-        <>
-          {option.label}
-          <PartialBadge carriers={option.partialTo} />
-        </>
-      ),
-    })),
+    ...options.map(fieldItem),
   ];
 
   const showsPlaceholder =
@@ -273,11 +278,7 @@ export function EntryFieldSelect({
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {items.map((item) => (
-          <SelectItem key={item.value ?? ""} value={item.value}>
-            {item.label}
-          </SelectItem>
-        ))}
+        <SelectItems items={items} />
       </SelectContent>
     </Select>
   );
@@ -461,12 +462,7 @@ export function FieldRowsInput({
             {slugs.length === 0 ? "Choisir d'abord un formulaire" : "Ajouter un champ"}
           </SelectTrigger>
           <SelectContent>
-            {remaining.map((option) => (
-              <SelectItem key={option.name} value={option.name}>
-                {option.label}
-                <PartialBadge carriers={option.partialTo} />
-              </SelectItem>
-            ))}
+            <SelectItems items={remaining.map(fieldItem)} />
           </SelectContent>
         </Select>
       )}
@@ -760,11 +756,7 @@ export function MultiFormListInput({
                 <SelectValue placeholder="Choisir un formulaire…" />
               </SelectTrigger>
               <SelectContent>
-                {choices.map((choice) => (
-                  <SelectItem key={choice.value} value={choice.value}>
-                    {choice.label}
-                  </SelectItem>
-                ))}
+                <SelectItems items={choices} />
               </SelectContent>
             </Select>
             {shown.length > 1 && (

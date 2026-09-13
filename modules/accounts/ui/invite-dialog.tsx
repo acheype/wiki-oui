@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -147,11 +147,7 @@ export function InviteDialog({ onInvited }: { onInvited: () => void }) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {groupItems.map((item) => (
-                    <SelectItem key={item.value ?? ""} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItems items={groupItems} />
                 </SelectContent>
               </Select>
             </div>

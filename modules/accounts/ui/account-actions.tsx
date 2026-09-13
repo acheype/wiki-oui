@@ -37,7 +37,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -260,11 +260,7 @@ function DeleteAccountDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {heirItems.map((item) => (
-                    <SelectItem key={item.value ?? ""} value={item.value}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItems items={heirItems} />
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

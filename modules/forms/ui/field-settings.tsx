@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -45,16 +45,6 @@ import type { CanvasField } from "./form-builder";
 
 const SUBTYPE_LABELS = { text: "Texte", number: "Nombre" };
 const SOURCE_LABELS = { inline: "Paires saisies", form: "Fiches d'un formulaire" };
-
-// One label map feeds both the select (which shows the chosen label) and its
-// items, so the two never drift apart.
-function LabelMapItems({ labels }: { labels: Record<string, string> }) {
-  return Object.entries(labels).map(([value, label]) => (
-    <SelectItem key={value} value={value}>
-      {label}
-    </SelectItem>
-  ));
-}
 
 export function FieldSettings({
   field,
@@ -466,7 +456,7 @@ function TypeSpecificSettings({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <LabelMapItems labels={SUBTYPE_LABELS} />
+                <SelectItems items={SUBTYPE_LABELS} />
               </SelectContent>
             </Select>
           </div>
@@ -603,6 +593,7 @@ function OptionsSettings({
 }) {
   const fromForm = field.sourceFormId !== undefined;
   const options = field.options ?? {};
+  const formItems = forms.map((form) => ({ value: form.slug, label: form.name }));
   const fillingModeLabels: Record<string, string> = {
     normal: field.type === "radio" ? "Boutons radio" : "Cases à cocher",
     tags: "Pastilles cliquables",
@@ -628,14 +619,14 @@ function OptionsSettings({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <LabelMapItems labels={SOURCE_LABELS} />
+            <SelectItems items={SOURCE_LABELS} />
           </SelectContent>
         </Select>
       </div>
 
       {fromForm ? (
         <Select
-          items={forms.map((form) => ({ value: form.slug, label: form.name }))}
+          items={formItems}
           value={field.sourceFormId ?? null}
           onValueChange={(sourceFormId) => {
             if (sourceFormId !== null) onChange({ sourceFormId });
@@ -645,11 +636,7 @@ function OptionsSettings({
             <SelectValue placeholder="Choisir un formulaire…" />
           </SelectTrigger>
           <SelectContent>
-            {forms.map((form) => (
-              <SelectItem key={form.slug} value={form.slug}>
-                {form.name}
-              </SelectItem>
-            ))}
+            <SelectItems items={formItems} />
           </SelectContent>
         </Select>
       ) : (
@@ -673,7 +660,7 @@ function OptionsSettings({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <LabelMapItems labels={fillingModeLabels} />
+              <SelectItems items={fillingModeLabels} />
             </SelectContent>
           </Select>
         </div>
@@ -775,11 +762,7 @@ function GeolocationSettings({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {addressItems.map((item) => (
-                <SelectItem key={item.value ?? ""} value={item.value}>
-                  {item.label}
-                </SelectItem>
-              ))}
+              <SelectItems items={addressItems} />
             </SelectContent>
           </Select>
         </div>

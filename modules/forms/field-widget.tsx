@@ -27,7 +27,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -276,11 +276,7 @@ export function FieldWidget({
             <SelectValue placeholder={spec.placeholder} />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(spec.options ?? {}).map(([optionValue, label]) => (
-              <SelectItem key={optionValue} value={optionValue}>
-                {label}
-              </SelectItem>
-            ))}
+            <SelectItems items={spec.options ?? {}} />
           </SelectContent>
         </Select>
       );
@@ -867,11 +863,14 @@ function FormListInput({
       live = false;
     };
   }, [forms]);
-  const choices = forms ?? loaded;
+  const formItems = (forms ?? loaded).map((form) => ({
+    value: form.slug,
+    label: form.name,
+  }));
 
   return (
     <Select
-      items={choices.map((form) => ({ value: form.slug, label: form.name }))}
+      items={formItems}
       value={value !== "" ? value : null}
       onValueChange={(picked) => {
         if (picked !== null) onChange(picked);
@@ -881,11 +880,7 @@ function FormListInput({
         <SelectValue placeholder="Choisir un formulaire…" />
       </SelectTrigger>
       <SelectContent>
-        {choices.map((form) => (
-          <SelectItem key={form.slug} value={form.slug}>
-            {form.name}
-          </SelectItem>
-        ))}
+        <SelectItems items={formItems} />
       </SelectContent>
     </Select>
   );

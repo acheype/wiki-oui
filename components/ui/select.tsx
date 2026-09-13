@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
-
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -140,6 +139,30 @@ function SelectItem({
   )
 }
 
+/**
+ * Local addition: the options of a Select, from the same `items` its root
+ * receives. Base UI reads `items` to show the chosen label in the trigger, so
+ * the listed options and that label come from one source and cannot drift
+ * apart. Takes both shapes Base UI accepts: `{ value, label }[]` or a
+ * `{ value: label }` map.
+ */
+function SelectItems({
+  items,
+}: {
+  items:
+    | readonly { value: string | null; label: React.ReactNode }[]
+    | Record<string, React.ReactNode>
+}) {
+  const options = Array.isArray(items)
+    ? (items as readonly { value: string | null; label: React.ReactNode }[])
+    : Object.entries(items).map(([value, label]) => ({ value, label }))
+  return options.map((option) => (
+    <SelectItem key={option.value ?? ""} value={option.value}>
+      {option.label}
+    </SelectItem>
+  ))
+}
+
 function SelectSeparator({
   className,
   ...props
@@ -194,6 +217,7 @@ export {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectItems,
   SelectLabel,
   SelectScrollDownButton,
   SelectScrollUpButton,
