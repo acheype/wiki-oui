@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -60,27 +61,31 @@ export function AccountMenu({
           {identity.name}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel className="font-mono text-xs font-normal text-muted-foreground">
-            {identity.username}
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => startTransition(async () => void (await signOut()))}
-          >
-            <LogOut />
-            Se déconnecter
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {/* The erasure belongs to the person, not to an administrator's
-              goodwill (RGPD), and this menu is the only place every account
-              reaches — v0.5 has no profile system page yet. */}
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => setErasing(true)}
-          >
-            <Trash2 />
-            Supprimer mon compte…
-          </DropdownMenuItem>
+          {/* The username labels the whole menu: every item acts on this
+              account, and Base UI only accepts a label inside a group. */}
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="font-mono text-xs font-normal text-muted-foreground">
+              {identity.username}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => startTransition(async () => void (await signOut()))}
+            >
+              <LogOut />
+              Se déconnecter
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {/* The erasure belongs to the person, not to an administrator's
+                goodwill (RGPD), and this menu is the only place every account
+                reaches — v0.5 has no profile system page yet. */}
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setErasing(true)}
+            >
+              <Trash2 />
+              Supprimer mon compte…
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
 
