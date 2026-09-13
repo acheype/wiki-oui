@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
 import { signOut } from "@/modules/accounts/auth/actions";
 import { DeleteOwnAccountDialog } from "@/modules/accounts/ui/delete-own-account-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,19 +35,13 @@ export function AccountMenu({
 
   if (!identity) {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        nativeButton={false}
-        render={
-          <Link
-            href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
-          />
-        }
+      <Link
+        href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
+        className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         <LogIn />
         Se connecter
-      </Button>
+      </Link>
     );
   }
 

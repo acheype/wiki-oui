@@ -19,7 +19,7 @@ import {
 } from "@/modules/forms/entry-actions";
 import { Field } from "@/modules/forms/field-widget";
 import { SlugInlineEdit } from "@/components/ui/slug-input";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DESTINATION_PARAM } from "@/lib/destination";
 import {
@@ -68,18 +68,12 @@ function CreationRefused({
       {/* Offered only to a visitor: someone already signed in has nothing to
           gain from signing in again, and the button would read as a promise. */}
       {!signedIn && (
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={
-            <Link
-              href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
-            />
-          }
+        <Link
+          href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(pathname)}`}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           Se connecter
-        </Button>
+        </Link>
       )}
     </div>
   );

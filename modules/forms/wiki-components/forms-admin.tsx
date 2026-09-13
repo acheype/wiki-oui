@@ -30,7 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { useDirectKeyboard } from "@/components/ui/use-direct-keyboard";
 import { formatDateTime } from "@/lib/format";
@@ -107,10 +108,10 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
       <div className="flex flex-wrap items-center gap-2">
         <h1 className="flex-1 text-lg font-semibold">Formulaires</h1>
         {canCreate && (
-          <Button nativeButton={false} render={<Link href="?nouveau" />}>
+          <Link href="?nouveau" className={buttonVariants()}>
             <Plus />
             Nouveau formulaire
-          </Button>
+          </Link>
         )}
       </div>
 
@@ -148,19 +149,13 @@ function FormsList({ onOpen }: { onOpen: (url: string) => void }) {
                   permissions this person has, and leaves the others out
                   (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
               {form.canCreateEntry && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  nativeButton={false}
-                  render={
-                    <Link
-                      href={`/fiches?nouvelle&formulaire=${form.slug}`}
-                    />
-                  }
+                <Link
+                  href={`/fiches?nouvelle&formulaire=${form.slug}`}
+                  className={buttonVariants({ variant: "ghost", size: "sm" })}
                 >
                   <FilePlus2 />
                   Nouvelle fiche
-                </Button>
+                </Link>
               )}
               {form.canEdit && (
                 <>
@@ -265,14 +260,12 @@ function BuilderView({ editSlug }: { editSlug: string | null }) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">{REFUSALS.createForm}</p>
-        <Button
-          variant="outline"
-          className="w-fit"
-          nativeButton={false}
-          render={<Link href="/formulaires" />}
+        <Link
+          href="/formulaires"
+          className={cn(buttonVariants({ variant: "outline" }), "w-fit")}
         >
           Retour à la liste
-        </Button>
+        </Link>
       </div>
     );
   }
@@ -282,14 +275,12 @@ function BuilderView({ editSlug }: { editSlug: string | null }) {
         <p className="text-sm text-muted-foreground">
           Ce formulaire est introuvable.
         </p>
-        <Button
-          variant="outline"
-          className="w-fit"
-          nativeButton={false}
-          render={<Link href="/formulaires" />}
+        <Link
+          href="/formulaires"
+          className={cn(buttonVariants({ variant: "outline" }), "w-fit")}
         >
           Retour à la liste
-        </Button>
+        </Link>
       </div>
     );
   }

@@ -12,7 +12,7 @@
 // a client component has no door to that. button.tsx resolves it first and
 // renders this view only once a link is known to be reachable — or renders
 // it unconditionally when there is nothing to hide from.
-import { Button as UIButton } from "@/components/ui/button";
+import { Button as UIButton, buttonVariants } from "@/components/ui/button";
 import { isWikiHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
@@ -80,26 +80,36 @@ export function ButtonView({
     fullWidth && "w-full"
   );
 
+  const size = iconOnly ? "icon" : "default";
+  const { variant } = colorStyles[color];
+  const labels = {
+    "aria-label": iconOnly ? (title ?? text ?? icon) : undefined,
+    title: title ?? (iconOnly ? (text ?? icon) : undefined),
+  };
+
+  // With a link it stays a link — announced as one, opened by Enter, and
+  // middle-click still opens a tab — wearing the button look.
+  if (link) {
+    return (
+      <ButtonLink
+        link={link}
+        newWindow={newWindow}
+        modal={modal}
+        className={cn(buttonVariants({ variant, size }), className)}
+        {...labels}
+      >
+        {content}
+      </ButtonLink>
+    );
+  }
   return (
-    <UIButton
-      nativeButton={!link}
-      render={
-        link ? (
-          <ButtonLink link={link} newWindow={newWindow} modal={modal} />
-        ) : undefined
-      }
-      size={iconOnly ? "icon" : "default"}
-      variant={colorStyles[color].variant}
-      className={className}
-      aria-label={iconOnly ? (title ?? text ?? icon) : undefined}
-      title={title ?? (iconOnly ? (text ?? icon) : undefined)}
-    >
+    <UIButton size={size} variant={variant} className={className} {...labels}>
       {content}
     </UIButton>
   );
 }
 
-// Forwards the props UIButton's render prop injects (className, title…).
+// Passes the button look (className) and the labels on to the link it renders.
 function ButtonLink({
   link,
   newWindow,

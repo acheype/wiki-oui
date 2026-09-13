@@ -73,7 +73,7 @@ properties:
       view: /^(gallery|carousel)$/
   titleField:
     label: Zone de titre
-    hint: Vide = le champ titre de la fiche
+    hint: Aucun = le champ titre de la fiche
     type: form-field
     showif: &zoned-views
       view: /^(list|grid|agenda)$/

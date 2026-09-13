@@ -30,7 +30,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -87,14 +88,12 @@ export function GroupEditor({
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">Ce groupe est introuvable.</p>
-        <Button
-          variant="outline"
-          className="w-fit"
-          nativeButton={false}
-          render={<Link href={pathname} />}
+        <Link
+          href={pathname}
+          className={cn(buttonVariants({ variant: "outline" }), "w-fit")}
         >
           Retour aux groupes
-        </Button>
+        </Link>
       </div>
     );
   }

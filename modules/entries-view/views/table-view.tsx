@@ -11,7 +11,7 @@ import { useState, useTransition } from "react";
 import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import { toast } from "sonner";
 import { deletePage } from "@/modules/pages/content-actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -254,17 +254,14 @@ function ActionsCell({
   return (
     <td className="px-2 py-1.5 text-right whitespace-nowrap">
       {permissions.write && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7"
+        <a
+          href={sample ? undefined : `/${entry.slug}/edit`}
           aria-label="Modifier la fiche"
           onClick={(event) => event.stopPropagation()}
-          nativeButton={false}
-          render={<a href={sample ? undefined : `/${entry.slug}/edit`} />}
+          className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "size-7")}
         >
           <Pencil className="size-3.5" />
-        </Button>
+        </a>
       )}
       {permissions.structuring && (
         <>

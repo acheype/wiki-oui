@@ -1,7 +1,7 @@
 import { History, Pencil } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import type { PagePermissions } from "@/modules/permissions/rules";
 import { specialSlugs } from "@/wiki.config";
 import { PageActionsMenu } from "./page-actions-menu";
@@ -39,25 +39,21 @@ export function PageActions({
       </div>
       <div className="flex items-center gap-1">
         {permissions.write && (
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false}
-            render={<Link href={`/${slug}/edit`} />}
+          <Link
+            href={`/${slug}/edit`}
+            className={buttonVariants({ variant: "ghost", size: "sm" })}
           >
             <Pencil />
             Modifier
-          </Button>
+          </Link>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={`/${slug}/revisions`} />}
+        <Link
+          href={`/${slug}/revisions`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           <History />
           Historique
-        </Button>
+        </Link>
         <PageActionsMenu
           slug={slug}
           special={special}

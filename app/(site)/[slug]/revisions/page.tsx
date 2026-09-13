@@ -9,7 +9,7 @@ import { CodeToggle } from "@/modules/pages/ui/code-toggle";
 import { DiffView } from "@/modules/pages/ui/diff-view";
 import { RestoreButton } from "@/modules/pages/ui/restore-button";
 import { RevisionTimeline } from "@/modules/pages/ui/timeline";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { readableFormById } from "@/modules/forms/forms";
 import { renderMdx } from "@/modules/authoring/mdx";
@@ -110,15 +110,13 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
             {revisions.length} révision{revisions.length > 1 ? "s" : ""}
           </span>
         </h1>
-        <Button
-          variant="ghost"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={`/${slug}`} />}
+        <Link
+          href={`/${slug}`}
+          className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           <ArrowLeft />
           Retour à la page
-        </Button>
+        </Link>
       </div>
 
       <RevisionTimeline

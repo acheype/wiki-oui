@@ -1,6 +1,6 @@
 import { Lock } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { currentIdentity, isCurrentAdmin } from "@/modules/permissions/person";
 import { authPagePath } from "@/wiki.config";
 
@@ -17,14 +17,12 @@ export async function AdminOnly({ children }: { children: React.ReactNode }) {
       <Lock className="size-4" aria-hidden />
       <span className="flex-1">Réservé aux administrateurs.</span>
       {!identity && (
-        <Button
-          variant="outline"
-          size="sm"
-          nativeButton={false}
-          render={<Link href={authPagePath("signIn")} />}
+        <Link
+          href={authPagePath("signIn")}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           Se connecter
-        </Button>
+        </Link>
       )}
     </div>
   );
