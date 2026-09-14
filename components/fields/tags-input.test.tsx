@@ -58,7 +58,7 @@ describe("TagsInput", () => {
     const { user, field, tags, options } = setup({ candidates: ["chaton"] });
     await user.click(field);
     await user.type(field, "chat");
-    expect(options()).toEqual(["Ajouter « chat »", "chaton"]);
+    expect(options()).toEqual(["Ajouter « chat »", "chaton"]);
     await user.keyboard("{Enter}");
     expect(tags()).toBe("chat");
     expect(field).toHaveProperty("value", "");
@@ -139,6 +139,17 @@ describe("TagsInput", () => {
     expect(tags()).toBe("atelier");
   });
 
+  it("imposes nothing on Enter when the typed word is already placed", async () => {
+    const { user, field, tags } = setup({
+      initial: ["chat"],
+      candidates: ["chaton"],
+    });
+    await user.click(field);
+    await user.type(field, "chat{Enter}");
+    expect(tags()).toBe("chat");
+    expect(field).toHaveProperty("value", "");
+  });
+
   it("adds the draft with Enter once Escape closed the list", async () => {
     const { user, field, tags } = setup({ candidates: ["chaton"] });
     await user.click(field);
@@ -151,7 +162,7 @@ describe("TagsInput", () => {
     const { user, field } = setup({ candidates: ["chaton"] });
     await user.click(field);
     await user.type(field, "chat");
-    const highlighted = screen.getByRole("option", { name: "Ajouter « chat »" });
+    const highlighted = screen.getByRole("option", { name: "Ajouter « chat »" });
     expect(field.getAttribute("aria-activedescendant")).toBe(highlighted.id);
     expect(field.getAttribute("aria-controls")).toBe(
       screen.getByRole("listbox").id

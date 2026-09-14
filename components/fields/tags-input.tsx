@@ -33,24 +33,23 @@ export function TagsInput({
   const highlighted = useRef<string | undefined>(undefined);
 
   const typed = draft.trim();
-  const isNew = (value: string) =>
-    !candidates.some((candidate) => fold(candidate) === fold(value));
-  // The typed word heads the list whenever the wiki does not know it yet:
-  // the first option is highlighted and Enter takes it, so a new word is
-  // never harder to add than a known one (issues #15, #34).
+  // The first option is highlighted and Enter takes it (issue #34), so the
+  // head of the list is always what the typed word asks for: the word itself
+  // while the wiki does not know it — a new word is never harder to add than
+  // a known one (issue #15) — and nothing at all once it is placed, lest
+  // Enter slip in a longer word nobody asked for.
   const items = useMemo(() => {
-    const suggestions = suggestValues({ candidates, draft, placed: tags });
-    const key = fold(draft.trim());
-    const known = [...candidates, ...tags].some((value) => fold(value) === key);
-    return key === "" || known ? suggestions : [draft.trim(), ...suggestions];
-  }, [candidates, draft, tags]);
+    if (typed !== "" && includesFolded(tags, typed)) return NO_CANDIDATES;
+    const suggestions = suggestValues({ candidates, draft: typed, placed: tags });
+    return typed === "" || includesFolded(candidates, typed)
+      ? suggestions
+      : [typed, ...suggestions];
+  }, [candidates, typed, tags]);
 
   function addDraft() {
     if (typed !== "") {
       const tag = alignSpelling(typed, candidates);
-      if (!tags.some((placed) => fold(placed) === fold(tag))) {
-        onChange([...tags, tag]);
-      }
+      if (!includesFolded(tags, tag)) onChange([...tags, tag]);
     }
     setDraft("");
   }
@@ -136,8 +135,15 @@ export function TagsInput({
         </Combobox.Chips>
       </Combobox.InputGroup>
       <SuggestionList
-        label={(item) => (isNew(item) ? `Ajouter « ${item} »` : item)}
+        label={(item) =>
+          includesFolded(candidates, item) ? item : `Ajouter « ${item} »`
+        }
       />
     </Combobox.Root>
   );
+}
+
+function includesFolded(values: string[], value: string): boolean {
+  const key = fold(value);
+  return values.some((candidate) => fold(candidate) === key);
 }

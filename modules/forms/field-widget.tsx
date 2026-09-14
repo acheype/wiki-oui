@@ -680,6 +680,11 @@ function DateInput({
 
 const NO_CANDIDATES: string[] = [];
 
+// An emptied link or file field drops its prop rather than keeping "".
+function unsetWhenEmpty(value: string): PropValue {
+  return value === "" ? undefined : value;
+}
+
 // Wiki pages (ADR 0006), most recently touched first (modules/pages/content.ts
 // listPageSlugs). An address that has left the wiki silences the panel:
 // offering local slugs against « https://… » would answer another question.
@@ -701,7 +706,7 @@ function PageListInput({
       value={value}
       placeholder="ma-page ou https://…"
       candidates={candidates}
-      onChange={(next) => onChange(next === "" ? undefined : next)}
+      onChange={(next) => onChange(unsetWhenEmpty(next))}
     />
   );
 }
@@ -739,7 +744,7 @@ function FileListInput({
       value={value}
       placeholder="nom-du-fichier.ext"
       candidates={files}
-      onChange={(next) => onChange(next === "" ? undefined : next)}
+      onChange={(next) => onChange(unsetWhenEmpty(next))}
     />
   );
 }
