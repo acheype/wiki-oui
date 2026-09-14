@@ -62,12 +62,20 @@ export function suggestValues(input: {
     return available.slice(0, SUGGESTION_LIMIT);
   }
 
-  return available
-    .filter((candidate) => {
-      const key = fold(candidate);
-      return key !== query && key.includes(query);
-    })
-    .slice(0, SUGGESTION_LIMIT);
+  // The fields highlight the first suggestion and Enter takes it (issue #34),
+  // so the head of the list must be the closest value: the exact match, then
+  // what starts with the draft, then what merely contains it. Within each
+  // group the caller's order stands.
+  const exact: string[] = [];
+  const starting: string[] = [];
+  const containing: string[] = [];
+  for (const candidate of available) {
+    const key = fold(candidate);
+    if (key === query) exact.push(candidate);
+    else if (key.startsWith(query)) starting.push(candidate);
+    else if (key.includes(query)) containing.push(candidate);
+  }
+  return [...exact, ...starting, ...containing].slice(0, SUGGESTION_LIMIT);
 }
 
 /** The spelling an added word takes: the one already in use, when there is one. */
