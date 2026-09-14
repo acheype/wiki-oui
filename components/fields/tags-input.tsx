@@ -1,15 +1,12 @@
 "use client";
 
+import { Combobox } from "@base-ui/react/combobox";
 import { X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { fold } from "@/lib/fold";
 import { alignSpelling, suggestValues } from "@/modules/forms/suggested-values";
-import {
-  SuggestionPopover,
-  useSuggestions,
-} from "./suggestion-popover";
+import { SuggestionList } from "./suggestion-list";
 
 const NO_CANDIDATES: string[] = [];
 
@@ -32,78 +29,115 @@ export function TagsInput({
   onFocus?: () => void;
 }) {
   const [draft, setDraft] = useState("");
-  const items = useMemo(
-    () => suggestValues({ candidates, draft, placed: tags }),
-    [candidates, draft, tags]
-  );
-  // Picking adds one more chip and clears the draft: the panel stays open on
-  // the remaining candidates, so several keywords go on in a row.
-  const suggestions = useSuggestions({
-    items,
-    onPick: (value) => {
-      onChange([...tags, value]);
-      setDraft("");
-    },
-  });
+  const [open, setOpen] = useState(false);
+  const highlighted = useRef<string | undefined>(undefined);
+
+  const typed = draft.trim();
+  const isNew = (value: string) =>
+    !candidates.some((candidate) => fold(candidate) === fold(value));
+  // The typed word heads the list whenever the wiki does not know it yet:
+  // the first option is highlighted and Enter takes it, so a new word is
+  // never harder to add than a known one (issues #15, #34).
+  const items = useMemo(() => {
+    const suggestions = suggestValues({ candidates, draft, placed: tags });
+    const key = fold(draft.trim());
+    const known = [...candidates, ...tags].some((value) => fold(value) === key);
+    return key === "" || known ? suggestions : [draft.trim(), ...suggestions];
+  }, [candidates, draft, tags]);
 
   function addDraft() {
-    const typed = draft.trim();
-    if (typed === "") {
-      setDraft("");
-      return;
-    }
-    const tag = alignSpelling(typed, candidates);
-    const key = fold(tag);
-    if (!tags.some((placed) => fold(placed) === key)) {
-      onChange([...tags, tag]);
+    if (typed !== "") {
+      const tag = alignSpelling(typed, candidates);
+      if (!tags.some((placed) => fold(placed) === fold(tag))) {
+        onChange([...tags, tag]);
+      }
     }
     setDraft("");
   }
 
   return (
-    <SuggestionPopover suggestions={suggestions}>
-      <div className="flex flex-wrap items-center gap-1.5">
-        {tags.map((tag) => (
-          <Badge key={tag} variant="secondary" className="gap-1 pr-1">
-            {tag}
-            <button
-              type="button"
-              aria-label={`Retirer le tag ${tag}`}
-              className="rounded-full p-0.5 hover:bg-muted-foreground/20"
-              onClick={() => onChange(tags.filter((t) => t !== tag))}
+    <Combobox.Root
+      multiple
+      items={items}
+      // suggestValues already filtered and ranked the list.
+      filter={null}
+      autoHighlight
+      value={tags}
+      onValueChange={(next, details) => {
+        // Base UI clears every chip on Escape once the list is closed.
+        if (details.reason === "escape-key") return details.cancel();
+        onChange(next);
+        setDraft("");
+      }}
+      inputValue={draft}
+      onInputValueChange={(next, details) => {
+        // The draft is emptied here once it became a chip, never by Base UI:
+        // it clears the input whenever a multiple list closes, Escape included.
+        if (details.reason === "escape-key" || details.reason === "input-clear") {
+          return details.cancel();
+        }
+        setDraft(next);
+      }}
+      // Held open while the field has the focus: an emptied draft shows the
+      // most used values again, and a picked chip leaves the rest on offer so
+      // several go on in a row.
+      open={open && items.length > 0}
+      onOpenChange={(next, details) => {
+        if (
+          !next &&
+          (details.reason === "input-clear" || details.reason === "item-press")
+        ) {
+          return details.cancel();
+        }
+        setOpen(next);
+      }}
+      onItemHighlighted={(item) => {
+        highlighted.current = item;
+      }}
+    >
+      <Combobox.InputGroup>
+        <Combobox.Chips className="flex flex-wrap items-center gap-1.5">
+          {tags.map((tag) => (
+            <Combobox.Chip
+              key={tag}
+              aria-label={tag}
+              render={<Badge variant="secondary" className="gap-1 pr-1" />}
+              className="data-highlighted:ring-2 data-highlighted:ring-ring"
             >
-              <X className="size-3" />
-            </button>
-          </Badge>
-        ))}
-        <Input
-          {...suggestions.comboboxProps}
-          id={id}
-          aria-label={ariaLabel}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onKeyDown={(event) => {
-            if (suggestions.handleKeyDown(event)) return;
-            if (event.key === "Enter" || event.key === ",") {
-              event.preventDefault();
-              addDraft();
-            }
-            if (event.key === "Backspace" && draft === "" && tags.length > 0) {
-              onChange(tags.slice(0, -1));
-            }
-          }}
-          onFocus={() => {
-            suggestions.openList();
-            onFocus?.();
-          }}
-          onBlur={() => {
-            suggestions.closeList();
-            addDraft();
-          }}
-          placeholder={tags.length === 0 ? "Ajouter des tags…" : ""}
-          className="h-7 w-40 border-none bg-transparent px-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
-        />
-      </div>
-    </SuggestionPopover>
+              {tag}
+              <Combobox.ChipRemove
+                aria-label={`Retirer le tag ${tag}`}
+                className="rounded-full p-0.5 hover:bg-muted-foreground/20"
+              >
+                <X className="size-3" />
+              </Combobox.ChipRemove>
+            </Combobox.Chip>
+          ))}
+          <Combobox.Input
+            id={id}
+            aria-label={ariaLabel}
+            placeholder={tags.length === 0 ? "Ajouter des tags…" : ""}
+            className="h-7 w-40 rounded-md bg-transparent px-1 text-base outline-none placeholder:text-muted-foreground md:text-sm"
+            onFocus={() => {
+              setOpen(true);
+              onFocus?.();
+            }}
+            onBlur={addDraft}
+            onKeyDown={(event) => {
+              // Enter over a highlighted option is Base UI's to pick.
+              const enterOnDraft =
+                event.key === "Enter" && highlighted.current === undefined;
+              if (event.key === "," || enterOnDraft) {
+                event.preventDefault();
+                addDraft();
+              }
+            }}
+          />
+        </Combobox.Chips>
+      </Combobox.InputGroup>
+      <SuggestionList
+        label={(item) => (isNew(item) ? `Ajouter « ${item} »` : item)}
+      />
+    </Combobox.Root>
   );
 }
