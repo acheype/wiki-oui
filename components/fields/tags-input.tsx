@@ -106,6 +106,9 @@ export function TagsInput({
               {tag}
               <Combobox.ChipRemove
                 aria-label={`Retirer le tag ${tag}`}
+                // Base UI keeps it out of the tab order, reachable only through
+                // the chips' arrow keys; Tab reached it before issue #34.
+                tabIndex={0}
                 className="rounded-full p-0.5 hover:bg-muted-foreground/20"
               >
                 <X className="size-3" />
@@ -121,7 +124,9 @@ export function TagsInput({
               setOpen(true);
               onFocus?.();
             }}
-            onBlur={addDraft}
+            // Leaving the field drops the draft: only Enter or a comma make a
+            // chip, so a half-typed word never lands by accident.
+            onBlur={() => setDraft("")}
             onKeyDown={(event) => {
               // Enter over a highlighted option is Base UI's to pick.
               const enterOnDraft =

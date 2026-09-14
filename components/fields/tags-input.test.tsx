@@ -96,14 +96,35 @@ describe("TagsInput", () => {
     expect(document.activeElement).toBe(field);
   });
 
-  it("adds the typed word with a comma, and on leaving the field", async () => {
+  it("adds the typed word with a comma", async () => {
     const { user, field, tags } = setup({ candidates: ["chaton"] });
     await user.click(field);
     await user.type(field, "chat,");
     expect(tags()).toBe("chat");
+    expect(field).toHaveProperty("value", "");
+  });
+
+  it("drops the typed word on leaving the field", async () => {
+    const { user, field, tags } = setup({ candidates: ["chaton"] });
+    await user.click(field);
     await user.type(field, "chien");
     await user.tab();
-    expect(tags()).toBe("chat|chien");
+    expect(tags()).toBe("");
+    expect(field).toHaveProperty("value", "");
+  });
+
+  it("reaches each remove button with Tab", async () => {
+    const { user, field, tags } = setup({
+      initial: ["atelier", "sport"],
+      candidates: [],
+    });
+    await user.click(field);
+    await user.tab({ shift: true });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Retirer le tag sport" })
+    );
+    await user.keyboard("{Enter}");
+    expect(tags()).toBe("atelier");
   });
 
   it("removes the last tag with Backspace on an empty field", async () => {
