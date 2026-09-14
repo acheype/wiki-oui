@@ -61,7 +61,7 @@ export function SuggestionInput({
         render={<Input />}
         onFocus={() => setOpen(true)}
       />
-      <SuggestionList />
+      <SuggestionList highlightIsSelection />
     </Autocomplete.Root>
   );
 }

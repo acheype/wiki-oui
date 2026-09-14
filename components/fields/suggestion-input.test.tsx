@@ -128,4 +128,18 @@ describe("SuggestionInput", () => {
       screen.getByRole("listbox").id
     );
   });
+
+  it("marks the highlighted option, and only it, as selected", async () => {
+    const { user, field } = setup({ candidates: ["chat-perdu", "chaton"] });
+    await user.click(field);
+    await user.type(field, "chat");
+    await user.keyboard("{ArrowDown}");
+    const selected = screen
+      .getAllByRole("option")
+      .map((option) => [option.textContent, option.getAttribute("aria-selected")]);
+    expect(selected).toEqual([
+      ["chat-perdu", "false"],
+      ["chaton", "true"],
+    ]);
+  });
 });

@@ -11,9 +11,16 @@ import type { ReactNode } from "react";
  */
 export function SuggestionList({
   label = (item) => item,
+  highlightIsSelection = false,
 }: {
   /** What an option reads; the value itself by default. */
   label?: (item: string) => ReactNode;
+  /**
+   * Announce the highlighted option as selected, as the APG combobox examples
+   * do — right where Enter takes it, wrong where aria-selected already means
+   * « chosen », in a multiple list.
+   */
+  highlightIsSelection?: boolean;
 }) {
   return (
     <Combobox.Portal>
@@ -25,6 +32,13 @@ export function SuggestionList({
                 key={item}
                 value={item}
                 className="w-full cursor-default truncate rounded-sm px-2 py-1.5 text-left text-sm data-highlighted:bg-muted"
+                render={
+                  highlightIsSelection
+                    ? (props, state) => (
+                        <div {...props} aria-selected={state.highlighted} />
+                      )
+                    : undefined
+                }
               >
                 {label(item)}
               </Combobox.Item>
