@@ -59,7 +59,7 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | `advanced` | Masqué tant que « paramètres avancés » n'est pas déplié |
 | `showif` | Visibilité conditionnelle (voir ci-dessous) |
 
-Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
+Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée, Entrée prend la suggestion surlignée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
 
 ### Insertion et réédition : toujours symétriques
 
