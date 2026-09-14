@@ -170,10 +170,11 @@ export function GroupEditor({
                 const result = await deleteGroup(group.slug);
                 if (result && "error" in result) {
                   toast.error(result.error);
-                  return;
+                  return false;
                 }
                 toast.success(`@${group.name} a été supprimé.`);
                 onDeleted();
+                return true;
               }}
             />
           </>
@@ -452,13 +453,14 @@ function DeleteGroupButton({
   onDelete,
 }: {
   group: GroupDetailWithRights;
-  /** Leaves the group page on success, which unmounts the alert with it. */
-  onDelete: () => Promise<void>;
+  /** Whether the group was deleted: the alert only closes when it was. */
+  onDelete: () => Promise<boolean>;
 }) {
+  const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const impact = groupDeletionImpact(group.name, group.pagesGranting);
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger
         render={
           <Button
@@ -488,7 +490,11 @@ function DeleteGroupButton({
           <AlertDialogCancel>Annuler</AlertDialogCancel>
           <AlertDialogAction
             disabled={isPending}
-            onClick={() => startTransition(onDelete)}
+            onClick={() =>
+              startTransition(async () => {
+                if (await onDelete()) setOpen(false);
+              })
+            }
           >
             Supprimer
           </AlertDialogAction>
