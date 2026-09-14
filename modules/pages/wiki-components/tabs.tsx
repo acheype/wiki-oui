@@ -182,7 +182,6 @@ export function Tabs({
       >
         {isUnderline && (
           <UnderlineIndicators
-            activeIndex={slugs.indexOf(value ?? "")}
             hoveredIndex={hoveredIndex}
             orientation={orientation}
             deps={slugKey}
