@@ -42,7 +42,6 @@ import {
 import type { FormFieldType } from "@/modules/forms/form-descriptor";
 import type { AccessRule, AclDirectory, AclFloor } from "@/modules/permissions/rules";
 import type { PseudoField } from "@/modules/forms/pseudo-fields";
-import { suggestValues } from "@/modules/forms/suggested-values";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { NO_FLOOR, AclInput } from "@/modules/permissions/acl-input";
@@ -57,10 +56,7 @@ import {
 } from "@/components/fields/entries-view-inputs";
 import { IconPicker } from "@/components/fields/icon-picker";
 import type { MapViewValue } from "@/components/fields/map-view-input";
-import {
-  SuggestionPopover,
-  useSuggestions,
-} from "@/components/fields/suggestion-popover";
+import { SuggestionInput } from "@/components/fields/suggestion-input";
 import { TagsInput } from "@/components/fields/tags-input";
 import { UploadInput } from "@/modules/files/upload-input";
 import { useDebouncedJson } from "@/components/fields/use-debounced-json";
@@ -682,52 +678,6 @@ function DateInput({
   );
 }
 
-// One free-text field with the shared floating list of what already exists,
-// worn by page-list and file-list: typing stays free, picking replaces the
-// value outright — where a keyword field would add one more chip.
-function SuggestionInput({
-  id,
-  value,
-  placeholder,
-  candidates,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  placeholder: string;
-  candidates: string[];
-  onChange: (value: PropValue) => void;
-}) {
-  const items = useMemo(
-    () => suggestValues({ candidates, draft: value, placed: [] }),
-    [candidates, value]
-  );
-  const suggestions = useSuggestions({
-    items,
-    onPick: (picked) => onChange(picked),
-    closeOnPick: true,
-  });
-
-  return (
-    <SuggestionPopover suggestions={suggestions} optionClassName="font-mono">
-      <Input
-        {...suggestions.comboboxProps}
-        id={id}
-        value={value}
-        autoComplete="off"
-        placeholder={placeholder}
-        onChange={(event) => {
-          suggestions.openList();
-          onChange(event.target.value === "" ? undefined : event.target.value);
-        }}
-        onKeyDown={(event) => suggestions.handleKeyDown(event)}
-        onFocus={suggestions.openList}
-        onBlur={suggestions.closeList}
-      />
-    </SuggestionPopover>
-  );
-}
-
 const NO_CANDIDATES: string[] = [];
 
 // Wiki pages (ADR 0006), most recently touched first (modules/pages/content.ts
@@ -751,7 +701,7 @@ function PageListInput({
       value={value}
       placeholder="ma-page ou https://…"
       candidates={candidates}
-      onChange={onChange}
+      onChange={(next) => onChange(next === "" ? undefined : next)}
     />
   );
 }
@@ -789,7 +739,7 @@ function FileListInput({
       value={value}
       placeholder="nom-du-fichier.ext"
       candidates={files}
-      onChange={onChange}
+      onChange={(next) => onChange(next === "" ? undefined : next)}
     />
   );
 }
