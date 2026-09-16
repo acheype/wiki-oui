@@ -30,10 +30,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  SELECT_NONE,
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -195,9 +194,6 @@ export function ViewPickerTiles({
  * form-field — selector over the chosen forms' fields
  * ------------------------------------------------------------------ */
 
-// « Aucun » stands for the empty string here: no caption field, no filter.
-const NONE = SELECT_NONE;
-
 function PartialBadge({ carriers }: { carriers?: string[] }) {
   if (!carriers) return null;
   return (
@@ -205,6 +201,19 @@ function PartialBadge({ carriers }: { carriers?: string[] }) {
       {carriers.join(", ")}
     </Badge>
   );
+}
+
+/** A field as a select option: its label, flagged when only some forms carry it. */
+function fieldItem(option: FieldChoiceOption) {
+  return {
+    value: option.name,
+    label: (
+      <>
+        {option.label}
+        <PartialBadge carriers={option.partialTo} />
+      </>
+    ),
+  };
 }
 
 export function EntryFieldSelect({
@@ -239,29 +248,37 @@ export function EntryFieldSelect({
         ? "Chargement…"
         : "Choisir un champ…";
 
+  const items = [
+    // « Aucun » stands for the empty string here: no caption field, no filter.
+    ...(spec.required
+      ? []
+      : [{ value: null, label: <span className="text-muted-foreground">Aucun</span> }]),
+    ...options.map(fieldItem),
+  ];
+
+  const showsPlaceholder =
+    value === undefined ||
+    (value !== "" && !options.some((option) => option.name === value));
+
   // « Aucun » emits "" (not undefined): an empty string survives as an
   // explicit prop when the field has a non-empty default (captionField=""
   // = no caption), and still omits itself when the default is empty too.
   return (
     <Select
-      value={value === "" ? NONE : (value ?? "")}
-      onValueChange={(picked) => onChange(picked === NONE ? "" : picked)}
+      items={items}
+      value={value || null}
+      onValueChange={(picked) => onChange(picked ?? "")}
     >
       <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
-        <SelectValue placeholder={placeholder} />
+        {/* The select sees « Aucun » and « nothing chosen yet » as the same
+            null, and shows the raw name of a field not loaded yet: the
+            placeholder is forced in both cases. */}
+        <SelectValue placeholder={placeholder}>
+          {showsPlaceholder ? placeholder : undefined}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        {!spec.required && (
-          <SelectItem value={NONE}>
-            <span className="text-muted-foreground">Aucun</span>
-          </SelectItem>
-        )}
-        {options.map((option) => (
-          <SelectItem key={option.name} value={option.name}>
-            {option.label}
-            <PartialBadge carriers={option.partialTo} />
-          </SelectItem>
-        ))}
+        <SelectItems items={items} />
       </SelectContent>
     </Select>
   );
@@ -430,8 +447,9 @@ export function FieldRowsInput({
       {remaining.length > 0 && (
         <Select
           key={addKey}
-          value=""
+          value={null}
           onValueChange={(picked) => {
+            if (picked === null) return;
             emit([...rows, { field: picked }]);
             setAddKey((current) => current + 1);
           }}
@@ -444,12 +462,7 @@ export function FieldRowsInput({
             {slugs.length === 0 ? "Choisir d'abord un formulaire" : "Ajouter un champ"}
           </SelectTrigger>
           <SelectContent>
-            {remaining.map((option) => (
-              <SelectItem key={option.name} value={option.name}>
-                {option.label}
-                <PartialBadge carriers={option.partialTo} />
-              </SelectItem>
-            ))}
+            <SelectItems items={remaining.map(fieldItem)} />
           </SelectContent>
         </Select>
       )}
@@ -720,51 +733,50 @@ export function MultiFormListInput({
 
   return (
     <div className="grid gap-1.5">
-      {shown.map((slug, index) => (
-        <div key={index} className="flex items-center gap-1.5">
-          <Select
-            value={slug !== "" ? slug : undefined}
-            onValueChange={(picked) => {
-              if (slug === "") setPendingRows((current) => Math.max(0, current - 1));
-              emit(shown.map((current, i) => (i === index ? picked : current)));
-            }}
-          >
-            <SelectTrigger
-              id={index === 0 ? id : undefined}
-              className="w-full"
-              aria-invalid={invalid && slug === ""}
-            >
-              <SelectValue placeholder="Choisir un formulaire…" />
-            </SelectTrigger>
-            <SelectContent>
-              {forms
-                .filter(
-                  (form) => form.slug === slug || !slugs.includes(form.slug)
-                )
-                .map((form) => (
-                  <SelectItem key={form.slug} value={form.slug}>
-                    {form.name}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          {shown.length > 1 && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-7 text-muted-foreground"
-              aria-label="Retirer ce formulaire"
-              onClick={() => {
+      {shown.map((slug, index) => {
+        const choices = forms
+          .filter((form) => form.slug === slug || !slugs.includes(form.slug))
+          .map((form) => ({ value: form.slug, label: form.name }));
+        return (
+          <div key={index} className="flex items-center gap-1.5">
+            <Select
+              items={choices}
+              value={slug !== "" ? slug : null}
+              onValueChange={(picked) => {
+                if (picked === null) return;
                 if (slug === "") setPendingRows((current) => Math.max(0, current - 1));
-                else emit(slugs.filter((current) => current !== slug));
+                emit(shown.map((current, i) => (i === index ? picked : current)));
               }}
             >
-              <X className="size-3.5" aria-hidden />
-            </Button>
-          )}
-        </div>
-      ))}
+              <SelectTrigger
+                id={index === 0 ? id : undefined}
+                className="w-full"
+                aria-invalid={invalid && slug === ""}
+              >
+                <SelectValue placeholder="Choisir un formulaire…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItems items={choices} />
+              </SelectContent>
+            </Select>
+            {shown.length > 1 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground"
+                aria-label="Retirer ce formulaire"
+                onClick={() => {
+                  if (slug === "") setPendingRows((current) => Math.max(0, current - 1));
+                  else emit(slugs.filter((current) => current !== slug));
+                }}
+              >
+                <X className="size-3.5" aria-hidden />
+              </Button>
+            )}
+          </div>
+        );
+      })}
       {shown.every((slug) => slug !== "") && forms.length > slugs.length && (
         <button
           type="button"

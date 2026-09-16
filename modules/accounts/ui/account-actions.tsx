@@ -35,10 +35,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
-  SELECT_NONE,
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -48,9 +47,6 @@ import type {
   UserRow,
 } from "@/modules/accounts/access/guards";
 import type { DeliveredLink } from "@/modules/accounts/invitation/link";
-
-/** « Personne » — the pages then read « Anonyme » (ADR 0024). */
-const NOBODY = SELECT_NONE;
 
 export function AccountActions({
   user,
@@ -95,22 +91,24 @@ export function AccountActions({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={isPending}
-            aria-label={`Actions sur le compte de ${user.name}`}
-          >
-            <MoreHorizontal />
-          </Button>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isPending}
+              aria-label={`Actions sur le compte de ${user.name}`}
+            />
+          }
+        >
+          <MoreHorizontal />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {/* Not offered to a disabled account: a link would open on « ce lien
               n'est plus valable », and an action that cannot be taken informs
               nobody (docs/permissions.md § Ce que voit qui n'a pas le droit). */}
           {!user.disabled && (
-            <DropdownMenuItem onSelect={resetPassword}>
+            <DropdownMenuItem onClick={resetPassword}>
               <KeyRound />
               Envoyer un lien de mot de passe
             </DropdownMenuItem>
@@ -119,14 +117,14 @@ export function AccountActions({
               author of the action out on the spot, and « se déconnecter » is
               what they were after. */}
           {!own && (
-            <DropdownMenuItem onSelect={toggleDisabled}>
+            <DropdownMenuItem onClick={toggleDisabled}>
               <UserMinus />
               {user.disabled ? "Réactiver le compte" : "Désactiver le compte"}
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => setDeleting(true)}
+            onClick={() => setDeleting(true)}
           >
             <Trash2 />
             {own ? "Supprimer mon compte…" : "Supprimer le compte…"}
@@ -194,7 +192,7 @@ function DeleteAccountDialog({
     lines: string[];
     refusal: string | null;
   } | null>(null);
-  const [heir, setHeir] = useState(NOBODY);
+  const [heir, setHeir] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // Counted when the modal opens, not while the list is drawn: it is one query
@@ -210,10 +208,7 @@ function DeleteAccountDialog({
 
   function confirm() {
     startTransition(async () => {
-      const result = await deleteUser(
-        user.username,
-        heir === NOBODY ? null : heir
-      );
+      const result = await deleteUser(user.username, heir);
       if (result?.error) {
         toast.error(result.error);
         return;
@@ -224,9 +219,20 @@ function DeleteAccountDialog({
     });
   }
 
-  const heirs = users.filter(
-    (candidate) => candidate.username !== user.username
-  );
+  const heirItems = [
+    // « Personne » — the pages then read « Anonyme » (ADR 0024).
+    {
+      value: null,
+      label: (
+        <span className="text-muted-foreground">
+          Personne — elles s&apos;afficheront «&nbsp;Anonyme&nbsp;»
+        </span>
+      ),
+    },
+    ...users
+      .filter((candidate) => candidate.username !== user.username)
+      .map((candidate) => ({ value: candidate.username, label: candidate.name })),
+  ];
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -249,24 +255,12 @@ function DeleteAccountDialog({
 
             <div className="grid gap-1.5">
               <Label htmlFor="delete-heir">Réattribuer ses pages à</Label>
-              <Select value={heir} onValueChange={setHeir}>
+              <Select items={heirItems} value={heir} onValueChange={setHeir}>
                 <SelectTrigger id="delete-heir" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NOBODY}>
-                    <span className="text-muted-foreground">
-                      Personne — elles s&apos;afficheront «&nbsp;Anonyme&nbsp;»
-                    </span>
-                  </SelectItem>
-                  {heirs.map((candidate) => (
-                    <SelectItem
-                      key={candidate.username}
-                      value={candidate.username}
-                    >
-                      {candidate.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItems items={heirItems} />
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Dialog as DialogPrimitive } from "radix-ui"
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -13,45 +13,28 @@ import {
 } from "@/components/ui/tooltip"
 import { XIcon } from "lucide-react"
 
-function Dialog({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Root>) {
+function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-function DialogTrigger({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Trigger>) {
+function DialogTrigger({ ...props }: DialogPrimitive.Trigger.Props) {
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
-function DialogPortal({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Portal>) {
+function DialogPortal({ ...props }: DialogPrimitive.Portal.Props) {
   return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />
 }
 
-function DialogClose({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Close>) {
+function DialogClose({ ...props }: DialogPrimitive.Close.Props) {
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
-// Overlay tiers, and why each one is spelled out rather than shared.
-// Radix portals the overlay and the content into <body> separately, so their
-// order there is not guaranteed: after a reload, a click on a trigger could
-// land the overlay last, and its backdrop-filter then blurred the dialog it
-// was meant to sit behind. Paint order therefore comes from the z-index alone:
-//   50  dialog overlay        52  alert overlay        60  popover, menu,
-//   51  dialog content        53  alert content            select, tooltip
-// An alert confirms a dialog (page-rights-dialog), hence above it; the floating
-// layers open from inside either, hence above both.
 function DialogOverlay({
   className,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+}: DialogPrimitive.Backdrop.Props) {
   return (
-    <DialogPrimitive.Overlay
+    <DialogPrimitive.Backdrop
       data-slot="dialog-overlay"
       className={cn(
         "fixed inset-0 isolate z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
@@ -67,16 +50,16 @@ function DialogContent({
   children,
   showCloseButton = true,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+}: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
 }) {
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Content
+      <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-51 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-6 rounded-xl bg-popover p-6 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-md data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...props}
@@ -85,7 +68,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogCloseButton className="absolute top-4 right-4" />
         )}
-      </DialogPrimitive.Content>
+      </DialogPrimitive.Popup>
     </DialogPortal>
   )
 }
@@ -97,19 +80,24 @@ function DialogContent({
 // a caller drops it in without wiring one.
 function DialogCloseButton({ className }: { className?: string }) {
   return (
-    <TooltipProvider delayDuration={300}>
+    <TooltipProvider delay={300}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Fermer"
-              className={className}
-            >
-              <XIcon className="size-5" />
-            </Button>
-          </DialogPrimitive.Close>
+        <TooltipTrigger
+          render={
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Fermer"
+                  className={className}
+                />
+              }
+            />
+          }
+        >
+          <XIcon className="size-5" />
         </TooltipTrigger>
         <TooltipContent>Fermer</TooltipContent>
       </Tooltip>
@@ -134,15 +122,17 @@ function DialogIconLink({
 }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <a
-          href={href}
-          aria-label={label}
-          {...(newTab ? { target: "_blank", rel: "noreferrer" } : {})}
-          className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
-        >
-          {icon}
-        </a>
+      <TooltipTrigger
+        render={
+          <a
+            href={href}
+            aria-label={label}
+            {...(newTab ? { target: "_blank", rel: "noreferrer" } : {})}
+            className={cn(buttonVariants({ variant: "ghost", size: "icon" }))}
+          />
+        }
+      >
+        {icon}
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
@@ -175,7 +165,7 @@ function DialogTitleBar({
         </DialogTitle>
       </div>
       {actions && (
-        <TooltipProvider delayDuration={300}>{actions}</TooltipProvider>
+        <TooltipProvider delay={300}>{actions}</TooltipProvider>
       )}
       {/* A hairline sets the close apart: leaving the modal is not one of the
           actions on its content. */}
@@ -214,18 +204,15 @@ function DialogFooter({
     >
       {children}
       {showCloseButton && (
-        <DialogPrimitive.Close asChild>
-          <Button variant="outline">Close</Button>
+        <DialogPrimitive.Close render={<Button variant="outline" />}>
+          Close
         </DialogPrimitive.Close>
       )}
     </div>
   )
 }
 
-function DialogTitle({
-  className,
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Title>) {
+function DialogTitle({ className, ...props }: DialogPrimitive.Title.Props) {
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
@@ -238,7 +225,7 @@ function DialogTitle({
 function DialogDescription({
   className,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Description>) {
+}: DialogPrimitive.Description.Props) {
   return (
     <DialogPrimitive.Description
       data-slot="dialog-description"

@@ -15,7 +15,7 @@ import {
   getEntryForm,
   listEntries,
 } from "@/modules/forms/entry-actions";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { EntryForm } from "../ui/entry-form";
 
@@ -69,12 +69,13 @@ function EntriesList({ formSlug }: { formSlug?: string }) {
           {formSlug ? `Fiches${formName ? ` — ${formName}` : ""}` : "Toutes les fiches"}
         </h1>
         {formSlug && canAdd && (
-          <Button asChild>
-            <Link href={`/fiches?nouvelle&formulaire=${formSlug}`}>
-              <FilePlus2 />
-              Nouvelle fiche
-            </Link>
-          </Button>
+          <Link
+            href={`/fiches?nouvelle&formulaire=${formSlug}`}
+            className={buttonVariants()}
+          >
+            <FilePlus2 />
+            Nouvelle fiche
+          </Link>
         )}
       </div>
 
@@ -100,12 +101,13 @@ function EntriesList({ formSlug }: { formSlug?: string }) {
                   modifiée le {formatDateTime(entry.updatedAt)}
                 </p>
               </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/${entry.slug}/edit`}>
-                  <Pencil />
-                  Éditer
-                </Link>
-              </Button>
+              <Link
+                href={`/${entry.slug}/edit`}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                <Pencil />
+                Éditer
+              </Link>
             </li>
           ))}
         </ul>

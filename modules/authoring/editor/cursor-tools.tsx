@@ -24,6 +24,12 @@ import {
 } from "lucide-react";
 import { createRoot } from "react-dom/client";
 import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   emitsMarkdownLink,
   findComponentTag,
   isWrapperDescriptor,
@@ -211,9 +217,8 @@ function wrapperAtCursor(
   };
 }
 
-// Deliberately not the toolbar's ToolButton: the strips render in a detached
-// React root where the Radix TooltipProvider is out of reach, so the label is
-// a native title and the look comes from the .cm-wiki-strip CSS.
+// Not the toolbar's ToolButton: the look comes from the .cm-wiki-strip CSS,
+// sized for a strip laid over the text. The label tooltip is the toolbar's.
 function StripButton({
   label,
   onClick,
@@ -224,16 +229,18 @@ function StripButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      title={label}
-      aria-label={label}
-      // Keep the editor selection: the button must not steal focus.
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <UITooltip>
+      <TooltipTrigger
+        type="button"
+        aria-label={label}
+        // Keep the editor selection: the button must not steal focus.
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={onClick}
+      >
+        {children}
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </UITooltip>
   );
 }
 
@@ -241,7 +248,13 @@ function reactTooltip(className: string, content: React.ReactNode): TooltipView 
   const dom = document.createElement("div");
   dom.className = "cm-wiki-tools";
   const root = createRoot(dom);
-  root.render(<div className={`cm-wiki-strip ${className}`}>{content}</div>);
+  // A detached root, outside the toolbar's TooltipProvider: it gets its own,
+  // with the toolbar's delay (toolbar.tsx).
+  root.render(
+    <TooltipProvider delay={400}>
+      <div className={`cm-wiki-strip ${className}`}>{content}</div>
+    </TooltipProvider>
+  );
   return {
     dom,
     // Deferred: React forbids unmounting synchronously from inside a render.

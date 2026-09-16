@@ -21,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -42,6 +42,9 @@ import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import type { CanvasField } from "./form-builder";
+
+const SUBTYPE_LABELS = { text: "Texte", number: "Nombre" };
+const SOURCE_LABELS = { inline: "Paires saisies", form: "Fiches d'un formulaire" };
 
 export function FieldSettings({
   field,
@@ -115,7 +118,7 @@ export function FieldSettings({
         <label className="flex items-center gap-2 text-sm font-normal">
           <Checkbox
             checked={field.required === true}
-            onCheckedChange={(checked) => patch({ required: checked === true })}
+            onCheckedChange={(checked) => patch({ required: checked })}
           />
           Champ obligatoire
         </label>
@@ -443,6 +446,7 @@ function TypeSpecificSettings({
           <div className="grid gap-1.5">
             <Label htmlFor="setting-subtype">Type de saisie</Label>
             <Select
+              items={SUBTYPE_LABELS}
               value={field.subtype ?? "text"}
               onValueChange={(subtype) =>
                 onChange({ subtype: subtype as "text" | "number" })
@@ -452,8 +456,7 @@ function TypeSpecificSettings({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="text">Texte</SelectItem>
-                <SelectItem value="number">Nombre</SelectItem>
+                <SelectItems items={SUBTYPE_LABELS} />
               </SelectContent>
             </Select>
           </div>
@@ -502,7 +505,7 @@ function TypeSpecificSettings({
             <Checkbox
               checked={field.allowMdx === true}
               onCheckedChange={(checked) =>
-                onChange({ allowMdx: checked === true })
+                onChange({ allowMdx: checked })
               }
             />
             Autoriser la mise en forme MDX de la valeur
@@ -537,7 +540,7 @@ function TypeSpecificSettings({
           <Checkbox
             checked={field.initTodayButton === true}
             onCheckedChange={(checked) =>
-              onChange({ initTodayButton: checked === true })
+              onChange({ initTodayButton: checked })
             }
           />
           Proposer un bouton «&nbsp;Aujourd&apos;hui&nbsp;»
@@ -590,12 +593,19 @@ function OptionsSettings({
 }) {
   const fromForm = field.sourceFormId !== undefined;
   const options = field.options ?? {};
+  const formItems = forms.map((form) => ({ value: form.slug, label: form.name }));
+  const fillingModeLabels: Record<string, string> = {
+    normal: field.type === "radio" ? "Boutons radio" : "Cases à cocher",
+    tags: "Pastilles cliquables",
+    ...(field.type === "multiChoice" && { dragAndDrop: "Glisser-déposer" }),
+  };
 
   return (
     <div className="grid gap-3 rounded-md border p-3">
       <div className="grid gap-1.5">
         <Label>Source des options</Label>
         <Select
+          items={SOURCE_LABELS}
           value={fromForm ? "form" : "inline"}
           onValueChange={(source) =>
             onChange(
@@ -609,26 +619,24 @@ function OptionsSettings({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="inline">Paires saisies</SelectItem>
-            <SelectItem value="form">Fiches d&apos;un formulaire</SelectItem>
+            <SelectItems items={SOURCE_LABELS} />
           </SelectContent>
         </Select>
       </div>
 
       {fromForm ? (
         <Select
-          value={field.sourceFormId}
-          onValueChange={(sourceFormId) => onChange({ sourceFormId })}
+          items={formItems}
+          value={field.sourceFormId ?? null}
+          onValueChange={(sourceFormId) => {
+            if (sourceFormId !== null) onChange({ sourceFormId });
+          }}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Choisir un formulaire…" />
           </SelectTrigger>
           <SelectContent>
-            {forms.map((form) => (
-              <SelectItem key={form.slug} value={form.slug}>
-                {form.name}
-              </SelectItem>
-            ))}
+            <SelectItems items={formItems} />
           </SelectContent>
         </Select>
       ) : (
@@ -642,6 +650,7 @@ function OptionsSettings({
         <div className="grid gap-1.5">
           <Label>Mode de saisie</Label>
           <Select
+            items={fillingModeLabels}
             value={field.fillingMode ?? "normal"}
             onValueChange={(mode) =>
               onChange({ fillingMode: mode as typeof field.fillingMode })
@@ -651,13 +660,7 @@ function OptionsSettings({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="normal">
-                {field.type === "radio" ? "Boutons radio" : "Cases à cocher"}
-              </SelectItem>
-              <SelectItem value="tags">Pastilles cliquables</SelectItem>
-              {field.type === "multiChoice" && (
-                <SelectItem value="dragAndDrop">Glisser-déposer</SelectItem>
-              )}
+              <SelectItems items={fillingModeLabels} />
             </SelectContent>
           </Select>
         </div>
@@ -726,9 +729,14 @@ function GeolocationSettings({
   otherFields: CanvasField[];
   onChange: (patch: Partial<FormField>) => void;
 }) {
-  const addressFields = otherFields.filter(
-    (candidate) => candidate.type === "text" || candidate.type === "textarea"
-  );
+  const addressItems = [
+    { value: null, label: "Aucun" },
+    ...otherFields
+      .filter(
+        (candidate) => candidate.type === "text" || candidate.type === "textarea"
+      )
+      .map((candidate) => ({ value: candidate.name, label: candidate.label })),
+  ];
   const bindings = [
     ["streetField", "Rue"],
     ["street1Field", "Complément d'adresse 1"],
@@ -746,21 +754,15 @@ function GeolocationSettings({
         <div key={key} className="grid gap-1.5">
           <Label>{label}</Label>
           <Select
-            value={(field[key] as string | undefined) ?? "__none__"}
-            onValueChange={(value) =>
-              onChange({ [key]: value === "__none__" ? undefined : value })
-            }
+            items={addressItems}
+            value={(field[key] as string | undefined) ?? null}
+            onValueChange={(value) => onChange({ [key]: value ?? undefined })}
           >
             <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__">Aucun</SelectItem>
-              {addressFields.map((candidate) => (
-                <SelectItem key={candidate.name} value={candidate.name}>
-                  {candidate.label}
-                </SelectItem>
-              ))}
+              <SelectItems items={addressItems} />
             </SelectContent>
           </Select>
         </div>
@@ -769,7 +771,7 @@ function GeolocationSettings({
         <Checkbox
           checked={field.geolocateButton === true}
           onCheckedChange={(checked) =>
-            onChange({ geolocateButton: checked === true })
+            onChange({ geolocateButton: checked })
           }
         />
         Bouton «&nbsp;Depuis ma position&nbsp;»
@@ -791,7 +793,7 @@ function TitleSettings({
         <Checkbox
           checked={field.automatic === true}
           onCheckedChange={(checked) =>
-            onChange({ automatic: checked === true })
+            onChange({ automatic: checked })
           }
         />
         Titre automatique (calculé depuis un gabarit)

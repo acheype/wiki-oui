@@ -139,7 +139,6 @@ export function BulkRightsDialog({
 
   function apply(slugs: string[]) {
     startApplying(async () => {
-      setConfirming(false);
       // One call for the two senses: they are one action, and the guard
       // refuses the lot whole rather than leaving half of it written.
       const refused =
@@ -153,6 +152,7 @@ export function BulkRightsDialog({
         toast.error(refused.error);
         return;
       }
+      setConfirming(false);
       reset(false);
       toast.success(
         intent === "grant"
@@ -165,14 +165,14 @@ export function BulkRightsDialog({
 
   return (
     <Dialog open={open} onOpenChange={reset}>
-      <DialogTrigger asChild>
-        {/* Named and dressed like the « Accès » of the action bar: it is the
-            same action, taken on dozens of pages instead of one, and a
-            reader who learnt it on a page must recognise it here. */}
-        <Button type="button" variant="outline" size="sm">
-          <UsersRound />
-          Modifier les accès…
-        </Button>
+      {/* Named and dressed like the « Accès » of the action bar: it is the
+          same action, taken on dozens of pages instead of one, and a
+          reader who learnt it on a page must recognise it here. */}
+      <DialogTrigger
+        render={<Button type="button" variant="outline" size="sm" />}
+      >
+        <UsersRound />
+        Modifier les accès…
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>

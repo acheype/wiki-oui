@@ -74,12 +74,46 @@ describe("suggestValues", () => {
     ).toEqual(["Sport"]);
   });
 
-  it("drops the candidate that exactly matches the typed draft", () => {
+  it("puts the candidate that exactly matches the draft first", () => {
+    expect(
+      suggestValues({
+        candidates: ["chaton-2", "Chaton"],
+        draft: "chaton",
+        placed: [],
+      })
+    ).toEqual(["Chaton", "chaton-2"]);
+  });
+
+  it("puts the candidates starting with the draft before those containing it", () => {
+    expect(
+      suggestValues({
+        candidates: ["chat-perdu", "perroquet", "super", "perle"],
+        draft: "per",
+        placed: [],
+      })
+    ).toEqual(["perroquet", "perle", "chat-perdu", "super"]);
+  });
+
+  it("orders exact match, then starts, then contains, before the limit", () => {
+    const containing = Array.from(
+      { length: SUGGESTION_LIMIT },
+      (_, i) => `x-atelier-${i}`
+    );
+    expect(
+      suggestValues({
+        candidates: [...containing, "atelier-bois", "atelier"],
+        draft: "atelier",
+        placed: [],
+      })
+    ).toEqual(["atelier", "atelier-bois", ...containing].slice(0, SUGGESTION_LIMIT));
+  });
+
+  it("does not offer an exact match that is already placed", () => {
     expect(
       suggestValues({
         candidates: ["Atelier", "Atelier vélo"],
         draft: "atelier",
-        placed: [],
+        placed: ["atelier"],
       })
     ).toEqual(["Atelier vélo"]);
   });

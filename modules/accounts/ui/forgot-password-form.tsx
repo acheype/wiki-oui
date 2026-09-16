@@ -17,7 +17,7 @@ import { KeyRound, MailWarning } from "lucide-react";
 import Link from "next/link";
 import { useId, useState, useTransition } from "react";
 import { requestPasswordLink } from "@/modules/accounts/invitation/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MAIL_FAILURE_NOTICE } from "@/modules/accounts/invitation/rules";
@@ -49,9 +49,12 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           Ce wiki n&apos;envoie pas de courriel. Demandez à un administrateur un
           lien de mot de passe : il pourra vous le transmettre directement.
         </p>
-        <Button asChild variant="outline">
-          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
-        </Button>
+        <Link
+          href={authPagePath("signIn")}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          Retour à la connexion
+        </Link>
       </div>
     );
   }
@@ -68,9 +71,12 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           Un administrateur peut aussi vous transmettre un lien de mot de passe
           directement, sans courriel.
         </p>
-        <Button asChild variant="outline">
-          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
-        </Button>
+        <Link
+          href={authPagePath("signIn")}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          Retour à la connexion
+        </Link>
       </div>
     );
   }
@@ -86,9 +92,12 @@ export function ForgotPasswordForm({ canSendMail }: { canSendMail: boolean }) {
           Si un compte utilise cette adresse, un lien vient de lui être envoyé.
           Il est valable 24 heures et ne fonctionne qu&apos;une seule fois.
         </p>
-        <Button asChild variant="outline">
-          <Link href={authPagePath("signIn")}>Retour à la connexion</Link>
-        </Button>
+        <Link
+          href={authPagePath("signIn")}
+          className={buttonVariants({ variant: "outline" })}
+        >
+          Retour à la connexion
+        </Link>
       </div>
     );
   }

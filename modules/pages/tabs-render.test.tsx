@@ -36,7 +36,7 @@ describe("<Tabs> rendering", () => {
     const html = await render(twoTabs());
     expect(html).toContain("Premier");
     expect(html).toContain("Second");
-    // The open tab's panel is rendered; the inactive one is not (Radix).
+    // The open tab's panel is rendered; the inactive one is not (Base UI).
     expect(html).toContain("AAA");
     expect(html).not.toContain("BBB");
   });

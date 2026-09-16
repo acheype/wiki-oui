@@ -1,6 +1,6 @@
 import { FilePlus2 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 
 // The two faces of an address with no page behind it, shared by the show page
 // and the chrome-free <PageBody>: a wiki treats an absent page as an
@@ -21,9 +21,9 @@ export function PageNotYetCreated({ slug }: { slug: string }) {
           première sauvegarde.
         </p>
       </div>
-      <Button asChild>
-        <Link href={`/${slug}/edit`}>Créer cette page</Link>
-      </Button>
+      <Link href={`/${slug}/edit`} className={buttonVariants()}>
+        Créer cette page
+      </Link>
     </div>
   );
 }

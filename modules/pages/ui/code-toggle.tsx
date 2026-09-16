@@ -18,7 +18,7 @@ export function CodeToggle() {
         checked={showCode}
         onCheckedChange={(checked) => {
           const next = new URLSearchParams(searchParams);
-          if (checked === true) {
+          if (checked) {
             next.set("code", "1");
           } else {
             next.delete("code");

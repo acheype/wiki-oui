@@ -65,7 +65,7 @@ contain: layout paint;   /* écrête, et devient bloc conteneur des `fixed` */
 isolation: isolate;      /* un zIndex interne ne passe plus devant le voile */
 ```
 
-Les portails Radix (`Select`, `Popover`, `Tooltip` d'un `<EntriesView>` imbriqué) s'échappent du conteneur, ce qui est souhaitable.
+Les portails Base UI (`Select`, `Popover`, `Tooltip` d'un `<EntriesView>` imbriqué) s'échappent du conteneur, ce qui est souhaitable.
 
 ### Les autres surfaces en place
 

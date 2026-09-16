@@ -24,10 +24,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
-  SELECT_NONE,
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -41,9 +40,6 @@ import {
   parseAddressList,
 } from "@/modules/accounts/invitation/rules";
 
-/** « Aucun groupe » — the invitation then joins nobody to anything. */
-const NO_GROUP = SELECT_NONE;
-
 interface Sent {
   lines: string[];
   /** Each with what became of its own mail, never the batch's verdict. */
@@ -53,7 +49,7 @@ interface Sent {
 export function InviteDialog({ onInvited }: { onInvited: () => void }) {
   const [open, setOpen] = useState(false);
   const [pasted, setPasted] = useState("");
-  const [groupSlug, setGroupSlug] = useState(NO_GROUP);
+  const [groupSlug, setGroupSlug] = useState<string | null>(null);
   const [groups, setGroups] = useState<GroupSummary[]>([]);
   const [mailable, setMailable] = useState(true);
   const [sent, setSent] = useState<Sent | null>(null);
@@ -66,12 +62,20 @@ export function InviteDialog({ onInvited }: { onInvited: () => void }) {
   }, [open]);
 
   const parsed = parseAddressList(pasted);
+  const groupItems = [
+    // « Aucun groupe » — the invitation then joins nobody to anything.
+    {
+      value: null,
+      label: <span className="text-muted-foreground">Aucun groupe</span>,
+    },
+    ...groups.map((group) => ({ value: group.slug, label: `@${group.name}` })),
+  ];
 
   function submit() {
     startTransition(async () => {
       const outcome = await invitePeople({
         pasted,
-        groupSlug: groupSlug === NO_GROUP ? null : groupSlug,
+        groupSlug,
       });
       setSent({
         lines: invitationSummaryLines(outcome.report),
@@ -88,16 +92,14 @@ export function InviteDialog({ onInvited }: { onInvited: () => void }) {
         setOpen(next);
         if (next) {
           setPasted("");
-          setGroupSlug(NO_GROUP);
+          setGroupSlug(null);
           setSent(null);
         }
       }}
     >
-      <DialogTrigger asChild>
-        <Button>
-          <Plus />
-          Inviter des personnes
-        </Button>
+      <DialogTrigger render={<Button />}>
+        <Plus />
+        Inviter des personnes
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
         <DialogHeader>
@@ -136,19 +138,16 @@ export function InviteDialog({ onInvited }: { onInvited: () => void }) {
 
             <div className="grid gap-1.5">
               <Label htmlFor="invite-group">Ajouter aussi au groupe</Label>
-              <Select value={groupSlug} onValueChange={setGroupSlug}>
+              <Select
+                items={groupItems}
+                value={groupSlug}
+                onValueChange={setGroupSlug}
+              >
                 <SelectTrigger id="invite-group" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_GROUP}>
-                    <span className="text-muted-foreground">Aucun groupe</span>
-                  </SelectItem>
-                  {groups.map((group) => (
-                    <SelectItem key={group.slug} value={group.slug}>
-                      @{group.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItems items={groupItems} />
                 </SelectContent>
               </Select>
             </div>

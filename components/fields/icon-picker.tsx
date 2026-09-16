@@ -34,19 +34,21 @@ export function IconPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          id={id}
-          variant="outline"
-          className="justify-start font-normal"
-        >
-          {value ? (
-            <span className="font-mono text-xs">{value}</span>
-          ) : (
-            <span className="text-muted-foreground">Choisir une icône…</span>
-          )}
-        </Button>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            id={id}
+            variant="outline"
+            className="justify-start font-normal"
+          />
+        }
+      >
+        {value ? (
+          <span className="font-mono text-xs">{value}</span>
+        ) : (
+          <span className="text-muted-foreground">Choisir une icône…</span>
+        )}
       </PopoverTrigger>
       <PopoverContent className="grid w-80 gap-2 p-3" align="start">
         <Input

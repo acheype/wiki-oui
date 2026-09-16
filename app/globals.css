@@ -319,9 +319,16 @@
 
 /* --- Editor: cursor-anchored contextual UI (ADR 0005) ---------------- */
 
+/* CodeMirror stacks its tooltips at z-index 500, above the z-50 layers of the
+   UI primitives: a strip button's own tooltip went under the strip. 40 keeps
+   the strips over the sticky editor bar (z-30) and under every such layer.
+   .cm-editor outranks the theme's scoped selector, injected at runtime. */
 .cm-tooltip.cm-wiki-tools {
   background: transparent;
   border: none;
+}
+.cm-editor .cm-tooltip.cm-wiki-tools {
+  z-index: 40;
 }
 .cm-wiki-strip {
   display: flex;

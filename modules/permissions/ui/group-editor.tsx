@@ -30,7 +30,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -87,9 +88,12 @@ export function GroupEditor({
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">Ce groupe est introuvable.</p>
-        <Button asChild variant="outline" className="w-fit">
-          <Link href={pathname}>Retour aux groupes</Link>
-        </Button>
+        <Link
+          href={pathname}
+          className={cn(buttonVariants({ variant: "outline" }), "w-fit")}
+        >
+          Retour aux groupes
+        </Link>
       </div>
     );
   }
@@ -162,17 +166,16 @@ export function GroupEditor({
             />
             <DeleteGroupButton
               group={group}
-              onDelete={() =>
-                startTransition(async () => {
-                  const result = await deleteGroup(group.slug);
-                  if (result && "error" in result) {
-                    toast.error(result.error);
-                    return;
-                  }
-                  toast.success(`@${group.name} a été supprimé.`);
-                  onDeleted();
-                })
-              }
+              onDelete={async () => {
+                const result = await deleteGroup(group.slug);
+                if (result && "error" in result) {
+                  toast.error(result.error);
+                  return false;
+                }
+                toast.success(`@${group.name} a été supprimé.`);
+                onDeleted();
+                return true;
+              }}
             />
           </>
         )}
@@ -315,11 +318,11 @@ function AddMemberPopover({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="sm">
-          <Plus />
-          Ajouter…
-        </Button>
+      <PopoverTrigger
+        render={<Button type="button" variant="ghost" size="sm" />}
+      >
+        <Plus />
+        Ajouter…
       </PopoverTrigger>
       <PopoverContent className="grid w-72 gap-2 p-3" align="start">
         <Input
@@ -404,11 +407,11 @@ function RenameGroupDialog({
         if (next) setName(group.name);
       }}
     >
-      <DialogTrigger asChild>
-        <Button type="button" variant="ghost" size="sm">
-          <Pencil />
-          Renommer
-        </Button>
+      <DialogTrigger
+        render={<Button type="button" variant="ghost" size="sm" />}
+      >
+        <Pencil />
+        Renommer
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -450,21 +453,26 @@ function DeleteGroupButton({
   onDelete,
 }: {
   group: GroupDetailWithRights;
-  onDelete: () => void;
+  /** Whether the group was deleted: the alert only closes when it was. */
+  onDelete: () => Promise<boolean>;
 }) {
+  const [open, setOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const impact = groupDeletionImpact(group.name, group.pagesGranting);
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 />
-          Supprimer
-        </Button>
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+          />
+        }
+      >
+        <Trash2 />
+        Supprimer
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
@@ -480,7 +488,16 @@ function DeleteGroupButton({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Annuler</AlertDialogCancel>
-          <AlertDialogAction onClick={onDelete}>Supprimer</AlertDialogAction>
+          <AlertDialogAction
+            disabled={isPending}
+            onClick={() =>
+              startTransition(async () => {
+                if (await onDelete()) setOpen(false);
+              })
+            }
+          >
+            Supprimer
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

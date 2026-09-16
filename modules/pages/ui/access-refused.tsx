@@ -1,6 +1,6 @@
 import { Lock } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { DESTINATION_PARAM } from "@/lib/destination";
 import { REFUSALS } from "@/modules/permissions/rules";
 import { ownerLine } from "@/modules/pages/ui/labels";
@@ -62,13 +62,12 @@ export async function AccessRefused({
       {/* Offered only to a visitor: someone already signed in has nothing to
           gain from signing in again, and the button would read as a promise. */}
       {!identity && (
-        <Button asChild size={compact ? "sm" : "default"}>
-          <Link
-            href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(`/${slug}`)}`}
-          >
-            Se connecter
-          </Link>
-        </Button>
+        <Link
+          href={`${authPagePath("signIn")}?${DESTINATION_PARAM}=${encodeURIComponent(`/${slug}`)}`}
+          className={buttonVariants({ size: compact ? "sm" : "default" })}
+        >
+          Se connecter
+        </Link>
       )}
     </div>
   );

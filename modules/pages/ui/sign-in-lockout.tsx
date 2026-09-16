@@ -14,28 +14,26 @@ export function SignInLockoutDescription({
   lockout: SignInLockout;
 }) {
   return (
-    <AlertDialogDescription asChild>
-      <div className="grid gap-3">
+    <AlertDialogDescription render={<div className="grid gap-3" />}>
+      <p>
+        {lockout.purpose}{" "}
+        {/* « administrateurs compris » only where it is true: closing a
+            recovery page leaves an administrator exactly as able to sign in
+            as anyone else who still knows their password. Inside the bold,
+            because it is the half that surprises. */}
+        <strong className="font-medium text-foreground">
+          {lockout.consequence}
+          {lockout.locksEveryoneOut ? ", administrateurs compris." : "."}
+        </strong>
+      </p>
+      {lockout.locksEveryoneOut && (
         <p>
-          {lockout.purpose}{" "}
-          {/* « administrateurs compris » only where it is true: closing a
-              recovery page leaves an administrator exactly as able to sign in
-              as anyone else who still knows their password. Inside the bold,
-              because it is the half that surprises. */}
+          Si toutes les sessions existantes expirent,{" "}
           <strong className="font-medium text-foreground">
-            {lockout.consequence}
-            {lockout.locksEveryoneOut ? ", administrateurs compris." : "."}
+            seule la base de données permettra alors de se reconnecter au wiki.
           </strong>
         </p>
-        {lockout.locksEveryoneOut && (
-          <p>
-            Si toutes les sessions existantes expirent,{" "}
-            <strong className="font-medium text-foreground">
-              seule la base de données permettra alors de se reconnecter au wiki.
-            </strong>
-          </p>
-        )}
-      </div>
+      )}
     </AlertDialogDescription>
   );
 }

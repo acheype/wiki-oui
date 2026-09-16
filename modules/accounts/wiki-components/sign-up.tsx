@@ -14,7 +14,7 @@ import {
   NewPasswordField,
   useAuthForm,
 } from "@/components/ui/auth-form";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DESTINATION_PARAM } from "@/lib/destination";
@@ -52,9 +52,12 @@ function ClosedSignUp() {
         Sur ce wiki, les comptes naissent d&apos;une invitation. Demandez-en
         une à un administrateur : il vous enverra un lien pour créer le vôtre.
       </p>
-      <Button asChild variant="outline">
-        <Link href={authPagePath("signIn")}>Aller à la connexion</Link>
-      </Button>
+      <Link
+        href={authPagePath("signIn")}
+        className={buttonVariants({ variant: "outline" })}
+      >
+        Aller à la connexion
+      </Link>
     </div>
   );
 }

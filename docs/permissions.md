@@ -186,6 +186,8 @@ Le bouton « Nouveau formulaire » **disparaît** pour qui n'a pas le droit, et 
       administrateur peut changer leur accès.
 ```
 
+Quand cet enregistrement recalculerait aussi des titres (gabarit modifié dans la même séance, [`forms.md`](forms.md)), la même confirmation l'annonce, en deux blocs titrés « 1. Accès » et « 2. Titres ». Une seule confirmation, jamais deux à la suite. Les vérifications de l'enregistrement passent avant qu'elle s'ouvre : un formulaire incomplet est refusé sans confirmation préalable.
+
 La dernière ligne est la condition des actions structurantes, tenue fiche par fiche : le propriétaire d'un formulaire ne peut pas, en l'ouvrant, exclure un contributeur de sa propre fiche. Contrairement au lot de `gerer-pages`, personne n'a coché ces fiches une à une — le refus se compte et se dit, plutôt que de refuser l'action entière. Elle couvre aussi les fiches sans propriétaire, qui sont celles des administrateurs seuls : « ne vous appartiennent pas » plutôt que « appartiennent à quelqu'un d'autre », qui inventerait un détenteur. Et elle énonce la règle plutôt que le seul effet — le lecteur ne peut rien y faire lui-même, alors la phrase utile est celle qui nomme qui le peut.
 
 Le décompte comme l'écriture **laissent tomber un nom disparu** (ADR 0026) : un défaut qui nomme un compte ou un groupe effacé depuis n'accorde rien en douce — et les deux le font au même endroit, sinon la fiche resterait « à changer » pour toujours et l'écriture casserait sur la clé étrangère.

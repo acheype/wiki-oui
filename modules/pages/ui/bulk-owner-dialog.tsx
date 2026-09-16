@@ -70,11 +70,11 @@ export function BulkOwnerDialog({
         if (!next) setChosen(null);
       }}
     >
-      <DialogTrigger asChild>
-        <Button type="button" variant="outline" size="sm">
-          <KeyRound />
-          Changer le propriétaire…
-        </Button>
+      <DialogTrigger
+        render={<Button type="button" variant="outline" size="sm" />}
+      >
+        <KeyRound />
+        Changer le propriétaire…
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>

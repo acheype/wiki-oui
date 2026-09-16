@@ -190,7 +190,7 @@ export function usePageBody(
 // A page shown in place, chrome-free (ADR 0022): the same RSC body as the
 // modal, streamed under an error boundary, wrapped in the containment that
 // keeps an author's literal style={{position:'fixed'}} from covering the
-// surface (Radix portals escape it on purpose).
+// surface (Base UI portals escape it on purpose).
 export function InlinePageBody({ slug }: { slug: string }) {
   const loaded = usePageBody(slug);
   return (

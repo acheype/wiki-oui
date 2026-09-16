@@ -83,7 +83,7 @@ function emptyChild(): WrapperChildDraft {
 }
 
 // What an open builder holds. null means closed; the last non-null value is
-// kept by the caller for the Radix close animation (see PageEditor).
+// kept by the caller for the dialog's close animation (see PageEditor).
 export type BuilderDialogState = {
   mode: "insert" | "edit";
   spec: ComponentBuilderSpec;

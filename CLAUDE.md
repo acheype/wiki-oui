@@ -62,7 +62,7 @@ Une ligne par module : ce qu'il possède, quelle doc en détaille le fonctionnem
 
 ## Conventions de rédaction
 
-- Mettre toujours un espace insécable après « ou avant » dans les textes affichés à l'utilisateur.
+- Dans les textes affichés à l'utilisateur, mettre une espace insécable après « et avant », et avant `:`, `?`, `!` et `;` (`&nbsp;` en JSX, ` ` dans une chaîne).
 
 ## Conventions Markdown
 

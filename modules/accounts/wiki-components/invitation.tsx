@@ -12,7 +12,7 @@ import { Suspense, useEffect, useState } from "react";
 import { readInvitation } from "@/modules/accounts/invitation/actions";
 import { AcceptInvitationForm } from "@/modules/accounts/ui/accept-invitation-form";
 import { ResetPasswordForm } from "@/modules/accounts/ui/reset-password-form";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import type { AccountLinkTarget } from "@/modules/accounts/invitation/link";
 import { INVITATION_TOKEN_PARAM } from "@/modules/accounts/invitation/rules";
 import { authPagePath } from "@/wiki.config";
@@ -85,9 +85,12 @@ function SpentLink() {
         Un lien ne fonctionne qu&apos;une seule fois, et pas indéfiniment.
         Demandez-en un nouveau à un administrateur du wiki.
       </p>
-      <Button asChild variant="outline">
-        <Link href={authPagePath("signIn")}>Aller à la connexion</Link>
-      </Button>
+      <Link
+        href={authPagePath("signIn")}
+        className={buttonVariants({ variant: "outline" })}
+      >
+        Aller à la connexion
+      </Link>
     </div>
   );
 }

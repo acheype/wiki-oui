@@ -27,7 +27,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
-  SelectItem,
+  SelectItems,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -42,7 +42,6 @@ import {
 import type { FormFieldType } from "@/modules/forms/form-descriptor";
 import type { AccessRule, AclDirectory, AclFloor } from "@/modules/permissions/rules";
 import type { PseudoField } from "@/modules/forms/pseudo-fields";
-import { suggestValues } from "@/modules/forms/suggested-values";
 import { isExternalHref } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { NO_FLOOR, AclInput } from "@/modules/permissions/acl-input";
@@ -57,10 +56,7 @@ import {
 } from "@/components/fields/entries-view-inputs";
 import { IconPicker } from "@/components/fields/icon-picker";
 import type { MapViewValue } from "@/components/fields/map-view-input";
-import {
-  SuggestionPopover,
-  useSuggestions,
-} from "@/components/fields/suggestion-popover";
+import { SuggestionInput } from "@/components/fields/suggestion-input";
 import { TagsInput } from "@/components/fields/tags-input";
 import { UploadInput } from "@/modules/files/upload-input";
 import { useDebouncedJson } from "@/components/fields/use-debounced-json";
@@ -205,7 +201,7 @@ export function Field({
         <Label className="flex items-center gap-2 font-normal">
           <Checkbox
             checked={value === true}
-            onCheckedChange={(checked) => onChange(checked === true)}
+            onCheckedChange={(checked) => onChange(checked)}
           />
           {spec.label}
           {spec.required && <RequiredMark />}
@@ -266,18 +262,17 @@ export function FieldWidget({
     case "list":
       return (
         <Select
-          value={typeof value === "string" ? value : undefined}
-          onValueChange={onChange}
+          items={spec.options ?? {}}
+          value={typeof value === "string" ? value : null}
+          onValueChange={(picked) => {
+            if (picked !== null) onChange(picked);
+          }}
         >
           <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
             <SelectValue placeholder={spec.placeholder} />
           </SelectTrigger>
           <SelectContent>
-            {Object.entries(spec.options ?? {}).map(([optionValue, label]) => (
-              <SelectItem key={optionValue} value={optionValue}>
-                {label}
-              </SelectItem>
-            ))}
+            <SelectItems items={spec.options ?? {}} />
           </SelectContent>
         </Select>
       );
@@ -322,7 +317,7 @@ export function FieldWidget({
             <Label key={optionValue} className="flex items-center gap-2 font-normal">
               <Checkbox
                 checked={selected.includes(optionValue)}
-                onCheckedChange={(checked) => toggle(optionValue, checked === true)}
+                onCheckedChange={(checked) => toggle(optionValue, checked)}
               />
               {label}
             </Label>
@@ -637,22 +632,24 @@ function DateInput({
   return (
     <div className="flex items-center gap-2">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            aria-invalid={invalid}
-            className={cn(
-              "w-52 justify-start font-normal",
-              !selected && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="size-4" aria-hidden />
-            {selected
-              ? format(selected, "d MMMM yyyy", { locale: fr })
-              : "Choisir une date"}
-          </Button>
+        <PopoverTrigger
+          render={
+            <Button
+              id={id}
+              type="button"
+              variant="outline"
+              aria-invalid={invalid}
+              className={cn(
+                "w-52 justify-start font-normal",
+                !selected && "text-muted-foreground"
+              )}
+            />
+          }
+        >
+          <CalendarIcon className="size-4" aria-hidden />
+          {selected
+            ? format(selected, "d MMMM yyyy", { locale: fr })
+            : "Choisir une date"}
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
@@ -681,53 +678,12 @@ function DateInput({
   );
 }
 
-// One free-text field with the shared floating list of what already exists,
-// worn by page-list and file-list: typing stays free, picking replaces the
-// value outright — where a keyword field would add one more chip.
-function SuggestionInput({
-  id,
-  value,
-  placeholder,
-  candidates,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  placeholder: string;
-  candidates: string[];
-  onChange: (value: PropValue) => void;
-}) {
-  const items = useMemo(
-    () => suggestValues({ candidates, draft: value, placed: [] }),
-    [candidates, value]
-  );
-  const suggestions = useSuggestions({
-    items,
-    onPick: (picked) => onChange(picked),
-    closeOnPick: true,
-  });
-
-  return (
-    <SuggestionPopover suggestions={suggestions} optionClassName="font-mono">
-      <Input
-        {...suggestions.comboboxProps}
-        id={id}
-        value={value}
-        autoComplete="off"
-        placeholder={placeholder}
-        onChange={(event) => {
-          suggestions.openList();
-          onChange(event.target.value === "" ? undefined : event.target.value);
-        }}
-        onKeyDown={(event) => suggestions.handleKeyDown(event)}
-        onFocus={suggestions.openList}
-        onBlur={suggestions.closeList}
-      />
-    </SuggestionPopover>
-  );
-}
-
 const NO_CANDIDATES: string[] = [];
+
+// An emptied link or file field drops its prop rather than keeping "".
+function unsetWhenEmpty(value: string): PropValue {
+  return value === "" ? undefined : value;
+}
 
 // Wiki pages (ADR 0006), most recently touched first (modules/pages/content.ts
 // listPageSlugs). An address that has left the wiki silences the panel:
@@ -750,7 +706,7 @@ function PageListInput({
       value={value}
       placeholder="ma-page ou https://…"
       candidates={candidates}
-      onChange={onChange}
+      onChange={(next) => onChange(unsetWhenEmpty(next))}
     />
   );
 }
@@ -788,7 +744,7 @@ function FileListInput({
       value={value}
       placeholder="nom-du-fichier.ext"
       candidates={files}
-      onChange={onChange}
+      onChange={(next) => onChange(unsetWhenEmpty(next))}
     />
   );
 }
@@ -862,22 +818,24 @@ function FormListInput({
       live = false;
     };
   }, [forms]);
-  const choices = forms ?? loaded;
+  const formItems = (forms ?? loaded).map((form) => ({
+    value: form.slug,
+    label: form.name,
+  }));
 
   return (
     <Select
-      value={value !== "" ? value : undefined}
-      onValueChange={onChange}
+      items={formItems}
+      value={value !== "" ? value : null}
+      onValueChange={(picked) => {
+        if (picked !== null) onChange(picked);
+      }}
     >
       <SelectTrigger id={id} className="w-full" aria-invalid={invalid}>
         <SelectValue placeholder="Choisir un formulaire…" />
       </SelectTrigger>
       <SelectContent>
-        {choices.map((form) => (
-          <SelectItem key={form.slug} value={form.slug}>
-            {form.name}
-          </SelectItem>
-        ))}
+        <SelectItems items={formItems} />
       </SelectContent>
     </Select>
   );

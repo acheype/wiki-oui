@@ -43,10 +43,10 @@ export function PageActionsMenu({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label="Plus d'actions">
-            <MoreHorizontal />
-          </Button>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon" aria-label="Plus d'actions" />}
+        >
+          <MoreHorizontal />
         </DropdownMenuTrigger>
         {/* w-auto: size to the labels, not to the icon trigger's width, so
             « Changer l'adresse » stays on one line. font-medium: match the
@@ -56,13 +56,13 @@ export function PageActionsMenu({
               « Droits » names the machinery (docs/permissions.md). Handing the
               page over is in the same modal: same rung, and it names the owner. */}
           {permissions.structuring && (
-            <DropdownMenuItem onSelect={() => setDialog("rights")}>
+            <DropdownMenuItem onClick={() => setDialog("rights")}>
               <UsersRound />
               Modifier les accès…
             </DropdownMenuItem>
           )}
           {canRename && (
-            <DropdownMenuItem onSelect={() => setDialog("rename")}>
+            <DropdownMenuItem onClick={() => setDialog("rename")}>
               <Signpost />
               Changer l&apos;adresse…
             </DropdownMenuItem>
@@ -74,7 +74,7 @@ export function PageActionsMenu({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
-                onSelect={() => setDialog("delete")}
+                onClick={() => setDialog("delete")}
               >
                 <Trash2 />
                 Supprimer…

@@ -45,55 +45,58 @@ export function RevisionTimeline({
   }, [selectedId]);
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <TooltipProvider delay={200}>
       <div className="overflow-x-auto pb-1">
         <ol className="relative mx-2 flex min-w-max items-start gap-8 px-4 pt-1">
-          {/* Connecting rail behind the dots */}
+          {/* Connecting rail behind the dots, through their centre: the
+              list's pt-1 (4px) plus half a 13px dot, less half the 1px rail. */}
           <div
             aria-hidden
-            className="absolute left-0 right-0 top-[13px] h-px bg-border"
+            className="absolute left-0 right-0 top-[10px] h-px bg-border"
           />
           {revisions.map((revision) => {
             const selected = revision.id === selectedId;
             return (
               <li key={revision.id} className="relative">
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      ref={selected ? selectedRef : undefined}
-                      href={hrefFor(revision.id)}
-                      replace
-                      scroll={false}
-                      aria-current={selected ? "true" : undefined}
-                      className="group flex flex-col items-center gap-1.5"
-                    >
-                      <span
-                        className={cn(
-                          "size-[13px] rounded-full border-2 bg-background transition-all group-hover:scale-110",
-                          selected
-                            ? "border-primary bg-primary"
-                            : revision.isCurrent
-                              ? "border-primary"
-                              : "border-muted-foreground/50",
-                          revision.isRestore && "rounded-[3px]"
-                        )}
+                  <TooltipTrigger
+                    render={
+                      <Link
+                        ref={selected ? selectedRef : undefined}
+                        href={hrefFor(revision.id)}
+                        replace
+                        scroll={false}
+                        aria-current={selected ? "true" : undefined}
+                        className="group flex flex-col items-center gap-1.5"
                       />
-                      <span
-                        className={cn(
-                          "whitespace-nowrap text-[11px] tabular-nums",
-                          selected
-                            ? "font-medium text-foreground"
-                            : "text-muted-foreground"
-                        )}
-                      >
-                        {formatShortDateTime(revision.createdAt)}
-                      </span>
-                      {revision.isCurrent && (
-                        <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-medium text-primary">
-                          courante
-                        </span>
+                    }
+                  >
+                    <span
+                      className={cn(
+                        "size-[13px] rounded-full border-2 bg-background transition-all group-hover:scale-110",
+                        selected
+                          ? "border-primary bg-primary"
+                          : revision.isCurrent
+                            ? "border-primary"
+                            : "border-muted-foreground/50",
+                        revision.isRestore && "rounded-[3px]"
                       )}
-                    </Link>
+                    />
+                    <span
+                      className={cn(
+                        "whitespace-nowrap text-[11px] tabular-nums",
+                        selected
+                          ? "font-medium text-foreground"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {formatShortDateTime(revision.createdAt)}
+                    </span>
+                    {revision.isCurrent && (
+                      <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-medium text-primary">
+                        courante
+                      </span>
+                    )}
                   </TooltipTrigger>
                   <TooltipContent>
                     {formatDateTime(revision.createdAt)} ·{" "}
