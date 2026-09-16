@@ -6,7 +6,7 @@ Ce document est la **vue d'ensemble** : ce que chaque version apporte, et l'arch
 
 ## Stack
 
-Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **Zod** (contrat runtime) · `react-hook-form` + `dnd-kit` (formulaires) · Nodemailer (courriels) · Leaflet, FullCalendar, Embla (vues de fiches) · sharp (images) · **BetterAuth** (authentification seule, ADR 0023) · Vitest (+ Testing Library sous jsdom) · **pnpm**.
+Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **Zod** (contrat runtime) · `react-hook-form` + `dnd-kit` (formulaires) · Nodemailer (courriels) · Leaflet, FullCalendar, Embla (vues de fiches) · sharp (images) · **BetterAuth** (authentification seule, ADR 0023) · Vitest — deux projets, jsdom par défaut et un vrai navigateur (Chromium, mode navigateur) pour la fidélité (ADR 0032) · **pnpm**.
 
 ## v0.1 — MVP
 
@@ -162,6 +162,8 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 28. [Une page système est une page comme les autres ; `/api` est le seul segment réservé](adr/0028-system-pages-are-pages.md)
 29. [Le code est rangé par concept du domaine, et la profondeur dit la visibilité](adr/0029-modules-by-domain-concept.md)
 30. [Un module est profond : beaucoup de comportement derrière peu d'interface](adr/0030-deep-modules.md)
+31. [La configuration vit dans les props, le contenu dans les enfants](adr/0031-config-in-props-content-in-children.md)
+32. [Deux moteurs de test d'interaction : jsdom par défaut, un vrai navigateur pour la fidélité](adr/0032-two-interaction-test-engines.md)
 
 ## Points validés avant code
 

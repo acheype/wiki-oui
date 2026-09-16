@@ -10,7 +10,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run --project unit",
+    "test:browser": "vitest run --project browser",
+    "test:all": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -80,15 +83,20 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/browser": "5.0.1",
+    "@vitest/browser-playwright": "^5.0.1",
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "jsdom": "^30.0.1",
+    "playwright": "^1.63.0",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "ts-morph": "^28.0.0",
     "tsx": "^4.23.0",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^5.0.1",
+    "vitest-browser-react": "^2.3.0"
   }
 }
