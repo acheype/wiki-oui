@@ -26,8 +26,8 @@ const env = {
 // into per file via the `// @vitest-environment jsdom` pragma. `browser` runs
 // the fidelity tests (`*.browser.test.tsx`) in a real Chromium — the browser
 // mode can't be a pragma, which is why it needs its own project. `pnpm test`
-// runs `unit` alone to keep the daily loop fast; the browser binary is only
-// paid by `pnpm test:browser` / `pnpm test:all`.
+// runs both (complete by default, CI parity); `pnpm test:unit` is the fast
+// non-browser loop, and `pnpm test:watch` watches it.
 export default defineConfig({
   resolve: { alias },
   test: {

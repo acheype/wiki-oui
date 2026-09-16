@@ -6,6 +6,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
 RUN corepack enable
 WORKDIR /app
+# The postinstall installs Chromium for the browser test project (ADR 0032).
+# The image never runs tests, so skip that ~180 MB download for every build.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

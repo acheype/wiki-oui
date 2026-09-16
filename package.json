@@ -10,10 +10,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run --project unit",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
-    "test:all": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest --project unit",
+    "test:setup": "playwright install chromium",
+    "postinstall": "node scripts/setup-test-browser.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
