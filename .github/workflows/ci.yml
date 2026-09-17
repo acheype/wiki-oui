@@ -23,6 +23,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The Prisma client is generated code, git-ignored; tests reach lib/prisma.
+      - run: pnpm prisma generate
       # Chromium binary plus its OS libs for the browser-mode suite.
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test
@@ -58,6 +60,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The Prisma client is generated code, git-ignored; build and seed need it.
+      - run: pnpm prisma generate
       - run: pnpm exec playwright install --with-deps chromium
       # Disposable session, disposable secret: no repository secret to manage.
       - run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
