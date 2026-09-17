@@ -1,0 +1,71 @@
+# CI for WikiOui (ADR 0032). Two jobs run in parallel: `test` for the unit and
+# browser-mode suites, `e2e` for the Playwright end-to-end run against a real
+# Next server and a throwaway Postgres. No repository secret is needed — an
+# e2e session is disposable, so BETTER_AUTH_SECRET is minted per run.
+name: CI
+
+on: push
+
+# One run per branch: a new push cancels the previous run still in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: unit + browser
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Chromium binary plus its OS libs for the browser-mode suite.
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test
+
+  e2e:
+    name: end-to-end
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wikioui_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 1s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      # Overrides .env.test's DATABASE_URL (dotenv keeps an already-set value).
+      # The serving port and BETTER_AUTH_URL come from playwright.config.ts.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wikioui_e2e
+      # The build already ran as its own step; the web server only starts.
+      E2E_SKIP_BUILD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      # Disposable session, disposable secret: no repository secret to manage.
+      - run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+      - run: pnpm build
+      - run: pnpm exec playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
