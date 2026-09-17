@@ -63,7 +63,5 @@ next-env.d.ts
 # Vitest browser mode artifacts (failure screenshots, etc.)
 .vitest/
 
-# playwright (e2e, ADR 0032)
-/test-results/
-/playwright-report/
-/blob-report/
+# playwright (e2e, ADR 0032): report and raw run outputs, grouped in one dir
+/.playwright/

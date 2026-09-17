@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-slim AS base
+FROM node:24-slim AS base
 # Prisma's engines need libssl on Debian slim images.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*

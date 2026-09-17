@@ -16,11 +16,11 @@ jobs:
     name: unit + browser
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The Prisma client is generated code, git-ignored; tests reach lib/prisma.
@@ -53,11 +53,11 @@ jobs:
       # The build already ran as its own step; the web server only starts.
       E2E_SKIP_BUILD: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # The Prisma client is generated code, git-ignored; build and seed need it.
@@ -68,8 +68,8 @@ jobs:
       - run: pnpm build
       - run: pnpm exec playwright test
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
-          path: playwright-report/
+          path: .playwright/report/
           retention-days: 7

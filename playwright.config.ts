@@ -26,13 +26,15 @@ const command = process.env.E2E_SKIP_BUILD ? start : `pnpm build && ${start}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // Keep the throwaway run outputs out of the project root, under one dir.
+  outputDir: ".playwright/results",
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   // The html reporter gives CI an artifact to upload on failure (with traces).
   reporter: process.env.CI
-    ? [["github"], ["list"], ["html", { open: "never" }]]
+    ? [["github"], ["list"], ["html", { open: "never", outputFolder: ".playwright/report" }]]
     : "list",
   globalSetup: "./e2e/global-setup.ts",
   use: {
