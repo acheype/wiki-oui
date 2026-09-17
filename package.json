@@ -14,6 +14,7 @@
     "test:unit": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "test:watch": "vitest --project unit",
+    "test:e2e": "node scripts/e2e.mjs",
     "test:setup": "playwright install chromium",
     "postinstall": "node scripts/setup-test-browser.mjs"
   },
@@ -72,6 +73,7 @@
   },
   "devDependencies": {
     "@iconify/types": "^2.0.0",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.20",
     "@testing-library/dom": "^10.4.2",

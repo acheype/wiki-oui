@@ -1,0 +1,21 @@
+# Disposable Postgres for the end-to-end run (ADR 0032). Thrown away with the
+# run: no named volume, and the data lives in a tmpfs so a run starts empty and
+# fast. The published port is 5433, one off the usual 5432, so a local dev
+# Postgres can keep running alongside it. In CI this file is unused — the
+# workflow uses GitHub Actions' native `services: postgres` instead.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wikioui
+      POSTGRES_PASSWORD: wikioui
+      POSTGRES_DB: wikioui_e2e
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wikioui -d wikioui_e2e"]
+      interval: 1s
+      timeout: 5s
+      retries: 30

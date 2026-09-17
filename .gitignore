@@ -36,6 +36,8 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+# Committed: non-secret e2e config, shared by the harness and CI (ADR 0032).
+!.env.test
 
 # vercel
 .vercel
@@ -60,3 +62,8 @@ next-env.d.ts
 
 # Vitest browser mode artifacts (failure screenshots, etc.)
 .vitest/
+
+# playwright (e2e, ADR 0032)
+/test-results/
+/playwright-report/
+/blob-report/
