@@ -104,3 +104,60 @@ test("P — un compte désactivé ne peut plus se connecter", async ({
   ).toBeVisible();
   await attempt.close();
 });
+
+// --- C — a reset link sets a new password ------------------------------------
+
+test("C — un lien de réinitialisation change le mot de passe", async ({
+  browser,
+}) => {
+  const ts = Date.now();
+  const email = `reset-${ts}@wiki-oui.test`;
+  const name = `Compte Reset ${ts}`;
+  const oldPassword = "e2e-reset-old-password";
+  const newPassword = "e2e-reset-new-password";
+
+  // Mint the account through a real invitation.
+  const admin = await browser.newContext({ storageState: ADMIN.statePath });
+  const adminPage = await admin.newPage();
+  const link = await inviteAndGetLink(adminPage, email);
+  const newcomer = await browser.newContext();
+  await acceptInvitation(await newcomer.newPage(), link, name, oldPassword);
+  await newcomer.close();
+
+  // The admin sends a password link; with no SMTP it is shown in the dialog.
+  await adminPage.goto("/gerer-utilisateurs");
+  await adminPage
+    .getByRole("button", { name: `Actions sur le compte de ${name}` })
+    .click();
+  await adminPage
+    .getByRole("menuitem", { name: "Envoyer un lien de mot de passe" })
+    .click();
+  const resetLink = await adminPage
+    .getByRole("dialog")
+    .locator("input[readonly]")
+    .inputValue();
+  await admin.close();
+
+  // Through the link, the person chooses a new password and lands signed in.
+  const reset = await browser.newContext();
+  const resetPage = await reset.newPage();
+  await resetPage.goto(resetLink);
+  await resetPage.getByLabel("Mot de passe").fill(newPassword);
+  await resetPage
+    .getByRole("button", { name: "Enregistrer et me connecter" })
+    .click();
+  await resetPage.waitForURL(`**/${wikiConfig.homeSlug}`);
+  await reset.close();
+
+  // The new password now signs in.
+  const check = await browser.newContext();
+  const checkPage = await check.newPage();
+  await checkPage.goto(`/${wikiConfig.authPages.signIn}`);
+  await checkPage
+    .getByLabel("Adresse e-mail ou identifiant")
+    .fill(email);
+  await checkPage.getByLabel("Mot de passe").fill(newPassword);
+  await checkPage.getByRole("button", { name: "Se connecter" }).click();
+  await checkPage.waitForURL(`**/${wikiConfig.homeSlug}`);
+  await check.close();
+});
