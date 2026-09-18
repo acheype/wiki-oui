@@ -15,7 +15,7 @@ import { wikiConfig } from "../wiki.config";
 // Signs in explicitly rather than reusing the contributor's saved state:
 // signOut revokes the current session server-side, and killing the shared
 // session would sign the persona out of every other spec that reuses it.
-test("A — la déconnexion revient à l'état visiteur", async ({ page }) => {
+test("A — signing out returns to the visitor state", async ({ page }) => {
   await signIn(page, CONTRIBUTOR.email, CONTRIBUTOR.password);
   await page.getByRole("button", { name: CONTRIBUTOR.name }).click();
   await page.getByRole("menuitem", { name: "Se déconnecter" }).click();
@@ -24,7 +24,7 @@ test("A — la déconnexion revient à l'état visiteur", async ({ page }) => {
 
 // --- D — free sign-up is closed ----------------------------------------------
 
-test("D — l'inscription libre est fermée", async ({ page }) => {
+test("D — free sign-up is closed", async ({ page }) => {
   // As a visitor (no storageState).
   await page.goto(`/${wikiConfig.authPages.signUp}`);
   await expect(
@@ -34,7 +34,7 @@ test("D — l'inscription libre est fermée", async ({ page }) => {
 
 // --- B — an invitation link works once ---------------------------------------
 
-test("B — un lien d'invitation ne fonctionne qu'une fois", async ({
+test("B — an invitation link works only once", async ({
   browser,
 }) => {
   const email = `invite-b-${Date.now()}@wiki-oui.test`;
@@ -61,7 +61,7 @@ test("B — un lien d'invitation ne fonctionne qu'une fois", async ({
 
 // --- P — a disabled account cannot sign in -----------------------------------
 
-test("P — un compte désactivé ne peut plus se connecter", async ({
+test("P — a disabled account can no longer sign in", async ({
   browser,
 }) => {
   const ts = Date.now();
@@ -105,7 +105,7 @@ test("P — un compte désactivé ne peut plus se connecter", async ({
 
 // --- C — a reset link sets a new password ------------------------------------
 
-test("C — un lien de réinitialisation change le mot de passe", async ({
+test("C — a reset link changes the password", async ({
   browser,
 }) => {
   const ts = Date.now();

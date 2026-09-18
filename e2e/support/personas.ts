@@ -12,8 +12,6 @@ import path from "node:path";
 export interface Persona {
   /** Typed into « Nom affiché » on the invitation form. */
   readonly name: string;
-  /** What slugify derives from the name; the identifier the rights point at. */
-  readonly username: string;
   readonly email: string;
   readonly password: string;
   /** Where personas.setup saves this role's signed-in storage state. */
@@ -25,7 +23,6 @@ export const AUTH_DIR = ".playwright/.auth";
 
 export const CONTRIBUTOR: Persona = {
   name: "Camille Contributeur",
-  username: "camille-contributeur",
   email: "contributeur@wiki-oui.test",
   password: "e2e-contributeur-password",
   statePath: path.join(AUTH_DIR, "contributeur.json"),
@@ -33,7 +30,6 @@ export const CONTRIBUTOR: Persona = {
 
 export const READER: Persona = {
   name: "Lea Lecteur",
-  username: "lea-lecteur",
   email: "lecteur@wiki-oui.test",
   password: "e2e-lecteur-password",
   statePath: path.join(AUTH_DIR, "lecteur.json"),

@@ -1,8 +1,8 @@
-import { expect, test as setup } from "@playwright/test";
+import { test as setup } from "@playwright/test";
 import { ADMIN } from "./support/admin";
-import { PERSONAS, USERS_ADMIN_SLUG } from "./support/personas";
+import { PERSONAS } from "./support/personas";
+import { acceptInvitation, inviteAndGetLink } from "./support/invitations";
 import { signIn } from "./support/sign-in";
-import { wikiConfig } from "../wiki.config";
 
 // Mints the non-admin personas the permission parcours need (ADR 0032),
 // through the real invitation flow — the only path that forges a usable
@@ -18,31 +18,16 @@ setup("mint the personas", async ({ browser }) => {
   await admin.storageState({ path: ADMIN.statePath });
 
   for (const persona of PERSONAS) {
-    // Invite one address at a time on gerer-utilisateurs; with no SMTP in an
-    // e2e run, the single-use link is shown on the page rather than mailed.
-    await adminPage.goto(`/${USERS_ADMIN_SLUG}`);
-    await adminPage
-      .getByRole("button", { name: "Inviter des personnes" })
-      .click();
-    const dialog = adminPage.getByRole("dialog");
-    await dialog.getByLabel("Adresses e-mail").fill(persona.email);
-    await dialog.getByRole("button", { name: "Inviter", exact: true }).click();
-    // The link lands in the read-only field of the outcome (link-to-copy.tsx).
-    const link = await dialog.locator("input[readonly]").inputValue();
-    expect(link).toContain("/" + wikiConfig.authPages.invitation);
-    // No need to close the dialog: the next iteration reloads gerer-utilisateurs,
-    // and « Fermer » is ambiguous (the footer button and the dialog's own cross).
-
+    const link = await inviteAndGetLink(adminPage, persona.email);
     // Accept in a fresh context: the token is the whole credential, and the
     // saved state must be the persona's alone, not the admin's plus theirs.
     const context = await browser.newContext();
-    const page = await context.newPage();
-    await page.goto(link);
-    await page.getByLabel("Nom affiché").fill(persona.name);
-    await page.getByLabel("Mot de passe").fill(persona.password);
-    await page.getByRole("button", { name: "Créer mon compte" }).click();
-    // Accepting redirects to the home page, signed in as the new account.
-    await page.waitForURL(`**/${wikiConfig.homeSlug}`);
+    await acceptInvitation(
+      await context.newPage(),
+      link,
+      persona.name,
+      persona.password
+    );
     await context.storageState({ path: persona.statePath });
     await context.close();
   }

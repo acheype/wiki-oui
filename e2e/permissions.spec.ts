@@ -14,13 +14,13 @@ const REFUSED_WRITE = "Vous n'avez pas le droit de modifier cette page.";
 // (modules/forms/entry/refusal.ts): a « restricted » form with no named group.
 const REFUSED_CREATE_ENTRY = "Réservé aux personnes autorisées.";
 
-// --- P1 — droit de formulaire (créer une fiche) ------------------------------
+// --- P1 — form-level right to create a fiche ---------------------------------
 
-test.describe("P1 — droit de formulaire", () => {
-  test.describe("le contributeur, sans le droit de créer", () => {
+test.describe("P1 — form-level right to create a fiche", () => {
+  test.describe("the contributor, without the right", () => {
     test.use({ storageState: CONTRIBUTOR.statePath });
 
-    test("voit le refus, pas le formulaire de saisie", async ({ page }) => {
+    test("sees the refusal, not the entry form", async ({ page }) => {
       await page.goto(`/${E2E.entryFormPage}`);
       await expect(page.getByText(REFUSED_CREATE_ENTRY)).toBeVisible();
       await expect(
@@ -29,10 +29,10 @@ test.describe("P1 — droit de formulaire", () => {
     });
   });
 
-  test.describe("l'administrateur, qui a le droit", () => {
+  test.describe("the administrator, with the right", () => {
     test.use({ storageState: ADMIN.statePath });
 
-    test("voit le formulaire de saisie", async ({ page }) => {
+    test("sees the entry form", async ({ page }) => {
       await page.goto(`/${E2E.entryFormPage}`);
       await expect(page.getByLabel(E2E.openFieldLabel)).toBeVisible();
       await expect(
@@ -42,13 +42,13 @@ test.describe("P1 — droit de formulaire", () => {
   });
 });
 
-// --- P2 — droit de champ (sur le formulaire de saisie) -----------------------
+// --- P2 — field-level right at entry -----------------------------------------
 
-test.describe("P2 — droit de champ à la saisie", () => {
-  test.describe("le contributeur", () => {
+test.describe("P2 — field-level right at entry", () => {
+  test.describe("the contributor", () => {
     test.use({ storageState: CONTRIBUTOR.statePath });
 
-    test("ne voit pas le champ non lisible, voit grisé le champ non modifiable", async ({
+    test("cannot see the unreadable field, sees the unfillable one greyed", async ({
       page,
     }) => {
       await page.goto(`/${E2E.fieldsEntry}/edit`);
@@ -61,9 +61,7 @@ test.describe("P2 — droit de champ à la saisie", () => {
     });
   });
 
-  test("un champ non modifiable est préservé à la sauvegarde", async ({
-    browser,
-  }) => {
+  test("an unfillable field survives a save", async ({ browser }) => {
     // The contributor edits the fiche, touching only the field it may fill.
     const cctx = await browser.newContext({
       storageState: CONTRIBUTOR.statePath,
@@ -89,28 +87,28 @@ test.describe("P2 — droit de champ à la saisie", () => {
   });
 });
 
-// --- P3 — droit de fiche -----------------------------------------------------
+// --- P3 — fiche-level read right ---------------------------------------------
 
-test.describe("P3 — droit de fiche", () => {
-  test.describe("le lecteur, hors de la liste", () => {
+test.describe("P3 — fiche-level read right", () => {
+  test.describe("the reader, off the list", () => {
     test.use({ storageState: READER.statePath });
 
-    test("est refusé sur la fiche restreinte", async ({ page }) => {
+    test("is refused on the restricted fiche", async ({ page }) => {
       await page.goto(`/${E2E.restrictedEntry}`);
       await expect(page.getByText(REFUSED_READ)).toBeVisible();
       await expect(page.getByText("Poste restreint")).toHaveCount(0);
     });
 
-    test("reçoit 403 sur son /raw", async ({ page }) => {
+    test("gets 403 on its /raw", async ({ page }) => {
       const res = await page.request.get(`/${E2E.restrictedEntry}/raw`);
       expect(res.status()).toBe(403);
     });
   });
 
-  test.describe("l'administrateur", () => {
+  test.describe("the administrator", () => {
     test.use({ storageState: ADMIN.statePath });
 
-    test("lit la fiche restreinte", async ({ page }) => {
+    test("reads the restricted fiche", async ({ page }) => {
       await page.goto(`/${E2E.restrictedEntry}`);
       // The title « Poste restreint » is also the poste value: match the heading.
       await expect(
@@ -120,49 +118,67 @@ test.describe("P3 — droit de fiche", () => {
   });
 });
 
-// --- P4 — droit de champ vu sur la fiche (rendu + /raw) -----------------------
+// --- P4 — field-level right on the rendered fiche and /raw --------------------
 
-test.describe("P4 — droit de champ sur la fiche", () => {
-  test.describe("le contributeur", () => {
+test.describe("P4 — field-level right on the rendered fiche and /raw", () => {
+  test.describe("the contributor", () => {
     test.use({ storageState: CONTRIBUTOR.statePath });
 
-    test("ne reçoit pas le champ restreint dans /raw", async ({ page }) => {
+    test("does not get the restricted field, in /raw or on the fiche", async ({
+      page,
+    }) => {
       const res = await page.request.get(`/${E2E.openEntry}/raw`);
       expect(res.status()).toBe(200);
       const body = await res.json();
       expect(body[E2E.openFieldName]).toBe("Poste ouvert");
       expect(body).not.toHaveProperty(E2E.restrictedFieldName);
+
+      // Same cut on the rendered fiche: the readable field shows (the title is
+      // « Poste ouvert » too, so match the heading), the restricted one (label
+      // and value) is absent.
+      await page.goto(`/${E2E.openEntry}`);
+      await expect(
+        page.getByRole("heading", { name: "Poste ouvert" })
+      ).toBeVisible();
+      await expect(page.getByText(E2E.restrictedFieldLabel)).toHaveCount(0);
+      await expect(page.getByText("1500")).toHaveCount(0);
     });
   });
 
-  test.describe("l'administrateur", () => {
+  test.describe("the administrator", () => {
     test.use({ storageState: ADMIN.statePath });
 
-    test("reçoit le champ restreint dans /raw", async ({ page }) => {
+    test("gets the restricted field, in /raw and on the fiche", async ({
+      page,
+    }) => {
       const res = await page.request.get(`/${E2E.openEntry}/raw`);
       expect(res.status()).toBe(200);
       const body = await res.json();
       expect(body[E2E.restrictedFieldName]).toBe("1500");
+
+      await page.goto(`/${E2E.openEntry}`);
+      await expect(page.getByText(E2E.restrictedFieldLabel)).toBeVisible();
+      await expect(page.getByText("1500")).toBeVisible();
     });
   });
 });
 
-// --- Droit de page : lecture -------------------------------------------------
+// --- Page right — restricted read --------------------------------------------
 
-test.describe("Droit de page — lecture restreinte", () => {
-  test.describe("le lecteur", () => {
+test.describe("Page right — restricted read", () => {
+  test.describe("the reader", () => {
     test.use({ storageState: READER.statePath });
 
-    test("est refusé sur la page restreinte", async ({ page }) => {
+    test("is refused on the restricted page", async ({ page }) => {
       await page.goto(`/${E2E.restrictedPage}`);
       await expect(page.getByText(REFUSED_READ)).toBeVisible();
     });
   });
 
-  test.describe("l'administrateur", () => {
+  test.describe("the administrator", () => {
     test.use({ storageState: ADMIN.statePath });
 
-    test("lit la page restreinte", async ({ page }) => {
+    test("reads the restricted page", async ({ page }) => {
       await page.goto(`/${E2E.restrictedPage}`);
       await expect(
         page.getByText("Contenu réservé aux administrateurs.")
@@ -171,13 +187,13 @@ test.describe("Droit de page — lecture restreinte", () => {
   });
 });
 
-// --- Droit de page : écriture ------------------------------------------------
+// --- Page right — restricted write -------------------------------------------
 
-test.describe("Droit de page — écriture restreinte", () => {
-  test.describe("le contributeur", () => {
+test.describe("Page right — restricted write", () => {
+  test.describe("the contributor", () => {
     test.use({ storageState: CONTRIBUTOR.statePath });
 
-    test("lit la page mais est refusé à l'édition", async ({ page }) => {
+    test("reads the page but is refused at edit", async ({ page }) => {
       await page.goto(`/${E2E.readOnlyPage}`);
       await expect(
         page.getByText("Lisible par tous, modifiable par les administrateurs.")
@@ -187,10 +203,10 @@ test.describe("Droit de page — écriture restreinte", () => {
     });
   });
 
-  test.describe("l'administrateur", () => {
+  test.describe("the administrator", () => {
     test.use({ storageState: ADMIN.statePath });
 
-    test("ouvre l'éditeur de la page", async ({ page }) => {
+    test("opens the page editor", async ({ page }) => {
       await page.goto(`/${E2E.readOnlyPage}/edit`);
       await expect(page.locator(".cm-content")).toBeVisible();
     });
