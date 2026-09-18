@@ -5,11 +5,8 @@ import { ADMIN } from "./support/admin";
 // (annuaire), through the generated entry form. Each crosses the server, the
 // access layer and the database — the automatic title is computed on the server
 // at save (ADR 0020), then read back from the stored snapshot. Unique names per
-// run keep the parcours independent.
-//
-// Creating a *form* (FormBuilder) is left to component tests: its drag-and-drop
-// palette is exactly the fragile-in-e2e surface ADR 0032 keeps on the browser
-// engine, and the descriptor logic is unit-tested.
+// run keep the parcours independent. Building a *form* is its own parcours,
+// form-builder.spec.ts (the palette adds a field on click, no drag needed).
 
 test.use({ storageState: ADMIN.statePath });
 
