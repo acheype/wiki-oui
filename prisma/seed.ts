@@ -21,6 +21,7 @@ import { specialSlugs, wikiConfig } from "../wiki.config";
 import { formSeeds } from "./seed/forms";
 import { pageSeeds, topMenuContent } from "./seed/pages";
 import { entrySeeds, IMAGE_ASSETS } from "./seed/entries";
+import { seedE2eFixtures } from "./seed/e2e-fixtures";
 
 const ASSETS_DIR = path.join(__dirname, "seed/assets");
 const FILES_DIR = path.join(process.cwd(), "files");
@@ -376,6 +377,11 @@ async function main() {
       createdAt
     );
     console.log(`+ fiche ${entry.slug}`);
+  }
+
+  // E2E-only fixtures (ADR 0032), gated so a real install never ships them.
+  if (process.env.E2E_FIXTURES) {
+    await seedE2eFixtures(prisma);
   }
 
   await prisma.$disconnect();

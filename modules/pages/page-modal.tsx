@@ -20,6 +20,7 @@ import {
   DialogIconLink,
   DialogTitleBar,
 } from "@/components/ui/dialog";
+import { InlineContainment } from "@/modules/pages/ui/inline-containment";
 import { readPageBody } from "@/modules/pages/content-actions";
 import { isValidSlug } from "@/lib/slug";
 
@@ -188,13 +189,12 @@ export function usePageBody(
 }
 
 // A page shown in place, chrome-free (ADR 0022): the same RSC body as the
-// modal, streamed under an error boundary, wrapped in the containment that
-// keeps an author's literal style={{position:'fixed'}} from covering the
-// surface (Base UI portals escape it on purpose).
+// modal, streamed under an error boundary, wrapped in InlineContainment so an
+// author's literal style={{position:'fixed'}} can't cover the surface (#29).
 export function InlinePageBody({ slug }: { slug: string }) {
   const loaded = usePageBody(slug);
   return (
-    <div className="isolate" style={{ contain: "layout paint" }}>
+    <InlineContainment>
       {loaded ? (
         <ModalErrorBoundary resetKey={slug}>
           <Suspense fallback={<BodySkeleton />}>{loaded.body}</Suspense>
@@ -202,7 +202,7 @@ export function InlinePageBody({ slug }: { slug: string }) {
       ) : (
         <BodySkeleton />
       )}
-    </div>
+    </InlineContainment>
   );
 }
 

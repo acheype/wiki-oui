@@ -28,9 +28,6 @@ function Harness({
         onChange={setValue}
       />
       <output data-testid="value">{value}</output>
-      {/* Where Tab lands, as on a real form: Base UI closes the list only
-          when the focus moves onto another element. */}
-      <button type="button">Suivant</button>
     </>
   );
 }
@@ -84,17 +81,9 @@ describe("SuggestionInput", () => {
     expect(value()).toBe("https://exemple.org");
   });
 
-  it("keeps the typed text on leaving the field, never the highlighted suggestion", async () => {
-    const { user, field, value } = setup({
-      candidates: ["chat-perdu", "perroquet"],
-    });
-    await user.click(field);
-    await user.type(field, "per");
-    await user.tab();
-    expect(value()).toBe("per");
-    expect(field).toHaveProperty("value", "per");
-    expect(screen.queryByRole("listbox")).toBeNull();
-  });
+  // Leaving the field (real focus, relatedTarget) moved to a browser test —
+  // suggestion-input.browser.test.tsx (ADR 0032). jsdom couldn't produce a
+  // real blur without a fake Tab target.
 
   it("takes another suggestion with ArrowDown then Enter", async () => {
     const { user, field, value } = setup({

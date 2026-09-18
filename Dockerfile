@@ -1,14 +1,20 @@
 # syntax=docker/dockerfile:1
 
-FROM node:22-slim AS base
+FROM node:24-slim AS base
 # Prisma's engines need libssl on Debian slim images.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl \
   && rm -rf /var/lib/apt/lists/*
 RUN corepack enable
 WORKDIR /app
+# The postinstall installs Chromium for the browser test project (ADR 0032).
+# The image never runs tests, so skip that ~180 MB download for every build.
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# The postinstall (ADR 0032) runs during install and reads this file; without
+# it here, node fails before the PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD guard can skip.
+COPY scripts/setup-test-browser.mjs ./scripts/
 RUN pnpm install --frozen-lockfile
 
 # `prisma migrate deploy` and the seed script (docker-entrypoint.sh) run as

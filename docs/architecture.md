@@ -6,7 +6,58 @@ Ce document est la **vue d'ensemble** : ce que chaque version apporte, et l'arch
 
 ## Stack
 
-Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **Zod** (contrat runtime) · `react-hook-form` + `dnd-kit` (formulaires) · Nodemailer (courriels) · Leaflet, FullCalendar, Embla (vues de fiches) · sharp (images) · **BetterAuth** (authentification seule, ADR 0023) · Vitest (+ Testing Library sous jsdom) · **pnpm**.
+Next.js (App Router) · React 19 · TypeScript · Prisma · PostgreSQL · shadcn/ui + Tailwind · CodeMirror 6 (éditeur) · pipeline MDX (`next-mdx-remote` + `remark-gfm` + `mdx-annotations`) · **Zod** (contrat runtime) · `react-hook-form` + `dnd-kit` (formulaires) · Nodemailer (courriels) · Leaflet, FullCalendar, Embla (vues de fiches) · sharp (images) · **BetterAuth** (authentification seule, ADR 0023) · Vitest et Playwright (tests à trois niveaux, voir [§ Tests](#tests), ADR 0032) · **pnpm**.
+
+## Organisation du code
+
+Le code est rangé **par concept du domaine** (ADR [0029](adr/0029-modules-by-domain-concept.md)) : un dossier `modules/<concept>/` par concept de [`../CONTEXT.md`](../CONTEXT.md) — `pages`, `forms`, `permissions`, `accounts`, `entries-view`, `authoring`, `files`, `settings`. Le reste du dépôt ne garde que ce qui n'a pas de concept.
+
+```text
+.
+├── app/                   routes Next uniquement — groupes (site) et (bare), segment /api
+├── modules/<concept>/     tout le code métier, un dossier par concept de CONTEXT.md
+│   ├── <sujet>.ts         public   — importable depuis n'importe quel module
+│   ├── rules.ts           règles pures
+│   ├── actions.ts         Server Actions
+│   ├── <sujet>/           privé    — sous-dossier, importable par son seul module
+│   ├── access/            couche d'accès (gardes) — privé
+│   ├── ui/                composants React du module — privé, sauf pour app/
+│   └── wiki-components/   composants wiki du registre — public
+├── components/ui/         primitives shadcn
+├── lib/                   utilitaires sans concept (client Prisma, cn(), formatage)
+├── e2e/                   parcours de bout en bout Playwright (§ Tests)
+├── prisma/                schéma, migrations, seed
+├── scripts/               build et outillage
+└── docs/                  cette doc + adr/
+```
+
+**La profondeur dit la visibilité.** Un fichier à la **racine** d'un module est **public** : n'importe quel module l'importe. Un fichier dans un **sous-dossier** est **privé** : seul son propre module l'importe. Deux sous-dossiers échappent à la règle — `ui/`, que `app/` seul compose, et `wiki-components/`, que le registre (`modules/authoring/registry/sources.ts`) seul atteint. La règle ESLint `wikioui/module-seam` la garde.
+
+**Viser le module profond** (ADR [0030](adr/0030-deep-modules.md)) : beaucoup de comportement derrière peu d'interface. Approfondir un module, c'est réduire le nombre de fichiers et d'exports à sa racine, et cacher le reste dans ses sous-dossiers — un export racine que personne n'importe d'un autre module redescend dans le sous-dossier de son sujet. Carte des modules (ce que possède chacun) : [`CLAUDE.md`](../CLAUDE.md).
+
+## Tests
+
+Quatre niveaux, **du moins cher au plus fidèle** (ADR [0032](adr/0032-three-test-engines.md)). Chaque test prend le moyen le moins cher qui atteint ce qu'il vérifie. Les deux premiers partagent le projet Vitest `unit` (Node par défaut, jsdom par pragma) ; l'ADR compte donc **trois moteurs**.
+
+| Niveau | Ce qu'il vérifie | Moyen | Où | Commande |
+| --- | --- | --- | --- | --- |
+| Calcul pur | logique sans DOM : règles, schémas Zod, transformations | Vitest en environnement Node (projet `unit`) | `*.test.ts` co-localisés | `pnpm test:unit` |
+| DOM d'un composant | structure DOM, rôles et noms ARIA, logique clavier, rendu conditionnel | jsdom (projet `unit`, pragma `// @vitest-environment jsdom`) | `*.test.tsx` co-localisés | `pnpm test:unit` |
+| Fidélité d'un composant | géométrie et CSS calculé, focus réel, timing réel, bibliothèque à vrai moteur de rendu | mode navigateur Vitest — Chromium (projet `browser`) | `*.browser.test.tsx` co-localisés | `pnpm test:browser` |
+| Bout en bout | un parcours réel à travers l'application en marche | Playwright autonome + serveur Next + base jetable | `e2e/` | `pnpm test:e2e` |
+
+**Bout en bout = e2e = parcours de validation rapide** : trois noms d'une même chose — un scénario complet joué dans un vrai navigateur, sur le serveur réel et une base jetable (se connecter → créer une page → l'éditer → l'enregistrer).
+
+**Comment choisir.** **Calcul pur** par défaut, tant qu'il n'y a pas de DOM. **jsdom** dès qu'il faut le DOM — rendre un composant, interroger ses rôles ARIA, jouer une touche. **Navigateur** seulement si l'assertion porte sur l'une de ces quatre choses — géométrie ou CSS calculé, focus réel, timing réel, bibliothèque exigeant un vrai moteur de rendu —, et toujours sur un **composant monté** : un vrai navigateur sur l'application entière, c'est déjà l'e2e. **e2e** quand le comportement n'existe qu'avec le serveur et la base (authentification, routing, persistance).
+
+**Où sont les tests d'intégration.** Ils ne forment pas un niveau à part ; l'intégration se fait à deux endroits :
+
+- **au niveau d'un module** — un test qui passe par la **racine du module** (Server Action, garde) exécute le vrai code du module, la base (Prisma) et le cadre (`next/headers`, auth) étant simulés par `vi.mock` (ex. `modules/pages/content.test.ts`, `modules/forms/entry-actions.test.ts`, `modules/pages/access/guards.test.ts`). Il vit dans le projet `unit` ;
+- **de bout en bout** — le niveau e2e est la seule intégration qui s'exécute sur une **vraie base** et un **vrai serveur**.
+
+Il n'existe pas encore de niveau intermédiaire « Server Action sur une vraie base, sans navigateur » ; au besoin, il se logerait entre les deux et réutiliserait le Postgres jetable de l'e2e.
+
+`pnpm test` lance les **trois premiers niveaux** (parité avec le job `test` de la CI) ; l'e2e a sa propre commande, car il lui faut un serveur et une base. Détail et arbitrages : ADR 0032.
 
 ## v0.1 — MVP
 
@@ -122,7 +173,7 @@ Commentaires (avec avatars et mentions `@username` — celles-ci relèveront de 
 - **Une page système est une page comme les autres** (ADR 0028) : une page système nouvelle est une page spéciale appelant un composant intégré, jamais une route sous `app/` — celle-ci prélèverait un slug sans le dire. Ce dont elle a besoin voyage en query string (`?suite=`, `?jeton=`, `?formulaire=`), puisque derrière un slug un segment est un handler. Seule exception, le segment réservé `api` : il porte les services, dont les deux qui ne peuvent pas être des pages système — l'aperçu du ComponentBuilder et l'installation (`/api/installation`, présentée par **réécriture** depuis n'importe quelle adresse tant que le drapeau manque, ce qui laisse `installation` libre comme slug). `api` est le seul slug que `lib/slug.ts` refuse à une page, et `app/routes.test.ts` rougit dès qu'un dossier de plus apparaît sous `app/`.
 - **Historique** (ADR 0009) : pleine page, timeline horizontale (récente à droite), toutes les révisions. 3 vues : *Aperçu* (checkbox rendu ↔ code), *Modifications* (diff MDX vs précédente), *Différence avec la courante* (diff MDX). Diffs sur le source uniquement. Pour une fiche, la révision porte `data` au lieu de `content` ; restaurer recalcule le titre automatique (ADR 0020) plutôt que de le recopier.
 - **Config** (ADR 0004) : `wiki.config.ts` typé — slugs des pages spéciales et slug d'accueil, `upload.*` (tailles limites et extensions par famille), `icons.sets` (jeux Iconify exposés).
-- **Rangement du code** (ADR 0029, 0030) : `modules/<concept>/`, un dossier par concept de `CONTEXT.md` — `pages`, `forms`, `permissions`, `accounts`, `entries-view`, `authoring`, `files`, `settings`. `app/` ne garde que les routes, `components/ui/` que les primitives shadcn, `lib/` que les utilitaires sans concept (client Prisma, `cn()`, formatage). Un gabarit unique par module (`access/guards.ts`, `<sujet>.ts`, `<sujet>/`, `actions.ts`, `rules.ts`, `ui/`, `wiki-components/`), et la profondeur dit la visibilité : un fichier racine s'importe depuis n'importe quel module, un sous-dossier ne s'importe que depuis l'intérieur du sien — sauf `ui/`, que `app/` seul compose depuis l'extérieur, et `wiki-components/`, que la table du registre de composants (`modules/authoring/registry/sources.ts`) seule atteint depuis l'extérieur. Chaque module vise à être **profond** (ADR 0030) : peu de fichiers et d'exports à sa racine, beaucoup de comportement dans les sous-dossiers. Carte des modules (ce que possède chacun) : [`CLAUDE.md`](../CLAUDE.md).
+- **Organisation du code** (ADR 0029, 0030) : `modules/<concept>/`, la profondeur dit la visibilité, et chaque module vise à être profond — arborescence et règle détaillées en tête de document ([§ Organisation du code](#organisation-du-code)). Gabarit d'un module (`access/guards.ts`, `<sujet>.ts`, `<sujet>/`, `actions.ts`, `rules.ts`, `ui/`, `wiki-components/`) et carte des modules : [`CLAUDE.md`](../CLAUDE.md).
 
 ## Schéma Prisma
 
@@ -162,6 +213,8 @@ Notes : création d'une page en deux temps (Page → Revision → pointer `curre
 28. [Une page système est une page comme les autres ; `/api` est le seul segment réservé](adr/0028-system-pages-are-pages.md)
 29. [Le code est rangé par concept du domaine, et la profondeur dit la visibilité](adr/0029-modules-by-domain-concept.md)
 30. [Un module est profond : beaucoup de comportement derrière peu d'interface](adr/0030-deep-modules.md)
+31. [La configuration vit dans les props, le contenu dans les enfants](adr/0031-config-in-props-content-in-children.md)
+32. [Trois moteurs de test, du moins cher au plus fidèle : jsdom, mode navigateur, Playwright de bout en bout](adr/0032-three-test-engines.md)
 
 ## Points validés avant code
 

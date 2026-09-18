@@ -213,6 +213,10 @@ _Avoid_: héritage, droit hérité, droit propagé (rien n'est lié)
 Le libellé d'un contenu sans auteur ni propriétaire identifié (`NULL` en base), **quelle qu'en soit la raison** : contenu antérieur aux comptes, écrit par un visiteur sur un wiki à création ouverte, ou dont le compte a été effacé. Le wiki ne distingue pas ces cas — il n'en ferait rien, et se taire sert mieux un effacement demandé que de signaler qu'il a eu lieu.
 _Avoid_: « Compte supprimé » (distinction écartée), visiteur (la personne, pas le libellé), invité, utilisateur inconnu
 
+**Parcours de validation rapide**:
+Un test de bout en bout (Playwright, ADR 0032) qui traverse l'**application en marche** — serveur Next, base jetable, session — par l'UI qu'emprunte une personne. On le met en place pour un comportement vrai seulement à l'échelle du parcours (auth → action serveur → base → redirection → revalidation), qu'aucun test de composant (jsdom, mode navigateur) ne peut prouver. Peu nombreux et robustes : l'e2e est lent, fragile et tourne à chaque poussée. Les parcours vivent dans `e2e/`, hors de la co-localisation des tests (ADR 0029), un parcours n'ayant pas de sujet unique.
+_Avoid_: parcours de fumée, test de fumée, smoke test (mauvaise traduction : « fumée » ne dit pas ce que le test valide)
+
 ## Périmètre
 
 **v0.1 (MVP)** : CRUD de pages par slug, routing page/handler, handlers `show` et `edit`, rendu MDX, révisions (historique + restauration), pages spéciales de layout, les composants intégrés `<Menu>` et `<Button>`, et un éditeur riche (barre d'outils de formatage markdown, modale de lien, outils contextuels ancrés au curseur ; double-clic sur le contenu d'une page pour passer en édition).
