@@ -12,6 +12,9 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# The postinstall (ADR 0032) runs during install and reads this file; without
+# it here, node fails before the PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD guard can skip.
+COPY scripts/setup-test-browser.mjs ./scripts/
 RUN pnpm install --frozen-lockfile
 
 # `prisma migrate deploy` and the seed script (docker-entrypoint.sh) run as
