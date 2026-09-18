@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { ADMIN } from "./support/admin";
 import { CONTRIBUTOR } from "./support/personas";
 import { acceptInvitation, inviteAndGetLink } from "./support/invitations";
+import { signIn } from "./support/sign-in";
 import { wikiConfig } from "../wiki.config";
 
 // The account parcours (ADR 0032): signing out, closed sign-up, the single-use
@@ -11,17 +12,14 @@ import { wikiConfig } from "../wiki.config";
 
 // --- A — signing out ---------------------------------------------------------
 
-test.describe("A — déconnexion", () => {
-  test.use({ storageState: CONTRIBUTOR.statePath });
-
-  test("signing out returns to the visitor state", async ({ page }) => {
-    await page.goto(`/${wikiConfig.homeSlug}`);
-    await page.getByRole("button", { name: CONTRIBUTOR.name }).click();
-    await page.getByRole("menuitem", { name: "Se déconnecter" }).click();
-    await expect(
-      page.getByRole("link", { name: "Se connecter" })
-    ).toBeVisible();
-  });
+// Signs in explicitly rather than reusing the contributor's saved state:
+// signOut revokes the current session server-side, and killing the shared
+// session would sign the persona out of every other spec that reuses it.
+test("A — la déconnexion revient à l'état visiteur", async ({ page }) => {
+  await signIn(page, CONTRIBUTOR.email, CONTRIBUTOR.password);
+  await page.getByRole("button", { name: CONTRIBUTOR.name }).click();
+  await page.getByRole("menuitem", { name: "Se déconnecter" }).click();
+  await expect(page.getByRole("link", { name: "Se connecter" })).toBeVisible();
 });
 
 // --- D — free sign-up is closed ----------------------------------------------
