@@ -74,8 +74,11 @@ test("restoring an old revision brings its content back", async ({ page }) => {
   await editPage(page, slug, "Version deux du contenu.");
 
   await page.goto(`/${slug}/revisions`);
-  // The timeline lists revisions oldest first: the first anchor is the creation.
-  await page.locator("ol a").first().click();
+  // Pick the creation revision by identity, not by position: the timeline's
+  // short date is minute-granular (lib/format), so both revisions of a fast run
+  // share it — the reliable discriminator is that the current one is marked
+  // « courante » and the earlier one is not.
+  await page.locator("ol a").filter({ hasNotText: "courante" }).first().click();
   await page
     .getByRole("button", { name: "Restaurer cette révision" })
     .click();
