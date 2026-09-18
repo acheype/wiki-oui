@@ -42,11 +42,20 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
+    // The install mints the admin (and saves its state); the personas setup
+    // then invites the non-admin accounts the permission parcours need. Each
+    // spec picks its role with test.use({ storageState }); the auth specs take
+    // none and sign in explicitly (ADR 0032).
     { name: "setup", testMatch: /install\.setup\.ts/ },
+    {
+      name: "personas",
+      testMatch: /personas\.setup\.ts/,
+      dependencies: ["setup"],
+    },
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      dependencies: ["setup"],
+      dependencies: ["setup", "personas"],
       testMatch: /.*\.spec\.ts/,
     },
   ],

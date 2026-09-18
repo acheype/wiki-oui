@@ -13,5 +13,8 @@ export default async function globalSetup() {
     execSync(command, { stdio: "inherit", env: process.env });
 
   run("pnpm prisma migrate deploy");
+  // E2E_FIXTURES adds the restricted-rights form and fiches the permission
+  // parcours read (prisma/seed/e2e-fixtures.ts); a real install never sets it.
+  process.env.E2E_FIXTURES = "1";
   run("pnpm prisma db seed");
 }

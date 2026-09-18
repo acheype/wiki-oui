@@ -2,9 +2,11 @@ import { expect, test } from "@playwright/test";
 import { ADMIN } from "./support/admin";
 import { wikiConfig } from "../wiki.config";
 
-// The chantier-2 quick validation run (ADR 0032): sign in, create a page, edit
-// it, save it. It drives the real Next server against a disposable database,
-// through the same UI a person uses. The install ran first (install.setup.ts).
+// The canonical parcours de validation rapide (ADR 0032): sign in, create a
+// page, edit it, save it. It drives the real Next server against a disposable
+// database, through the same UI a person uses. Sign-in is explicit here — the
+// login itself is part of what this parcours validates. The install ran first
+// (install.setup.ts).
 test("signs in, creates a page, edits it and saves it", async ({ page }) => {
   // A unique slug so repeated runs against one database never collide.
   const slug = `page-e2e-${Date.now()}`;
