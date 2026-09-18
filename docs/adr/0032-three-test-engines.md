@@ -55,7 +55,7 @@ Le dépôt était en Vitest 4.1.10. Le mode navigateur, stable depuis Vitest 4 (
 
 ## Décision — les tests de bout en bout (Playwright)
 
-Playwright autonome pilote le vrai serveur Next contre une base jetable. Les fichiers vivent dans `e2e/` à la racine (`playwright.config.ts`, `compose.e2e.yaml`, `.env.test` à la racine aussi).
+Playwright autonome pilote le vrai serveur Next sur une base jetable. Les fichiers vivent dans `e2e/` à la racine (`playwright.config.ts`, `compose.e2e.yaml`, `.env.test` à la racine aussi).
 
 - **Base jetable, neuve par run.** Un Postgres éphémère : `compose.e2e.yaml` en local (port 5433, données en tmpfs, aucun volume), et le service natif de GitHub Actions en CI. `scripts/e2e.mjs` détruit puis recrée le conteneur autour de chaque run, pour que le drapeau d'installation (ADR 0027) parte toujours d'un wiki jamais installé. `globalSetup` amène le schéma (`prisma migrate deploy`) puis le seed comme **fixture** (`prisma db seed`). Pas de réinitialisation *par test* : les tests emploient des slugs uniques ; on la posera quand la suite grossira.
 - **Fixtures e2e à droits restreints, sous drapeau.** Les parcours de permission ont besoin d'un formulaire, de fiches et de pages aux accès restreints (champ lisible des seuls administrateurs, fiche et page réservées, création de fiche fermée). Ces fixtures vivent dans `prisma/seed/e2e-fixtures.ts` et ne sont semées que lorsque `E2E_FIXTURES` est posé (par `globalSetup`) : un vrai déploiement ne les embarque jamais. Leurs slugs et libellés sont la source unique partagée par le seed et les specs (`e2e/support/fixtures.ts`). Contrainte tenue : un contenu à lecture restreinte porte aussi une **écriture restreinte**, sinon « écrire implique lire » le rouvrirait à toute personne connectée.
