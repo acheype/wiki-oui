@@ -65,6 +65,7 @@ import {
 } from "./wrapper";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import { cn } from "@/lib/utils";
+import { changeBuilderValue } from "./builder-values";
 
 // The ComponentBuilder modal (docs/component-builder.md): fully generated
 // from a descriptor + the component's exported defaults — preview on top
@@ -230,28 +231,16 @@ function BuilderForm({
       descriptorField.required && isEmpty(values[field])
   );
 
-  // Choice-driven pre-fills (descriptor `prefill`): picking a value seeds
-  // its declared siblings, but never overwrites an author's explicit choice
-  // (only siblings still at their default move) — and switching away
-  // retracts an untouched seed, so the pre-fill follows the choice.
   const setValue = (field: string, value: PropValue) =>
-    setValues((current) => {
-      const next = { ...current, [field]: value };
-      const prefillsOf = (choice: PropValue) =>
-        typeof choice === "string"
-          ? (spec.descriptor.properties[field]?.prefill?.[choice] ?? {})
-          : {};
-      const held = (target: string) =>
-        target in current ? current[target] : spec.defaults[target];
-      const previous = field in current ? current[field] : spec.defaults[field];
-      for (const [target, seeded] of Object.entries(prefillsOf(previous))) {
-        if (held(target) === seeded) next[target] = spec.defaults[target];
-      }
-      for (const [target, seeded] of Object.entries(prefillsOf(value))) {
-        if (held(target) === spec.defaults[target]) next[target] = seeded;
-      }
-      return next;
-    });
+    setValues((current) =>
+      changeBuilderValue(
+        spec.descriptor,
+        spec.defaults,
+        current,
+        field,
+        value
+      )
+    );
 
   // In the two-column layout, the wide widgets (sections, tiles, row lists,
   // mappings, maps) keep the full width; scalar inputs share a row.
@@ -381,7 +370,15 @@ function WrapperBuilderForm({
   const visibleGlobal = visibleFields(spec.descriptor, spec.defaults, values);
 
   const setGlobal = (field: string, value: PropValue) =>
-    setValues((current) => ({ ...current, [field]: value }));
+    setValues((current) =>
+      changeBuilderValue(
+        spec.descriptor,
+        spec.defaults,
+        current,
+        field,
+        value
+      )
+    );
 
   const setChildValue = (id: string, field: string, value: PropValue) =>
     setChildren((rows) =>

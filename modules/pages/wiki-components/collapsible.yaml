@@ -30,6 +30,7 @@ properties:
     default: outline
     options:
       outline: Contour
+      outline-tinted: Contour teinté
       outline-highlight: Contour et surbrillance
       highlight: Surbrillance
   outlineColor:
@@ -55,7 +56,7 @@ properties:
     prop: color
     default: default
     showif:
-      display: /^(outline-highlight|highlight)$/
+      display: /^(outline-tinted|outline-highlight|highlight)$/
     options:
       default: Défaut
       primary: Primaire

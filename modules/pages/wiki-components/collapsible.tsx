@@ -1,7 +1,7 @@
 "use client";
 
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Minus, Plus } from "lucide-react";
 import type { CSSProperties, ElementType, ReactNode } from "react";
 import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 export type CollapsibleDisplay =
   | "outline"
+  | "outline-tinted"
   | "outline-highlight"
   | "highlight";
 export type CollapsibleColor =
@@ -48,23 +49,37 @@ const outlineColors: Record<CollapsibleColor, string> = {
   danger: "border-destructive text-destructive",
 };
 
-const highlightColors: Record<Exclude<CollapsibleColor, "none">, string> = {
-  default:
-    "data-open:bg-accent data-open:text-accent-foreground hover:bg-accent hover:text-accent-foreground",
-  primary:
-    "data-open:bg-primary/10 data-open:text-primary hover:bg-primary/10 hover:text-primary",
-  "secondary-1":
-    "data-open:bg-secondary data-open:text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground",
-  "secondary-2":
-    "data-open:bg-secondary-2/10 data-open:text-secondary-2 hover:bg-secondary-2/10 hover:text-secondary-2",
-  success:
-    "data-open:bg-success/10 data-open:text-success hover:bg-success/10 hover:text-success",
-  info:
-    "data-open:bg-info/10 data-open:text-info hover:bg-info/10 hover:text-info",
-  warning:
-    "data-open:bg-warning/10 data-open:text-warning hover:bg-warning/10 hover:text-warning",
-  danger:
-    "data-open:bg-destructive/10 data-open:text-destructive hover:bg-destructive/10 hover:text-destructive",
+const backgroundColors: Record<Exclude<CollapsibleColor, "none">, string> = {
+  default: "bg-foreground/10",
+  primary: "bg-primary/10",
+  "secondary-1": "bg-secondary-foreground/10",
+  "secondary-2": "bg-secondary-2/10",
+  success: "bg-success/10",
+  info: "bg-info/10",
+  warning: "bg-warning/10",
+  danger: "bg-destructive/10",
+};
+
+const openBackgroundColors: Record<Exclude<CollapsibleColor, "none">, string> = {
+  default: "data-open:bg-foreground/10",
+  primary: "data-open:bg-primary/10",
+  "secondary-1": "data-open:bg-secondary-foreground/10",
+  "secondary-2": "data-open:bg-secondary-2/10",
+  success: "data-open:bg-success/10",
+  info: "data-open:bg-info/10",
+  warning: "data-open:bg-warning/10",
+  danger: "data-open:bg-destructive/10",
+};
+
+const hoverBackgroundColors: Record<Exclude<CollapsibleColor, "none">, string> = {
+  default: "hover:bg-foreground/10",
+  primary: "hover:bg-primary/10",
+  "secondary-1": "hover:bg-secondary-foreground/10",
+  "secondary-2": "hover:bg-secondary-2/10",
+  success: "hover:bg-success/10",
+  info: "hover:bg-info/10",
+  warning: "hover:bg-warning/10",
+  danger: "hover:bg-destructive/10",
 };
 
 export function Collapsible({
@@ -82,12 +97,14 @@ export function Collapsible({
   const [open, setOpen] = useState(defaultOpen);
   const resolvedColor = color ?? (display === "outline" ? "none" : "default");
   const highlightedColor = resolvedColor === "none" ? "default" : resolvedColor;
+  const dynamicHighlight =
+    display === "outline-highlight" || display === "highlight";
 
   const trigger = (
     <CollapsiblePrimitive.Trigger
       className={cn(
         "group/trigger flex w-full items-center gap-2 rounded-[inherit] px-4 py-3 text-left font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 motion-reduce:transition-none",
-        display !== "outline" && highlightColors[highlightedColor]
+        dynamicHighlight && !open && hoverBackgroundColors[highlightedColor]
       )}
     >
       {icon && (
@@ -102,10 +119,18 @@ export function Collapsible({
         ) : (
           <ChevronDown className="size-5 shrink-0 print:hidden" aria-hidden />
         )
+      ) : open ? (
+        <Minus
+          className="size-5 shrink-0 print:hidden"
+          strokeWidth={2.5}
+          aria-hidden
+        />
       ) : (
-        <span className="size-5 shrink-0 text-center text-xl leading-5 print:hidden" aria-hidden>
-          <span>{open ? "−" : "+"}</span>
-        </span>
+        <Plus
+          className="size-5 shrink-0 print:hidden"
+          strokeWidth={2.5}
+          aria-hidden
+        />
       )}
     </CollapsiblePrimitive.Trigger>
   );
@@ -119,9 +144,9 @@ export function Collapsible({
       className={cn(
         "not-prose my-4 overflow-hidden rounded-lg transition-colors motion-reduce:transition-none print:border print:border-border print:bg-transparent print:text-foreground",
         display !== "highlight" && "border",
-        display === "outline"
-          ? outlineColors[resolvedColor]
-          : highlightColors[highlightedColor],
+        outlineColors[resolvedColor],
+        display === "outline-tinted" && backgroundColors[highlightedColor],
+        dynamicHighlight && openBackgroundColors[highlightedColor],
         className
       )}
       style={style}

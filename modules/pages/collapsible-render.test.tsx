@@ -41,7 +41,8 @@ describe("<Collapsible>", () => {
   });
 
   it("renders the requested heading, decorative icon and plus/minus state", async () => {
-    render(
+    const user = userEvent.setup();
+    const { container } = render(
       <Collapsible
         title="Détails"
         headingLevel="h3"
@@ -54,17 +55,30 @@ describe("<Collapsible>", () => {
     );
 
     expect(screen.getByRole("heading", { level: 3, name: "Détails" })).toBeTruthy();
-    expect(screen.getByText("−").parentElement?.getAttribute("aria-hidden")).toBe(
+    expect(container.querySelector(".lucide-minus")?.getAttribute("aria-hidden")).toBe(
       "true"
     );
-    expect(screen.getByText("−").parentElement?.className).toContain("text-xl");
+    expect(container.querySelector(".lucide-minus")?.getAttribute("class")).toContain(
+      "size-5"
+    );
+    expect(container.querySelector(".lucide-plus")).toBeNull();
     await waitFor(() =>
       expect(document.querySelector('[data-testid="loaded-icon"]')).toBeTruthy()
     );
     expect(
       document.querySelector('[data-testid="loaded-icon"]')?.parentElement
         ?.parentElement?.className
+    ).toContain("size-5");
+    expect(
+      document.querySelector('[data-testid="loaded-icon"]')?.parentElement
+        ?.parentElement?.className
     ).toContain("text-xl");
+
+    await user.click(screen.getByRole("button", { name: "Détails" }));
+    expect(container.querySelector(".lucide-minus")).toBeNull();
+    expect(container.querySelector(".lucide-plus")?.getAttribute("class")).toContain(
+      "size-5"
+    );
   });
 
   it("allows nested blocks to toggle independently", async () => {
@@ -103,19 +117,44 @@ describe("<Collapsible>", () => {
     );
 
     rerender(
-      <Collapsible title="Mixte" display="outline-highlight">
+      <Collapsible title="Teinté" display="outline-tinted" color="primary">
         Texte
       </Collapsible>
     );
     expect(root.className).toContain("border");
-    expect(root.className).toContain("data-open:bg-accent");
+    expect(root.className).toContain("bg-primary/10");
+
+    rerender(
+      <Collapsible title="Mixte" display="outline-highlight" color="success">
+        Texte
+      </Collapsible>
+    );
+    expect(root.className).toContain("border");
+    expect(root.className).toContain("data-open:bg-success/10");
+    expect(screen.getByRole("button", { name: "Mixte" }).className).toContain(
+      "hover:bg-success/10"
+    );
 
     rerender(
       <Collapsible title="Surbrillance" display="highlight" color="danger">
         Texte
       </Collapsible>
     );
-    expect(root.className).toContain("data-open:bg-destructive");
+    expect(root.className).toContain("data-open:bg-destructive/10");
     expect(root.className.split(" ")).not.toContain("border");
+  });
+
+  it("never stacks a title tint over the open block tint", async () => {
+    const user = userEvent.setup();
+    render(
+      <Collapsible title="Dynamique" display="outline-highlight" color="info">
+        Texte
+      </Collapsible>
+    );
+
+    const trigger = screen.getByRole("button", { name: "Dynamique" });
+    expect(trigger.className).toContain("hover:bg-info/10");
+    await user.click(trigger);
+    expect(trigger.className).not.toContain("hover:bg-info/10");
   });
 });

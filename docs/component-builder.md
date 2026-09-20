@@ -127,6 +127,7 @@ Une valeur littérale ambiguë (le texte `notNull`, une valeur commençant par `
 
 - **Réactivité** : les champs apparaissent/disparaissent en direct pendant la saisie.
 - **Masqué = vide** : un champ masqué n'émet jamais sa prop dans le MDX généré, et compte comme vide pour les `showif` qui pointent sur lui (le masquage cascade).
+- **Prop partagée** : plusieurs champs conditionnels peuvent écrire la même prop avec `prop:`. Quand un changement remplace un champ visible par un autre, le builder conserve la valeur courante si les `options` du nouveau champ l'acceptent ; sinon, celui-ci reprend son propre défaut.
 - **Factorisation** : une condition partagée par plusieurs champs se factorise avec les ancres YAML natives (`&image` / `*image`).
 
 ## Composants wrapper
