@@ -15,6 +15,7 @@ const FIELD_TYPES = [
   "icon",
   "checkbox",
   "list",
+  "radio",
   "page-list",
   "file-list",
   "form-list",
@@ -80,6 +81,7 @@ export function propKind(
     case "url":
     case "icon":
     case "list":
+    case "radio":
     case "view-picker":
     case "page-list":
     case "file-list":
@@ -227,6 +229,8 @@ export const componentDescriptorSchema = z.object({
   /** Serialization target; JSX component tag unless "markdown-link". */
   emits: z.literal("markdown-link").optional(),
   properties: z.record(z.string(), descriptorFieldSchema),
+  /** Initial MDX for a wrapper whose inner content stays author-managed. */
+  content: z.string().optional(),
   /** Present on a wrapper whose child list the builder manages (ADR 0031). */
   children: childrenDescriptorSchema.optional(),
 });
@@ -235,11 +239,18 @@ export type DescriptorField = z.infer<typeof descriptorFieldSchema>;
 export type ChildrenDescriptor = z.infer<typeof childrenDescriptorSchema>;
 export type ComponentDescriptor = z.infer<typeof componentDescriptorSchema>;
 
-/** A wrapper managing its children (ADR 0031) declares a `children:` section. */
-export function isWrapperDescriptor(
+/** A wrapper managing a repeated child list declares a `children:` section. */
+export function isManagedChildrenDescriptor(
   descriptor: ComponentDescriptor
 ): descriptor is ComponentDescriptor & { children: ChildrenDescriptor } {
   return descriptor.children !== undefined;
+}
+
+/** A wrapper preserving author-managed MDX declares initial `content:`. */
+export function isFreeContentDescriptor(
+  descriptor: ComponentDescriptor
+): descriptor is ComponentDescriptor & { content: string } {
+  return descriptor.content !== undefined;
 }
 
 // A child descriptor reuses the whole field engine, so its props parse,
@@ -362,6 +373,12 @@ export function validateDescriptor(
   }
   const descriptor = result.data;
 
+  if (descriptor.content !== undefined && descriptor.children !== undefined) {
+    throw new Error(
+      `${at(["content"], ["children"])}: a descriptor cannot declare both content and children`
+    );
+  }
+
   validatePropertiesBlock(descriptor.properties, at, []);
   // A wrapper's managed children reuse the same field engine (ADR 0031), so
   // its props are validated exactly like a root component's — only their path
@@ -400,7 +417,11 @@ function validatePropertiesBlock(
         }
       }
     }
-    if (spec.type === "list" || spec.type === "view-picker") {
+    if (
+      spec.type === "list" ||
+      spec.type === "radio" ||
+      spec.type === "view-picker"
+    ) {
       const options = Object.keys(spec.options ?? {});
       const fallback = spec.default;
       if (typeof fallback !== "string" || !options.includes(fallback)) {

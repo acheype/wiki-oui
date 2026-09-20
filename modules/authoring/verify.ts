@@ -216,6 +216,7 @@ function checkType(
     case "divider":
       return;
     case "list":
+    case "radio":
     case "view-picker":
       checkList(ctx, field, spec.options, spec.default, prop, errors);
       return;

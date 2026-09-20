@@ -14,7 +14,7 @@ Le round-trip du ComponentBuilder (ADR 0013) régénère une balise **feuille** 
 ## Décision
 
 - **Règle.** La config d'un composant vit dans ses **props** ; son **contenu** vit dans ses **enfants**. Le type des enfants tranche : contenu → wrapper ; config → props littérales (ADR 0019), jamais des enfants.
-- **Descripteur.** Le contenu d'un wrapper est préservé à la réédition dans tous les cas. Pour que le builder **crée et gère une liste de balises filles**, le wrapper déclare une section **`children:`** (facultative) à côté de `properties` : le composant enfant (`component: Tab`), son libellé, et le bloc `properties` de **ses** props répétables. L'enfant n'a **pas** de descripteur propre — il ne s'insère pas seul (voir *Registre de composants*) ; ses props sont décrites là. Sans `children:`, le contenu est composé librement par l'auteur (modèle `<Menu>`).
+- **Descripteur.** Le contenu d'un wrapper est préservé à la réédition dans tous les cas. Un wrapper à **contenu libre** déclare la clé racine `content:`, qui fournit le MDX initial et signale que la tranche intérieure doit rester intacte. Pour que le builder **crée et gère une liste de balises filles**, le wrapper déclare à la place une section **`children:`** à côté de `properties` : le composant enfant (`component: Tab`), son libellé, et le bloc `properties` de **ses** props répétables. L'enfant n'a **pas** de descripteur propre — il ne s'insère pas seul (voir *Registre de composants*) ; ses props sont décrites là. `content:` et `children:` sont exclusifs.
 - **Builder.** Le ComponentBuilder édite la **structure** du wrapper : ajouter, réordonner, supprimer les enfants et régler leurs props. Il **préserve le contenu** de chaque enfant à la réédition ; ce contenu s'écrit dans l'éditeur, entre les balises, comme pour `<Menu>`. Supprimer un enfant non vide déclenche un avertissement.
 - **Premier wrapper éditable : `<Tabs>`/`<Tab>`.** Sa spécification est dans [`../component-builder.md`](../component-builder.md).
 
@@ -25,3 +25,4 @@ Le round-trip du ComponentBuilder (ADR 0013) régénère une balise **feuille** 
 - **`docs/architecture.md` mis à jour** : `<Menu>` n'« attend » plus la capacité ; elle est décidée, et Menu pourra l'adopter via un descripteur `children:`.
 - La vérification par signature (ADR 0013) s'applique au composant enfant comme à tout composant à props.
 - Le round-trip reste sûr : props inconnues et contenu des enfants préservés à la régénération.
+- `content:` appartient au contrat du ComponentBuilder, pas aux props React : la vérification de signature l'ignore.

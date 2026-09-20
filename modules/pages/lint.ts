@@ -9,7 +9,7 @@ import {
   CHILD_SLUG_FIELD,
   childSlug,
   fieldProp,
-  isWrapperDescriptor,
+  isManagedChildrenDescriptor,
   propKind,
   propKindFits,
   visibleFields,
@@ -54,7 +54,7 @@ export function lintPageSource(
   // two tabs makes a `#slug` link ambiguous, so it is flagged after the walk.
   const childComponents = new Set(
     builders
-      .filter((spec) => isWrapperDescriptor(spec.descriptor))
+      .filter((spec) => isManagedChildrenDescriptor(spec.descriptor))
       .map((spec) => spec.descriptor.children!.component)
   );
   const tabSlugs: { slug: string; line?: number }[] = [];

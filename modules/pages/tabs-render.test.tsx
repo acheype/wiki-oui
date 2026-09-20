@@ -2,6 +2,8 @@ import { PassThrough } from "node:stream";
 import { renderToPipeableStream } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { renderMdx } from "@/modules/authoring/mdx";
+import { renderToStaticMarkup } from "react-dom/server";
+import { Tab } from "./wiki-components/tab";
 
 // <Tabs>/<Tab> rendering (ADR 0031): the wrapper reads its <Tab> children by
 // shape (their `title`), derives a slug per tab, and honours `default`. This
@@ -73,5 +75,30 @@ describe("<Tabs> rendering", () => {
 
   it("renders nothing without a tab", async () => {
     expect(await render("<Tabs></Tabs>\n")).not.toContain("data-slot=\"tabs\"");
+  });
+
+  it("places author classes and styles on the group and tab panel", async () => {
+    const html = await render(
+      `<Tabs className="tabs-author" style={{ color: "red" }}>
+  <Tab title="Premier" className="panel-author" style={{ marginTop: 12 }}>AAA</Tab>
+</Tabs>`
+    );
+    expect(html).toMatch(/data-slot="tabs"[^>]*class="[^"]*tabs-author/);
+    expect(html).toMatch(/data-slot="tabs"[^>]*style="color:red"/);
+    expect(html).toMatch(/role="tabpanel"[^>]*class="[^"]*panel-author/);
+    expect(html).toMatch(/role="tabpanel"[^>]*style="margin-top:12px"/);
+  });
+
+  it("wraps a standalone tab only when author presentation needs a host", () => {
+    expect(
+      renderToStaticMarkup(<Tab title="Seul">Contenu</Tab>)
+    ).toBe("Contenu");
+    expect(
+      renderToStaticMarkup(
+        <Tab title="Seul" className="standalone" style={{ color: "red" }}>
+          Contenu
+        </Tab>
+      )
+    ).toBe('<div class="standalone" style="color:red">Contenu</div>');
   });
 });

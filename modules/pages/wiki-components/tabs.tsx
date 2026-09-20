@@ -8,6 +8,7 @@ import {
   useState,
   type ReactElement,
   type ReactNode,
+  type CSSProperties,
 } from "react";
 import {
   Tabs as TabsPrimitive,
@@ -37,6 +38,8 @@ export type TabsProps = {
   fullWidth?: boolean;
   /** Slug of the tab open on load; falls back to the first tab. */
   default?: string;
+  className?: string;
+  style?: CSSProperties;
   children?: ReactNode;
 };
 
@@ -52,7 +55,14 @@ const DISPLAY_VARIANT: Record<
   separated: "separated",
 };
 
-type Tab = { slug: string; title: string; icon?: string; content: ReactNode };
+type Tab = {
+  slug: string;
+  title: string;
+  icon?: string;
+  className?: string;
+  style?: CSSProperties;
+  content: ReactNode;
+};
 
 function isTabElement(node: ReactNode): node is ReactElement<TabProps> {
   return (
@@ -69,11 +79,11 @@ function collectTabs(children: ReactNode): Tab[] {
   const seen = new Set<string>();
   for (const node of Children.toArray(children)) {
     if (!isTabElement(node)) continue;
-    const { title, icon, children: content } = node.props;
+    const { title, icon, className, style, children: content } = node.props;
     const slug = childSlug({ title });
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
-    tabs.push({ slug, title, icon, content });
+    tabs.push({ slug, title, icon, className, style, content });
   }
   return tabs;
 }
@@ -83,6 +93,8 @@ export function Tabs({
   orientation = "horizontal",
   fullWidth = false,
   default: defaultSlug,
+  className,
+  style,
   children,
 }: TabsProps) {
   const tabs = collectTabs(children);
@@ -152,7 +164,12 @@ export function Tabs({
       value={value}
       onValueChange={setValue}
       orientation={orientation}
-      className={cn("not-prose my-4", display === "folder" && "gap-0")}
+      className={cn(
+        "not-prose my-4",
+        display === "folder" && "gap-0",
+        className
+      )}
+      style={style}
     >
       <TabsList
         variant={variant}
@@ -220,7 +237,12 @@ export function Tabs({
           key={tab.slug}
           value={tab.slug}
           id={tab.slug}
-          className={cn("prose max-w-none scroll-mt-24 text-base", contentClass)}
+          className={cn(
+            "prose max-w-none scroll-mt-24 text-base",
+            contentClass,
+            tab.className
+          )}
+          style={tab.style}
         >
           {tab.content}
         </TabsContent>

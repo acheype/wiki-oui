@@ -49,6 +49,20 @@ export interface WrapperDraft extends WrapperEdit {
   unknownAttributes: string[];
 }
 
+/** A free-content wrapper keeps the exact MDX slice between its tags. */
+export interface FreeContentDraft {
+  values: PropValues;
+  unknownAttributes: string[];
+  content: string;
+}
+
+/** Everything needed to generate and read a free-content wrapper. */
+export interface FreeContentShape {
+  name: string;
+  descriptor: ComponentDescriptor;
+  defaults: PropDefaults;
+}
+
 /** Everything the engine needs about a wrapper and its child component. */
 export interface WrapperShape {
   name: string;
@@ -115,11 +129,63 @@ export function generateWrapper(shape: WrapperShape, draft: WrapperDraft): strin
   return [open, ...blocks, `</${shape.name}>`].join("\n");
 }
 
+/** Rewrites only the open tag; the inner MDX is carried byte for byte. */
+export function generateFreeContentWrapper(
+  shape: FreeContentShape,
+  draft: FreeContentDraft
+): string {
+  const attributes = tagAttributes(
+    shape.descriptor,
+    shape.defaults,
+    draft.values,
+    draft.unknownAttributes
+  );
+  const body = attributes.length > 0 ? ` ${attributes.join(" ")}` : "";
+  return `<${shape.name}${body}>${draft.content}</${shape.name}>`;
+}
+
 /** A wrapper occurrence located in a document, ready to re-edit. */
 export interface WrapperMatch {
   from: number;
   to: number;
   draft: WrapperDraft;
+}
+
+export interface FreeContentWrapperMatch {
+  from: number;
+  to: number;
+  draft: FreeContentDraft;
+}
+
+/** Finds the innermost known free-content wrapper enclosing the cursor. */
+export function findFreeContentWrapperAtCursor(
+  shapes: FreeContentShape[],
+  text: string,
+  offset: number
+): (FreeContentWrapperMatch & { shape: FreeContentShape }) | null {
+  let best:
+    | (FreeContentWrapperMatch & { shape: FreeContentShape })
+    | null = null;
+  for (const shape of shapes) {
+    const found = findEnclosing(shape.name, text, offset);
+    if (!found || (best && found.from <= best.from)) continue;
+    const { values, unknownAttributes } = tagToBuilderState(
+      shape.descriptor,
+      shape.defaults,
+      found.open
+    );
+    best = {
+      shape,
+      from: found.from,
+      to: found.to,
+      draft: {
+        values,
+        unknownAttributes,
+        content: text.slice(found.contentStart, found.closeStart),
+      },
+    };
+  }
+  return best;
 }
 
 // Finds the innermost `<Name>…</Name>` of one of the given shapes enclosing

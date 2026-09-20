@@ -11,7 +11,7 @@ Le format du descripteur s'inspire de l'Actions Builder de YesWiki ([`reference/
 
 ## Le descripteur
 
-**Un YAML = un composant.** Pas de groupes d'actions : le nom du composant vient du nom de fichier (`button.yaml` → `<Button>`), et ses champs vivent dans un bloc `properties`. Un composant **feuille** (`<Button … />`) s'arrête là ; un composant **wrapper**, qui comporte du contenu entre ses balises, peut ajouter une section `children:` pour que le builder gère une liste de balises filles (voir « Composants wrapper »).
+**Un YAML = un composant.** Pas de groupes d'actions : le nom du composant vient du nom de fichier (`button.yaml` → `<Button>`), et ses champs vivent dans un bloc `properties`. Un composant **feuille** (`<Button … />`) s'arrête là ; un composant **wrapper**, qui comporte du contenu entre ses balises, déclare soit `content:` pour un contenu libre, soit `children:` pour une liste de balises filles gérée par le builder (voir « Composants wrapper »). Ces deux modes sont exclusifs.
 
 ```yaml
 label: Bouton                       # nom affiché dans le menu « Composants »
@@ -50,8 +50,8 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | --- | --- |
 | `label` | Libellé du champ (français en clair — l'i18n est au backlog) |
 | `hint` | Indication affichée sous le champ |
-| `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `page-list` · `file-list` · `divider` |
-| `options` | Pour `list` : map `valeur: libellé` (la valeur est celle écrite dans la prop) |
+| `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `radio` · `page-list` · `file-list` · `divider` |
+| `options` | Pour `list` et `radio` : map `valeur: libellé` (la valeur est celle écrite dans la prop) |
 | `default` | Valeur de référence de la **règle d'omission** ; doit égaler le défaut réel de la prop du composant (vérifié, voir « Vérification »). Absent = défaut vide |
 | `value` | Pré-remplissage à l'insertion ; la prop est **toujours** écrite, même inchangée |
 | `family` | Pour `file-list` : restreint la combobox à une famille de fichiers (`image` · `pdf` · `other`) |
@@ -59,7 +59,7 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | `advanced` | Masqué tant que « paramètres avancés » n'est pas déplié |
 | `showif` | Visibilité conditionnelle (voir ci-dessous) |
 
-Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée, Entrée prend la suggestion surlignée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
+Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Le type `radio` présente les choix d'une prop chaîne sous forme de boutons radio. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée, Entrée prend la suggestion surlignée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
 
 ### Insertion et réédition : toujours symétriques
 
@@ -133,11 +133,21 @@ Une valeur littérale ambiguë (le texte `notNull`, une valeur commençant par `
 
 Un composant **wrapper** enveloppe du contenu entre ses balises (`<Tabs>…</Tabs>`, `<Menu>…</Menu>`), là où un composant **feuille** porte tout dans ses props (`<Button … />`). La règle qui tranche (ADR 0031) : le **contenu** — le MDX écrit par l'auteur — vit dans les enfants, la **config** dans les props. Un composant n'est donc wrapper que si ses enfants sont du contenu.
 
-Un wrapper à descripteur s'édite de deux façons, selon qu'il déclare ou non une section `children:`.
+Un wrapper à descripteur s'édite de deux façons, selon qu'il déclare `content:` ou `children:`. Un descripteur qui déclare les deux est refusé.
 
-### Contenu libre (sans `children:`)
+### Contenu libre (avec `content:`)
 
-Le builder ne gère que les **props** du wrapper ; le contenu entre les balises est composé **librement** par l'auteur dans l'éditeur, et **préservé** tel quel à la réédition. C'est le modèle de `<Menu>` (ADR 0010), dont la liste imbriquée s'écrit à la main.
+Le builder ne gère que les **props** du wrapper ; la clé racine `content:` fournit le MDX initial inséré entre les balises. L'auteur le modifie ensuite librement dans l'éditeur, et la réédition des props le **préserve octet pour octet**, composants imbriqués compris. La clé n'est jamais une prop React.
+
+```yaml
+label: Bloc dépliable
+content: Contenu du bloc dépliable à modifier
+properties:
+  title:
+    label: Titre
+    type: text
+    required: true
+```
 
 ### Liste d'enfants gérée (avec `children:`)
 
@@ -221,6 +231,13 @@ Le builder tire alors de la section `children:` :
 | Action `nav` : `nav-links` (`link` page + `title`) | `<Tabs>` avec un `<Tab title="…">` par lien ; le contenu de la page liée est rapatrié dans l'onglet |
 | Action `nav` : `class` (`nav-tabs`/`nav-pills`/`nav-justified`/`nav-stacked`) | `display` (`underline`/`segmented`) + `fullWidth` (justifié) + `orientation="vertical"` (stacked) |
 | Action `nav` : `hideifnoaccess` | Non repris — onglet natif sans page liée |
+| Action `panel` : `title` | Prop `title` de `<Collapsible>` |
+| Action `panel` : `type="collapsible"` | `<Collapsible defaultOpen={true}>` |
+| Action `panel` : `type="collapsed"` | `<Collapsible>` avec `defaultOpen` omis ou `false` |
+| Action `panel` : `type="default"` ou absent | Titre Markdown et contenu ordinaire, sans `<Collapsible>` |
+| Action `panel` : `panel-primary`, `panel-secondary-1`, `panel-secondary-2`, `panel-success`, `panel-info`, `panel-warning`, `panel-danger` | Même valeur sémantique de `color` sur `<Collapsible>` |
+| Action `panel` : `panel-default` | `color="none"` avec `display="outline"` |
+| Action `panel` : classes CSS inconnues | Pas de conversion automatique en `className` |
 | `onlyEdit` / `onlyAdd` (asymétries ajout/édition) | Non repris (pas de besoin pour l'instant) — tout builder insère **et** réédite |
 | Type `form-field`, `needFormField` | Supprimés (bazar au backlog) |
 | Type `color` | Non repris (aucun composant v0.2 ne l'utilise ; réintroductible) |
@@ -229,7 +246,7 @@ Le builder tire alors de la section `children:` :
 | `mapped` | Non repris |
 | `position` (ordre dans le menu) | Non repris — menu trié alphabétiquement par `label` |
 | `doclink` | Non repris — la documentation des composants vit dans l'aide-mémoire |
-| `isWrapper` / `wrappedContentExample` | Non repris. Un composant est un wrapper dès lors qu'il comporte du **contenu** à l'intérieur (ADR 0031), préservé à la réédition. |
+| `isWrapper` / `wrappedContentExample` | Remplacés par la clé racine `content:` : elle signale un wrapper à contenu libre, fournit son MDX initial et celui-ci est ensuite préservé à la réédition (ADR 0031). |
 
 ### Cas particuliers de migration
 

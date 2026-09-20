@@ -4,9 +4,13 @@ import {
   descriptorDefaults,
 } from "../descriptor";
 import {
+  type FreeContentDraft,
+  type FreeContentShape,
   type WrapperDraft,
   type WrapperShape,
+  findFreeContentWrapperAtCursor,
   findWrapperAtCursor,
+  generateFreeContentWrapper,
   generateWrapper,
   wrapperShapeOf,
 } from "./wrapper";
@@ -49,6 +53,76 @@ function tabsShape(): WrapperShape {
     defaults: descriptorDefaults(descriptor),
   });
 }
+
+function collapsibleShape(): FreeContentShape {
+  return {
+    name: "Collapsible",
+    descriptor: {
+      label: "Bloc dépliable",
+      content: "Contenu du bloc dépliable à modifier",
+      properties: {
+        title: { label: "Titre", type: "text", required: true },
+        defaultOpen: {
+          label: "Déplié par défaut",
+          type: "checkbox",
+          default: false,
+        },
+      },
+    },
+    defaults: { title: undefined, defaultOpen: false },
+  };
+}
+
+describe("free-content wrapper round-trip", () => {
+  const shape = collapsibleShape();
+
+  it("generates and reads raw MDX content with unknown attributes", () => {
+    const draft: FreeContentDraft = {
+      values: { title: "À savoir", defaultOpen: true },
+      unknownAttributes: ['className="mt-4"'],
+      content: "\nLigne 1\n\n<Button text=\"Continuer\" />\n",
+    };
+    const source = generateFreeContentWrapper(shape, draft);
+
+    expect(source).toBe(
+      '<Collapsible title="À savoir" defaultOpen className="mt-4">\nLigne 1\n\n<Button text="Continuer" />\n</Collapsible>'
+    );
+    const found = findFreeContentWrapperAtCursor(
+      [shape],
+      source,
+      source.indexOf("Ligne 1")
+    );
+    expect(found?.draft).toEqual(draft);
+    expect(generateFreeContentWrapper(shape, found!.draft)).toBe(source);
+  });
+
+  it("selects the innermost same-name wrapper without replacing its parent", () => {
+    const source = `<Collapsible title="Parent">
+Avant
+<Collapsible title="Enfant">
+Dedans
+</Collapsible>
+Après
+</Collapsible>`;
+    const found = findFreeContentWrapperAtCursor(
+      [shape],
+      source,
+      source.indexOf("Dedans")
+    );
+
+    expect(found?.draft.values.title).toBe("Enfant");
+    expect(found?.draft.content).toBe("\nDedans\n");
+    const replacement = generateFreeContentWrapper(shape, {
+      ...found!.draft,
+      values: { title: "Enfant modifié" },
+    });
+    const updated = source.slice(0, found!.from) + replacement + source.slice(found!.to);
+    expect(updated).toContain('<Collapsible title="Parent">');
+    expect(updated).toContain('<Collapsible title="Enfant modifié">');
+    expect(updated).toContain("Avant");
+    expect(updated).toContain("Après");
+  });
+});
 
 function draft(overrides: Partial<WrapperDraft> = {}): WrapperDraft {
   return {

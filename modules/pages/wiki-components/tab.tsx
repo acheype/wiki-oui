@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 // One tab of a <Tabs> wrapper (ADR 0031). A marker child with no descriptor
 // of its own: it never inserts alone, so its props are described in tabs.yaml's
@@ -15,9 +15,16 @@ export type TabProps = {
   title: string;
   /** Iconify id shown before the title, e.g. `lucide:info`. */
   icon?: string;
+  className?: string;
+  style?: CSSProperties;
   children?: ReactNode;
 };
 
-export function Tab({ children }: TabProps) {
-  return <>{children}</>;
+export function Tab({ className, style, children }: TabProps) {
+  if (className === undefined && style === undefined) return <>{children}</>;
+  return (
+    <div className={className} style={style}>
+      {children}
+    </div>
+  );
 }

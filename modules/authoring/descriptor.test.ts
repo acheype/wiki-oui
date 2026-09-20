@@ -36,6 +36,50 @@ function buttonDescriptor(): ComponentDescriptor {
 }
 
 describe("validateDescriptor", () => {
+  it("accepts a radio field as a string choice", () => {
+    const descriptor = validateDescriptor("collapsible.yaml", {
+      label: "Bloc dépliable",
+      properties: {
+        toggleIcon: {
+          label: "Symbole de dépliage",
+          type: "radio",
+          default: "chevron",
+          options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+        },
+      },
+    });
+
+    expect(descriptor.properties.toggleIcon.type).toBe("radio");
+    expect(descriptorDefaults(descriptor).toggleIcon).toBe("chevron");
+  });
+
+  it("accepts initial content for a free-content wrapper", () => {
+    const descriptor = validateDescriptor("collapsible.yaml", {
+      label: "Bloc dépliable",
+      content: "Contenu du bloc dépliable à modifier",
+      properties: {},
+    });
+
+    expect(descriptor.content).toBe("Contenu du bloc dépliable à modifier");
+  });
+
+  it("rejects a descriptor mixing free content and managed children", () => {
+    expect(() =>
+      validateDescriptor("mixed.yaml", {
+        label: "Ambigu",
+        content: "Texte",
+        properties: {},
+        children: {
+          component: "Item",
+          label: "Élément",
+          properties: {},
+        },
+      })
+    ).toThrow(
+      "mixed.yaml: a descriptor cannot declare both content and children"
+    );
+  });
+
   it("accepts an extra field with no default: structural validation ignores props", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.colour = { label: "Couleur", type: "text" };

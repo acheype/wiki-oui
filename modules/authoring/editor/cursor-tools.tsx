@@ -32,7 +32,8 @@ import {
 import {
   emitsMarkdownLink,
   findComponentTag,
-  isWrapperDescriptor,
+  isFreeContentDescriptor,
+  isManagedChildrenDescriptor,
   type LiteralValue,
   parseLiteral,
   TAG_SCAN_WINDOW,
@@ -42,6 +43,7 @@ import {
 } from "@/modules/authoring/descriptor";
 import {
   type WrapperEdit,
+  findFreeContentWrapperAtCursor,
   findWrapperAtCursor,
   wrapperShapeOf,
 } from "./wrapper";
@@ -139,6 +141,8 @@ export type ComponentInfo = Range & {
   // Present when the tag is a managed-children wrapper (ADR 0031): its child
   // list and open child, so the builder re-edits it in its two-stage form.
   wrapper?: WrapperEdit;
+  /** Exact inner MDX of a free-content wrapper. */
+  content?: string;
 };
 
 // Enclosing well-formed component tag whose descriptor is known. A self-closing
@@ -192,27 +196,47 @@ function wrapperAtCursor(
   state: EditorState,
   builders: ComponentBuilderSpec[]
 ): ComponentInfo | null {
-  const wrappers = builders.filter((builder) =>
-    isWrapperDescriptor(builder.descriptor)
+  const managed = builders.filter((builder) =>
+    isManagedChildrenDescriptor(builder.descriptor)
   );
-  if (wrappers.length === 0) return null;
-  const found = findWrapperAtCursor(
-    wrappers.map(wrapperShapeOf),
-    state.doc.toString(),
-    state.selection.main.head
+  const free = builders.filter((builder) =>
+    isFreeContentDescriptor(builder.descriptor)
   );
-  if (!found) return null;
-  const spec = wrappers.find((builder) => builder.name === found.shape.name);
+  const text = state.doc.toString();
+  const offset = state.selection.main.head;
+  const managedFound = findWrapperAtCursor(
+    managed.map(wrapperShapeOf),
+    text,
+    offset
+  );
+  const freeFound = findFreeContentWrapperAtCursor(free, text, offset);
+
+  if (freeFound && (!managedFound || freeFound.from > managedFound.from)) {
+    const spec = free.find((builder) => builder.name === freeFound.shape.name);
+    if (!spec) return null;
+    return {
+      from: freeFound.from,
+      to: freeFound.to,
+      spec,
+      values: freeFound.draft.values,
+      unknownAttributes: freeFound.draft.unknownAttributes,
+      content: freeFound.draft.content,
+    };
+  }
+  if (!managedFound) return null;
+  const spec = managed.find(
+    (builder) => builder.name === managedFound.shape.name
+  );
   if (!spec) return null;
   return {
-    from: found.from,
-    to: found.to,
+    from: managedFound.from,
+    to: managedFound.to,
     spec,
-    values: found.draft.values,
-    unknownAttributes: found.draft.unknownAttributes,
+    values: managedFound.draft.values,
+    unknownAttributes: managedFound.draft.unknownAttributes,
     wrapper: {
-      children: found.draft.children,
-      defaultChild: found.draft.defaultChild,
+      children: managedFound.draft.children,
+      defaultChild: managedFound.draft.defaultChild,
     },
   };
 }

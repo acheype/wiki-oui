@@ -51,13 +51,15 @@ import {
   emitsMarkdownLink,
   generateMarkdownLink,
   generateTag,
+  isFreeContentDescriptor,
   isEmpty,
-  isWrapperDescriptor,
+  isManagedChildrenDescriptor,
   visibleFields,
 } from "@/modules/authoring/descriptor";
 import {
   type WrapperChildDraft,
   type WrapperEdit,
+  generateFreeContentWrapper,
   generateWrapper,
   wrapperShapeOf,
 } from "./wrapper";
@@ -75,11 +77,14 @@ export type BuilderState = {
   // Present when the component is a managed-children wrapper (ADR 0031): the
   // child list and which child opens first (its slug, or absent for the first).
   wrapper?: WrapperEdit;
+  // Exact MDX between a free-content wrapper's tags. The builder carries it
+  // without rendering a field or normalizing it on re-edit.
+  content?: string;
 };
 
 /** An empty managed child: no props, no content yet. */
-function emptyChild(): WrapperChildDraft {
-  return { values: {}, content: "", unknownAttributes: [] };
+function emptyChild(values: PropValues = {}): WrapperChildDraft {
+  return { values, content: "", unknownAttributes: [] };
 }
 
 // What an open builder holds. null means closed; the last non-null value is
@@ -104,10 +109,20 @@ export function insertionState(spec: ComponentBuilderSpec): BuilderState {
   }
   // A wrapper starts with two empty children, so its tabbed nature is plain
   // and the author only fills the titles (ADR 0031).
-  const wrapper = isWrapperDescriptor(spec.descriptor)
-    ? { children: [emptyChild(), emptyChild()] }
+  let wrapper: WrapperEdit | undefined;
+  if (isManagedChildrenDescriptor(spec.descriptor)) {
+    const firstValues: PropValues = {};
+    for (const [field, childField] of Object.entries(
+      spec.descriptor.children.properties
+    )) {
+      if (childField.value !== undefined) firstValues[field] = childField.value;
+    }
+    wrapper = { children: [emptyChild(firstValues), emptyChild()] };
+  }
+  const content = isFreeContentDescriptor(spec.descriptor)
+    ? `\n${spec.descriptor.content}\n`
     : undefined;
-  return { values, unknownAttributes: [], wrapper };
+  return { values, unknownAttributes: [], wrapper, content };
 }
 
 export function ComponentBuilderDialog({
@@ -126,7 +141,7 @@ export function ComponentBuilderDialog({
   // Same props on both forms; a managed-children wrapper (ADR 0031) gets the
   // two-stage one, every other component the flat one.
   const Form =
-    state && isWrapperDescriptor(state.spec.descriptor)
+    state && isManagedChildrenDescriptor(state.spec.descriptor)
       ? WrapperBuilderForm
       : BuilderForm;
   return (
@@ -194,8 +209,13 @@ function BuilderForm({
   const plainFields = fields.filter(([, f]) => !f.advanced);
   const advancedFields = fields.filter(([, f]) => f.advanced);
 
-  const tag =
-    emitsMarkdownLink(spec.descriptor)
+  const tag = isFreeContentDescriptor(spec.descriptor)
+    ? generateFreeContentWrapper(spec, {
+        values,
+        unknownAttributes: initial.unknownAttributes,
+        content: initial.content ?? "",
+      })
+    : emitsMarkdownLink(spec.descriptor)
       ? generateMarkdownLink(spec.defaults, values)
       : generateTag(
           spec.name,
