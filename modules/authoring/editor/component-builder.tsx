@@ -51,7 +51,6 @@ import {
   emitsMarkdownLink,
   generateMarkdownLink,
   generateTag,
-  isFreeContentDescriptor,
   isEmpty,
   isManagedChildrenDescriptor,
   visibleFields,
@@ -61,6 +60,7 @@ import {
   type WrapperEdit,
   generateFreeContentWrapper,
   generateWrapper,
+  isFreeContentDescriptor,
   wrapperShapeOf,
 } from "./wrapper";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";

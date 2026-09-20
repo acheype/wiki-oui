@@ -1,8 +1,9 @@
 "use client";
 
 import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
-import { ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import type { CSSProperties, ElementType, ReactNode } from "react";
+import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 
@@ -51,19 +52,19 @@ const highlightColors: Record<Exclude<CollapsibleColor, "none">, string> = {
   default:
     "data-open:bg-accent data-open:text-accent-foreground hover:bg-accent hover:text-accent-foreground",
   primary:
-    "data-open:bg-primary data-open:text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+    "data-open:bg-primary/10 data-open:text-primary hover:bg-primary/10 hover:text-primary",
   "secondary-1":
     "data-open:bg-secondary data-open:text-secondary-foreground hover:bg-secondary hover:text-secondary-foreground",
   "secondary-2":
-    "data-open:bg-secondary-2 data-open:text-secondary-2-foreground hover:bg-secondary-2 hover:text-secondary-2-foreground",
+    "data-open:bg-secondary-2/10 data-open:text-secondary-2 hover:bg-secondary-2/10 hover:text-secondary-2",
   success:
-    "data-open:bg-success data-open:text-success-foreground hover:bg-success hover:text-success-foreground",
+    "data-open:bg-success/10 data-open:text-success hover:bg-success/10 hover:text-success",
   info:
-    "data-open:bg-info data-open:text-info-foreground hover:bg-info hover:text-info-foreground",
+    "data-open:bg-info/10 data-open:text-info hover:bg-info/10 hover:text-info",
   warning:
-    "data-open:bg-warning data-open:text-warning-foreground hover:bg-warning hover:text-warning-foreground",
+    "data-open:bg-warning/10 data-open:text-warning hover:bg-warning/10 hover:text-warning",
   danger:
-    "data-open:bg-destructive data-open:text-destructive-foreground hover:bg-destructive hover:text-destructive-foreground",
+    "data-open:bg-destructive/10 data-open:text-destructive hover:bg-destructive/10 hover:text-destructive",
 };
 
 export function Collapsible({
@@ -78,27 +79,32 @@ export function Collapsible({
   style,
   children,
 }: CollapsibleProps) {
+  const [open, setOpen] = useState(defaultOpen);
   const resolvedColor = color ?? (display === "outline" ? "none" : "default");
   const highlightedColor = resolvedColor === "none" ? "default" : resolvedColor;
 
   const trigger = (
     <CollapsiblePrimitive.Trigger
       className={cn(
-        "group/trigger flex w-full items-center gap-2 rounded-[inherit] px-4 py-3 text-left font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none",
+        "group/trigger flex w-full items-center gap-2 rounded-[inherit] px-4 py-3 text-left font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 motion-reduce:transition-none",
         display !== "outline" && highlightColors[highlightedColor]
       )}
     >
-      {icon && <Icon id={icon} />}
+      {icon && (
+        <span className="flex size-5 shrink-0 items-center justify-center text-xl leading-none">
+          <Icon id={icon} />
+        </span>
+      )}
       <span className="min-w-0 flex-1">{title}</span>
       {toggleIcon === "chevron" ? (
-        <ChevronRight
-          className="size-4 shrink-0 transition-transform duration-200 group-data-panel-open/trigger:rotate-90 motion-reduce:transition-none print:hidden"
-          aria-hidden
-        />
+        open ? (
+          <ChevronUp className="size-5 shrink-0 print:hidden" aria-hidden />
+        ) : (
+          <ChevronDown className="size-5 shrink-0 print:hidden" aria-hidden />
+        )
       ) : (
-        <span className="relative size-4 shrink-0 text-center leading-4 print:hidden" aria-hidden>
-          <span className="group-data-panel-open/trigger:hidden">+</span>
-          <span className="hidden group-data-panel-open/trigger:inline">−</span>
+        <span className="size-5 shrink-0 text-center text-xl leading-5 print:hidden" aria-hidden>
+          <span>{open ? "−" : "+"}</span>
         </span>
       )}
     </CollapsiblePrimitive.Trigger>
@@ -108,7 +114,8 @@ export function Collapsible({
 
   return (
     <CollapsiblePrimitive.Root
-      defaultOpen={defaultOpen}
+      open={open}
+      onOpenChange={setOpen}
       className={cn(
         "not-prose my-4 overflow-hidden rounded-lg transition-colors motion-reduce:transition-none print:border print:border-border print:bg-transparent print:text-foreground",
         display !== "highlight" && "border",
@@ -122,7 +129,7 @@ export function Collapsible({
       {Heading ? <Heading className="m-0 text-base">{trigger}</Heading> : trigger}
       <CollapsiblePrimitive.Panel
         hiddenUntilFound
-        className="h-(--collapsible-panel-height) overflow-hidden opacity-100 transition-[height,opacity] duration-200 ease-out data-ending-style:h-0 data-ending-style:opacity-0 data-starting-style:h-0 data-starting-style:opacity-0 motion-reduce:transition-none print:!block print:!h-auto print:!opacity-100"
+        className="h-(--collapsible-panel-height) overflow-hidden opacity-100 transition-[height,opacity] duration-200 ease-out data-ending-style:h-0 data-ending-style:opacity-0 data-starting-style:h-0 data-starting-style:opacity-0 motion-reduce:transition-none print:block! print:h-auto! print:opacity-100! print:[content-visibility:visible]!"
       >
         <div className="prose max-w-none px-4 pb-4 text-foreground">{children}</div>
       </CollapsiblePrimitive.Panel>

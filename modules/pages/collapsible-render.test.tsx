@@ -15,16 +15,25 @@ describe("<Collapsible>", () => {
 
   it("is closed by default and toggles its searchable panel from the full title row", async () => {
     const user = userEvent.setup();
-    render(<Collapsible title="À savoir">Information secondaire</Collapsible>);
+    const { container } = render(
+      <Collapsible title="À savoir">Information secondaire</Collapsible>
+    );
 
     const trigger = screen.getByRole("button", { name: "À savoir" });
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
     const panel = screen.getByText("Information secondaire").parentElement;
     expect(panel?.getAttribute("hidden")).toBe("until-found");
+    expect(panel?.className).toContain("print:[content-visibility:visible]!");
+    expect(container.querySelector(".lucide-chevron-down")).toBeTruthy();
+    expect(container.querySelector(".lucide-chevron-up")).toBeNull();
 
     await user.click(trigger);
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     expect(panel?.hasAttribute("hidden")).toBe(false);
+    expect(container.querySelector(".lucide-chevron-down")).toBeNull();
+    expect(container.querySelector(".lucide-chevron-up")?.getAttribute("class")).toContain(
+      "size-5"
+    );
 
     trigger.focus();
     await user.keyboard("{Enter}");
@@ -48,9 +57,14 @@ describe("<Collapsible>", () => {
     expect(screen.getByText("−").parentElement?.getAttribute("aria-hidden")).toBe(
       "true"
     );
+    expect(screen.getByText("−").parentElement?.className).toContain("text-xl");
     await waitFor(() =>
       expect(document.querySelector('[data-testid="loaded-icon"]')).toBeTruthy()
     );
+    expect(
+      document.querySelector('[data-testid="loaded-icon"]')?.parentElement
+        ?.parentElement?.className
+    ).toContain("text-xl");
   });
 
   it("allows nested blocks to toggle independently", async () => {
@@ -84,6 +98,9 @@ describe("<Collapsible>", () => {
     expect(root.className).toContain("border-border");
     expect(root.className).toContain("author-class");
     expect(root.style.marginTop).toBe("12px");
+    expect(screen.getByRole("button", { name: "Contour" }).className).toContain(
+      "focus-visible:ring-inset"
+    );
 
     rerender(
       <Collapsible title="Mixte" display="outline-highlight">

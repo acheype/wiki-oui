@@ -32,7 +32,6 @@ import {
 import {
   emitsMarkdownLink,
   findComponentTag,
-  isFreeContentDescriptor,
   isManagedChildrenDescriptor,
   type LiteralValue,
   parseLiteral,
@@ -45,6 +44,7 @@ import {
   type WrapperEdit,
   findFreeContentWrapperAtCursor,
   findWrapperAtCursor,
+  isFreeContentDescriptor,
   wrapperShapeOf,
 } from "./wrapper";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";

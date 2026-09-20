@@ -246,13 +246,6 @@ export function isManagedChildrenDescriptor(
   return descriptor.children !== undefined;
 }
 
-/** A wrapper preserving author-managed MDX declares initial `content:`. */
-export function isFreeContentDescriptor(
-  descriptor: ComponentDescriptor
-): descriptor is ComponentDescriptor & { content: string } {
-  return descriptor.content !== undefined;
-}
-
 // A child descriptor reuses the whole field engine, so its props parse,
 // generate and verify exactly like a root component's. The synthetic
 // descriptor lets generateTag/tagToBuilderState/checkSignature treat a child

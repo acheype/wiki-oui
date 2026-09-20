@@ -63,6 +63,13 @@ export interface FreeContentShape {
   defaults: PropDefaults;
 }
 
+/** A free-content wrapper is explicit: a plain leaf has no initial content. */
+export function isFreeContentDescriptor(
+  descriptor: ComponentDescriptor
+): descriptor is ComponentDescriptor & { content: string } {
+  return descriptor.content !== undefined;
+}
+
 /** Everything the engine needs about a wrapper and its child component. */
 export interface WrapperShape {
   name: string;
@@ -163,29 +170,24 @@ export function findFreeContentWrapperAtCursor(
   text: string,
   offset: number
 ): (FreeContentWrapperMatch & { shape: FreeContentShape }) | null {
-  let best:
-    | (FreeContentWrapperMatch & { shape: FreeContentShape })
-    | null = null;
-  for (const shape of shapes) {
-    const found = findEnclosing(shape.name, text, offset);
-    if (!found || (best && found.from <= best.from)) continue;
-    const { values, unknownAttributes } = tagToBuilderState(
-      shape.descriptor,
-      shape.defaults,
-      found.open
-    );
-    best = {
-      shape,
-      from: found.from,
-      to: found.to,
-      draft: {
-        values,
-        unknownAttributes,
-        content: text.slice(found.contentStart, found.closeStart),
-      },
-    };
-  }
-  return best;
+  const best = findInnermostShapeAtCursor(shapes, text, offset);
+  if (!best) return null;
+  const { shape, tag } = best;
+  const { values, unknownAttributes } = tagToBuilderState(
+    shape.descriptor,
+    shape.defaults,
+    tag.open
+  );
+  return {
+    shape,
+    from: tag.from,
+    to: tag.to,
+    draft: {
+      values,
+      unknownAttributes,
+      content: text.slice(tag.contentStart, tag.closeStart),
+    },
+  };
 }
 
 // Finds the innermost `<Name>…</Name>` of one of the given shapes enclosing
@@ -197,15 +199,14 @@ export function findWrapperAtCursor(
   text: string,
   offset: number
 ): (WrapperMatch & { shape: WrapperShape }) | null {
-  let best: (WrapperMatch & { shape: WrapperShape; from: number }) | null = null;
-  for (const shape of shapes) {
-    const found = findEnclosing(shape.name, text, offset);
-    if (!found) continue;
-    if (!best || found.from > best.from) {
-      best = { shape, ...found, draft: readWrapper(shape, text, found) };
-    }
-  }
-  return best;
+  const best = findInnermostShapeAtCursor(shapes, text, offset);
+  if (!best) return null;
+  return {
+    shape: best.shape,
+    from: best.tag.from,
+    to: best.tag.to,
+    draft: readWrapper(best.shape, text, best.tag),
+  };
 }
 
 interface EnclosingTag {
@@ -214,6 +215,19 @@ interface EnclosingTag {
   open: ParsedTag;
   contentStart: number;
   closeStart: number;
+}
+
+function findInnermostShapeAtCursor<Shape extends { name: string }>(
+  shapes: Shape[],
+  text: string,
+  offset: number
+): { shape: Shape; tag: EnclosingTag } | null {
+  let best: { shape: Shape; tag: EnclosingTag } | null = null;
+  for (const shape of shapes) {
+    const tag = findEnclosing(shape.name, text, offset);
+    if (tag && (!best || tag.from > best.tag.from)) best = { shape, tag };
+  }
+  return best;
 }
 
 // Nearest `<name …>` starting at or before `offset` whose matching close ends

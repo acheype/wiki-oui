@@ -53,6 +53,41 @@ describe("validateDescriptor", () => {
     expect(descriptorDefaults(descriptor).toggleIcon).toBe("chevron");
   });
 
+  it("rejects a radio field without a default", () => {
+    expect(() =>
+      validateDescriptor("collapsible.yaml", {
+        label: "Bloc dépliable",
+        properties: {
+          toggleIcon: {
+            label: "Symbole de dépliage",
+            type: "radio",
+            options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+          },
+        },
+      })
+    ).toThrow(
+      'collapsible.yaml: radio field "toggleIcon" needs a default among its options (chevron, plus-minus), got undefined'
+    );
+  });
+
+  it("rejects a radio default outside its options", () => {
+    expect(() =>
+      validateDescriptor("collapsible.yaml", {
+        label: "Bloc dépliable",
+        properties: {
+          toggleIcon: {
+            label: "Symbole de dépliage",
+            type: "radio",
+            default: "triangle",
+            options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+          },
+        },
+      })
+    ).toThrow(
+      'collapsible.yaml: radio field "toggleIcon" needs a default among its options (chevron, plus-minus), got "triangle"'
+    );
+  });
+
   it("accepts initial content for a free-content wrapper", () => {
     const descriptor = validateDescriptor("collapsible.yaml", {
       label: "Bloc dépliable",
