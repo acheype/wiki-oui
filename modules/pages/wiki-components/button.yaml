@@ -28,7 +28,7 @@ properties:
       info: Info
       warning: Attention
       danger: Danger
-      link: Lien
+      transparent: Transparent
   title:
     label: Texte affiché au survol
     type: text

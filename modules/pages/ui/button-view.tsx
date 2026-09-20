@@ -45,7 +45,7 @@ const colorStyles: Record<
     className: "bg-warning text-warning-foreground shadow-xs hover:bg-warning/90",
   },
   danger: { variant: "destructive" },
-  link: { variant: "link" },
+  transparent: { variant: "link" },
 };
 
 // Two looks, one semantic (CONTEXT.md): a full shadcn button in page content,

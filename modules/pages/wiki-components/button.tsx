@@ -10,7 +10,7 @@ export type ButtonColor =
   | "info"
   | "warning"
   | "danger"
-  | "link";
+  | "transparent";
 
 export type ButtonProps = {
   /** Iconify id from the embedded sets, e.g. `lucide:settings`. */
