@@ -14,7 +14,6 @@ export type CollapsibleDisplay =
   | "highlight";
 export type CollapsibleColor =
   | "none"
-  | "default"
   | "primary"
   | "secondary-1"
   | "secondary-2"
@@ -39,9 +38,8 @@ export type CollapsibleProps = {
 
 const outlineColors: Record<CollapsibleColor, string> = {
   none: "border-border text-foreground",
-  default: "border-foreground text-foreground",
   primary: "border-primary text-primary",
-  "secondary-1": "border-secondary-foreground text-secondary-foreground",
+  "secondary-1": "border-secondary-1 text-secondary-1",
   "secondary-2": "border-secondary-2 text-secondary-2",
   success: "border-success text-success",
   info: "border-info text-info",
@@ -49,37 +47,45 @@ const outlineColors: Record<CollapsibleColor, string> = {
   danger: "border-destructive text-destructive",
 };
 
-const backgroundColors: Record<Exclude<CollapsibleColor, "none">, string> = {
-  default: "bg-foreground/10",
-  primary: "bg-primary/10",
-  "secondary-1": "bg-secondary-foreground/10",
-  "secondary-2": "bg-secondary-2/10",
-  success: "bg-success/10",
-  info: "bg-info/10",
-  warning: "bg-warning/10",
-  danger: "bg-destructive/10",
-};
-
-const openBackgroundColors: Record<Exclude<CollapsibleColor, "none">, string> = {
-  default: "data-open:bg-foreground/10",
-  primary: "data-open:bg-primary/10",
-  "secondary-1": "data-open:bg-secondary-foreground/10",
-  "secondary-2": "data-open:bg-secondary-2/10",
-  success: "data-open:bg-success/10",
-  info: "data-open:bg-info/10",
-  warning: "data-open:bg-warning/10",
-  danger: "data-open:bg-destructive/10",
-};
-
-const hoverBackgroundColors: Record<Exclude<CollapsibleColor, "none">, string> = {
-  default: "hover:bg-foreground/10",
-  primary: "hover:bg-primary/10",
-  "secondary-1": "hover:bg-secondary-foreground/10",
-  "secondary-2": "hover:bg-secondary-2/10",
-  success: "hover:bg-success/10",
-  info: "hover:bg-info/10",
-  warning: "hover:bg-warning/10",
-  danger: "hover:bg-destructive/10",
+const backgroundColors: Record<
+  Exclude<CollapsibleColor, "none">,
+  { background: string; open: string; hover: string }
+> = {
+  primary: {
+    background: "bg-primary-subtle",
+    open: "data-open:bg-primary-subtle",
+    hover: "hover:bg-primary-subtle",
+  },
+  "secondary-1": {
+    background: "bg-secondary-1-subtle",
+    open: "data-open:bg-secondary-1-subtle",
+    hover: "hover:bg-secondary-1-subtle",
+  },
+  "secondary-2": {
+    background: "bg-secondary-2-subtle",
+    open: "data-open:bg-secondary-2-subtle",
+    hover: "hover:bg-secondary-2-subtle",
+  },
+  success: {
+    background: "bg-success-subtle",
+    open: "data-open:bg-success-subtle",
+    hover: "hover:bg-success-subtle",
+  },
+  info: {
+    background: "bg-info-subtle",
+    open: "data-open:bg-info-subtle",
+    hover: "hover:bg-info-subtle",
+  },
+  warning: {
+    background: "bg-warning-subtle",
+    open: "data-open:bg-warning-subtle",
+    hover: "hover:bg-warning-subtle",
+  },
+  danger: {
+    background: "bg-destructive-subtle",
+    open: "data-open:bg-destructive-subtle",
+    hover: "hover:bg-destructive-subtle",
+  },
 };
 
 export function Collapsible({
@@ -95,8 +101,8 @@ export function Collapsible({
   children,
 }: CollapsibleProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const resolvedColor = color ?? (display === "outline" ? "none" : "default");
-  const highlightedColor = resolvedColor === "none" ? "default" : resolvedColor;
+  const resolvedColor = color ?? (display === "outline" ? "none" : "primary");
+  const highlightedColor = resolvedColor === "none" ? "primary" : resolvedColor;
   const dynamicHighlight =
     display === "outline-highlight" || display === "highlight";
 
@@ -104,7 +110,7 @@ export function Collapsible({
     <CollapsiblePrimitive.Trigger
       className={cn(
         "group/trigger flex w-full items-center gap-2 rounded-[inherit] px-4 py-3 text-left font-medium outline-none transition-colors focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 motion-reduce:transition-none",
-        dynamicHighlight && !open && hoverBackgroundColors[highlightedColor]
+        dynamicHighlight && !open && backgroundColors[highlightedColor].hover
       )}
     >
       {icon && (
@@ -145,8 +151,9 @@ export function Collapsible({
         "not-prose my-4 overflow-hidden rounded-lg transition-colors motion-reduce:transition-none print:border print:border-border print:bg-transparent print:text-foreground",
         display !== "highlight" && "border",
         outlineColors[resolvedColor],
-        display === "outline-tinted" && backgroundColors[highlightedColor],
-        dynamicHighlight && openBackgroundColors[highlightedColor],
+        display === "outline-tinted" &&
+          backgroundColors[highlightedColor].background,
+        dynamicHighlight && backgroundColors[highlightedColor].open,
         className
       )}
       style={style}

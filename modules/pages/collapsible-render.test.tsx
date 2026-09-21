@@ -116,13 +116,18 @@ describe("<Collapsible>", () => {
       "focus-visible:ring-inset"
     );
 
+    rerender(<Collapsible title="Teinté" display="outline-tinted">Texte</Collapsible>);
+    expect(root.className).toContain("border");
+    expect(root.className).toContain("border-primary");
+    expect(root.className).toContain("bg-primary-subtle");
+
     rerender(
-      <Collapsible title="Teinté" display="outline-tinted" color="primary">
+      <Collapsible title="Secondaire" display="outline-tinted" color="secondary-1">
         Texte
       </Collapsible>
     );
-    expect(root.className).toContain("border");
-    expect(root.className).toContain("bg-primary/10");
+    expect(root.className).toContain("border-secondary-1");
+    expect(root.className).toContain("bg-secondary-1-subtle");
 
     rerender(
       <Collapsible title="Mixte" display="outline-highlight" color="success">
@@ -130,9 +135,9 @@ describe("<Collapsible>", () => {
       </Collapsible>
     );
     expect(root.className).toContain("border");
-    expect(root.className).toContain("data-open:bg-success/10");
+    expect(root.className).toContain("data-open:bg-success-subtle");
     expect(screen.getByRole("button", { name: "Mixte" }).className).toContain(
-      "hover:bg-success/10"
+      "hover:bg-success-subtle"
     );
 
     rerender(
@@ -140,7 +145,7 @@ describe("<Collapsible>", () => {
         Texte
       </Collapsible>
     );
-    expect(root.className).toContain("data-open:bg-destructive/10");
+    expect(root.className).toContain("data-open:bg-destructive-subtle");
     expect(root.className.split(" ")).not.toContain("border");
   });
 
@@ -153,8 +158,8 @@ describe("<Collapsible>", () => {
     );
 
     const trigger = screen.getByRole("button", { name: "Dynamique" });
-    expect(trigger.className).toContain("hover:bg-info/10");
+    expect(trigger.className).toContain("hover:bg-info-subtle");
     await user.click(trigger);
-    expect(trigger.className).not.toContain("hover:bg-info/10");
+    expect(trigger.className).not.toContain("hover:bg-info-subtle");
   });
 });

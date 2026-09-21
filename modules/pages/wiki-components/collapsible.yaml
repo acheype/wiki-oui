@@ -42,7 +42,6 @@ properties:
       display: outline
     options:
       none: Aucune
-      default: Défaut
       primary: Primaire
       secondary-1: Secondaire 1
       secondary-2: Secondaire 2
@@ -54,11 +53,10 @@ properties:
     label: Couleur
     type: list
     prop: color
-    default: default
+    default: primary
     showif:
       display: /^(outline-tinted|outline-highlight|highlight)$/
     options:
-      default: Défaut
       primary: Primaire
       secondary-1: Secondaire 1
       secondary-2: Secondaire 2

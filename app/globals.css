@@ -40,6 +40,42 @@
   --color-info-foreground: var(--info-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-primary-subtle: color-mix(
+    in oklch,
+    var(--primary) var(--subtle-strength),
+    var(--background)
+  );
+  --color-secondary-1-subtle: color-mix(
+    in oklch,
+    var(--secondary-1) var(--subtle-strength),
+    var(--background)
+  );
+  --color-secondary-2-subtle: color-mix(
+    in oklch,
+    var(--secondary-2) var(--subtle-strength),
+    var(--background)
+  );
+  --color-success-subtle: color-mix(
+    in oklch,
+    var(--success) var(--subtle-strength),
+    var(--background)
+  );
+  --color-info-subtle: color-mix(
+    in oklch,
+    var(--info) var(--subtle-strength),
+    var(--background)
+  );
+  --color-warning-subtle: color-mix(
+    in oklch,
+    var(--warning) var(--subtle-strength),
+    var(--background)
+  );
+  --color-destructive-subtle: color-mix(
+    in oklch,
+    var(--destructive) var(--subtle-strength),
+    var(--background)
+  );
+  --color-secondary-1: var(--secondary-1);
   --color-secondary-2: var(--secondary-2);
   --color-secondary-2-foreground: var(--secondary-2-foreground);
   --color-accent-foreground: var(--accent-foreground);
@@ -72,7 +108,13 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary-1: oklch(0.556 0 0);
+  --secondary-surface-strength: 7%;
+  --secondary: color-mix(
+    in oklch,
+    var(--secondary-1) var(--secondary-surface-strength),
+    var(--background)
+  );
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
@@ -88,6 +130,7 @@
   --warning-foreground: oklch(0.205 0 0);
   --secondary-2: oklch(0.371 0 0);
   --secondary-2-foreground: oklch(0.985 0 0);
+  --subtle-strength: 14%;
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -129,7 +172,13 @@
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary-1: oklch(0.556 0 0);
+  --secondary-surface-strength: 30%;
+  --secondary: color-mix(
+    in oklch,
+    var(--secondary-1) var(--secondary-surface-strength),
+    var(--background)
+  );
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
