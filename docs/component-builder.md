@@ -49,6 +49,7 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | Clé | Rôle |
 | --- | --- |
 | `label` | Libellé du champ (français en clair — l'i18n est au backlog) |
+| `checkboxLabel` | Pour une `checkbox`, libellé placé à côté de la case lorsque `label` sert de titre au-dessus |
 | `hint` | Indication affichée sous le champ |
 | `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `radio` · `page-list` · `file-list` · `divider` |
 | `options` | Pour `list` et `radio` : map `valeur: libellé` (la valeur est celle écrite dans la prop) |
@@ -59,7 +60,7 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | `advanced` | Masqué tant que « paramètres avancés » n'est pas déplié |
 | `showif` | Visibilité conditionnelle (voir ci-dessous) |
 
-Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Le type `radio` présente les choix d'une prop chaîne sous forme de boutons radio. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée, Entrée prend la suggestion surlignée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
+Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Une `checkbox` affiche normalement `label` à côté de la case ; avec `checkboxLabel`, `label` devient le titre du champ et `checkboxLabel` le texte de la case. Le type `radio` présente les choix d'une prop chaîne sous forme de boutons radio. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée, Entrée prend la suggestion surlignée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
 
 ### Insertion et réédition : toujours symétriques
 

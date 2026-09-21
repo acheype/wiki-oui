@@ -166,6 +166,8 @@ const propValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 // validateDescriptor — Zod only covers the shape.
 const descriptorFieldSchema = z.object({
   label: z.string(),
+  /** Optional control text when a checkbox needs a distinct field heading. */
+  checkboxLabel: z.string().optional(),
   hint: z.string().optional(),
   type: z.enum(FIELD_TYPES),
   // Prop-name override (docs/entries-view.md): several fields with disjoint
@@ -393,6 +395,11 @@ function validatePropertiesBlock(
   const path = (...rest: (string | number)[]) => [...base, "properties", ...rest];
   for (const [field, spec] of Object.entries(properties)) {
     if (spec.type === "divider") continue;
+    if (spec.checkboxLabel !== undefined && spec.type !== "checkbox") {
+      throw new Error(
+        `${at(path(field, "checkboxLabel"), path(field))}: field "${field}" uses checkboxLabel but is not a checkbox`
+      );
+    }
     for (const [target, condition] of Object.entries(spec.showif ?? {})) {
       const where = at(path(field, "showif", target), path(field));
       if (!(target in properties)) {

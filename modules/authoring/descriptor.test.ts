@@ -88,6 +88,23 @@ describe("validateDescriptor", () => {
     );
   });
 
+  it("rejects a checkbox label on another field type", () => {
+    expect(() =>
+      validateDescriptor("collapsible.yaml", {
+        label: "Bloc dépliable",
+        properties: {
+          title: {
+            label: "Titre",
+            checkboxLabel: "Déplié par défaut",
+            type: "text",
+          },
+        },
+      })
+    ).toThrow(
+      'collapsible.yaml: field "title" uses checkboxLabel but is not a checkbox'
+    );
+  });
+
   it("accepts initial content for a free-content wrapper", () => {
     const descriptor = validateDescriptor("collapsible.yaml", {
       label: "Bloc dépliable",

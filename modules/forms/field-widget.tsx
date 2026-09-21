@@ -91,6 +91,8 @@ export type WidgetType = FieldType | FormFieldType;
 export interface FieldWidgetSpec {
   type: WidgetType;
   label: string;
+  /** Control text beside a checkbox when `label` is used as a field heading. */
+  checkboxLabel?: string;
   hint?: string;
   required?: boolean;
   placeholder?: string;
@@ -196,16 +198,34 @@ export function Field({
   }
 
   if (spec.type === "checkbox") {
+    const control = (
+      <Label className="flex items-center gap-2 font-normal">
+        <Checkbox
+          checked={value === true}
+          onCheckedChange={(checked) => onChange(checked)}
+        />
+        {spec.checkboxLabel ?? spec.label}
+        {spec.checkboxLabel === undefined && spec.required && <RequiredMark />}
+      </Label>
+    );
+
+    if (spec.checkboxLabel !== undefined) {
+      return (
+        <fieldset className="min-w-0">
+          <legend className="mb-2 text-sm leading-none font-medium">
+            {spec.label}
+            {spec.required && <RequiredMark />}
+          </legend>
+          {control}
+          <FieldHint hint={spec.hint} />
+          <FieldError error={error} />
+        </fieldset>
+      );
+    }
+
     return (
       <div>
-        <Label className="flex items-center gap-2 font-normal">
-          <Checkbox
-            checked={value === true}
-            onCheckedChange={(checked) => onChange(checked)}
-          />
-          {spec.label}
-          {spec.required && <RequiredMark />}
-        </Label>
+        {control}
         <FieldHint hint={spec.hint} />
         <FieldError error={error} />
       </div>

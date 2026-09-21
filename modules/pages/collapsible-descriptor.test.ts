@@ -11,6 +11,14 @@ describe("Collapsible ComponentBuilder descriptor", () => {
 
     const outlineColor = collapsible?.descriptor.properties.outlineColor;
     const highlightColor = collapsible?.descriptor.properties.highlightColor;
+    const defaultOpen = collapsible?.descriptor.properties.defaultOpen;
+
+    expect(defaultOpen).toMatchObject({
+      label: "Affichage initial",
+      checkboxLabel: "Déplié par défaut",
+      type: "checkbox",
+      default: false,
+    });
 
     expect(outlineColor).toMatchObject({
       default: "none",

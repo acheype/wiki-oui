@@ -11,7 +11,8 @@ properties:
     value: Titre de mon bloc dépliable
     required: true
   defaultOpen:
-    label: Déplié par défaut
+    label: Affichage initial
+    checkboxLabel: Déplié par défaut
     type: checkbox
     default: false
   icon:
