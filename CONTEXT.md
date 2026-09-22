@@ -109,6 +109,10 @@ _Avoid_: auto-listing des pages, barre de navigation codée en dur
 Composant intégré affichant un bouton défini par un libellé (`text`), un lien (`link`, page du wiki ou URL) et éventuellement une icône (`icon`, un identifiant Iconify complet — `lucide:settings` — choisi au sélecteur d'icônes depuis la v0.2 ; les noms français de la liste blanche du MVP n'existent plus). S'y ajoutent la couleur, le texte affiché au survol, l'ouverture du lien en modale, la position et l'ouverture dans une nouvelle fenêtre. Dans le contenu d'une page il prend l'apparence d'un bouton pleine forme ; dans un slot du bandeau, celle d'un bouton discret de barre de navigation — la différence est purement CSS. Utilisé comme item parent d'un `<Menu>`, il en devient le déclencheur (ex. la roue crantée de `page-rapide-haut`). Son interface graphique de configuration est son ComponentBuilder (`button.yaml`).
 _Avoid_: bouton d'action serveur (il ne déclenche pas de mutation)
 
+**Bloc dépliable (`<Collapsible>`)**:
+Composant **wrapper** qui présente sous un titre un contenu secondaire que le lecteur peut afficher ou masquer, plié par défaut.
+_Avoid_: bloc dépliant, panel, accordéon (un accordéon regroupe plusieurs volets)
+
 **Onglets (`<Tabs>`)**:
 Composant **wrapper** qui présente plusieurs **onglets** dans la page, chacun un `<Tab>` portant un titre, une icône facultative et son contenu MDX écrit entre ses balises. `<Tabs>` règle l'affichage (souligné, groupé, pastilles, dossiers), le sens (horizontal, vertical), la pleine largeur et l'onglet ouvert par défaut (le premier sinon). Un onglet est adressable par l'ancre `#<slug>` dérivée de son titre. `<Tab>` n'a pas de descripteur : il ne s'insère pas seul, ses onglets se créent dans le ComponentBuilder de `<Tabs> (ADR 0031).
 _Avoid_: onglet pour désigner `<Tabs>` (c'est le groupe)
