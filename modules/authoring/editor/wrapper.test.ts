@@ -12,6 +12,8 @@ import {
   findWrapperAtCursor,
   generateFreeContentWrapper,
   generateWrapper,
+  moveManagedChild,
+  removeManagedChild,
   wrapperShapeOf,
 } from "./wrapper";
 
@@ -37,6 +39,7 @@ function tabsDescriptor(): ComponentDescriptor {
     children: {
       component: "Tab",
       label: "Onglet",
+      anchorField: "title",
       properties: {
         title: { label: "Titre", type: "text", required: true },
         icon: { label: "Icône", type: "icon" },
@@ -59,7 +62,7 @@ function collapsibleShape(): FreeContentShape {
     name: "Collapsible",
     descriptor: {
       label: "Bloc dépliable",
-      content: "Contenu du bloc dépliable à modifier",
+      initialContent: "Contenu du bloc dépliable à modifier",
       properties: {
         title: { label: "Titre", type: "text", required: true },
         defaultOpen: {
@@ -241,5 +244,95 @@ a
     const deleted = generateWrapper(shape, { ...found!.draft, children: [b] });
     expect(deleted).not.toContain("Présentation");
     expect(deleted).toContain("Contenu deux");
+  });
+
+  it("keeps direct content in its sequence slots while children move", () => {
+    const text = `<Tabs>avant
+  <Tab title="Présentation">
+Contenu un
+  </Tab>entre<Button text="Garder" />
+  <Tab title="Contact" data-extra="oui">
+Contenu deux
+  </Tab>après
+</Tabs>`;
+    const found = findWrapperAtCursor([shape], text, text.indexOf("Contenu deux"));
+    const moved = moveManagedChild(found!.draft, 1, 0);
+    const generated = generateWrapper(shape, moved);
+
+    expect(generated).toBe(`<Tabs>avant
+  <Tab title="Contact" data-extra="oui">
+Contenu deux
+  </Tab>entre<Button text="Garder" />
+  <Tab title="Présentation">
+Contenu un
+  </Tab>après
+</Tabs>`);
+  });
+
+  it("does not manage expected child tags nested inside direct content", () => {
+    const text = `<Tabs>
+  <div>
+    <Tab title="Nested">
+Nested content
+    </Tab>
+  </div>
+  <Tab title="Direct">
+Direct content
+  </Tab>
+</Tabs>`;
+    const found = findWrapperAtCursor(
+      [shape],
+      text,
+      text.indexOf("Direct content")
+    );
+
+    expect(found!.draft.children.map((child) => child.values.title)).toEqual([
+      "Direct",
+    ]);
+    expect(found!.draft.interstitial?.join("")).toContain(
+      '<Tab title="Nested">'
+    );
+    expect(generateWrapper(shape, found!.draft)).toBe(text);
+  });
+
+  it("keeps expected child tags inside a fragment as direct content", () => {
+    const text = `<Tabs>
+  <>
+    <Tab title="Nested">Nested content</Tab>
+  </>
+  <Tab title="Direct">
+Direct content
+  </Tab>
+</Tabs>`;
+    const found = findWrapperAtCursor(
+      [shape],
+      text,
+      text.indexOf("Direct content")
+    );
+
+    expect(found!.draft.children.map((child) => child.values.title)).toEqual([
+      "Direct",
+    ]);
+    expect(generateWrapper(shape, found!.draft)).toBe(text);
+  });
+
+  it("removes a child without removing either surrounding fragment", () => {
+    const text = `<Tabs>avant
+  <Tab title="Présentation">
+Contenu un
+  </Tab>entre
+  <Tab title="Contact">
+Contenu deux
+  </Tab>après
+</Tabs>`;
+    const found = findWrapperAtCursor([shape], text, text.indexOf("Contenu deux"));
+    const generated = generateWrapper(shape, removeManagedChild(found!.draft, 0));
+
+    expect(generated).toBe(`<Tabs>avant
+  entre
+  <Tab title="Contact">
+Contenu deux
+  </Tab>après
+</Tabs>`);
   });
 });

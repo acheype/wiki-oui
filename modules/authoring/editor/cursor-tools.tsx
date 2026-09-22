@@ -143,6 +143,8 @@ export type ComponentInfo = Range & {
   wrapper?: WrapperEdit;
   /** Exact inner MDX of a free-content wrapper. */
   content?: string;
+  /** Source ranges of direct managed children, used only to resolve the contextual pencil. */
+  managedChildRanges?: Range[];
 };
 
 // Enclosing well-formed component tag whose descriptor is known. A self-closing
@@ -155,7 +157,15 @@ export function componentAtCursor(
 ): ComponentInfo | null {
   const range = state.selection.main;
   if (!range.empty) return null;
-  return leafAtCursor(state, builders) ?? wrapperAtCursor(state, builders);
+  const leaf = leafAtCursor(state, builders);
+  const wrapper = wrapperAtCursor(state, builders);
+  if (
+    leaf &&
+    wrapper?.managedChildRanges?.some((child) => child.from === leaf.from)
+  ) {
+    return wrapper;
+  }
+  return leaf ?? wrapper;
 }
 
 function leafAtCursor(
@@ -210,8 +220,15 @@ function wrapperAtCursor(
     offset
   );
   const freeFound = findFreeContentWrapperAtCursor(free, text, offset);
+  const directChild = managedFound?.childRanges.find(
+    (child) => child.from <= offset && offset <= child.to
+  );
 
-  if (freeFound && (!managedFound || freeFound.from > managedFound.from)) {
+  if (
+    freeFound &&
+    (!managedFound ||
+      (freeFound.from > managedFound.from && freeFound.from !== directChild?.from))
+  ) {
     const spec = free.find((builder) => builder.name === freeFound.shape.name);
     if (!spec) return null;
     return {
@@ -237,7 +254,9 @@ function wrapperAtCursor(
     wrapper: {
       children: managedFound.draft.children,
       defaultChild: managedFound.draft.defaultChild,
+      interstitial: managedFound.draft.interstitial,
     },
+    managedChildRanges: managedFound.childRanges,
   };
 }
 

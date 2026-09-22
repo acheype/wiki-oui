@@ -34,7 +34,11 @@ function buttonDescriptor(): ComponentDescriptor {
   return {
     label: "Bouton",
     properties: {
-      text: { label: "Texte", type: "text", value: "Mon bouton" },
+      text: {
+        label: "Texte",
+        type: "text",
+        initialValue: "Mon bouton",
+      },
       link: { label: "Lien", type: "page-list", required: true },
       color: {
         label: "Couleur",
@@ -131,12 +135,12 @@ describe("checkSignature", () => {
     );
   });
 
-  it("flags a value whose type does not fit the prop", () => {
+  it("flags an initial value whose type does not fit the prop", () => {
     const descriptor = buttonDescriptor();
-    descriptor.properties.text.value = 42;
+    descriptor.properties.text.initialValue = 42;
     const { errors } = checkSignature("Button", descriptor, buttonSignature());
     expect(errors).toContain(
-      'modules/pages/wiki-components/button.yaml: field "text" value 42 does not fit prop "text": string in <Button> (modules/pages/wiki-components/button.tsx)'
+      'modules/pages/wiki-components/button.yaml: field "text" initialValue 42 does not fit prop "text": string in <Button> (modules/pages/wiki-components/button.tsx)'
     );
   });
 

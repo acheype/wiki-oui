@@ -3,12 +3,12 @@
 label: Bloc dépliable
 description: Masquer une information secondaire jusqu'au clic
 previewHeight: 260px
-content: Contenu du bloc dépliable à modifier
+initialContent: Contenu du bloc dépliable à modifier
 properties:
   title:
     label: Titre
     type: text
-    value: Titre de mon bloc dépliable
+    initialValue: Titre de mon bloc dépliable
     required: true
   defaultOpen:
     label: Affichage initial

@@ -108,27 +108,62 @@ describe("validateDescriptor", () => {
   it("accepts initial content for a free-content wrapper", () => {
     const descriptor = validateDescriptor("collapsible.yaml", {
       label: "Bloc dépliable",
-      content: "Contenu du bloc dépliable à modifier",
+      initialContent: "Contenu du bloc dépliable à modifier",
       properties: {},
     });
 
-    expect(descriptor.content).toBe("Contenu du bloc dépliable à modifier");
+    expect(descriptor.initialContent).toBe(
+      "Contenu du bloc dépliable à modifier"
+    );
   });
 
   it("rejects a descriptor mixing free content and managed children", () => {
     expect(() =>
       validateDescriptor("mixed.yaml", {
         label: "Ambigu",
-        content: "Texte",
+        initialContent: "Texte",
         properties: {},
         children: {
           component: "Item",
           label: "Élément",
-          properties: {},
+          anchorField: "title",
+          properties: {
+            title: {
+              label: "Titre",
+              type: "text",
+              initialValue: "Élément",
+              required: true,
+            },
+          },
         },
       })
     ).toThrow(
-      "mixed.yaml: a descriptor cannot declare both content and children"
+      "mixed.yaml: a descriptor cannot declare both initialContent and children"
+    );
+  });
+
+  it("accepts initial content for every managed child", () => {
+    const descriptor = validateDescriptor("tabs.yaml", {
+      label: "Onglets",
+      properties: {},
+      children: {
+        component: "Tab",
+        label: "Onglet",
+        anchorField: "title",
+        initialContent: "Contenu de l'onglet à modifier",
+        properties: {
+          title: {
+            label: "Titre",
+            type: "text",
+            initialValue: "Onglet",
+            required: true,
+          },
+        },
+      },
+    });
+
+    expect(descriptor.children?.initialContent).toBe(
+      "Contenu de l'onglet à modifier"
     );
   });
 
@@ -420,9 +455,9 @@ describe("generateTag", () => {
     ).toBe('<Button text="Mon bouton" />');
   });
 
-  it("always writes a field pre-filled by a YAML value, even unchanged", () => {
+  it("always writes a field pre-filled by initialValue, even unchanged", () => {
     const descriptor = fullButtonDescriptor();
-    descriptor.properties.color.value = "primary";
+    descriptor.properties.color.initialValue = "primary";
     expect(
       generateTag("Button", descriptor, fullButtonDefaults, {
         text: "Mon bouton",
@@ -1044,7 +1079,15 @@ describe("wrapper children (ADR 0031)", () => {
       children: {
         component: "Tab",
         label: "Onglet",
-        properties: { title: { label: "Titre", type: "text", required: true } },
+        anchorField: "title",
+        properties: {
+          title: {
+            label: "Titre",
+            type: "text",
+            initialValue: "Onglet",
+            required: true,
+          },
+        },
       },
     };
     expect(() =>
@@ -1059,7 +1102,15 @@ describe("wrapper children (ADR 0031)", () => {
       children: {
         component: "Tab",
         label: "Onglet",
-        properties: { color: { label: "C", type: "list", options: { a: "A" } } },
+        anchorField: "color",
+        properties: {
+          color: {
+            label: "C",
+            type: "list",
+            options: { a: "A" },
+            required: true,
+          },
+        },
       },
     };
     expect(() =>
@@ -1071,10 +1122,51 @@ describe("wrapper children (ADR 0031)", () => {
     const descriptor = {
       label: "Onglets",
       properties: {},
-      children: { component: "", label: "Onglet", properties: {} },
+      children: {
+        component: "",
+        label: "Onglet",
+        anchorField: "title",
+        properties: {
+          title: { label: "Titre", type: "text", required: true },
+        },
+      },
     };
     expect(() =>
       validateDescriptor("modules/pages/wiki-components/tabs.yaml", descriptor)
     ).toThrow();
+  });
+
+  it("rejects an anchorField that is absent or optional", () => {
+    expect(() =>
+      validateDescriptor("tabs.yaml", {
+        label: "Onglets",
+        properties: {},
+        children: {
+          component: "Tab",
+          label: "Onglet",
+          anchorField: "name",
+          properties: {
+            title: { label: "Titre", type: "text", required: true },
+          },
+        },
+      })
+    ).toThrow('anchorField points at unknown field "name"');
+
+    expect(() =>
+      validateDescriptor("tabs.yaml", {
+        label: "Onglets",
+        properties: {},
+        children: {
+          component: "Tab",
+          label: "Onglet",
+          anchorField: "title",
+          properties: {
+          title: { label: "Titre", type: "text" },
+          },
+        },
+      })
+    ).toThrow(
+      'anchorField "title" must point at a required, always-visible string field with a non-empty initialValue'
+    );
   });
 });

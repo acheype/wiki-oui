@@ -105,8 +105,7 @@ interface CheckContext {
   file: string;
   yamlFile: string;
   // Prefix under which this block's fields live in the YAML (["children"] for a
-  // wrapper's child, [] for a root component) — so a message points at the
-  // right line even though the child has no descriptor file of its own.
+  // wrapper's contextual child surface, [] for a root component).
   pathBase: (string | number)[];
   lineOf?: LineLookup;
 }
@@ -135,8 +134,8 @@ export function checkSignature(
   descriptor: ComponentDescriptor,
   signature: ComponentSignature,
   lineOf?: LineLookup,
-  // A wrapper's child is checked against the parent's YAML (the child has
-  // none), its fields living under `children:` — hence the overrides.
+  // A wrapper's contextual child surface is checked against the parent's YAML,
+  // its fields living under `children:` — hence the overrides.
   options?: { yamlFile?: string; pathBase?: (string | number)[] }
 ): SignatureCheck {
   const errors: string[] = [];
@@ -185,11 +184,14 @@ export function checkSignature(
       checkDrift(ctx, field, spec.default, prop, errors, warnings);
     }
 
-    // `value` is a pre-fill, always written; verified in type only, never for
-    // drift — it may legitimately differ from the component default.
-    if (spec.value !== undefined && !valueFitsType(spec.value, prop.type)) {
+    // `initialValue` is a pre-fill, always written; verified in type only,
+    // never for drift — it may legitimately differ from the component default.
+    if (
+      spec.initialValue !== undefined &&
+      !valueFitsType(spec.initialValue, prop.type)
+    ) {
       errors.push(
-        `${yamlRef(ctx, ["properties", field, "value"], ["properties", field])}: field "${field}" value ${show(spec.value)} does not fit prop "${propName}": ${describeType(prop.type)} in <${name}> (${tsxRef(ctx, prop.line)})`
+        `${yamlRef(ctx, ["properties", field, "initialValue"], ["properties", field])}: field "${field}" initialValue ${show(spec.initialValue)} does not fit prop "${propName}": ${describeType(prop.type)} in <${name}> (${tsxRef(ctx, prop.line)})`
       );
     }
   }
@@ -582,8 +584,8 @@ export async function verifyDescriptorSignatures(
     skipAddingFilesFromTsConfig: true,
   });
 
-  // A wrapper's child (ADR 0031) is a registry component with no descriptor:
-  // locate its source by tag name across every module's wiki-components/.
+  // A wrapper's child (ADR 0031) is always a registry component, whether or
+  // not it also has an autonomous descriptor. Locate its source by tag name.
   const allComponents = await listWikiComponentFiles(".tsx");
   const componentPathOf = (tag: string): string | undefined => {
     const file = allComponents.find(({ base }) => pascalCase(base) === tag);

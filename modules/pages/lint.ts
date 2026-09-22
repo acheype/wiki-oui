@@ -6,8 +6,7 @@ import {
   type PropKind,
   type PropValue,
   type PropValues,
-  CHILD_SLUG_FIELD,
-  childSlug,
+  childAnchorSlug,
   fieldProp,
   isManagedChildrenDescriptor,
   propKind,
@@ -50,14 +49,14 @@ export function lintPageSource(
   const known = new Set(registry);
   const specs = new Map(builders.map((spec) => [spec.name, spec]));
 
-  // Anchor slugs of every wrapper child (<Tab>) on the page: a slug shared by
-  // two tabs makes a `#slug` link ambiguous, so it is flagged after the walk.
-  const childComponents = new Set(
+  // Managed children derive anchors only in the direct parent context that
+  // owns them. A standalone <Collapsible> is not an accordion anchor.
+  const managedWrappers = new Map(
     builders
       .filter((spec) => isManagedChildrenDescriptor(spec.descriptor))
-      .map((spec) => spec.descriptor.children!.component)
+      .map((spec) => [spec.name, spec] as const)
   );
-  const tabSlugs: { slug: string; line?: number }[] = [];
+  const anchorSlugs: { slug: string; line?: number }[] = [];
 
   // MDX that does not parse cannot be walked — and saving must stay possible:
   // the page is the author's, broken or not, and it will say so itself (the
@@ -76,6 +75,58 @@ export function lintPageSource(
       },
     ];
   }
+
+  // MDX places inline-looking JSX children inside transparent paragraph nodes
+  // (`<Tabs>\n<Tab>…`) even though React receives them directly. Resolve the
+  // nearest JSX ancestor once so every contextual rule follows rendered
+  // parentage instead of mdast's paragraph scaffolding.
+  const parentOf = new WeakMap<object, object>();
+  visit(tree, (node, _index, parent) => {
+    if (parent) parentOf.set(node as object, parent as object);
+  });
+  const nearestJsxAncestor = (node: object): MdxJsxNode | undefined => {
+    let ancestor = parentOf.get(node);
+    while (ancestor) {
+      const candidate = ancestor as MdxJsxNode;
+      if (
+        candidate.type === "mdxJsxFlowElement" ||
+        candidate.type === "mdxJsxTextElement"
+      ) {
+        return candidate;
+      }
+      ancestor = parentOf.get(ancestor);
+    }
+    return undefined;
+  };
+  const managedParentOf = new WeakMap<object, ComponentBuilderSpec>();
+  const directChildrenOf = new WeakMap<object, MdxJsxNode[]>();
+  const hasIgnoredDirectContent = new WeakSet<object>();
+  visit(tree, (rawNode) => {
+    const node = rawNode as MdxJsxNode;
+    const jsxParent = nearestJsxAncestor(rawNode as object);
+    const managedParent = jsxParent?.name
+      ? managedWrappers.get(jsxParent.name)
+      : undefined;
+    if (!managedParent || !jsxParent) return;
+    managedParentOf.set(rawNode as object, managedParent);
+    const expected = managedParent.descriptor.children!.component;
+    if (
+      (node.type === "mdxJsxFlowElement" ||
+        node.type === "mdxJsxTextElement") &&
+      node.name === expected
+    ) {
+      const current = directChildrenOf.get(jsxParent as object) ?? [];
+      directChildrenOf.set(jsxParent as object, [...current, node]);
+      return;
+    }
+    if (
+      node.type === "mdxJsxFlowElement" ||
+      node.type === "mdxJsxTextElement" ||
+      (typeof node.value === "string" && node.value.trim() !== "")
+    ) {
+      hasIgnoredDirectContent.add(jsxParent as object);
+    }
+  });
 
   visit(tree, (rawNode) => {
     const node = rawNode as MdxJsxNode;
@@ -107,6 +158,88 @@ export function lintPageSource(
     if (!name) return;
     const line = node.position?.start.line;
 
+    const managed = managedWrappers.get(name);
+    if (managed) {
+      const expectedChild = managed.descriptor.children!.component;
+      const directChildren = directChildrenOf.get(rawNode as object) ?? [];
+      if (directChildren.length === 0) {
+        warnings.push({
+          line,
+          message: `Le composant «\u00A0${managed.descriptor.label}\u00A0» ne contient aucun enfant et ne sera pas affiché.`,
+        });
+      } else if (directChildren.length === 1) {
+        warnings.push({
+          line,
+          message:
+            managed.descriptor.children!.singleChildWarning ??
+            `Le composant «\u00A0${managed.descriptor.label}\u00A0» ne contient qu'un enfant.`,
+        });
+      }
+      if (hasIgnoredDirectContent.has(rawNode as object)) {
+        warnings.push({
+          line,
+          message: `Le contenu placé directement dans «\u00A0<${name}>\u00A0» est ignoré au rendu. Placez-le dans une balise «\u00A0<${expectedChild}>\u00A0».`,
+        });
+      }
+    }
+
+    const parentManaged = managedParentOf.get(rawNode as object);
+    const isDirectManagedChild =
+      parentManaged?.descriptor.children?.component === name;
+
+    if (name === "Collapsible" && parentManaged?.name === "Accordion") {
+      const dominated = [
+        "defaultOpen",
+        "toggleIcon",
+        "display",
+        "color",
+        "headingLevel",
+      ].filter((prop) =>
+        (node.attributes ?? []).some(
+          (attribute) =>
+            attribute.type === "mdxJsxAttribute" && attribute.name === prop
+        )
+      );
+      if (dominated.length > 0) {
+        warnings.push({
+          line,
+          message: `Sur ce bloc de l'accordéon, les propriétés «\u00A0${dominated.join(
+            ", "
+          )}\u00A0» sont conservées dans la source mais ignorées au rendu.`,
+        });
+      }
+    }
+
+    if (name === "Accordion") {
+      const display = jsxAttributeValue(node, "display") ?? "separators";
+      const spacing = jsxAttributeValue(node, "spacing") ?? "joined";
+      const hasSpacing = (node.attributes ?? []).some(
+        (attribute) =>
+          attribute.type === "mdxJsxAttribute" && attribute.name === "spacing"
+      );
+      const hasColor = (node.attributes ?? []).some(
+        (attribute) =>
+          attribute.type === "mdxJsxAttribute" && attribute.name === "color"
+      );
+      if (display === "separators" && (spacing !== "joined" || hasColor)) {
+        warnings.push({
+          line,
+          message:
+            "Sur «\u00A0Accordion\u00A0», l'apparence «\u00A0separators\u00A0» force «\u00A0spacing=joined\u00A0» et ignore la couleur au rendu.",
+        });
+      } else if (
+        display === "highlight" &&
+        hasSpacing &&
+        spacing !== "separated"
+      ) {
+        warnings.push({
+          line,
+          message:
+            "Sur «\u00A0Accordion\u00A0», l'apparence «\u00A0highlight\u00A0» force «\u00A0spacing=separated\u00A0» au rendu.",
+        });
+      }
+    }
+
     if (isHostElement(name)) {
       if (!isAllowedHostElement(name)) {
         warnings.push({
@@ -126,16 +259,20 @@ export function lintPageSource(
       return;
     }
 
-    // A wrapper child (<Tab>) has no descriptor: no checkable props, but its
-    // title feeds an anchor slug collected here for the collision pass below.
-    if (childComponents.has(name)) {
-      const title = (node.attributes ?? []).find(
+    // A direct managed child's declared identity feeds the page-wide anchor
+    // collision pass.
+    if (isDirectManagedChild) {
+      const anchorField = parentManaged.descriptor.children!.anchorField;
+      const anchorProperty =
+        parentManaged.descriptor.children!.properties[anchorField];
+      const anchorProp = fieldProp(anchorField, anchorProperty);
+      const anchor = (node.attributes ?? []).find(
         (attribute) =>
           attribute.type === "mdxJsxAttribute" &&
-          attribute.name === CHILD_SLUG_FIELD
+          attribute.name === anchorProp
       );
-      const slug = childSlug({ [CHILD_SLUG_FIELD]: attributeValue(title?.value) });
-      if (slug) tabSlugs.push({ slug, line });
+      const slug = childAnchorSlug(attributeValue(anchor?.value));
+      if (slug) anchorSlugs.push({ slug, line });
     }
 
     // menu, entries-admin and forms-admin carry no .yaml: their props cannot
@@ -251,16 +388,16 @@ export function lintPageSource(
   // ambiguous. Never blocking (a work in progress is tolerated); at render each
   // group activates its own matching tab, and within a group the first wins.
   const slugCounts = new Map<string, number>();
-  for (const { slug } of tabSlugs) {
+  for (const { slug } of anchorSlugs) {
     slugCounts.set(slug, (slugCounts.get(slug) ?? 0) + 1);
   }
   const flagged = new Set<string>();
-  for (const { slug, line } of tabSlugs) {
+  for (const { slug, line } of anchorSlugs) {
     if ((slugCounts.get(slug) ?? 0) < 2 || flagged.has(slug)) continue;
     flagged.add(slug);
     warnings.push({
       line,
-      message: `Plusieurs onglets partagent l'ancre « #${slug} ». Un lien vers « #${slug} » sera ambigu.`,
+      message: `Plusieurs éléments partagent l'ancre « #${slug} ». Un lien vers « #${slug} » sera ambigu.`,
     });
   }
 
@@ -279,6 +416,16 @@ function attributeValue(value: MdxAttributeValue): unknown {
   if (value.type !== "mdxJsxAttributeValueExpression") return value;
   const literal = staticLiteralValue(value.data?.estree);
   return literal ? literal.value : UNREADABLE;
+}
+
+function jsxAttributeValue(node: MdxJsxNode, name: string): unknown {
+  const attribute = (node.attributes ?? []).find(
+    (candidate) =>
+      candidate.type === "mdxJsxAttribute" && candidate.name === name
+  );
+  if (!attribute) return undefined;
+  const value = attributeValue(attribute.value);
+  return value === UNREADABLE ? undefined : value;
 }
 
 // Whether the value honours what the descriptor promised, phrased as the
@@ -331,6 +478,8 @@ interface MdxJsxNode {
   name?: string | null;
   /** Only on link and definition nodes. */
   url?: string;
+  value?: string;
+  children?: MdxJsxNode[];
   position?: { start: { line: number } };
   attributes?: {
     type: string;

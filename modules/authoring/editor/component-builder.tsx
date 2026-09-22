@@ -41,13 +41,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
   type ComponentDescriptor,
+  type ChildrenDescriptor,
   type DescriptorField,
   type PropDefaults,
   type PropValue,
   type PropValues,
   type Range,
-  CHILD_SLUG_FIELD,
-  childSlug,
+  childAnchorSlug,
   emitsMarkdownLink,
   generateMarkdownLink,
   generateTag,
@@ -60,6 +60,9 @@ import {
   type WrapperEdit,
   generateFreeContentWrapper,
   generateWrapper,
+  appendManagedChild,
+  moveManagedChild,
+  removeManagedChild,
   isFreeContentDescriptor,
   wrapperShapeOf,
 } from "./wrapper";
@@ -83,9 +86,12 @@ export type BuilderState = {
   content?: string;
 };
 
-/** An empty managed child: no props, no content yet. */
-function emptyChild(values: PropValues = {}): WrapperChildDraft {
-  return { values, content: "", unknownAttributes: [] };
+/** A new managed child with its descriptor-driven props and initial MDX. */
+function emptyChild(
+  values: PropValues = {},
+  content = ""
+): WrapperChildDraft {
+  return { values, content, unknownAttributes: [] };
 }
 
 // What an open builder holds. null means closed; the last non-null value is
@@ -104,26 +110,51 @@ export function insertionState(spec: ComponentBuilderSpec): BuilderState {
   for (const [field, descriptorField] of Object.entries(
     spec.descriptor.properties
   )) {
-    if (descriptorField.value !== undefined) {
-      values[field] = descriptorField.value;
+    if (descriptorField.initialValue !== undefined) {
+      values[field] = descriptorField.initialValue;
     }
   }
-  // A wrapper starts with two empty children, so its tabbed nature is plain
-  // and the author only fills the titles (ADR 0031).
+  // A wrapper starts with two children whose descriptor-driven identities and
+  // content make the grouped structure plain from insertion (ADR 0031).
   let wrapper: WrapperEdit | undefined;
   if (isManagedChildrenDescriptor(spec.descriptor)) {
-    const firstValues: PropValues = {};
-    for (const [field, childField] of Object.entries(
-      spec.descriptor.children.properties
-    )) {
-      if (childField.value !== undefined) firstValues[field] = childField.value;
-    }
-    wrapper = { children: [emptyChild(firstValues), emptyChild()] };
+    const first = emptyChild(
+      nextManagedChildValues(spec.descriptor.children, []),
+      spec.descriptor.children.initialContent
+    );
+    const second = emptyChild(
+      nextManagedChildValues(spec.descriptor.children, [first]),
+      spec.descriptor.children.initialContent
+    );
+    wrapper = { children: [first, second] };
   }
   const content = isFreeContentDescriptor(spec.descriptor)
-    ? `\n${spec.descriptor.content}\n`
+    ? `\n${spec.descriptor.initialContent}\n`
     : undefined;
   return { values, unknownAttributes: [], wrapper, content };
+}
+
+/** Values for a new managed child, including its numbered anchor identity. */
+export function nextManagedChildValues(
+  descriptor: ChildrenDescriptor,
+  children: WrapperChildDraft[]
+): PropValues {
+  const values: PropValues = {};
+  for (const [field, childField] of Object.entries(descriptor.properties)) {
+    if (childField.initialValue !== undefined) {
+      values[field] = childField.initialValue;
+    }
+  }
+  const anchorField = descriptor.anchorField;
+  const anchorBase = descriptor.properties[anchorField]?.initialValue;
+  if (typeof anchorBase !== "string" || anchorBase.trim() === "") return values;
+  const anchors = new Set(
+    children.map((child) => String(child.values[anchorField] ?? ""))
+  );
+  let number = 1;
+  while (anchors.has(`${anchorBase} ${number}`)) number++;
+  values[anchorField] = `${anchorBase} ${number}`;
+  return values;
 }
 
 export function ComponentBuilderDialog({
@@ -351,23 +382,47 @@ function WrapperBuilderForm({
   const shape = wrapperShapeOf(spec);
   const childDesc = shape.childDescriptor;
   const childDefaults = shape.childDefaults;
+  const childrenDescriptor = spec.descriptor.children!;
+  const allowsNoDefault = childrenDescriptor.initialSelection === "none";
+  const childLabel = childrenDescriptor.label;
+  const childLabelLower = childLabel.toLocaleLowerCase("fr");
+  const anchorField = childrenDescriptor.anchorField;
+  const anchorLabel = childrenDescriptor.properties[anchorField].label;
+  const collectionLabel =
+    childrenDescriptor.collectionLabel ?? spec.descriptor.label;
 
   const [values, setValues] = useState<PropValues>(initial.values);
-  const [children, setChildren] = useState<ChildRow[]>(() =>
-    (initial.wrapper?.children ?? []).map(withId)
-  );
-  // The default tab is tracked by row identity, so it survives a rename and a
-  // reorder; it falls back to the first row when its own row is deleted. Null
-  // means "the first row", the omitted-default convention (ADR 0031).
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [wrapper, setWrapper] = useState<WrapperEdit>(() => ({
+    children: (initial.wrapper?.children ?? []).map(withId),
+    interstitial: initial.wrapper?.interstitial,
+  }));
+  const children = wrapper.children as ChildRow[];
+  // The default child is tracked by row identity, so it survives a rename and
+  // a reorder. Null means the wrapper's omitted default: first child for Tabs,
+  // no open child for Accordion.
   const [defaultId, setDefaultId] = useState<string | null>(() => {
     const wanted = initial.wrapper?.defaultChild;
     if (!wanted) return null;
-    return children.find((child) => childSlug(child.values) === wanted)?.id ?? null;
+    return (
+      children.find(
+        (child) => childAnchorSlug(child.values[anchorField]) === wanted
+      )?.id ?? null
+    );
   });
   const [confirmDelete, setConfirmDelete] = useState<ChildRow | null>(null);
 
   const globalFields = Object.entries(spec.descriptor.properties);
   const visibleGlobal = visibleFields(spec.descriptor, spec.defaults, values);
+  const visibleGlobalFields = globalFields.filter(([field]) =>
+    visibleGlobal.includes(field)
+  );
+  const plainGlobalFields = visibleGlobalFields.filter(
+    ([, field]) => !field.advanced
+  );
+  const advancedGlobalFields = visibleGlobalFields.filter(
+    ([, field]) => field.advanced
+  );
 
   const setGlobal = (field: string, value: PropValue) =>
     setValues((current) =>
@@ -381,19 +436,19 @@ function WrapperBuilderForm({
     );
 
   const setChildValue = (id: string, field: string, value: PropValue) =>
-    setChildren((rows) =>
-      rows.map((row) =>
+    setWrapper((current) => ({
+      ...current,
+      children: (current.children as ChildRow[]).map((row) =>
         row.id === id ? { ...row, values: { ...row.values, [field]: value } } : row
-      )
-    );
+      ),
+    }));
 
   const moveChild = (index: number, delta: number) =>
-    setChildren((rows) => {
+    setWrapper((current) => {
+      const rows = current.children as ChildRow[];
       const next = index + delta;
-      if (next < 0 || next >= rows.length) return rows;
-      const copy = [...rows];
-      [copy[index], copy[next]] = [copy[next], copy[index]];
-      return copy;
+      if (next < 0 || next >= rows.length) return current;
+      return moveManagedChild(current, index, next);
     });
 
   // Drag reordering mirrors the form builder (form-builder.tsx). The arrows
@@ -402,27 +457,44 @@ function WrapperBuilderForm({
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    setChildren((rows) => {
+    setWrapper((current) => {
+      const rows = current.children as ChildRow[];
       const from = rows.findIndex((row) => row.id === active.id);
       const to = rows.findIndex((row) => row.id === over.id);
-      return arrayMove(rows, from, to);
+      return { ...current, children: arrayMove(rows, from, to) };
     });
   };
 
-  const addChild = () => setChildren((rows) => [...rows, withId(emptyChild())]);
+  const addChild = () =>
+    setWrapper((current) =>
+      appendManagedChild(
+        current,
+        withId(
+          emptyChild(
+            nextManagedChildValues(spec.descriptor.children!, current.children),
+            spec.descriptor.children!.initialContent
+          )
+        )
+      )
+    );
 
   const removeChild = (id: string) => {
-    setChildren((rows) => rows.filter((row) => row.id !== id));
+    setWrapper((current) => {
+      const index = (current.children as ChildRow[]).findIndex(
+        (row) => row.id === id
+      );
+      return removeManagedChild(current, index);
+    });
     setDefaultId((current) => (current === id ? null : current));
   };
 
   // A duplicate slug within one group would make an anchor ambiguous, so it
-  // blocks the save (ADR 0031). Empty titles do not collide — they are caught
+  // blocks the save (ADR 0031). Empty anchors do not collide — they are caught
   // by the required-field guard instead.
   const collidingIds = new Set<string>();
   const bySlug = new Map<string, string[]>();
   for (const row of children) {
-    const slug = childSlug(row.values);
+    const slug = childAnchorSlug(row.values[anchorField]);
     if (!slug) continue;
     bySlug.set(slug, [...(bySlug.get(slug) ?? []), row.id]);
   }
@@ -447,19 +519,29 @@ function WrapperBuilderForm({
     );
   const blocked = missingRequired || collidingIds.size > 0;
 
-  const firstSlug = children[0] ? childSlug(children[0].values) : undefined;
-  const defaultRow = children.find((row) => row.id === defaultId) ?? children[0];
-  const defaultSlug = defaultRow ? childSlug(defaultRow.values) : undefined;
+  const firstSlug = children[0]
+    ? childAnchorSlug(children[0].values[anchorField])
+    : undefined;
+  const selectedDefaultRow = children.find((row) => row.id === defaultId);
+  const defaultRow = allowsNoDefault
+    ? selectedDefaultRow
+    : selectedDefaultRow ?? children[0];
+  const defaultSlug = defaultRow
+    ? childAnchorSlug(defaultRow.values[anchorField])
+    : undefined;
   const tag = generateWrapper(shape, {
     values,
     unknownAttributes: initial.unknownAttributes,
     defaultChild:
-      defaultSlug && defaultSlug !== firstSlug ? defaultSlug : undefined,
+      defaultSlug && (allowsNoDefault || defaultSlug !== firstSlug)
+        ? defaultSlug
+        : undefined,
     children: children.map((row) => ({
       values: row.values,
       content: row.content,
       unknownAttributes: row.unknownAttributes,
     })),
+    interstitial: wrapper.interstitial,
   });
 
   const submit = () => {
@@ -483,14 +565,42 @@ function WrapperBuilderForm({
 
       <section className="grid gap-3">
         <SectionHeading
-          title="Onglets"
-          hint="Le titre de chaque onglet donne son lien d'ancrage (#…). L'onglet coché s'ouvre par défaut."
+          title={collectionLabel}
+          hint={`Le champ «\u00A0${anchorLabel}\u00A0» de chaque élément donne son lien d'ancrage (#…).`}
         />
         <RadioGroup
-          value={defaultRow?.id ?? ""}
-          onValueChange={setDefaultId}
-          className="grid gap-2.5"
+          value={defaultRow?.id ?? "none"}
+          onValueChange={(value) => setDefaultId(value === "none" ? null : value)}
+          className="grid gap-3"
         >
+          <div className="grid gap-2 rounded-md border bg-muted/30 p-3">
+            <SectionHeading
+              title={`${childLabel} ouvert au chargement`}
+              hint={`Choisissez le ${childLabelLower} qui sera déjà ouvert quand la page s’affiche.`}
+            />
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {allowsNoDefault && (
+                <Label className="flex items-center gap-2 text-sm font-normal">
+                  <RadioGroupItem value="none" />
+                  {`Aucun ${childLabelLower} ouvert`}
+                </Label>
+              )}
+              {children.map((row) => {
+                const label = String(row.values[anchorField] ?? "").trim();
+                return (
+                  <Label
+                    key={`initial-${row.id}`}
+                    className="flex min-w-0 items-center gap-2 text-sm font-normal"
+                  >
+                    <RadioGroupItem value={row.id} />
+                    <span className="max-w-64 truncate">
+                      {label || `${childLabel} sans ${anchorLabel.toLocaleLowerCase("fr")}`}
+                    </span>
+                  </Label>
+                );
+              })}
+            </div>
+          </div>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -501,7 +611,7 @@ function WrapperBuilderForm({
               strategy={verticalListSortingStrategy}
             >
               {children.map((row, index) => (
-                <TabRow
+                <ManagedChildRow
                   key={row.id}
                   row={row}
                   index={index}
@@ -511,6 +621,9 @@ function WrapperBuilderForm({
                   childDesc={childDesc}
                   childDefaults={childDefaults}
                   allSlugs={allSlugs}
+                  childLabel={childLabel}
+                  anchorField={anchorField}
+                  anchorLabel={anchorLabel}
                   onFieldChange={(field, value) => setChildValue(row.id, field, value)}
                   onMoveUp={() => moveChild(index, -1)}
                   onMoveDown={() => moveChild(index, 1)}
@@ -522,42 +635,84 @@ function WrapperBuilderForm({
           <div>
             <Button type="button" variant="outline" size="sm" onClick={addChild}>
               <Plus />
-              Ajouter un onglet
+              Ajouter un élément
             </Button>
           </div>
         </RadioGroup>
         <p className="text-xs text-muted-foreground">
-          {"Le contenu de chaque onglet s'écrit à l'intérieur de sa balise "}
-          <code className="font-mono">&lt;Tab&gt;</code>
+          Le contenu de chaque élément s’écrit à l’intérieur de sa balise{" "}
+          <code className="font-mono">{`<${shape.childName}>`}</code>
           {", directement dans l'éditeur."}
         </p>
+        {children.length === 0 && (
+          <p className="text-xs text-destructive">
+            Ajoutez au moins un élément pour enregistrer ce composant.
+          </p>
+        )}
+        {children.length === 1 && (
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            {childrenDescriptor.singleChildWarning ??
+              "Un élément unique ne forme pas un groupe utile."}
+          </p>
+        )}
       </section>
 
       <section className="grid gap-3">
         <SectionHeading title="Affichage" />
         <div className="grid items-start gap-4 md:grid-cols-2">
-          {globalFields
-            .filter(([field]) => visibleGlobal.includes(field))
-            .map(([field, fieldSpec]) => (
-              <div
-                key={field}
-                className={
-                  fieldSpec.type === "divider" ? "md:col-span-2" : undefined
-                }
-              >
-                <Field
-                  id={`builder-${field}`}
-                  spec={fieldSpec}
-                  value={values[field] ?? spec.defaults[field]}
-                  environment={{
-                    allSlugs,
-                    siblingValues: { ...spec.defaults, ...values },
-                  }}
-                  onChange={(value) => setGlobal(field, value as PropValue)}
-                />
-              </div>
-            ))}
+          {plainGlobalFields.map(([field, fieldSpec]) => (
+            <div
+              key={field}
+              className={
+                fieldSpec.type === "divider" ? "md:col-span-2" : undefined
+              }
+            >
+              <Field
+                id={`builder-${field}`}
+                spec={fieldSpec}
+                value={values[field] ?? spec.defaults[field]}
+                environment={{
+                  allSlugs,
+                  siblingValues: { ...spec.defaults, ...values },
+                }}
+                onChange={(value) => setGlobal(field, value as PropValue)}
+              />
+            </div>
+          ))}
         </div>
+        {advancedGlobalFields.length > 0 && (
+          <div className="grid gap-4">
+            <button
+              type="button"
+              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setAdvancedOpen((current) => !current)}
+              aria-expanded={advancedOpen}
+            >
+              <ChevronRight
+                className={`size-4 transition-transform ${advancedOpen ? "rotate-90" : ""}`}
+                aria-hidden
+              />
+              Paramètres avancés
+            </button>
+            {advancedOpen && (
+              <div className="grid items-start gap-4 md:grid-cols-2">
+                {advancedGlobalFields.map(([field, fieldSpec]) => (
+                  <Field
+                    key={field}
+                    id={`builder-${field}`}
+                    spec={fieldSpec}
+                    value={values[field] ?? spec.defaults[field]}
+                    environment={{
+                      allSlugs,
+                      siblingValues: { ...spec.defaults, ...values },
+                    }}
+                    onChange={(value) => setGlobal(field, value as PropValue)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <DialogFooter>
@@ -575,9 +730,11 @@ function WrapperBuilderForm({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cet onglet&nbsp;?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Supprimer cet élément&nbsp;?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Cet onglet contient du texte. Le supprimer effacera aussi son
+              Cet élément contient du texte. Le supprimer effacera aussi son
               contenu.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -607,11 +764,10 @@ function SectionHeading({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
-// One tab as a sortable card: a header naming the tab (its live title and
-// anchor slug) with the default radio and the reorder/delete actions, then the
-// tab's own fields. Drag mirrors the form builder; the arrows are its
-// keyboard-reachable twin.
-function TabRow({
+// One managed child as a sortable card: its live identity and anchor slug, the
+// default radio, reorder/delete actions, then its contextual fields. Drag
+// mirrors the form builder; the arrows are its keyboard-reachable twin.
+function ManagedChildRow({
   row,
   index,
   total,
@@ -620,6 +776,9 @@ function TabRow({
   childDesc,
   childDefaults,
   allSlugs,
+  childLabel,
+  anchorField,
+  anchorLabel,
   onFieldChange,
   onMoveUp,
   onMoveDown,
@@ -633,6 +792,9 @@ function TabRow({
   childDesc: ComponentDescriptor;
   childDefaults: PropDefaults;
   allSlugs: string[];
+  childLabel: string;
+  anchorField: string;
+  anchorLabel: string;
   onFieldChange: (field: string, value: PropValue) => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
@@ -640,8 +802,9 @@ function TabRow({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: row.id });
-  const title = String(row.values[CHILD_SLUG_FIELD] ?? "").trim();
-  const slug = childSlug(row.values);
+  const anchorValue = String(row.values[anchorField] ?? "").trim();
+  const slug = childAnchorSlug(row.values[anchorField]);
+  const emptyLabel = `${childLabel} sans ${anchorLabel.toLocaleLowerCase("fr")}`;
 
   return (
     <div
@@ -665,23 +828,24 @@ function TabRow({
           <GripVertical className="size-4" />
         </button>
         <span className="min-w-0 flex-1 truncate text-sm font-medium">
-          {title || <span className="text-muted-foreground">Nouvel onglet</span>}
+          {anchorValue || (
+            <span className="text-muted-foreground">{emptyLabel}</span>
+          )}
           {slug && (
             <span className="ml-2 text-xs font-normal text-muted-foreground">
               #{slug}
             </span>
           )}
         </span>
-        <Label className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground">
-          <RadioGroupItem value={row.id} />
-          Par défaut
-        </Label>
+        {isDefault && (
+          <span className="text-xs text-muted-foreground">Ouvert au départ</span>
+        )}
         <div className="flex items-center">
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="Monter l'onglet"
+            aria-label={`Monter : ${childLabel}`}
             disabled={index === 0}
             onClick={onMoveUp}
           >
@@ -691,7 +855,7 @@ function TabRow({
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="Descendre l'onglet"
+            aria-label={`Descendre : ${childLabel}`}
             disabled={index === total - 1}
             onClick={onMoveDown}
           >
@@ -701,7 +865,7 @@ function TabRow({
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="Supprimer l'onglet"
+            aria-label={`Supprimer : ${childLabel}`}
             onClick={onRemove}
           >
             <Trash2 />
@@ -725,7 +889,7 @@ function TabRow({
       </div>
       {colliding && (
         <p className="px-3 pb-3 text-xs text-destructive">
-          Renommez un onglet pour que chacun soit identifiable par son ancre.
+          Renommez un élément pour que chacun soit identifiable par son ancre.
         </p>
       )}
     </div>

@@ -13,6 +13,7 @@ import {
   type ParsedTag,
   type PropDefaults,
   type PropValues,
+  type Range,
   childDescriptor,
   descriptorDefaults,
   parseOpenTag,
@@ -37,6 +38,8 @@ export interface WrapperChildDraft {
 // a named type so the pair never travels inline as a data clump.
 export interface WrapperEdit {
   children: WrapperChildDraft[];
+  /** Raw MDX around the managed child slots, from before the first to after the last. */
+  interstitial?: string[];
   /** The `default` attribute value (open child), verbatim; absent when omitted. */
   defaultChild?: string;
 }
@@ -66,8 +69,8 @@ export interface FreeContentShape {
 /** A free-content wrapper is explicit: a plain leaf has no initial content. */
 export function isFreeContentDescriptor(
   descriptor: ComponentDescriptor
-): descriptor is ComponentDescriptor & { content: string } {
-  return descriptor.content !== undefined;
+): descriptor is ComponentDescriptor & { initialContent: string } {
+  return descriptor.initialContent !== undefined;
 }
 
 /** Everything the engine needs about a wrapper and its child component. */
@@ -130,10 +133,61 @@ export function generateWrapper(shape: WrapperShape, draft: WrapperDraft): strin
       child.unknownAttributes
     );
     const childBody = childAttrs.length > 0 ? ` ${childAttrs.join(" ")}` : "";
-    return `  <${shape.childName}${childBody}>\n${child.content}\n  </${shape.childName}>`;
+    return `<${shape.childName}${childBody}>\n${child.content}\n  </${shape.childName}>`;
   });
+  const slots =
+    draft.interstitial?.length === blocks.length + 1
+      ? draft.interstitial
+      : blocks.map(() => "\n  ").concat("\n");
+  let source = open;
+  for (let index = 0; index < blocks.length; index++) {
+    source += slots[index] + blocks[index];
+  }
+  return source + slots[blocks.length] + `</${shape.name}>`;
+}
 
-  return [open, ...blocks, `</${shape.name}>`].join("\n");
+/** Reorders managed children without moving direct content between their slots. */
+export function moveManagedChild<T extends WrapperEdit>(
+  draft: T,
+  from: number,
+  to: number
+): T {
+  if (from === to || from < 0 || to < 0 || from >= draft.children.length || to >= draft.children.length) {
+    return draft;
+  }
+  const children = [...draft.children];
+  const [moved] = children.splice(from, 1);
+  children.splice(to, 0, moved);
+  return { ...draft, children };
+}
+
+/** Removes one managed child while retaining both adjacent direct-content slots. */
+export function removeManagedChild<T extends WrapperEdit>(
+  draft: T,
+  index: number
+): T {
+  if (index < 0 || index >= draft.children.length) return draft;
+  const children = draft.children.filter((_, childIndex) => childIndex !== index);
+  if (draft.interstitial?.length !== draft.children.length + 1) {
+    return { ...draft, children };
+  }
+  const interstitial = [...draft.interstitial];
+  interstitial.splice(index, 2, interstitial[index] + interstitial[index + 1]);
+  return { ...draft, children, interstitial };
+}
+
+/** Appends a child before the final direct-content slot. */
+export function appendManagedChild<T extends WrapperEdit>(
+  draft: T,
+  child: WrapperChildDraft
+): T {
+  const children = [...draft.children, child];
+  if (draft.interstitial?.length !== draft.children.length + 1) {
+    return { ...draft, children };
+  }
+  const interstitial = [...draft.interstitial];
+  interstitial.splice(interstitial.length - 1, 0, "\n  ");
+  return { ...draft, children, interstitial };
 }
 
 /** Rewrites only the open tag; the inner MDX is carried byte for byte. */
@@ -156,6 +210,7 @@ export interface WrapperMatch {
   from: number;
   to: number;
   draft: WrapperDraft;
+  childRanges: Range[];
 }
 
 export interface FreeContentWrapperMatch {
@@ -201,11 +256,13 @@ export function findWrapperAtCursor(
 ): (WrapperMatch & { shape: WrapperShape }) | null {
   const best = findInnermostShapeAtCursor(shapes, text, offset);
   if (!best) return null;
+  const parsed = readWrapper(best.shape, text, best.tag);
   return {
     shape: best.shape,
     from: best.tag.from,
     to: best.tag.to,
-    draft: readWrapper(best.shape, text, best.tag),
+    draft: parsed.draft,
+    childRanges: parsed.childRanges,
   };
 }
 
@@ -265,7 +322,7 @@ function readWrapper(
   shape: WrapperShape,
   text: string,
   tag: EnclosingTag
-): WrapperDraft {
+): { draft: WrapperDraft; childRanges: Range[] } {
   const openAttr = tag.open.attributes.find((a) => a.name === OPEN_CHILD_ATTR);
   const rest: ParsedTag = {
     name: tag.open.name,
@@ -278,11 +335,16 @@ function readWrapper(
   );
   const defaultChild =
     openAttr && typeof openAttr.value === "string" ? openAttr.value : undefined;
+  const parsed = readChildren(shape, text, tag.contentStart, tag.closeStart);
   return {
-    values,
-    unknownAttributes,
-    defaultChild,
-    children: readChildren(shape, text, tag.contentStart, tag.closeStart),
+    draft: {
+      values,
+      unknownAttributes,
+      defaultChild,
+      children: parsed.children,
+      interstitial: parsed.interstitial,
+    },
+    childRanges: parsed.childRanges,
   };
 }
 
@@ -291,23 +353,36 @@ function readChildren(
   text: string,
   contentStart: number,
   contentEnd: number
-): WrapperChildDraft[] {
+): { children: WrapperChildDraft[]; interstitial: string[]; childRanges: Range[] } {
   const children: WrapperChildDraft[] = [];
-  const needle = `<${shape.childName}`;
+  const interstitial: string[] = [];
+  const childRanges: Range[] = [];
   let i = contentStart;
+  let fragmentStart = contentStart;
+  const ancestors: string[] = [];
   while (i < contentEnd) {
-    const idx = text.indexOf(needle, i);
-    if (idx === -1 || idx >= contentEnd) break;
-    if (isNamePart(text[idx + needle.length])) {
-      i = idx + needle.length;
+    const token = nextJsxTag(text, i, contentEnd);
+    if (!token) break;
+    i = token.to;
+
+    if (token.closing) {
+      const matching = ancestors.lastIndexOf(token.name);
+      if (matching !== -1) ancestors.splice(matching);
       continue;
     }
+
+    if (ancestors.length > 0 || token.name !== shape.childName) {
+      if (!token.selfClosing && !VOID_ELEMENTS.has(token.name.toLowerCase())) {
+        ancestors.push(token.name);
+      }
+      continue;
+    }
+
+    const idx = token.from;
     const open = parseOpenTag(text.slice(idx));
-    if (!open) {
-      i = idx + needle.length;
-      continue;
-    }
+    if (!open) continue;
     const childTag: ParsedTag = open.tag;
+    interstitial.push(text.slice(fragmentStart, idx));
     const { values, unknownAttributes } = tagToBuilderState(
       shape.childDescriptor,
       shape.childDefaults,
@@ -316,6 +391,8 @@ function readChildren(
     if (open.selfClosing) {
       children.push({ values, content: "", unknownAttributes });
       i = idx + open.length;
+      childRanges.push({ from: idx, to: i });
+      fragmentStart = i;
       continue;
     }
     const innerStart = idx + open.length;
@@ -327,8 +404,118 @@ function readChildren(
       unknownAttributes,
     });
     i = close.closeEnd;
+    childRanges.push({ from: idx, to: i });
+    fragmentStart = i;
   }
-  return children;
+  interstitial.push(text.slice(fragmentStart, contentEnd));
+  return { children, interstitial, childRanges };
+}
+
+type JsxTagToken = {
+  from: number;
+  to: number;
+  name: string;
+  closing: boolean;
+  selfClosing: boolean;
+};
+
+const VOID_ELEMENTS = new Set([
+  "area",
+  "base",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "param",
+  "source",
+  "track",
+  "wbr",
+]);
+
+// Reads enough JSX structure to distinguish direct managed children from the
+// same tag nested in arbitrary direct content. Attribute expressions may
+// contain `>` characters, so the end scanner honours strings and braces.
+function nextJsxTag(
+  text: string,
+  from: number,
+  limit: number
+): JsxTagToken | null {
+  let cursor = from;
+  while (cursor < limit) {
+    const start = text.indexOf("<", cursor);
+    if (start === -1 || start >= limit) return null;
+    if (text.startsWith("<!--", start)) {
+      const commentEnd = text.indexOf("-->", start + 4);
+      if (commentEnd === -1 || commentEnd >= limit) return null;
+      cursor = commentEnd + 3;
+      continue;
+    }
+
+    if (text.startsWith("</>", start)) {
+      return {
+        from: start,
+        to: start + 3,
+        name: "#fragment",
+        closing: true,
+        selfClosing: false,
+      };
+    }
+    if (text.startsWith("<>", start)) {
+      return {
+        from: start,
+        to: start + 2,
+        name: "#fragment",
+        closing: false,
+        selfClosing: false,
+      };
+    }
+
+    const closing = text[start + 1] === "/";
+    const nameStart = start + (closing ? 2 : 1);
+    const name = text.slice(nameStart).match(/^[A-Za-z][A-Za-z0-9.:_-]*/)?.[0];
+    if (!name) {
+      cursor = start + 1;
+      continue;
+    }
+    const end = jsxTagEnd(text, nameStart + name.length, limit);
+    if (end === -1) return null;
+    const beforeEnd = text.slice(start, end - 1).trimEnd();
+    return {
+      from: start,
+      to: end,
+      name,
+      closing,
+      selfClosing: !closing && beforeEnd.endsWith("/"),
+    };
+  }
+  return null;
+}
+
+function jsxTagEnd(text: string, from: number, limit: number): number {
+  let quote: '"' | "'" | "`" | null = null;
+  let escaped = false;
+  let braces = 0;
+  for (let index = from; index < limit; index++) {
+    const char = text[index];
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === quote) quote = null;
+      continue;
+    }
+    if (char === '"' || char === "'" || char === "`") {
+      quote = char;
+      continue;
+    }
+    if (char === "{") braces++;
+    else if (char === "}" && braces > 0) braces--;
+    else if (char === ">" && braces === 0) return index + 1;
+  }
+  return -1;
 }
 
 // The `</name>` that closes an element opened at `searchStart`, honouring

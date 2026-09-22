@@ -2,7 +2,7 @@
 
 Le **ComponentBuilder** est l'interface de paramétrage autogénérée d'un composant (voir [`../CONTEXT.md`](../CONTEXT.md)) : la modale qui permet d'insérer le composant dans une page et de rééditer une occurrence existante — aperçu du rendu en haut, champs en dessous. Ce document spécifie comment elle est construite, à partir de deux sources :
 
-- le **descripteur** : le fichier YAML co-localisé avec le composant (`modules/pages/wiki-components/button.yaml` à côté de `button.tsx` — chaque module porte le `wiki-components/` de son concept, ADR 0029), qui décrit les champs de la modale — types, visibilité conditionnelle et **valeurs par défaut** ;
+- le **descripteur** : le fichier YAML co-localisé avec le composant (`modules/pages/wiki-components/button.yaml` à côté de `button.tsx` — chaque module porte le `wiki-components/` de son concept, ADR 0029), qui décrit les champs de la modale — types, visibilité conditionnelle, **valeurs d'omission** (`default`) et **préremplissages de création** (`initialValue`, `initialContent`) ;
 - le **composant `.tsx`** lui-même, qui fournit l'aperçu (via le vrai pipeline de rendu). Il n'expose rien au builder : c'est un composant React ordinaire, client ou serveur (ADR 0013).
 
 Le descripteur ne joue **jamais** sur l'autorisation de rendu (ADR 0002) : sa présence ajoute le composant au menu « Composants » de l'éditeur, rien d'autre.
@@ -11,7 +11,7 @@ Le format du descripteur s'inspire de l'Actions Builder de YesWiki ([`reference/
 
 ## Le descripteur
 
-**Un YAML = un composant.** Pas de groupes d'actions : le nom du composant vient du nom de fichier (`button.yaml` → `<Button>`), et ses champs vivent dans un bloc `properties`. Un composant **feuille** (`<Button … />`) s'arrête là ; un composant **wrapper**, qui comporte du contenu entre ses balises, déclare soit `content:` pour un contenu libre, soit `children:` pour une liste de balises filles gérée par le builder (voir « Composants wrapper »). Ces deux modes sont exclusifs.
+**Un YAML = un composant.** Pas de groupes d'actions : le nom du composant vient du nom de fichier (`button.yaml` → `<Button>`), et ses champs vivent dans un bloc `properties`. Un composant **feuille** (`<Button … />`) s'arrête là ; un composant **wrapper**, qui comporte du contenu entre ses balises, déclare soit `initialContent:` pour un contenu libre, soit `children:` pour une liste de balises filles gérée par le builder (voir « Composants wrapper »). Ces deux modes sont exclusifs.
 
 ```yaml
 label: Bouton                       # nom affiché dans le menu « Composants »
@@ -21,7 +21,7 @@ properties:
   text:
     label: Texte du bouton
     type: text
-    value: Mon bouton               # pré-remplissage à l'insertion (toujours écrit)
+    initialValue: Mon bouton        # pré-remplissage à l'insertion (toujours écrit)
   link:
     label: Lien web ou nom d'une page de ce wiki
     hint: Si lien web, n'oubliez pas le "https://"
@@ -51,16 +51,27 @@ Chaque clé de `properties` **est** une prop du composant `.tsx` (camelCase angl
 | `label` | Libellé du champ (français en clair — l'i18n est au backlog) |
 | `checkboxLabel` | Pour une `checkbox`, libellé placé à côté de la case lorsque `label` sert de titre au-dessus |
 | `hint` | Indication affichée sous le champ |
-| `type` | `text` · `number` · `url` · `icon` · `checkbox` · `list` · `radio` · `page-list` · `file-list` · `divider` |
+| `type` | Widget : `text` · `number` · `url` · `icon` · `checkbox` · `list` · `radio` · `page-list` · `file-list` · `form-list` · `view-picker` · `form-field` · `field-rows` · `color-mapping` · `icon-mapping` · `map-view` · `acl` · `divider` |
+| `prop` | Nom de la prop émise lorsqu'il diffère de la clé du champ |
 | `options` | Pour `list` et `radio` : map `valeur: libellé` (la valeur est celle écrite dans la prop) |
+| `icons` | Pour `view-picker` : map `valeur: icône Iconify` affichée sur chaque choix |
+| `prefill` | Pour chaque choix, valeurs proposées aux champs frères encore à leur défaut |
 | `default` | Valeur de référence de la **règle d'omission** ; doit égaler le défaut réel de la prop du composant (vérifié, voir « Vérification »). Absent = défaut vide |
-| `value` | Pré-remplissage à l'insertion ; la prop est **toujours** écrite, même inchangée |
+| `initialValue` | Pré-remplissage à l'insertion ; la prop est **toujours** écrite, même inchangée |
 | `family` | Pour `file-list` : restreint la combobox à une famille de fichiers (`image` · `pdf` · `other`) |
+| `multiple` | Pour `form-list` et `form-field` : la prop contient plusieurs noms |
+| `formFrom` | Pour les champs liés à un formulaire : champ frère qui fournit le ou les formulaires sources |
+| `fieldTypes` | Types de champs de formulaire proposés |
+| `pseudoFields` | Pseudo-champs proposés avec les champs réels |
+| `withIcon` | Pour `field-rows` : chaque ligne peut aussi porter une icône |
+| `fieldFrom` | Pour les mappings : champ frère dont les options deviennent les clés |
 | `required` | Le champ doit être renseigné pour valider la modale |
 | `advanced` | Masqué tant que « paramètres avancés » n'est pas déplié |
 | `showif` | Visibilité conditionnelle (voir ci-dessous) |
 
 Le type `divider` incruste un titre de section entre les champs (il ne génère aucune prop) ; combiné à `showif`, il remplace les sections conditionnelles des groupes YesWiki. Une `checkbox` affiche normalement `label` à côté de la case ; avec `checkboxLabel`, `label` devient le titre du champ et `checkboxLabel` le texte de la case. Le type `radio` présente les choix d'une prop chaîne sous forme de boutons radio. Le type `file-list` est une combobox des fichiers déjà uploadés (saisie libre acceptée, Entrée prend la suggestion surlignée), filtrable par famille de fichiers (le `file-list` d'`Image` ne propose que les images). Le type `icon` ouvre le sélecteur d'icônes Iconify (jeux embarqués déclarés dans `icons.sets` ; la prop stocke l'identifiant, ex. `lucide:settings`).
+
+`prop` permet à plusieurs champs contextuels d'émettre la même prop. Par exemple, les champs `outlineColor` et `accentColor` de `<Accordion>` écrivent tous deux la prop `color`, mais leurs `showif` font qu'un seul est visible selon l'apparence choisie. `prefill` exprime une suggestion déclenchée par un choix : dans `<EntriesView>`, choisir la vue `agenda` propose `period: future`, uniquement si `period` est encore à son défaut ; une valeur déjà choisie par l'auteur n'est jamais écrasée.
 
 ### Insertion et réédition : toujours symétriques
 
@@ -102,10 +113,10 @@ Deux familles de checks, **complémentaires** — la signature ne remplace qu'*u
 | type du champ ≠ type de la prop | erreur — incompatibilité |
 | `options` / `default` d'une `list` hors de l'union de la prop | erreur — valeur invalide |
 | `default` YAML ≠ défaut de déstructuration du composant | erreur — dérive des défauts |
-| type de `value` ≠ type de la prop | erreur — pré-remplissage mal typé |
+| type de `initialValue` ≠ type de la prop | erreur — pré-remplissage mal typé |
 | `default` calculé au runtime (appel de fonction…) | **avertissement** — non vérifiable |
 
-`default` est vérifié **en type et en dérive** (il pilote l'omission → il doit égaler le défaut du composant) ; `value`, pré-remplissage toujours écrit, **en type seulement** — il a le droit de différer.
+`default` est vérifié **en type et en dérive** (il pilote l'omission → il doit égaler le défaut du composant) ; `initialValue`, pré-remplissage toujours écrit, **en type seulement** — il a le droit de différer.
 
 **Surfaçage uniforme, par `throw`** (pas de bandeau) : structurel comme signature `throw`ent un message clair, préfixé du **fichier et de la ligne** exacts — `modules/pages/wiki-components/button.yaml:20` pointe la clé fautive (le `type:`, le `default:`…) ; un constat de signature ajoute en plus la ligne du composant (`… (modules/pages/wiki-components/button.tsx:78)`). Le structurel tourne partout ; le signature en **dev** (chargement de l'éditeur) et au **build** (`prebuild`). En **dev**, l'overlay d'erreur Next s'affiche sur la page — le développeur voit *pourquoi*, corrige, sauve. Au **build**, le `prebuild` échoue. En **prod**, le structurel reste fail-fast, le signature est absent (`ts-morph` est une *devDependency* hors bundle ; un build vert garantit la cohérence). Le seul avertissement (`default` non vérifiable) part en `console.warn`, non bloquant. Le rendu correct, lui, reste couvert par l'aperçu live de la modale (vrai pipeline).
 
@@ -135,15 +146,15 @@ Une valeur littérale ambiguë (le texte `notNull`, une valeur commençant par `
 
 Un composant **wrapper** enveloppe du contenu entre ses balises (`<Tabs>…</Tabs>`, `<Menu>…</Menu>`), là où un composant **feuille** porte tout dans ses props (`<Button … />`). La règle qui tranche (ADR 0031) : le **contenu** — le MDX écrit par l'auteur — vit dans les enfants, la **config** dans les props. Un composant n'est donc wrapper que si ses enfants sont du contenu.
 
-Un wrapper à descripteur s'édite de deux façons, selon qu'il déclare `content:` ou `children:`. Un descripteur qui déclare les deux est refusé.
+Un wrapper à descripteur s'édite de deux façons, selon qu'il déclare `initialContent:` ou `children:`. Un descripteur qui déclare les deux est refusé.
 
-### Contenu libre (avec `content:`)
+### Contenu libre (avec `initialContent:`)
 
-Le builder ne gère que les **props** du wrapper ; la clé racine `content:` fournit le MDX initial inséré entre les balises. L'auteur le modifie ensuite librement dans l'éditeur, et la réédition des props le **préserve octet pour octet**, composants imbriqués compris. La clé n'est jamais une prop React.
+Le builder ne gère que les **props** du wrapper ; la clé racine `initialContent:` fournit le MDX initial inséré entre les balises. L'auteur le modifie ensuite librement dans l'éditeur, et la réédition des props le **préserve octet pour octet**, composants imbriqués compris. La clé n'est jamais une prop React.
 
 ```yaml
 label: Bloc dépliable
-content: Contenu du bloc dépliable à modifier
+initialContent: Contenu du bloc dépliable à modifier
 properties:
   title:
     label: Titre
@@ -153,7 +164,7 @@ properties:
 
 ### Liste d'enfants gérée (avec `children:`)
 
-Quand on veut que l'interface graphique **crée et gère une liste de balises filles**, le wrapper déclare une section `children:` à côté de `properties`. Elle décrit l'**enfant répétable** : le composant qu'il émet, son libellé, et le bloc `properties` de **ses** props. La balise fille correspond à un composant du **registre de composants** — elle est donc rendue —, mais **sans descripteur** : comme elle ne s'insère qu'avec son wrapper, ses propriétés sont décrites directement dans `children`, pas dans un YAML à elle. Exemple avec `<Tabs>`/`<Tab>` :
+Quand on veut que l'interface graphique **crée et gère une liste de balises filles**, le wrapper déclare une section `children:` à côté de `properties`. Elle décrit l'**enfant répétable** : le composant qu'il émet, son libellé, et le bloc `properties` des props que le parent édite dans ce contexte. La balise fille correspond toujours à un composant du **registre de composants**. Elle peut avoir son propre descripteur lorsqu'elle est aussi insérable seule ; `children.properties` reste alors la surface contextuelle du parent, pas une copie de son builder autonome. Un enfant qui n'existe qu'à l'intérieur de son wrapper, comme `<Tab>`, n'a en revanche aucun descripteur propre. Exemple avec `<Tabs>`/`<Tab>` :
 
 ```yaml
 label: Onglets
@@ -170,15 +181,32 @@ properties:              # props du wrapper <Tabs>
 children:                # l'enfant répétable, sans descripteur propre
   component: Tab         # émet <Tab …>…contenu MDX…</Tab>
   label: Onglet
+  collectionLabel: Onglets
+  initialSelection: first # `default` omis = premier enfant (`none` = aucun)
+  singleChildWarning: Ce groupe ne contient qu'un onglet…
+  anchorField: title      # identité, ancre et unicité de chaque enfant
+  initialContent: Contenu de l'onglet à modifier # MDX de chaque nouvel enfant
   properties:            # props de chaque enfant
     title:
       label: Titre
       type: text
+      initialValue: Titre de mon onglet
       required: true
     icon:
       label: Icône
       type: icon
 ```
+
+| Clé de `children` | Rôle |
+| --- | --- |
+| `component` | Nom exact du composant enfant dans le registre ; sa signature est vérifiée même s'il n'a pas de descripteur autonome |
+| `label` | Nom singulier d'un enfant dans l'interface |
+| `collectionLabel` | Titre de la liste répétable |
+| `initialSelection` | Sens de l'absence de prop `default` sur le wrapper : premier enfant (`first`) ou aucun (`none`) |
+| `singleChildWarning` | Conseil non bloquant affiché lorsqu'il ne reste qu'un enfant |
+| `anchorField` | Clé du champ de `children.properties` qui fournit l'identité, l'ancre et le choix initial ; ce champ seul est numéroté et doit rester unique après slugification |
+| `initialContent` | MDX placé dans chaque enfant nouvellement créé, sans jamais remplacer son contenu existant |
+| `properties` | Champs des props de l'enfant ; ils acceptent les mêmes clés et comportements que les champs du wrapper |
 
 Le contenu d'un enfant n'est **pas** une prop : c'est le MDX écrit entre ses balises, dans l'éditeur. Le builder génère la structure, l'auteur remplit le contenu :
 
@@ -196,7 +224,12 @@ Contenu de contact…
 Le builder tire alors de la section `children:` :
 
 - **Un builder à deux étages** : les `properties` du wrapper deviennent les champs **globaux** ; la section `children:` devient une **liste répétable** d'enfants — ajouter, réordonner, supprimer —, chacun portant les champs de ses propres `properties`.
+- **Une présentation décrite, jamais codée par composant** : `collectionLabel` titre la liste, `initialSelection` donne le sens de l'absence de `default` (`first` ou `none`) et `singleChildWarning` porte le conseil propre au wrapper lorsqu'il ne reste qu'un enfant.
+- **Une identité explicite** : `anchorField` nomme un champ chaîne requis, toujours visible et doté d'un `initialValue` non vide, dont le slug identifie l'enfant. Le builder et le lint refusent deux enfants produisant la même ancre ; seul l'`initialValue` de ce champ sert de base numérotée. Les autres champs peuvent aussi avoir un `initialValue`, mais il reste identique d'un enfant à l'autre.
+- **Deux enfants à l'insertion** : leurs identités préremplies sont numérotées (`… 1`, `… 2`) et leur `initialContent` fournit le MDX initial ; chaque ajout reçoit les mêmes préremplissages. Le builder refuse un wrapper sans enfant. Un seul enfant reste enregistrable, mais déclenche un avertissement adapté au composant.
+- **Édition contextuelle** : le crayon d'un enfant direct ouvre le builder du wrapper, même si cet enfant possède un descripteur autonome. Un composant du même type imbriqué plus profondément dans le contenu garde son propre builder.
 - **Contenu préservé** : le round-trip conserve le MDX de chaque enfant ; seuls son ordre et ses props changent. Un rappel en pied indique que le contenu s'écrit entre les balises, dans l'éditeur.
+- **Contenu interstitiel préservé** : du texte ou des composants placés directement dans le wrapper, hors des balises filles attendues, restent dans la source lors d'une réédition. Ces fragments gardent leur position dans la séquence lorsque les enfants sont réordonnés ; supprimer un enfant ne supprime pas les fragments qui l'entourent. Le rendu du wrapper peut les ignorer, mais le lint les signale à l'enregistrement ; le ComponentBuilder ne les efface jamais silencieusement.
 - **Suppression d'un enfant non vide** : avertissement de confirmation — le builder connaît le contenu de chaque enfant.
 - **Vérification** : la vérification par signature (voir « Vérification ») s'applique au composant enfant comme à tout composant à props.
 
@@ -218,7 +251,7 @@ Le builder tire alors de la section `children:` :
 | `attach` : `displaypdf` (checkbox) | Le mini-choix post-upload route vers `<Pdf>` ou `<FileLink>` |
 | `attach` : ratio `portrait`/`paysage`/`carre` | Valeurs anglaises de la prop `ratio` de `<Pdf>` : `portrait`/`landscape`/`square` |
 | `default` (dans le YAML) | **Conservé dans le YAML** (ADR 0013) ; doit égaler le défaut réel de la prop du composant, vérifié par signature |
-| `value` | Conservé, même sémantique (pré-remplissage toujours écrit) |
+| `value` | Renommé `initialValue` (pré-remplissage toujours écrit) |
 | `checkedvalue` / `uncheckedvalue` | Supprimés — une checkbox est une prop booléenne (`newWindow` / rien) |
 | `showif: champ` (raccourci non-vide) | `champ: notNull` |
 | `showif: { champ: notNull }` | `champ: notNull` (inchangé) |
@@ -240,6 +273,9 @@ Le builder tire alors de la section `children:` :
 | Action `panel` : `panel-primary`, `panel-secondary-1`, `panel-secondary-2`, `panel-success`, `panel-info`, `panel-warning`, `panel-danger` | Même valeur sémantique de `color` sur `<Collapsible>` |
 | Action `panel` : `panel-default` | `color="none"` avec `display="outline"` |
 | Action `panel` : classes CSS inconnues | Pas de conversion automatique en `className` |
+| Action `accordion` : `nb=N` | `<Accordion>` avec `N` enfants `<Collapsible>` gérés par le builder ; `nb` ne devient pas une prop |
+| Action `accordion` : exemple répété de `panel` | Le titre devient la prop `title` de chaque `<Collapsible>` et son contenu reste du MDX entre ses balises |
+| Action `accordion` : aucune option d'apparence | Props WikiOui propres à `<Accordion>` : symbole, apparence, disposition, couleur et niveau de titre uniformes |
 | `onlyEdit` / `onlyAdd` (asymétries ajout/édition) | Non repris (pas de besoin pour l'instant) — tout builder insère **et** réédite |
 | Type `form-field`, `needFormField` | Supprimés (bazar au backlog) |
 | Type `color` | Non repris (aucun composant v0.2 ne l'utilise ; réintroductible) |
@@ -248,7 +284,7 @@ Le builder tire alors de la section `children:` :
 | `mapped` | Non repris |
 | `position` (ordre dans le menu) | Non repris — menu trié alphabétiquement par `label` |
 | `doclink` | Non repris — la documentation des composants vit dans l'aide-mémoire |
-| `isWrapper` / `wrappedContentExample` | Remplacés par la clé racine `content:` : elle signale un wrapper à contenu libre, fournit son MDX initial et celui-ci est ensuite préservé à la réédition (ADR 0031). |
+| `isWrapper` / `wrappedContentExample` | Remplacés par la clé racine `initialContent:` : elle signale un wrapper à contenu libre, fournit son MDX initial et celui-ci est ensuite préservé à la réédition (ADR 0031). |
 
 ### Cas particuliers de migration
 

@@ -77,6 +77,16 @@ describe("<Tabs> rendering", () => {
     expect(await render("<Tabs></Tabs>\n")).not.toContain("data-slot=\"tabs\"");
   });
 
+  it("ignores direct content outside Tab children", async () => {
+    const html = await render(
+      `<Tabs>Texte ignoré<Tab title="Valide">Contenu gardé</Tab><Button title="Intrus" text="Ignoré" /></Tabs>`
+    );
+    expect(html).not.toContain("Texte ignoré");
+    expect(html).not.toContain(">Ignoré<");
+    expect(html).not.toContain("Intrus");
+    expect(html).toContain("Contenu gardé");
+  });
+
   it("places author classes and styles on the group and tab panel", async () => {
     const html = await render(
       `<Tabs className="tabs-author" style={{ color: "red" }}>

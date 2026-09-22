@@ -1,0 +1,93 @@
+# ComponentBuilder descriptor of <Accordion> (issue #38, ADR 0031).
+# Direct <Collapsible> children expose only their contextual title and icon.
+label: Accordéon
+description: Regrouper plusieurs blocs dépliables dont un seul peut être ouvert à la fois
+previewHeight: 360px
+properties:
+  toggleIcon:
+    label: Symbole de dépliage
+    type: radio
+    default: chevron
+    options:
+      chevron: Chevrons
+      plus-minus: Plus / moins
+  display:
+    label: Apparence
+    type: list
+    default: separators
+    options:
+      separators: Séparateurs
+      outline: Contour
+      outline-tinted: Contour teinté
+      outline-highlight: Contour et surbrillance
+      highlight: Surbrillance
+  spacing:
+    label: Disposition
+    type: radio
+    default: joined
+    showif:
+      display: /^(outline|outline-tinted|outline-highlight)$/
+    options:
+      joined: Blocs accolés
+      separated: Blocs séparés
+  outlineColor:
+    label: Couleur
+    type: list
+    prop: color
+    default: none
+    showif:
+      display: outline
+    options:
+      none: Aucune
+      primary: Primaire
+      secondary-1: Secondaire 1
+      secondary-2: Secondaire 2
+      success: Succès
+      info: Info
+      warning: Attention
+      danger: Danger
+  accentColor:
+    label: Couleur
+    type: list
+    prop: color
+    default: primary
+    showif:
+      display: /^(outline-tinted|outline-highlight|highlight)$/
+    options:
+      primary: Primaire
+      secondary-1: Secondaire 1
+      secondary-2: Secondaire 2
+      success: Succès
+      info: Info
+      warning: Attention
+      danger: Danger
+  headingLevel:
+    label: Niveau de titre
+    hint: Transforme le titre de chaque bloc en titre de section, afin qu’il puisse apparaître dans un sommaire. Choisissez un niveau cohérent avec les titres qui l’entourent.
+    type: list
+    default: none
+    advanced: true
+    options:
+      none: Aucun
+      h2: Titre 2
+      h3: Titre 3
+      h4: Titre 4
+      h5: Titre 5
+      h6: Titre 6
+children:
+  component: Collapsible
+  label: Bloc
+  collectionLabel: Blocs dépliables
+  initialSelection: none
+  singleChildWarning: Cet accordéon ne contient qu'un bloc. Utilisez plutôt un bloc dépliable seul.
+  anchorField: title
+  initialContent: Contenu du bloc dépliable à modifier
+  properties:
+    title:
+      label: Titre
+      type: text
+      initialValue: Titre de mon bloc
+      required: true
+    icon:
+      label: Icône
+      type: icon

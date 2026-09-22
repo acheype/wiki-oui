@@ -11,7 +11,8 @@ export type CollapsibleDisplay =
   | "outline"
   | "outline-tinted"
   | "outline-highlight"
-  | "highlight";
+  | "highlight"
+  | "separators";
 export type CollapsibleColor =
   | "none"
   | "primary"
@@ -26,6 +27,8 @@ export type CollapsibleHeadingLevel = "none" | "h2" | "h3" | "h4" | "h5" | "h6";
 export type CollapsibleProps = {
   title: string;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   icon?: string;
   toggleIcon?: "chevron" | "plus-minus";
   display?: CollapsibleDisplay;
@@ -33,6 +36,7 @@ export type CollapsibleProps = {
   headingLevel?: CollapsibleHeadingLevel;
   className?: string;
   style?: CSSProperties;
+  id?: string;
   children?: ReactNode;
 };
 
@@ -91,6 +95,8 @@ const backgroundColors: Record<
 export function Collapsible({
   title,
   defaultOpen = false,
+  open: controlledOpen,
+  onOpenChange,
   icon,
   toggleIcon = "chevron",
   display = "outline",
@@ -98,10 +104,19 @@ export function Collapsible({
   headingLevel = "none",
   className,
   style,
+  id,
   children,
 }: CollapsibleProps) {
-  const [open, setOpen] = useState(defaultOpen);
-  const resolvedColor = color ?? (display === "outline" ? "none" : "primary");
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const open = controlledOpen ?? uncontrolledOpen;
+  const setOpen = (next: boolean) => {
+    if (controlledOpen === undefined) setUncontrolledOpen(next);
+    onOpenChange?.(next);
+  };
+  const resolvedColor =
+    display === "separators"
+      ? "none"
+      : color ?? (display === "outline" ? "none" : "primary");
   const highlightedColor = resolvedColor === "none" ? "primary" : resolvedColor;
   const dynamicHighlight =
     display === "outline-highlight" || display === "highlight";
@@ -145,11 +160,13 @@ export function Collapsible({
 
   return (
     <CollapsiblePrimitive.Root
+      id={id}
+      data-slot="collapsible"
       open={open}
       onOpenChange={setOpen}
       className={cn(
         "not-prose my-4 overflow-hidden rounded-lg transition-colors motion-reduce:transition-none print:border print:border-border print:bg-transparent print:text-foreground",
-        display !== "highlight" && "border",
+        display !== "highlight" && display !== "separators" && "border",
         outlineColors[resolvedColor],
         display === "outline-tinted" &&
           backgroundColors[highlightedColor].background,

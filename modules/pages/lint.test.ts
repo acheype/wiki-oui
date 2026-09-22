@@ -299,6 +299,101 @@ const TABS_BUILDERS = [
       children: {
         component: "Tab",
         label: "Onglet",
+        anchorField: "title",
+        collectionLabel: "Onglets",
+        initialSelection: "first",
+        singleChildWarning:
+          "Ce groupe ne contient qu'un onglet et n'apporte donc aucune navigation. Vous pouvez afficher directement son titre et son contenu.",
+        properties: {
+          title: { label: "Titre", type: "text", required: true },
+          icon: { label: "Icône", type: "icon" },
+        },
+      },
+    },
+  },
+] as unknown as ComponentBuilderSpec[];
+
+const ACCORDION_REGISTRY = [...TABS_REGISTRY, "Accordion", "Collapsible"];
+const ACCORDION_BUILDERS = [
+  ...TABS_BUILDERS,
+  {
+    base: "collapsible",
+    name: "Collapsible",
+    defaults: {
+      defaultOpen: false,
+      toggleIcon: "chevron",
+      display: "outline",
+      color: undefined,
+      headingLevel: "none",
+    },
+    descriptor: {
+      label: "Bloc dépliable",
+      properties: {
+        title: { label: "Titre", type: "text", required: true },
+        defaultOpen: { label: "Ouvert", type: "checkbox", default: false },
+        toggleIcon: {
+          label: "Symbole",
+          type: "radio",
+          default: "chevron",
+          options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+        },
+        display: {
+          label: "Apparence",
+          type: "list",
+          default: "outline",
+          options: { outline: "Contour", highlight: "Surbrillance" },
+        },
+        color: { label: "Couleur", type: "text" },
+        headingLevel: { label: "Niveau", type: "text", default: "none" },
+      },
+    },
+  },
+  {
+    base: "accordion",
+    name: "Accordion",
+    defaults: {
+      toggleIcon: "chevron",
+      display: "separators",
+      spacing: "joined",
+      color: undefined,
+      headingLevel: "none",
+    },
+    descriptor: {
+      label: "Accordéon",
+      properties: {
+        toggleIcon: {
+          label: "Symbole",
+          type: "radio",
+          default: "chevron",
+          options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+        },
+        display: {
+          label: "Apparence",
+          type: "list",
+          default: "separators",
+          options: {
+            separators: "Séparateurs",
+            outline: "Contour",
+            highlight: "Surbrillance",
+          },
+        },
+        spacing: {
+          label: "Disposition",
+          type: "radio",
+          default: "joined",
+          options: { joined: "Accolés", separated: "Séparés" },
+        },
+        color: { label: "Couleur", type: "text" },
+        headingLevel: { label: "Niveau", type: "text", default: "none" },
+      },
+      children: {
+        component: "Collapsible",
+        label: "Bloc",
+        anchorField: "title",
+        collectionLabel: "Blocs dépliables",
+        initialSelection: "none",
+        singleChildWarning:
+          "Cet accordéon ne contient qu'un bloc. Utilisez plutôt un bloc dépliable seul.",
         properties: {
           title: { label: "Titre", type: "text", required: true },
           icon: { label: "Icône", type: "icon" },
@@ -326,5 +421,87 @@ describe("tab anchor slugs", () => {
   it("stays silent when every tab has its own slug", () => {
     const source = `<Tabs>\n  <Tab title="Un">a</Tab>\n  <Tab title="Deux">b</Tab>\n</Tabs>\n`;
     expect(lintTabs(source).some((m) => m.includes("ancre"))).toBe(false);
+  });
+});
+
+const lintAccordions = (source: string) =>
+  lintPageSource(source, ACCORDION_REGISTRY, ACCORDION_BUILDERS, EXISTING).map(
+    (warning) => warning.message
+  );
+
+describe("managed wrapper context", () => {
+  it("warns about empty and single-child wrappers", () => {
+    expect(lintAccordions("<Accordion></Accordion>").join("\n")).toContain(
+      "aucun enfant"
+    );
+    expect(
+      lintAccordions(
+        '<Accordion><Collapsible title="Seul">x</Collapsible></Accordion>'
+      )
+    ).toContain(
+      "Cet accordéon ne contient qu'un bloc. Utilisez plutôt un bloc dépliable seul."
+    );
+    expect(lintTabs('<Tabs><Tab title="Seul">x</Tab></Tabs>')).toContain(
+      "Ce groupe ne contient qu'un onglet et n'apporte donc aucune navigation. Vous pouvez afficher directement son titre et son contenu."
+    );
+  });
+
+  it("warns when direct content is ignored by Tabs or Accordion", () => {
+    expect(
+      lintAccordions(
+        '<Accordion>Texte<Collapsible title="Bloc">x</Collapsible></Accordion>'
+      ).some((message) => message.includes("directement") && message.includes("ignoré"))
+    ).toBe(true);
+    expect(
+      lintTabs('<Tabs>Texte<Tab title="Onglet">x</Tab></Tabs>').some(
+        (message) => message.includes("directement") && message.includes("ignoré")
+      )
+    ).toBe(true);
+  });
+
+  it("warns once per direct block and lists every parent-dominated prop", () => {
+    const warnings = lintAccordions(
+      '<Accordion><Collapsible title="Bloc" defaultOpen display="highlight" color="danger">x</Collapsible></Accordion>'
+    ).filter((message) => message.includes("ignorées au rendu"));
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]).toContain("defaultOpen");
+    expect(warnings[0]).toContain("display");
+    expect(warnings[0]).toContain("color");
+  });
+
+  it("does not apply accordion rules to a standalone Collapsible", () => {
+    const warnings = lintAccordions(
+      '<Tabs><Tab title="Seul">x</Tab><Tab title="Autre">y</Tab></Tabs>\n<Collapsible title="Seul" defaultOpen display="highlight" color="danger">x</Collapsible>'
+    );
+    expect(warnings.some((message) => message.includes("ignorées au rendu"))).toBe(
+      false
+    );
+    expect(warnings.some((message) => message.includes("#seul"))).toBe(false);
+  });
+
+  it("detects anchor collisions across tabs and accordion blocks", () => {
+    const warnings = lintAccordions(
+      '<Tabs><Tab title="Info">x</Tab></Tabs>\n<Accordion><Collapsible title="Info">y</Collapsible><Collapsible title="Autre">z</Collapsible></Accordion>'
+    );
+    expect(warnings.filter((message) => message.includes("#info"))).toHaveLength(1);
+  });
+
+  it("warns when a manual appearance combination falls back canonically", () => {
+    expect(
+      lintAccordions(
+        '<Accordion display="separators" spacing="separated" color="danger"><Collapsible title="Un">x</Collapsible><Collapsible title="Deux">y</Collapsible></Accordion>'
+      ).some((message) => message.includes("force") && message.includes("joined"))
+    ).toBe(true);
+    expect(
+      lintAccordions(
+        '<Accordion display="highlight" spacing="joined"><Collapsible title="Un">x</Collapsible><Collapsible title="Deux">y</Collapsible></Accordion>'
+      ).some((message) => message.includes("force") && message.includes("separated"))
+    ).toBe(true);
+    expect(
+      lintAccordions(
+        '<Accordion display="highlight"><Collapsible title="Un">x</Collapsible><Collapsible title="Deux">y</Collapsible></Accordion>'
+      ).some((message) => message.includes("force"))
+    ).toBe(false);
   });
 });

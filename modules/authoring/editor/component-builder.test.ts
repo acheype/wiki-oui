@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ComponentBuilderSpec } from "../descriptors";
 import { descriptorDefaults, type ComponentDescriptor } from "../descriptor";
-import { insertionState } from "./component-builder";
+import { insertionState, nextManagedChildValues } from "./component-builder";
 
 function spec(name: string, descriptor: ComponentDescriptor): ComponentBuilderSpec {
   return {
@@ -18,12 +18,12 @@ describe("insertionState", () => {
     const initial = insertionState(
       spec("Collapsible", {
         label: "Bloc dépliable",
-        content: "Contenu du bloc dépliable à modifier",
+        initialContent: "Contenu du bloc dépliable à modifier",
         properties: {
           title: {
             label: "Titre",
             type: "text",
-            value: "Titre de mon bloc dépliable",
+            initialValue: "Titre de mon bloc dépliable",
           },
         },
       })
@@ -34,7 +34,7 @@ describe("insertionState", () => {
     expect(initial.wrapper).toBeUndefined();
   });
 
-  it("applies child pre-fills only to the first initial child", () => {
+  it("numbers the two initial managed children", () => {
     const initial = insertionState(
       spec("Tabs", {
         label: "Onglets",
@@ -42,21 +42,59 @@ describe("insertionState", () => {
         children: {
           component: "Tab",
           label: "Onglet",
+          anchorField: "title",
+          initialContent: "Contenu de l'onglet à modifier",
           properties: {
             title: {
               label: "Titre",
               type: "text",
-              value: "Titre de mon onglet",
+              initialValue: "Titre de mon onglet",
             },
-            icon: { label: "Icône", type: "icon" },
+            icon: {
+              label: "Icône",
+              type: "icon",
+              initialValue: "lucide:info",
+            },
           },
         },
       })
     );
 
     expect(initial.wrapper?.children.map((child) => child.values)).toEqual([
-      { title: "Titre de mon onglet" },
-      {},
+      { title: "Titre de mon onglet 1", icon: "lucide:info" },
+      { title: "Titre de mon onglet 2", icon: "lucide:info" },
     ]);
+    expect(initial.wrapper?.children.map((child) => child.content)).toEqual([
+      "Contenu de l'onglet à modifier",
+      "Contenu de l'onglet à modifier",
+    ]);
+  });
+
+  it("numbers the declared anchor field and leaves other pre-fills unchanged", () => {
+    const descriptor: ComponentDescriptor = {
+      label: "Onglets",
+      properties: {},
+      children: {
+        component: "Tab",
+        label: "Onglet",
+        anchorField: "name",
+        properties: {
+          name: {
+            label: "Nom",
+            type: "text",
+            initialValue: "Section",
+            required: true,
+          },
+          icon: { label: "Icône", type: "icon", initialValue: "lucide:info" },
+        },
+      },
+    };
+
+    expect(
+      nextManagedChildValues(descriptor.children!, [
+        { values: { name: "Section 1" }, content: "", unknownAttributes: [] },
+        { values: { name: "Section 3" }, content: "", unknownAttributes: [] },
+      ])
+    ).toEqual({ name: "Section 2", icon: "lucide:info" });
   });
 });
