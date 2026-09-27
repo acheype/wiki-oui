@@ -1,0 +1,78 @@
+# ComponentBuilder descriptor of <Collapsible> (issue #37, ADR 0031).
+# Configuration is edited as props; free MDX is preserved between the tags.
+label: Bloc dépliable
+description: Masquer une information secondaire jusqu'au clic
+previewHeight: 260px
+initialContent: Contenu du bloc dépliable à modifier
+properties:
+  title:
+    label: Titre
+    type: text
+    initialValue: Titre de mon bloc dépliable
+    required: true
+  defaultOpen:
+    label: Affichage initial
+    checkboxLabel: Déplié par défaut
+    type: checkbox
+    default: false
+  icon:
+    label: Icône
+    type: icon
+  toggleIcon:
+    label: Symbole de dépliage
+    type: radio
+    default: chevron
+    options:
+      chevron: Chevrons
+      plus-minus: Plus / moins
+  display:
+    label: Apparence
+    type: list
+    default: outline
+    options:
+      outline: Contour
+      outline-tinted: Contour teinté
+      outline-highlight: Contour et surbrillance
+      highlight: Surbrillance
+  outlineColor:
+    label: Couleur
+    type: list
+    prop: color
+    default: none
+    showif:
+      display: outline
+    options:
+      none: Aucune
+      primary: Primaire
+      secondary: Secondaire
+      success: Succès
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
+  highlightColor:
+    label: Couleur
+    type: list
+    prop: color
+    default: primary
+    showif:
+      display: /^(outline-tinted|outline-highlight|highlight)$/
+    options:
+      primary: Primaire
+      secondary: Secondaire
+      success: Succès
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
+  headingLevel:
+    label: Niveau de titre
+    hint: Transforme le titre du bloc en titre de section, afin qu’il puisse apparaître dans un sommaire. Choisissez un niveau cohérent avec les titres qui l’entourent.
+    type: list
+    default: none
+    advanced: true
+    options:
+      none: Aucun
+      h2: Titre 2
+      h3: Titre 3
+      h4: Titre 4
+      h5: Titre 5
+      h6: Titre 6

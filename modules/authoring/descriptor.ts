@@ -15,6 +15,7 @@ const FIELD_TYPES = [
   "icon",
   "checkbox",
   "list",
+  "radio",
   "page-list",
   "file-list",
   "form-list",
@@ -80,6 +81,7 @@ export function propKind(
     case "url":
     case "icon":
     case "list":
+    case "radio":
     case "view-picker":
     case "page-list":
     case "file-list":
@@ -164,6 +166,8 @@ const propValueSchema = z.union([z.string(), z.number(), z.boolean()]);
 // validateDescriptor — Zod only covers the shape.
 const descriptorFieldSchema = z.object({
   label: z.string(),
+  /** Optional control text when a checkbox needs a distinct field heading. */
+  checkboxLabel: z.string().optional(),
   hint: z.string().optional(),
   type: z.enum(FIELD_TYPES),
   // Prop-name override (docs/entries-view.md): several fields with disjoint
@@ -186,7 +190,7 @@ const descriptorFieldSchema = z.object({
   // component's destructuring default (verified by verify.ts).
   default: propValueSchema.optional(),
   /** Insertion pre-fill; the prop is always written, even when unchanged. */
-  value: propValueSchema.optional(),
+  initialValue: propValueSchema.optional(),
   /** For `file-list`: restricts the combobox to one file family. */
   family: z.enum(FILE_FAMILIES).optional(),
   /** For `form-list`/`form-field`: the prop holds one name or an array of names. */
@@ -209,14 +213,23 @@ const descriptorFieldSchema = z.object({
 });
 
 // A wrapper's managed child list (ADR 0031): the repeated child tag it emits
-// between its own tags, described here rather than in a YAML of its own — the
-// child never inserts alone, so it carries no descriptor. `properties` are the
-// child's props, the same field block a root component declares.
+// between its own tags. `properties` are the props the parent edits in this
+// context; the child may also have an autonomous descriptor of its own.
 const childrenDescriptorSchema = z.object({
-  /** The child component tag, e.g. "Tab" — a registry component, no descriptor. */
+  /** The child component tag, e.g. "Tab" — always a registry component. */
   component: z.string().min(1),
   /** Singular label for one child, e.g. "Onglet". */
   label: z.string(),
+  /** Heading for the repeatable list in the builder. */
+  collectionLabel: z.string().optional(),
+  /** Meaning of an omitted wrapper `default` attribute. */
+  initialSelection: z.enum(["first", "none"]).optional(),
+  /** Non-blocking guidance when the wrapper contains only one child. */
+  singleChildWarning: z.string().optional(),
+  /** Child field whose slug identifies the child and must be unique. */
+  anchorField: z.string().min(1),
+  /** Initial MDX placed inside every newly created child. */
+  initialContent: z.string().optional(),
   properties: z.record(z.string(), descriptorFieldSchema),
 });
 
@@ -227,6 +240,8 @@ export const componentDescriptorSchema = z.object({
   /** Serialization target; JSX component tag unless "markdown-link". */
   emits: z.literal("markdown-link").optional(),
   properties: z.record(z.string(), descriptorFieldSchema),
+  /** Initial MDX for a wrapper whose inner content stays author-managed. */
+  initialContent: z.string().optional(),
   /** Present on a wrapper whose child list the builder manages (ADR 0031). */
   children: childrenDescriptorSchema.optional(),
 });
@@ -235,8 +250,8 @@ export type DescriptorField = z.infer<typeof descriptorFieldSchema>;
 export type ChildrenDescriptor = z.infer<typeof childrenDescriptorSchema>;
 export type ComponentDescriptor = z.infer<typeof componentDescriptorSchema>;
 
-/** A wrapper managing its children (ADR 0031) declares a `children:` section. */
-export function isWrapperDescriptor(
+/** A wrapper managing a repeated child list declares a `children:` section. */
+export function isManagedChildrenDescriptor(
   descriptor: ComponentDescriptor
 ): descriptor is ComponentDescriptor & { children: ChildrenDescriptor } {
   return descriptor.children !== undefined;
@@ -252,14 +267,9 @@ export function childDescriptor(
   return { label: children.label, properties: children.properties };
 }
 
-// A wrapper child derives its anchor slug from its title (ADR 0031). The field
-// name and the derivation are shared by the renderer (tabs.tsx), the builder's
-// collision guard (component-builder.tsx) and the lint pass (pages/lint.ts),
-// so one change to the rule reaches all three.
-export const CHILD_SLUG_FIELD = "title";
-
-export function childSlug(values: Record<string, unknown>): string {
-  return slugify(String(values[CHILD_SLUG_FIELD] ?? ""));
+/** Slug shared by managed-child renderers, builder validation and page lint. */
+export function childAnchorSlug(value: unknown): string {
+  return slugify(String(value ?? ""));
 }
 
 /** True for wiki-link: serialized as a markdown link, kept out of the menu. */
@@ -362,12 +372,39 @@ export function validateDescriptor(
   }
   const descriptor = result.data;
 
+  if (
+    descriptor.initialContent !== undefined &&
+    descriptor.children !== undefined
+  ) {
+    throw new Error(
+      `${at(["initialContent"], ["children"])}: a descriptor cannot declare both initialContent and children`
+    );
+  }
+
   validatePropertiesBlock(descriptor.properties, at, []);
   // A wrapper's managed children reuse the same field engine (ADR 0031), so
   // its props are validated exactly like a root component's — only their path
   // is nested under "children" so messages point at the right YAML line.
   if (descriptor.children) {
     validatePropertiesBlock(descriptor.children.properties, at, ["children"]);
+    const anchorField = descriptor.children.anchorField;
+    const anchor = descriptor.children.properties[anchorField];
+    if (!anchor) {
+      throw new Error(
+        `${at(["children", "anchorField"], ["children"])}: children anchorField points at unknown field "${anchorField}"`
+      );
+    }
+    if (
+      propKind(anchor) !== "string" ||
+      !anchor.required ||
+      anchor.showif !== undefined ||
+      typeof anchor.initialValue !== "string" ||
+      anchor.initialValue.trim() === ""
+    ) {
+      throw new Error(
+        `${at(["children", "anchorField"], ["children", "properties", anchorField])}: children anchorField "${anchorField}" must point at a required, always-visible string field with a non-empty initialValue`
+      );
+    }
   }
   return descriptor;
 }
@@ -383,6 +420,11 @@ function validatePropertiesBlock(
   const path = (...rest: (string | number)[]) => [...base, "properties", ...rest];
   for (const [field, spec] of Object.entries(properties)) {
     if (spec.type === "divider") continue;
+    if (spec.checkboxLabel !== undefined && spec.type !== "checkbox") {
+      throw new Error(
+        `${at(path(field, "checkboxLabel"), path(field))}: field "${field}" uses checkboxLabel but is not a checkbox`
+      );
+    }
     for (const [target, condition] of Object.entries(spec.showif ?? {})) {
       const where = at(path(field, "showif", target), path(field));
       if (!(target in properties)) {
@@ -400,7 +442,11 @@ function validatePropertiesBlock(
         }
       }
     }
-    if (spec.type === "list" || spec.type === "view-picker") {
+    if (
+      spec.type === "list" ||
+      spec.type === "radio" ||
+      spec.type === "view-picker"
+    ) {
       const options = Object.keys(spec.options ?? {});
       const fallback = spec.default;
       if (typeof fallback !== "string" || !options.includes(fallback)) {
@@ -591,7 +637,7 @@ function holds(condition: unknown, value: PropValue): boolean {
 
 // MDX generation (docs/component-builder.md). The generated MDX is a user
 // interface: omit whatever the reader can infer (the omission rule) so the
-// source stays short. Fields carrying a YAML `value` pre-fill are the
+// source stays short. Fields carrying a YAML `initialValue` pre-fill are the
 // exception: their prop is always written, even unchanged.
 // The visible, non-default attributes a tag carries, in descriptor order,
 // unknown ones appended verbatim. Shared by the self-closing leaf tag
@@ -610,7 +656,7 @@ export function tagAttributes(
     // A key absent from values reads as its default (the builder shows
     // defaults for omitted props — same convention as the inverse mapping).
     const value = field in values ? values[field] : defaults[field];
-    if (sameValue(value, defaults[field]) && spec.value === undefined) continue;
+    if (sameValue(value, defaults[field]) && spec.initialValue === undefined) continue;
     if (isEmpty(value) && isEmpty(defaults[field])) continue;
     attributes.push(serializeAttribute(fieldProp(field, spec), value));
   }

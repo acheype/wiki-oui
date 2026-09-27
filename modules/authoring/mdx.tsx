@@ -6,7 +6,9 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { EXIT, visit } from "unist-util-visit";
 import type { MDXComponents } from "mdx/types";
+import { createElement, type ComponentType } from "react";
 import { pascalCase } from "@/modules/authoring/descriptor";
+import { WIKI_COMPONENT_NAME_PROPERTY } from "@/modules/authoring/wiki-component";
 import {
   allowListedHostElementsOnly,
   normalizePastedHtmlAttributes,
@@ -160,9 +162,32 @@ async function buildRegistry(needed?: Set<string>): Promise<MDXComponents> {
         `${wikiComponentPath(module, base, ".tsx")} must export a component named ${name}`,
       );
     }
-    registry[name] = mod[name] as React.ComponentType;
+    registry[name] = identifyWikiComponent(
+      name,
+      mod[name] as ComponentType<Record<string, unknown>>
+    );
   }
   return registry;
+}
+
+function identifyWikiComponent(
+  name: string,
+  Component: ComponentType<Record<string, unknown>>
+): ComponentType<Record<string, unknown>> {
+  // A static property on a client component reference disappears when React
+  // serializes an element through RSC. A server wrapper turns that identity
+  // into a serializable prop before a client parent such as Accordion or Tabs
+  // inspects its children. The data-* spelling stays harmless for components
+  // that deliberately forward unknown props to a host element.
+  const IdentifiedWikiComponent = (props: Record<string, unknown>) =>
+    createElement(Component, {
+      ...props,
+      [WIKI_COMPONENT_NAME_PROPERTY]: name,
+    });
+  Object.assign(IdentifiedWikiComponent, {
+    [WIKI_COMPONENT_NAME_PROPERTY]: name,
+  });
+  return IdentifiedWikiComponent;
 }
 
 // The compiled MDX throws at render time on any component missing from the

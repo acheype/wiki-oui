@@ -56,12 +56,12 @@ where: { AND: [{ slug: { in: choisies } }, await currentReadableWhere()] }
 
 ### `scripts/verify-descriptors.ts` — le descripteur fait foi (ADR 0013, ADR 0002)
 
-**Le descripteur et son composant disent la même chose.** Le YAML décrit les propriétés que le ComponentBuilder offrira à l'auteur ; le `.tsx` les reçoit en props. Le script lit les deux **sources** — il ne charge jamais le composant — et refuse qu'elles divergent : une propriété décrite dans le YAML et absente du composant serait un champ que la modale propose et que le rendu ignore.
+**Le descripteur et son composant disent la même chose.** Le YAML décrit les propriétés que le ComponentBuilder offrira à l'auteur ; le `.tsx` les reçoit en props. Le script lit les deux **sources** — il ne charge jamais le composant — et refuse qu'elles divergent : une propriété décrite dans le YAML et absente du composant serait un champ que la modale propose et que le rendu ignore. Pour un wrapper à enfants gérés (ADR 0031), il vérifie aussi `children.properties` contre la signature de `children.component`, même si cet enfant n'a pas de descripteur autonome.
 
 ```yaml
 # modules/pages/wiki-components/button.yaml décrit une propriété `label`…
 properties:
-  label: { type: string }
+  label: { type: text }
 ```
 
 ```tsx

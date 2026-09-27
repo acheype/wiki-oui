@@ -4,13 +4,12 @@ import { ButtonView } from "../ui/button-view";
 export type ButtonColor =
   | "default"
   | "primary"
-  | "secondary-1"
-  | "secondary-2"
+  | "secondary"
   | "success"
   | "info"
   | "warning"
-  | "danger"
-  | "link";
+  | "destructive"
+  | "transparent";
 
 export type ButtonProps = {
   /** Iconify id from the embedded sets, e.g. `lucide:settings`. */

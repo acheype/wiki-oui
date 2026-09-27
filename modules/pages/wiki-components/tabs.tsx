@@ -3,11 +3,10 @@
 import {
   Children,
   isValidElement,
-  useEffect,
-  useRef,
   useState,
   type ReactElement,
   type ReactNode,
+  type CSSProperties,
 } from "react";
 import {
   Tabs as TabsPrimitive,
@@ -16,9 +15,11 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Icon } from "@/components/ui/icon";
-import { childSlug } from "@/modules/authoring/descriptor";
+import { childAnchorSlug } from "@/modules/authoring/descriptor";
+import { hasWikiComponentName } from "@/modules/authoring/wiki-component";
+import { useAnchoredSelection } from "@/modules/pages/anchors/client";
 import { cn } from "@/lib/utils";
-import type { TabProps } from "./tab";
+import { Tab as TabComponent, type TabProps } from "./tab";
 import { UnderlineIndicators } from "./tabs/underline-indicators";
 
 // Built-in wrapper (ADR 0031): renders the <Tab> children written between its
@@ -37,6 +38,8 @@ export type TabsProps = {
   fullWidth?: boolean;
   /** Slug of the tab open on load; falls back to the first tab. */
   default?: string;
+  className?: string;
+  style?: CSSProperties;
   children?: ReactNode;
 };
 
@@ -52,11 +55,20 @@ const DISPLAY_VARIANT: Record<
   separated: "separated",
 };
 
-type Tab = { slug: string; title: string; icon?: string; content: ReactNode };
+type Tab = {
+  slug: string;
+  title: string;
+  icon?: string;
+  className?: string;
+  style?: CSSProperties;
+  content: ReactNode;
+};
 
 function isTabElement(node: ReactNode): node is ReactElement<TabProps> {
   return (
     isValidElement(node) &&
+    (node.type === TabComponent ||
+      hasWikiComponentName(node, "Tab")) &&
     typeof (node.props as Partial<TabProps>).title === "string"
   );
 }
@@ -69,11 +81,11 @@ function collectTabs(children: ReactNode): Tab[] {
   const seen = new Set<string>();
   for (const node of Children.toArray(children)) {
     if (!isTabElement(node)) continue;
-    const { title, icon, children: content } = node.props;
-    const slug = childSlug({ title });
+    const { title, icon, className, style, children: content } = node.props;
+    const slug = childAnchorSlug(title);
     if (!slug || seen.has(slug)) continue;
     seen.add(slug);
-    tabs.push({ slug, title, icon, content });
+    tabs.push({ slug, title, icon, className, style, content });
   }
   return tabs;
 }
@@ -83,13 +95,18 @@ export function Tabs({
   orientation = "horizontal",
   fullWidth = false,
   default: defaultSlug,
+  className,
+  style,
   children,
 }: TabsProps) {
   const tabs = collectTabs(children);
   const slugs = tabs.map((tab) => tab.slug);
   const initial =
     defaultSlug && slugs.includes(defaultSlug) ? defaultSlug : slugs[0];
-  const [value, setValue] = useState(initial);
+  const [anchoredValue, selectValue] = useAnchoredSelection(
+    slugs,
+    initial ?? null
+  );
 
   // Underline (`line` variant) swaps the per-tab bar for two shared indicators
   // that slide (underline-indicators.tsx): the grey one follows the hovered
@@ -97,36 +114,11 @@ export function Tabs({
   const isUnderline = display === "underline";
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  // A `#slug` anchor opens (and scrolls to) the matching tab (ADR 0031). Each
-  // <Tabs> answers only for its own slugs, so several groups on one page do
-  // not fight over the hash. hashchange keeps an in-page link working.
-  // Joined into one key so the effect re-binds only when the slugs change.
   const slugKey = slugs.join("|");
-  // An inactive tab's panel is not rendered, so its element only exists once
-  // the tab is open: the scroll then waits for the render that opens it.
-  const pendingScroll = useRef<string | null>(null);
-  useEffect(() => {
-    const groupSlugs = slugKey ? slugKey.split("|") : [];
-    const applyHash = () => {
-      const hash = decodeURIComponent(window.location.hash.slice(1));
-      if (!groupSlugs.includes(hash)) return;
-      setValue(hash);
-      const openPanel = document.getElementById(hash);
-      if (openPanel) openPanel.scrollIntoView({ block: "nearest" });
-      else pendingScroll.current = hash;
-    };
-    applyHash();
-    window.addEventListener("hashchange", applyHash);
-    return () => window.removeEventListener("hashchange", applyHash);
-  }, [slugKey]);
-  useEffect(() => {
-    const target = pendingScroll.current;
-    if (target === null || target !== value) return;
-    pendingScroll.current = null;
-    document.getElementById(target)?.scrollIntoView({ block: "nearest" });
-  }, [value]);
 
   if (tabs.length === 0) return null;
+
+  const value = anchoredValue ?? tabs[0].slug;
 
   const variant = DISPLAY_VARIANT[display];
   // How the panel demarcates its zone, per display:
@@ -150,9 +142,14 @@ export function Tabs({
   return (
     <TabsPrimitive
       value={value}
-      onValueChange={setValue}
+      onValueChange={selectValue}
       orientation={orientation}
-      className={cn("not-prose my-4", display === "folder" && "gap-0")}
+      className={cn(
+        "not-prose my-4",
+        display === "folder" && "gap-0",
+        className
+      )}
+      style={style}
     >
       <TabsList
         variant={variant}
@@ -220,7 +217,12 @@ export function Tabs({
           key={tab.slug}
           value={tab.slug}
           id={tab.slug}
-          className={cn("prose max-w-none scroll-mt-24 text-base", contentClass)}
+          className={cn(
+            "prose max-w-none scroll-mt-24 text-base",
+            contentClass,
+            tab.className
+          )}
+          style={tab.style}
         >
           {tab.content}
         </TabsContent>

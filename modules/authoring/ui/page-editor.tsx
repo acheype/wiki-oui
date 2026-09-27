@@ -94,6 +94,7 @@ export function PageEditor({
             values: info.values,
             unknownAttributes: info.unknownAttributes,
             wrapper: info.wrapper,
+            content: info.content,
           },
           range: { from: info.from, to: info.to },
         }),

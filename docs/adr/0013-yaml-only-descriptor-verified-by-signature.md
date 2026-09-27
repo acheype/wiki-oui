@@ -19,13 +19,13 @@ L'objectif est d'**incorporer plus tard n'importe quel composant React** — cli
 - **Structurels** — le YAML est-il auto-cohérent, sans regarder le composant : type de champ connu ; `default` d'une `list` ∈ ses `options` ; cibles de `showif` existantes et regex valides ; `family` connue ; `emits` valide.
 - **Signature** — le YAML colle-t-il au composant ; **uniquement pour les émetteurs de balise** (les émetteurs `markdown-link` comme wiki-link n'ont que les structurels), et on **saute les champs `divider`** :
   - champ ∈ props du composant (sinon nom de prop erroné) ;
-  - prop **obligatoire au runtime** (requise en TS *et* sans défaut de déstructuration) → doit avoir `required: true` en YAML (ni `value` ni `default` ne satisfont) ;
+  - prop **obligatoire au runtime** (requise en TS *et* sans défaut de déstructuration) → doit avoir `required: true` en YAML (ni `initialValue` ni `default` ne satisfont) ;
   - type du champ = type de la prop ;
   - `options` / `default` d'une `list` ∈ l'union littérale de la prop ;
   - **dérive** : `default` YAML = défaut de déstructuration du composant ;
-  - type de `value` = type de la prop.
+  - type de `initialValue` = type de la prop.
 
-**`default` vs `value`.** `default` est la référence de l'omission → vérifié en **type et en dérive** (doit égaler le défaut du composant). `value` est un pré-remplissage d'insertion, toujours écrit dans la balise → vérifié **en type seulement** ; il a le droit de différer du défaut (aucun check de dérive).
+**`default` vs `initialValue`.** `default` est la référence de l'omission → vérifié en **type et en dérive** (doit égaler le défaut du composant). `initialValue` est un pré-remplissage d'insertion, toujours écrit dans la balise → vérifié **en type seulement** ; il a le droit de différer du défaut (aucun check de dérive). Ce nom explicite que la valeur ne s'applique qu'à la création : elle ne remplace jamais une valeur déjà présente à la réédition.
 
 **Sévérité : tout est erreur, sauf un avertissement.** Seul un `default` **non vérifiable** (calculé au runtime) est un avertissement non bloquant ; tout le reste est une erreur.
 

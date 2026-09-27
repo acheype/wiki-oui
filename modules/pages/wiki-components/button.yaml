@@ -6,7 +6,7 @@ properties:
   text:
     label: Texte du bouton
     type: text
-    value: Mon bouton
+    initialValue: Mon bouton
   link:
     label: Lien web ou nom d'une page de ce wiki
     hint: Si lien web, n'oubliez pas le "https://"
@@ -22,13 +22,12 @@ properties:
     options:
       default: Défaut
       primary: Primaire
-      secondary-1: Secondaire 1
-      secondary-2: Secondaire 2
+      secondary: Secondaire
       success: Succès
-      info: Info
-      warning: Attention
-      danger: Danger
-      link: Lien
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
+      transparent: Transparent
   title:
     label: Texte affiché au survol
     type: text

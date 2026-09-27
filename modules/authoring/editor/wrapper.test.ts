@@ -4,10 +4,16 @@ import {
   descriptorDefaults,
 } from "../descriptor";
 import {
+  type FreeContentDraft,
+  type FreeContentShape,
   type WrapperDraft,
   type WrapperShape,
+  findFreeContentWrapperAtCursor,
   findWrapperAtCursor,
+  generateFreeContentWrapper,
   generateWrapper,
+  moveManagedChild,
+  removeManagedChild,
   wrapperShapeOf,
 } from "./wrapper";
 
@@ -33,6 +39,7 @@ function tabsDescriptor(): ComponentDescriptor {
     children: {
       component: "Tab",
       label: "Onglet",
+      anchorField: "title",
       properties: {
         title: { label: "Titre", type: "text", required: true },
         icon: { label: "Icône", type: "icon" },
@@ -49,6 +56,76 @@ function tabsShape(): WrapperShape {
     defaults: descriptorDefaults(descriptor),
   });
 }
+
+function collapsibleShape(): FreeContentShape {
+  return {
+    name: "Collapsible",
+    descriptor: {
+      label: "Bloc dépliable",
+      initialContent: "Contenu du bloc dépliable à modifier",
+      properties: {
+        title: { label: "Titre", type: "text", required: true },
+        defaultOpen: {
+          label: "Déplié par défaut",
+          type: "checkbox",
+          default: false,
+        },
+      },
+    },
+    defaults: { title: undefined, defaultOpen: false },
+  };
+}
+
+describe("free-content wrapper round-trip", () => {
+  const shape = collapsibleShape();
+
+  it("generates and reads raw MDX content with unknown attributes", () => {
+    const draft: FreeContentDraft = {
+      values: { title: "À savoir", defaultOpen: true },
+      unknownAttributes: ['className="mt-4"'],
+      content: "\nLigne 1\n\n<Button text=\"Continuer\" />\n",
+    };
+    const source = generateFreeContentWrapper(shape, draft);
+
+    expect(source).toBe(
+      '<Collapsible title="À savoir" defaultOpen className="mt-4">\nLigne 1\n\n<Button text="Continuer" />\n</Collapsible>'
+    );
+    const found = findFreeContentWrapperAtCursor(
+      [shape],
+      source,
+      source.indexOf("Ligne 1")
+    );
+    expect(found?.draft).toEqual(draft);
+    expect(generateFreeContentWrapper(shape, found!.draft)).toBe(source);
+  });
+
+  it("selects the innermost same-name wrapper without replacing its parent", () => {
+    const source = `<Collapsible title="Parent">
+Avant
+<Collapsible title="Enfant">
+Dedans
+</Collapsible>
+Après
+</Collapsible>`;
+    const found = findFreeContentWrapperAtCursor(
+      [shape],
+      source,
+      source.indexOf("Dedans")
+    );
+
+    expect(found?.draft.values.title).toBe("Enfant");
+    expect(found?.draft.content).toBe("\nDedans\n");
+    const replacement = generateFreeContentWrapper(shape, {
+      ...found!.draft,
+      values: { title: "Enfant modifié" },
+    });
+    const updated = source.slice(0, found!.from) + replacement + source.slice(found!.to);
+    expect(updated).toContain('<Collapsible title="Parent">');
+    expect(updated).toContain('<Collapsible title="Enfant modifié">');
+    expect(updated).toContain("Avant");
+    expect(updated).toContain("Après");
+  });
+});
 
 function draft(overrides: Partial<WrapperDraft> = {}): WrapperDraft {
   return {
@@ -167,5 +244,95 @@ a
     const deleted = generateWrapper(shape, { ...found!.draft, children: [b] });
     expect(deleted).not.toContain("Présentation");
     expect(deleted).toContain("Contenu deux");
+  });
+
+  it("keeps direct content in its sequence slots while children move", () => {
+    const text = `<Tabs>avant
+  <Tab title="Présentation">
+Contenu un
+  </Tab>entre<Button text="Garder" />
+  <Tab title="Contact" data-extra="oui">
+Contenu deux
+  </Tab>après
+</Tabs>`;
+    const found = findWrapperAtCursor([shape], text, text.indexOf("Contenu deux"));
+    const moved = moveManagedChild(found!.draft, 1, 0);
+    const generated = generateWrapper(shape, moved);
+
+    expect(generated).toBe(`<Tabs>avant
+  <Tab title="Contact" data-extra="oui">
+Contenu deux
+  </Tab>entre<Button text="Garder" />
+  <Tab title="Présentation">
+Contenu un
+  </Tab>après
+</Tabs>`);
+  });
+
+  it("does not manage expected child tags nested inside direct content", () => {
+    const text = `<Tabs>
+  <div>
+    <Tab title="Nested">
+Nested content
+    </Tab>
+  </div>
+  <Tab title="Direct">
+Direct content
+  </Tab>
+</Tabs>`;
+    const found = findWrapperAtCursor(
+      [shape],
+      text,
+      text.indexOf("Direct content")
+    );
+
+    expect(found!.draft.children.map((child) => child.values.title)).toEqual([
+      "Direct",
+    ]);
+    expect(found!.draft.interstitial?.join("")).toContain(
+      '<Tab title="Nested">'
+    );
+    expect(generateWrapper(shape, found!.draft)).toBe(text);
+  });
+
+  it("keeps expected child tags inside a fragment as direct content", () => {
+    const text = `<Tabs>
+  <>
+    <Tab title="Nested">Nested content</Tab>
+  </>
+  <Tab title="Direct">
+Direct content
+  </Tab>
+</Tabs>`;
+    const found = findWrapperAtCursor(
+      [shape],
+      text,
+      text.indexOf("Direct content")
+    );
+
+    expect(found!.draft.children.map((child) => child.values.title)).toEqual([
+      "Direct",
+    ]);
+    expect(generateWrapper(shape, found!.draft)).toBe(text);
+  });
+
+  it("removes a child without removing either surrounding fragment", () => {
+    const text = `<Tabs>avant
+  <Tab title="Présentation">
+Contenu un
+  </Tab>entre
+  <Tab title="Contact">
+Contenu deux
+  </Tab>après
+</Tabs>`;
+    const found = findWrapperAtCursor([shape], text, text.indexOf("Contenu deux"));
+    const generated = generateWrapper(shape, removeManagedChild(found!.draft, 0));
+
+    expect(generated).toBe(`<Tabs>avant
+  entre
+  <Tab title="Contact">
+Contenu deux
+  </Tab>après
+</Tabs>`);
   });
 });

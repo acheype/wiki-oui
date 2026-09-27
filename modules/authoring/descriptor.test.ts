@@ -36,6 +36,137 @@ function buttonDescriptor(): ComponentDescriptor {
 }
 
 describe("validateDescriptor", () => {
+  it("accepts a radio field as a string choice", () => {
+    const descriptor = validateDescriptor("collapsible.yaml", {
+      label: "Bloc dépliable",
+      properties: {
+        toggleIcon: {
+          label: "Symbole de dépliage",
+          type: "radio",
+          default: "chevron",
+          options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+        },
+      },
+    });
+
+    expect(descriptor.properties.toggleIcon.type).toBe("radio");
+    expect(descriptorDefaults(descriptor).toggleIcon).toBe("chevron");
+  });
+
+  it("rejects a radio field without a default", () => {
+    expect(() =>
+      validateDescriptor("collapsible.yaml", {
+        label: "Bloc dépliable",
+        properties: {
+          toggleIcon: {
+            label: "Symbole de dépliage",
+            type: "radio",
+            options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+          },
+        },
+      })
+    ).toThrow(
+      'collapsible.yaml: radio field "toggleIcon" needs a default among its options (chevron, plus-minus), got undefined'
+    );
+  });
+
+  it("rejects a radio default outside its options", () => {
+    expect(() =>
+      validateDescriptor("collapsible.yaml", {
+        label: "Bloc dépliable",
+        properties: {
+          toggleIcon: {
+            label: "Symbole de dépliage",
+            type: "radio",
+            default: "triangle",
+            options: { chevron: "Chevrons", "plus-minus": "Plus / moins" },
+          },
+        },
+      })
+    ).toThrow(
+      'collapsible.yaml: radio field "toggleIcon" needs a default among its options (chevron, plus-minus), got "triangle"'
+    );
+  });
+
+  it("rejects a checkbox label on another field type", () => {
+    expect(() =>
+      validateDescriptor("collapsible.yaml", {
+        label: "Bloc dépliable",
+        properties: {
+          title: {
+            label: "Titre",
+            checkboxLabel: "Déplié par défaut",
+            type: "text",
+          },
+        },
+      })
+    ).toThrow(
+      'collapsible.yaml: field "title" uses checkboxLabel but is not a checkbox'
+    );
+  });
+
+  it("accepts initial content for a free-content wrapper", () => {
+    const descriptor = validateDescriptor("collapsible.yaml", {
+      label: "Bloc dépliable",
+      initialContent: "Contenu du bloc dépliable à modifier",
+      properties: {},
+    });
+
+    expect(descriptor.initialContent).toBe(
+      "Contenu du bloc dépliable à modifier"
+    );
+  });
+
+  it("rejects a descriptor mixing free content and managed children", () => {
+    expect(() =>
+      validateDescriptor("mixed.yaml", {
+        label: "Ambigu",
+        initialContent: "Texte",
+        properties: {},
+        children: {
+          component: "Item",
+          label: "Élément",
+          anchorField: "title",
+          properties: {
+            title: {
+              label: "Titre",
+              type: "text",
+              initialValue: "Élément",
+              required: true,
+            },
+          },
+        },
+      })
+    ).toThrow(
+      "mixed.yaml: a descriptor cannot declare both initialContent and children"
+    );
+  });
+
+  it("accepts initial content for every managed child", () => {
+    const descriptor = validateDescriptor("tabs.yaml", {
+      label: "Onglets",
+      properties: {},
+      children: {
+        component: "Tab",
+        label: "Onglet",
+        anchorField: "title",
+        initialContent: "Contenu de l'onglet à modifier",
+        properties: {
+          title: {
+            label: "Titre",
+            type: "text",
+            initialValue: "Onglet",
+            required: true,
+          },
+        },
+      },
+    });
+
+    expect(descriptor.children?.initialContent).toBe(
+      "Contenu de l'onglet à modifier"
+    );
+  });
+
   it("accepts an extra field with no default: structural validation ignores props", () => {
     const descriptor = buttonDescriptor();
     descriptor.properties.colour = { label: "Couleur", type: "text" };
@@ -324,9 +455,9 @@ describe("generateTag", () => {
     ).toBe('<Button text="Mon bouton" />');
   });
 
-  it("always writes a field pre-filled by a YAML value, even unchanged", () => {
+  it("always writes a field pre-filled by initialValue, even unchanged", () => {
     const descriptor = fullButtonDescriptor();
-    descriptor.properties.color.value = "primary";
+    descriptor.properties.color.initialValue = "primary";
     expect(
       generateTag("Button", descriptor, fullButtonDefaults, {
         text: "Mon bouton",
@@ -948,7 +1079,15 @@ describe("wrapper children (ADR 0031)", () => {
       children: {
         component: "Tab",
         label: "Onglet",
-        properties: { title: { label: "Titre", type: "text", required: true } },
+        anchorField: "title",
+        properties: {
+          title: {
+            label: "Titre",
+            type: "text",
+            initialValue: "Onglet",
+            required: true,
+          },
+        },
       },
     };
     expect(() =>
@@ -963,7 +1102,15 @@ describe("wrapper children (ADR 0031)", () => {
       children: {
         component: "Tab",
         label: "Onglet",
-        properties: { color: { label: "C", type: "list", options: { a: "A" } } },
+        anchorField: "color",
+        properties: {
+          color: {
+            label: "C",
+            type: "list",
+            options: { a: "A" },
+            required: true,
+          },
+        },
       },
     };
     expect(() =>
@@ -975,10 +1122,51 @@ describe("wrapper children (ADR 0031)", () => {
     const descriptor = {
       label: "Onglets",
       properties: {},
-      children: { component: "", label: "Onglet", properties: {} },
+      children: {
+        component: "",
+        label: "Onglet",
+        anchorField: "title",
+        properties: {
+          title: { label: "Titre", type: "text", required: true },
+        },
+      },
     };
     expect(() =>
       validateDescriptor("modules/pages/wiki-components/tabs.yaml", descriptor)
     ).toThrow();
+  });
+
+  it("rejects an anchorField that is absent or optional", () => {
+    expect(() =>
+      validateDescriptor("tabs.yaml", {
+        label: "Onglets",
+        properties: {},
+        children: {
+          component: "Tab",
+          label: "Onglet",
+          anchorField: "name",
+          properties: {
+            title: { label: "Titre", type: "text", required: true },
+          },
+        },
+      })
+    ).toThrow('anchorField points at unknown field "name"');
+
+    expect(() =>
+      validateDescriptor("tabs.yaml", {
+        label: "Onglets",
+        properties: {},
+        children: {
+          component: "Tab",
+          label: "Onglet",
+          anchorField: "title",
+          properties: {
+          title: { label: "Titre", type: "text" },
+          },
+        },
+      })
+    ).toThrow(
+      'anchorField "title" must point at a required, always-visible string field with a non-empty initialValue'
+    );
   });
 });

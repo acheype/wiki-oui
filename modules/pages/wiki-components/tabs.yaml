@@ -31,11 +31,17 @@ properties:
 children:
   component: Tab
   label: Onglet
+  collectionLabel: Onglets
+  initialSelection: first
+  singleChildWarning: Ce groupe ne contient qu'un onglet et n'apporte donc aucune navigation. Vous pouvez afficher directement son titre et son contenu.
+  anchorField: title
+  initialContent: Contenu de l'onglet à modifier
   properties:
     title:
       label: Titre
       type: text
       required: true
+      initialValue: Titre de mon onglet
     icon:
       label: Icône
       type: icon
