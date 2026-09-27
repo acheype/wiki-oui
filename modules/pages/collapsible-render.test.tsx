@@ -115,19 +115,30 @@ describe("<Collapsible>", () => {
     expect(screen.getByRole("button", { name: "Contour" }).className).toContain(
       "focus-visible:ring-inset"
     );
+    expect(
+      screen.getByRole("button", { name: "Contour" }).querySelector(".text-foreground")
+        ?.textContent
+    ).toBe("Contour");
+    expect(
+      container.querySelector(".lucide-chevron-down")?.getAttribute("class")
+    ).toContain("text-muted-foreground/60");
 
     rerender(<Collapsible title="Teinté" display="outline-tinted">Texte</Collapsible>);
     expect(root.className).toContain("border");
     expect(root.className).toContain("border-primary");
     expect(root.className).toContain("bg-primary-subtle");
+    expect(root.className).not.toContain("text-primary");
 
     rerender(
-      <Collapsible title="Secondaire" display="outline-tinted" color="secondary-1">
+      <Collapsible title="Secondaire" display="outline-tinted" color="secondary">
         Texte
       </Collapsible>
     );
-    expect(root.className).toContain("border-secondary-1");
-    expect(root.className).toContain("bg-secondary-1-subtle");
+    expect(root.className).toContain("border-secondary");
+    expect(root.className).toContain("bg-secondary-subtle");
+    expect(
+      container.querySelector(".lucide-chevron-down")?.getAttribute("class")
+    ).toContain("text-secondary");
 
     rerender(
       <Collapsible title="Mixte" display="outline-highlight" color="success">
@@ -141,7 +152,7 @@ describe("<Collapsible>", () => {
     );
 
     rerender(
-      <Collapsible title="Surbrillance" display="highlight" color="danger">
+      <Collapsible title="Surbrillance" display="highlight" color="destructive">
         Texte
       </Collapsible>
     );
@@ -161,5 +172,29 @@ describe("<Collapsible>", () => {
     expect(trigger.className).toContain("hover:bg-info-subtle");
     await user.click(trigger);
     expect(trigger.className).not.toContain("hover:bg-info-subtle");
+  });
+
+  it("uses the selected appearance color for its icon and toggle", () => {
+    const { container } = render(
+      <Collapsible
+        title="Coloré"
+        icon="lucide:info"
+        display="outline-highlight"
+        color="secondary"
+      >
+        Texte
+      </Collapsible>
+    );
+
+    expect(container.querySelector(".text-xl")?.getAttribute("class")).toContain(
+      "text-secondary"
+    );
+    expect(
+      container.querySelector(".lucide-chevron-down")?.getAttribute("class")
+    ).toContain("text-secondary");
+    expect(
+      screen.getByRole("button", { name: "Coloré" }).querySelector(".text-foreground")
+        ?.textContent
+    ).toBe("Coloré");
   });
 });

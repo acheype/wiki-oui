@@ -44,12 +44,11 @@ properties:
     options:
       none: Aucune
       primary: Primaire
-      secondary-1: Secondaire 1
-      secondary-2: Secondaire 2
+      secondary: Secondaire
       success: Succès
-      info: Info
-      warning: Attention
-      danger: Danger
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
   highlightColor:
     label: Couleur
     type: list
@@ -59,12 +58,11 @@ properties:
       display: /^(outline-tinted|outline-highlight|highlight)$/
     options:
       primary: Primaire
-      secondary-1: Secondaire 1
-      secondary-2: Secondaire 2
+      secondary: Secondaire
       success: Succès
-      info: Info
-      warning: Attention
-      danger: Danger
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
   headingLevel:
     label: Niveau de titre
     hint: Transforme le titre du bloc en titre de section, afin qu’il puisse apparaître dans un sommaire. Choisissez un niveau cohérent avec les titres qui l’entourent.

@@ -22,12 +22,11 @@ properties:
     options:
       default: Défaut
       primary: Primaire
-      secondary-1: Secondaire 1
-      secondary-2: Secondaire 2
+      secondary: Secondaire
       success: Succès
-      info: Info
-      warning: Attention
-      danger: Danger
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
       transparent: Transparent
   title:
     label: Texte affiché au survol

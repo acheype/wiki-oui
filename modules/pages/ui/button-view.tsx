@@ -32,11 +32,7 @@ const colorStyles: Record<
 > = {
   default: { variant: "outline" },
   primary: { variant: "default" },
-  "secondary-1": { variant: "secondary" },
-  "secondary-2": {
-    className:
-      "bg-secondary-2 text-secondary-2-foreground shadow-xs hover:bg-secondary-2/90",
-  },
+  secondary: { variant: "secondary" },
   success: {
     className: "bg-success text-success-foreground shadow-xs hover:bg-success/90",
   },
@@ -44,7 +40,7 @@ const colorStyles: Record<
   warning: {
     className: "bg-warning text-warning-foreground shadow-xs hover:bg-warning/90",
   },
-  danger: { variant: "destructive" },
+  destructive: { variant: "destructive" },
   transparent: { variant: "link" },
 };
 

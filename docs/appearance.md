@@ -4,11 +4,11 @@ Ce document regroupe les possibilités de personnalisation de l’apparence d’
 
 ## Palette
 
-Les couleurs configurables sont les couleurs sémantiques de base définies dans `app/globals.css` (`primary`, `secondary-1`, `secondary-2`, `success`, `info`, `warning`, `destructive`, etc.), avec une valeur pour le thème clair et une pour le thème sombre. Les composants utilisent ces rôles plutôt qu’une couleur concrète.
+Les couleurs configurables sont les couleurs sémantiques définies dans `app/globals.css` (`primary`, `secondary`, `success`, `info`, `warning`, `destructive`), avec une valeur pour le thème clair et une pour le thème sombre. Les composants utilisent ces rôles plutôt qu’une couleur concrète.
 
 Les fonds légers, comme ceux des blocs dépliables, sont calculés automatiquement avec `color-mix()` à partir de la couleur sémantique, du fond de page et d’une intensité commune, `--subtle-strength`. Il suffit donc de personnaliser les couleurs de base ; les variantes `*-subtle` suivent la palette sans ajouter de réglages à l’utilisateur.
 
-La surface shadcn/ui `secondary` est elle aussi dérivée de `secondary-1`, avec sa propre intensité technique, afin qu’un seul choix de base alimente à la fois les boutons secondaires et les autres usages sémantiques.
+Les icônes et contours utilisent directement la couleur choisie (`primary`, `secondary`, `success`, `info`, `warning`, `destructive`). Les boutons secondaires utilisent `secondary` pour leur fond ; `secondary-foreground` reste uniquement la couleur contrastée de leur contenu.
 
 ## Typographie
 

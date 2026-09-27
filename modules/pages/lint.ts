@@ -228,6 +228,16 @@ export function lintPageSource(
             "Sur «\u00A0Accordion\u00A0», l'apparence «\u00A0separators\u00A0» force «\u00A0spacing=joined\u00A0» et ignore la couleur au rendu.",
         });
       } else if (
+        display === "separators-highlight" &&
+        hasSpacing &&
+        spacing !== "joined"
+      ) {
+        warnings.push({
+          line,
+          message:
+            "Sur «\u00A0Accordion\u00A0», l'apparence «\u00A0separators-highlight\u00A0» force «\u00A0spacing=joined\u00A0» au rendu.",
+        });
+      } else if (
         display === "highlight" &&
         hasSpacing &&
         spacing !== "separated"

@@ -25,6 +25,11 @@ describe("Collapsible ComponentBuilder descriptor", () => {
       options: {
         none: "Aucune",
         primary: "Primaire",
+        secondary: "Secondaire",
+        success: "Succès",
+        info: "Information",
+        warning: "Avertissement",
+        destructive: "Destructif",
       },
     });
     expect(outlineColor?.options).not.toHaveProperty("default");
@@ -33,6 +38,11 @@ describe("Collapsible ComponentBuilder descriptor", () => {
       default: "primary",
       options: {
         primary: "Primaire",
+        secondary: "Secondaire",
+        success: "Succès",
+        info: "Information",
+        warning: "Avertissement",
+        destructive: "Destructif",
       },
     });
     expect(highlightColor?.options).not.toHaveProperty("default");

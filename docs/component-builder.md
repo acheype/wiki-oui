@@ -244,7 +244,10 @@ Le builder tire alors de la section `children:` :
 | `{{button class="btn-primary pull-right"}}` | Props MDX dédiées : `<Button color="primary" float="right" />` |
 | Type `class` + `subproperties` | Supprimé — chaque sous-propriété devient une prop de premier rang |
 | Vocabulaire Bootstrap des classes | Remplacé par le vocabulaire Tailwind : `pull-right` → `float="right"` ; `btn-block` → `fullWidth` |
-| `btn-default`, `btn-primary`, `btn-secondary-1`… | Valeurs de la prop `color` : `default`, `primary`, `secondary-1`, `secondary-2`, `success`, `info`, `warning` (ex-attention), `danger`, `link` |
+| `btn-default`, `btn-primary`, `btn-success`, `btn-info`, `btn-warning` | Même valeur de la prop `color` (`warning` remplace l’ancien libellé « attention ») |
+| `btn-secondary-1`, `btn-secondary-2` | `color="secondary"` — les deux gris historiques convergent vers l’unique rôle shadcn/ui `secondary` |
+| `btn-danger` | `color="destructive"` |
+| `btn-link` | `color="transparent"` |
 | `attach` : classes `position` (none/left/center/right) | Prop `align` d'`<Image>` (`none`/`left`/`center`/`right`) |
 | `attach` : classes `effect-whiteborder` / `effect-lightshadow` / `effect-zoom` | Props booléennes d'`<Image>` : `whiteBorder` / `shadow` / `hoverZoom` |
 | `attach` : `nofullimagelink` (négatif) | Prop `lightbox` d'`<Image>` (sens positif inversé) |
@@ -270,7 +273,9 @@ Le builder tire alors de la section `children:` :
 | Action `panel` : `type="collapsible"` | `<Collapsible defaultOpen={true}>` |
 | Action `panel` : `type="collapsed"` | `<Collapsible>` avec `defaultOpen` omis ou `false` |
 | Action `panel` : `type="default"` ou absent | Titre Markdown et contenu ordinaire, sans `<Collapsible>` |
-| Action `panel` : `panel-primary`, `panel-secondary-1`, `panel-secondary-2`, `panel-success`, `panel-info`, `panel-warning`, `panel-danger` | Même valeur sémantique de `color` sur `<Collapsible>` |
+| Action `panel` : `panel-primary`, `panel-success`, `panel-info`, `panel-warning` | Même valeur sémantique de `color` sur `<Collapsible>` |
+| Action `panel` : `panel-secondary-1`, `panel-secondary-2` | `color="secondary"` sur `<Collapsible>` |
+| Action `panel` : `panel-danger` | `color="destructive"` sur `<Collapsible>` |
 | Action `panel` : `panel-default` | `color="none"` avec `display="outline"` |
 | Action `panel` : classes CSS inconnues | Pas de conversion automatique en `className` |
 | Action `accordion` : `nb=N` | `<Accordion>` avec `N` enfants `<Collapsible>` gérés par le builder ; `nb` ne devient pas une prop |

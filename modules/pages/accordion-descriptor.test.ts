@@ -34,5 +34,30 @@ describe("Accordion ComponentBuilder descriptor", () => {
         },
       },
     });
+    expect(accordion?.descriptor.properties.display.options).toMatchObject({
+      separators: "Séparateurs",
+      "separators-highlight": "Séparateurs et surbrillance",
+    });
+    expect(accordion?.descriptor.properties.accentColor.showif).toEqual({
+      display:
+        "/^(separators-highlight|outline-tinted|outline-highlight|highlight)$/",
+    });
+    expect(accordion?.descriptor.properties.outlineColor.options).toEqual({
+      none: "Aucune",
+      primary: "Primaire",
+      secondary: "Secondaire",
+      success: "Succès",
+      info: "Information",
+      warning: "Avertissement",
+      destructive: "Destructif",
+    });
+    expect(accordion?.descriptor.properties.accentColor.options).toEqual({
+      primary: "Primaire",
+      secondary: "Secondaire",
+      success: "Succès",
+      info: "Information",
+      warning: "Avertissement",
+      destructive: "Destructif",
+    });
   });
 });

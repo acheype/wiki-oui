@@ -68,7 +68,7 @@ describe("<Accordion>", () => {
           title="Dominé"
           defaultOpen
           display="highlight"
-          color="danger"
+          color="destructive"
           headingLevel="h5"
           toggleIcon="chevron"
         >
@@ -109,7 +109,8 @@ describe("<Accordion>", () => {
     ["outline-highlight", "joined", "data-open:bg-info-subtle"],
     ["outline-highlight", "separated", "gap-3"],
     ["highlight", "separated", "gap-3"],
-    ["separators", "joined", "divide-y"],
+    ["separators", "joined", "border-border"],
+    ["separators-highlight", "joined", "data-open:bg-info-subtle"],
   ] as const)(
     "renders the admitted %s with %s spacing combination",
     (display, spacing, expectedClass) => {
@@ -126,8 +127,9 @@ describe("<Accordion>", () => {
   );
 
   it.each([
-    ["highlight", "joined", "gap-3", "divide-y"],
-    ["separators", "separated", "divide-y", "gap-3"],
+    ["highlight", "joined", "gap-3", "border-border"],
+    ["separators", "separated", "border-border", "gap-3"],
+    ["separators-highlight", "separated", "border-border", "gap-3"],
   ] as const)(
     "canonically resolves unsupported %s with %s spacing",
     (display, spacing, expectedClass, absentClass) => {
@@ -139,8 +141,72 @@ describe("<Accordion>", () => {
       );
 
       const root = container.querySelector("[data-slot='accordion']");
-      expect(root?.className).toContain(expectedClass);
+      expect(container.innerHTML).toContain(expectedClass);
       expect(root?.className).not.toContain(absentClass);
     }
   );
+
+  it("renders straight separators with dark icons and black titles", () => {
+    const { container } = render(
+      <Accordion toggleIcon="plus-minus">
+        <Collapsible title="Avec icône" icon="lucide:info">
+          Texte
+        </Collapsible>
+        <Collapsible title="Autre">Texte</Collapsible>
+      </Accordion>
+    );
+
+    const trigger = screen.getByRole("button", { name: "Avec icône" });
+    const block = trigger.closest("[data-slot='collapsible']") as HTMLElement;
+    expect(block.className).toContain("rounded-none");
+    expect(block.className).not.toContain("rounded-lg");
+    expect(trigger.querySelector(".text-foreground")?.textContent).toBe("Avec icône");
+    expect(trigger.querySelector(".lucide-plus")?.getAttribute("class")).toContain(
+      "text-muted-foreground/60"
+    );
+    expect(trigger.querySelector(".text-xl")?.getAttribute("class")).toContain(
+      "text-muted-foreground/60"
+    );
+    const separators = container.querySelectorAll(
+      "[data-slot='collapsible-separator']"
+    );
+    expect(separators).toHaveLength(2);
+    expect(separators[0]?.className).toContain("mx-4");
+    expect(separators[0]?.className).toContain("border-border");
+    expect(container.querySelector("[data-slot='accordion']")?.className).not.toContain(
+      "divide-y"
+    );
+  });
+
+  it("highlights separator rows on hover and while open", () => {
+    render(
+      <Accordion display="separators-highlight" color="info" default="un">
+        <Collapsible title="Un">Un</Collapsible>
+        <Collapsible title="Deux">Deux</Collapsible>
+      </Accordion>
+    );
+
+    const openTrigger = screen.getByRole("button", { name: "Un" });
+    const closedTrigger = screen.getByRole("button", { name: "Deux" });
+    expect(
+      openTrigger.closest("[data-slot='collapsible']")?.className
+    ).toContain("data-open:bg-info-subtle");
+    expect(openTrigger.className).not.toContain("hover:bg-info-subtle");
+    expect(closedTrigger.className).toContain("hover:bg-info-subtle");
+    const openBlock = openTrigger.closest("[data-slot='collapsible']") as HTMLElement;
+    const openEnd = openBlock.querySelector(
+      "[data-slot='collapsible-separator']"
+    ) as HTMLElement;
+    const closedEnd = closedTrigger
+      .closest("[data-slot='collapsible']")
+      ?.querySelector("[data-slot='collapsible-separator']") as HTMLElement;
+    expect(openBlock.className).toContain(
+      "shadow-[inset_0_1px_0_var(--border),inset_0_-1px_0_var(--border)]"
+    );
+    expect(openEnd.className).toContain("mx-0");
+    expect(closedEnd.className).toContain("mx-4");
+    expect(openEnd.className).toContain("border-border");
+    expect(openEnd.className).not.toContain("border-info");
+    expect(openBlock.className).not.toContain("border-info");
+  });
 });

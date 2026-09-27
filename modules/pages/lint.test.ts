@@ -373,6 +373,7 @@ const ACCORDION_BUILDERS = [
           default: "separators",
           options: {
             separators: "Séparateurs",
+            "separators-highlight": "Séparateurs et surbrillance",
             outline: "Contour",
             highlight: "Surbrillance",
           },
@@ -461,7 +462,7 @@ describe("managed wrapper context", () => {
 
   it("warns once per direct block and lists every parent-dominated prop", () => {
     const warnings = lintAccordions(
-      '<Accordion><Collapsible title="Bloc" defaultOpen display="highlight" color="danger">x</Collapsible></Accordion>'
+      '<Accordion><Collapsible title="Bloc" defaultOpen display="highlight" color="destructive">x</Collapsible></Accordion>'
     ).filter((message) => message.includes("ignorées au rendu"));
 
     expect(warnings).toHaveLength(1);
@@ -472,7 +473,7 @@ describe("managed wrapper context", () => {
 
   it("does not apply accordion rules to a standalone Collapsible", () => {
     const warnings = lintAccordions(
-      '<Tabs><Tab title="Seul">x</Tab><Tab title="Autre">y</Tab></Tabs>\n<Collapsible title="Seul" defaultOpen display="highlight" color="danger">x</Collapsible>'
+      '<Tabs><Tab title="Seul">x</Tab><Tab title="Autre">y</Tab></Tabs>\n<Collapsible title="Seul" defaultOpen display="highlight" color="destructive">x</Collapsible>'
     );
     expect(warnings.some((message) => message.includes("ignorées au rendu"))).toBe(
       false
@@ -490,13 +491,18 @@ describe("managed wrapper context", () => {
   it("warns when a manual appearance combination falls back canonically", () => {
     expect(
       lintAccordions(
-        '<Accordion display="separators" spacing="separated" color="danger"><Collapsible title="Un">x</Collapsible><Collapsible title="Deux">y</Collapsible></Accordion>'
+        '<Accordion display="separators" spacing="separated" color="destructive"><Collapsible title="Un">x</Collapsible><Collapsible title="Deux">y</Collapsible></Accordion>'
       ).some((message) => message.includes("force") && message.includes("joined"))
     ).toBe(true);
     expect(
       lintAccordions(
         '<Accordion display="highlight" spacing="joined"><Collapsible title="Un">x</Collapsible><Collapsible title="Deux">y</Collapsible></Accordion>'
       ).some((message) => message.includes("force") && message.includes("separated"))
+    ).toBe(true);
+    expect(
+      lintAccordions(
+        '<Accordion display="separators-highlight" spacing="separated"><Collapsible title="Un">x</Collapsible><Collapsible title="Deux">y</Collapsible></Accordion>'
+      ).some((message) => message.includes("force") && message.includes("joined"))
     ).toBe(true);
     expect(
       lintAccordions(

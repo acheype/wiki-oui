@@ -17,6 +17,7 @@ properties:
     default: separators
     options:
       separators: Séparateurs
+      separators-highlight: Séparateurs et surbrillance
       outline: Contour
       outline-tinted: Contour teinté
       outline-highlight: Contour et surbrillance
@@ -40,27 +41,25 @@ properties:
     options:
       none: Aucune
       primary: Primaire
-      secondary-1: Secondaire 1
-      secondary-2: Secondaire 2
+      secondary: Secondaire
       success: Succès
-      info: Info
-      warning: Attention
-      danger: Danger
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
   accentColor:
     label: Couleur
     type: list
     prop: color
     default: primary
     showif:
-      display: /^(outline-tinted|outline-highlight|highlight)$/
+      display: /^(separators-highlight|outline-tinted|outline-highlight|highlight)$/
     options:
       primary: Primaire
-      secondary-1: Secondaire 1
-      secondary-2: Secondaire 2
+      secondary: Secondaire
       success: Succès
-      info: Info
-      warning: Attention
-      danger: Danger
+      info: Information
+      warning: Avertissement
+      destructive: Destructif
   headingLevel:
     label: Niveau de titre
     hint: Transforme le titre de chaque bloc en titre de section, afin qu’il puisse apparaître dans un sommaire. Choisissez un niveau cohérent avec les titres qui l’entourent.

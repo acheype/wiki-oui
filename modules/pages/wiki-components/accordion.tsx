@@ -78,10 +78,12 @@ export function Accordion({
 
   if (blocks.length === 0) return null;
 
+  const separatorDisplay =
+    display === "separators" || display === "separators-highlight";
   const resolvedSpacing =
     display === "highlight"
       ? "separated"
-      : display === "separators"
+      : separatorDisplay
         ? "joined"
         : spacing;
   const resolvedColor = display === "separators" ? undefined : color;
@@ -92,7 +94,6 @@ export function Accordion({
       className={cn(
         "not-prose my-4",
         resolvedSpacing === "separated" && "grid gap-3",
-        display === "separators" && "divide-y divide-border",
         className
       )}
       style={style}
@@ -100,7 +101,7 @@ export function Accordion({
       {blocks.map(({ slug, element }, index) => {
         const isOpen = openSlug === slug;
         const joinedClass =
-          resolvedSpacing === "joined" && display !== "separators"
+          resolvedSpacing === "joined" && !separatorDisplay
             ? cn(
                 "rounded-none",
                 index === 0 && "rounded-t-lg",
