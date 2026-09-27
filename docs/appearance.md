@@ -10,6 +10,10 @@ Les fonds légers, comme ceux des blocs dépliables, sont calculés automatiquem
 
 Les icônes et contours utilisent directement la couleur choisie (`primary`, `secondary`, `success`, `info`, `warning`, `destructive`). La couleur `secondary` du thème livré est « Prune documentaire » : `oklch(0.48 0.13 325)` en clair et `oklch(0.72 0.11 325)` en sombre. Les boutons secondaires portent cette couleur en fond ; `secondary-foreground` reste uniquement la couleur contrastée de leur contenu.
 
+## Thème clair ou sombre
+
+La première entrée de la roue crantée est un sélecteur « Thème sombre ». Le choix est conservé dans le navigateur sous la clé `wikioui-theme` et restauré avant l’affichage de la page. Le thème clair reste le choix initial tant que la personne n’a pas activé le thème sombre.
+
 ## Typographie
 
 À documenter avec les futures options de personnalisation.

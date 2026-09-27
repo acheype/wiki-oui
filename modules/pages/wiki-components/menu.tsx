@@ -12,6 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
+import { useQuickAccessMenu } from "@/modules/pages/ui/quick-access-slot";
+import { ThemeToggle } from "@/modules/pages/ui/theme-toggle";
 import type { ButtonProps } from "./button";
 
 // Built-in component (ADR 0010): renders the nested list written between its
@@ -140,6 +142,7 @@ function restyleWikiLink(node: ReactNode, className: string): ReactNode {
 }
 
 export function Menu({ children }: { children?: ReactNode }) {
+  const quickAccess = useQuickAccessMenu();
   const list = meaningfulChildren(children).find(
     (node) => isTag(node, "ul") || isTag(node, "ol")
   ) as ElementWithChildren | undefined;
@@ -149,7 +152,11 @@ export function Menu({ children }: { children?: ReactNode }) {
     <nav className="flex flex-wrap items-center gap-1">
       {parseList(list).map((item, index) =>
         item.children.length > 0 ? (
-          <Dropdown key={index} item={item} />
+          <Dropdown
+            key={index}
+            item={item}
+            themeToggle={quickAccess && index === 0}
+          />
         ) : (
           <LeafItem key={index} item={item} />
         )
@@ -167,7 +174,13 @@ function LeafItem({ item }: { item: MenuItem }) {
   return <span className={cn(barItemClass, "hover:bg-transparent")}>{item.label}</span>;
 }
 
-function Dropdown({ item }: { item: MenuItem }) {
+function Dropdown({
+  item,
+  themeToggle,
+}: {
+  item: MenuItem;
+  themeToggle: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -201,6 +214,12 @@ function Dropdown({ item }: { item: MenuItem }) {
       <DropdownTrigger item={item} open={open} onOpen={show} />
       {open && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+          {themeToggle && (
+            <>
+              <ThemeToggle />
+              <div className="-mx-1 my-1 h-px bg-border" />
+            </>
+          )}
           <DropdownEntries items={item.children} depth={0} />
         </div>
       )}

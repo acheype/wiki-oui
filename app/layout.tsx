@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/modules/pages/ui/theme-provider";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -25,6 +26,7 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
+      suppressHydrationWarning
       className={cn(
         "h-full antialiased font-sans",
         inter.variable,
@@ -32,8 +34,10 @@ export default function RootLayout({
       )}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        {children}
-        <Toaster richColors />
+        <ThemeProvider>
+          {children}
+          <Toaster richColors />
+        </ThemeProvider>
       </body>
     </html>
   );

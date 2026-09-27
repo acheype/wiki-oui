@@ -3,6 +3,7 @@ import { getLayoutContents } from "@/modules/pages/content";
 import { TitleSlot, renderSlot } from "@/modules/pages/ui/layout-slot";
 import { ModalProvider } from "@/modules/pages/page-modal";
 import { StickyTopBar } from "@/modules/pages/ui/sticky-top-bar";
+import { QuickAccessSlot } from "@/modules/pages/ui/quick-access-slot";
 import { currentIdentity, isCurrentAdmin } from "@/modules/permissions/person";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +57,7 @@ export default async function SiteLayout({
                 inlineMdx
               )}
             >
-              {topQuickAccess}
+              <QuickAccessSlot>{topQuickAccess}</QuickAccessSlot>
             </div>
           )}
           <AccountMenu identity={identity} />
