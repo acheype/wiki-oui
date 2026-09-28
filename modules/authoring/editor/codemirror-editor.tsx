@@ -4,6 +4,7 @@ import {
   defaultKeymap,
   history,
   historyKeymap,
+  indentWithTab,
   insertNewline,
 } from "@codemirror/commands";
 import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
@@ -15,7 +16,7 @@ import {
 } from "@codemirror/language";
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useId, useRef, type RefObject } from "react";
 import { toggleInline } from "./commands";
 
 function cursorIsInsideElement(state: EditorState, position: number): boolean {
@@ -77,6 +78,7 @@ export function CodeMirrorEditor({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onUpdateRef = useRef(onUpdate);
+  const keyboardHelpId = useId();
 
   useEffect(() => {
     onUpdateRef.current = onUpdate;
@@ -93,6 +95,9 @@ export function CodeMirrorEditor({
           EditorView.lineWrapping,
           editorTheme,
           placeholder("Contenu de la page en MDX…"),
+          EditorView.contentAttributes.of({
+            "aria-describedby": keyboardHelpId,
+          }),
           keymap.of([
             {
               key: "Mod-b",
@@ -109,6 +114,9 @@ export function CodeMirrorEditor({
               run: insertUnindentedElementLine,
               shift: insertUnindentedElementLine,
             },
+            // Tab always edits indentation inside the source area. CodeMirror's
+            // Escape-then-Tab exit remains the keyboard path to the next control.
+            indentWithTab,
             ...markdownKeymap,
             ...defaultKeymap,
             ...historyKeymap,
@@ -133,9 +141,18 @@ export function CodeMirrorEditor({
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="rounded-md border bg-background transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50"
-    />
+    <div className="group/editor">
+      <div
+        ref={containerRef}
+        className="rounded-md border bg-background transition-[color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/50"
+      />
+      <p
+        id={keyboardHelpId}
+        className="mt-1 min-h-4 text-xs text-muted-foreground opacity-0 transition-opacity group-focus-within/editor:opacity-100"
+      >
+        Tab et Maj+Tab changent l’indentation. Échap puis Tab permet de passer
+        au contrôle suivant.
+      </p>
+    </div>
   );
 }

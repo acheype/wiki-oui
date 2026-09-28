@@ -121,14 +121,38 @@ const LIST_DETECTORS: Record<ListKind, RegExp> = {
 };
 
 export function toggleList(view: EditorView, kind: ListKind) {
-  const allAlready = selectedLines(view).every(
-    (line) => line.text.trim() === "" || LIST_DETECTORS[kind].test(line.text)
-  );
-  replaceLines(view, (text, index) => {
-    if (text.trim() === "") return text;
-    const stripped = text.replace(LIST_PREFIX, "$1");
-    return allAlready ? stripped : stripped.replace(/^(\s*)/, `$1${LIST_MARKERS[kind](index)}`);
+  const lines = selectedLines(view);
+  const nonBlankLines = lines.filter((line) => line.text.trim() !== "");
+  const allAlready =
+    nonBlankLines.length > 0 &&
+    nonBlankLines.every((line) => LIST_DETECTORS[kind].test(line.text));
+  const changes = lines.flatMap((line, index) => {
+    const current = line.text.match(LIST_PREFIX);
+    const indent = current?.[1] ?? line.text.match(/^\s*/)![0];
+    const from = line.from + indent.length;
+    const to = line.from + (current?.[0].length ?? indent.length);
+    const insert = allAlready ? "" : LIST_MARKERS[kind](index);
+    return view.state.sliceDoc(from, to) === insert
+      ? []
+      : [{ from, to, insert }];
   });
+  if (changes.length > 0) {
+    const changeSet = view.state.changes(changes);
+    const ranges = view.state.selection.ranges.map((range) =>
+      EditorSelection.range(
+        changeSet.mapPos(range.anchor, 1),
+        changeSet.mapPos(range.head, 1)
+      )
+    );
+    view.dispatch({
+      changes: changeSet,
+      selection: EditorSelection.create(
+        ranges,
+        view.state.selection.mainIndex
+      ),
+    });
+  }
+  view.focus();
 }
 
 export function toggleQuote(view: EditorView) {
