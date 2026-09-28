@@ -45,6 +45,7 @@ import {
   findFreeContentWrapperAtCursor,
   findWrapperAtCursor,
   isFreeContentDescriptor,
+  type WrapperTagRange,
   wrapperShapeOf,
 } from "./wrapper";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
@@ -144,8 +145,33 @@ export type ComponentInfo = Range & {
   /** Exact inner MDX of a free-content wrapper. */
   content?: string;
   /** Source ranges of direct managed children, used only to resolve the contextual pencil. */
-  managedChildRanges?: Range[];
+  managedChildRanges?: WrapperTagRange[];
 };
+
+function containsCursor(range: Range | undefined, offset: number): boolean {
+  return range !== undefined && range.from <= offset && offset <= range.to;
+}
+
+function cursorOnWrapperTag(
+  wrapper: { openingTag: Range; closingTag: Range },
+  offset: number
+): boolean {
+  return (
+    containsCursor(wrapper.openingTag, offset) ||
+    containsCursor(wrapper.closingTag, offset)
+  );
+}
+
+function cursorOnManagedChildTag(
+  child: WrapperTagRange | undefined,
+  offset: number
+): boolean {
+  return (
+    child !== undefined &&
+    (containsCursor(child.openingTag, offset) ||
+      containsCursor(child.closingTag, offset))
+  );
+}
 
 // Enclosing well-formed component tag whose descriptor is known. A self-closing
 // leaf tag wins over any wrapper enclosing it — the cursor inside a <Button> in
@@ -223,12 +249,17 @@ function wrapperAtCursor(
   const directChild = managedFound?.childRanges.find(
     (child) => child.from <= offset && offset <= child.to
   );
+  const freeIsDirectManagedChild =
+    freeFound !== null &&
+    managedFound !== null &&
+    freeFound.from === directChild?.from;
 
   if (
     freeFound &&
     (!managedFound ||
-      (freeFound.from > managedFound.from && freeFound.from !== directChild?.from))
+      (freeFound.from > managedFound.from && !freeIsDirectManagedChild))
   ) {
+    if (!cursorOnWrapperTag(freeFound, offset)) return null;
     const spec = free.find((builder) => builder.name === freeFound.shape.name);
     if (!spec) return null;
     return {
@@ -241,6 +272,12 @@ function wrapperAtCursor(
     };
   }
   if (!managedFound) return null;
+  if (
+    !cursorOnWrapperTag(managedFound, offset) &&
+    !cursorOnManagedChildTag(directChild, offset)
+  ) {
+    return null;
+  }
   const spec = managed.find(
     (builder) => builder.name === managedFound.shape.name
   );

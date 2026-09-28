@@ -1,16 +1,46 @@
 "use client";
 
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  insertNewline,
+} from "@codemirror/commands";
 import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import {
   defaultHighlightStyle,
+  syntaxTree,
   syntaxHighlighting,
 } from "@codemirror/language";
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { useEffect, useRef, type RefObject } from "react";
 import { toggleInline } from "./commands";
+
+function cursorIsInsideElement(state: EditorState, position: number): boolean {
+  for (
+    let node: ReturnType<ReturnType<typeof syntaxTree>["resolveInner"]> | null =
+      syntaxTree(state).resolveInner(position, -1);
+    node;
+    node = node.parent
+  ) {
+    if (node.name === "Element") return true;
+  }
+  return false;
+}
+
+function insertUnindentedElementLine(view: EditorView): boolean {
+  if (
+    !view.state.selection.ranges.every(
+      (range) =>
+        range.empty && cursorIsInsideElement(view.state, range.head)
+    )
+  ) {
+    return false;
+  }
+  return insertNewline(view);
+}
 
 const editorTheme = EditorView.theme({
   "&": { fontSize: "0.875rem", backgroundColor: "transparent" },
@@ -71,6 +101,13 @@ export function CodeMirrorEditor({
             {
               key: "Mod-i",
               run: (v) => (toggleInline(v, "*"), true),
+            },
+            {
+              key: "Enter",
+              // Markdown's higher-priority binding has already continued any
+              // list; this fallback only removes HTML/JSX element indentation.
+              run: insertUnindentedElementLine,
+              shift: insertUnindentedElementLine,
             },
             ...markdownKeymap,
             ...defaultKeymap,

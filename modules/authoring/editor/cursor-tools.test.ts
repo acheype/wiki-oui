@@ -51,9 +51,10 @@ Avant
 </Collapsible>
 Après
 </Collapsible>`;
-    const info = componentAtCursor(editor(source, source.indexOf("Dedans")), [
-      collapsible,
-    ]);
+    const info = componentAtCursor(
+      editor(source, source.indexOf('title="Enfant"')),
+      [collapsible]
+    );
 
     expect(info?.values.title).toBe("Enfant");
     expect(info?.unknownAttributes).toEqual(['className="fine"']);
@@ -72,14 +73,20 @@ Contenu direct
       collapsible,
     ]);
 
-    expect(info?.spec.name).toBe("Accordion");
-    expect(info?.wrapper?.children[0].values.title).toBe("Direct");
+    expect(info).toBeNull();
 
     const fromOpeningTag = componentAtCursor(
       editor(source, source.indexOf('title="Direct"')),
       [accordion, collapsible]
     );
     expect(fromOpeningTag?.spec.name).toBe("Accordion");
+
+    const fromClosingTag = componentAtCursor(
+      editor(source, source.indexOf("</Collapsible>")),
+      [accordion, collapsible]
+    );
+    expect(fromClosingTag?.spec.name).toBe("Accordion");
+    expect(fromClosingTag?.wrapper?.children[0].values.title).toBe("Direct");
   });
 
   it("keeps the autonomous builder for a nested managed-child component", () => {
@@ -90,10 +97,10 @@ Contenu imbriqué
     </Collapsible>
   </Collapsible>
 </Accordion>`;
-    const info = componentAtCursor(editor(source, source.indexOf("Contenu imbriqué")), [
-      accordion,
-      collapsible,
-    ]);
+    const info = componentAtCursor(
+      editor(source, source.indexOf('title="Imbriqué"')),
+      [accordion, collapsible]
+    );
 
     expect(info?.spec.name).toBe("Collapsible");
     expect(info?.values.title).toBe("Imbriqué");
@@ -111,11 +118,36 @@ Contenu direct
   </Collapsible>
 </Accordion>`;
     const info = componentAtCursor(
-      editor(source, source.indexOf("Contenu imbriqué")),
+      editor(source, source.indexOf('title="Imbriqué"')),
       [accordion, collapsible]
     );
 
     expect(info?.spec.name).toBe("Collapsible");
     expect(info?.values.title).toBe("Imbriqué");
+  });
+
+  it("offers no component pencil in free wrapper content", () => {
+    const source = `<Collapsible title="Parent">
+Texte
+<Collapsible title="Enfant">
+Contenu imbriqué
+</Collapsible>
+</Collapsible>`;
+
+    expect(
+      componentAtCursor(editor(source, source.indexOf("Texte")), [collapsible])
+    ).toBeNull();
+    expect(
+      componentAtCursor(editor(source, source.indexOf("Contenu imbriqué")), [
+        collapsible,
+      ])
+    ).toBeNull();
+
+    const fromClosingTag = componentAtCursor(
+      editor(source, source.indexOf("</Collapsible>")),
+      [collapsible]
+    );
+    expect(fromClosingTag?.spec.name).toBe("Collapsible");
+    expect(fromClosingTag?.values.title).toBe("Enfant");
   });
 });

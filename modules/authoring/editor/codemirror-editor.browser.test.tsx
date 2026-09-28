@@ -10,9 +10,15 @@ import { CodeMirrorEditor } from "./codemirror-editor";
 // the selection in ** through our toggleInline command — proven here end to
 // end, key event to document.
 
-function Harness() {
+function Harness({ initialDoc = "gras" }: { initialDoc?: string }) {
   const viewRef = useRef<EditorView | null>(null);
-  return <CodeMirrorEditor initialDoc="gras" viewRef={viewRef} />;
+  return <CodeMirrorEditor initialDoc={initialDoc} viewRef={viewRef} />;
+}
+
+function editorLines(): string[] {
+  return [...document.querySelectorAll<HTMLElement>(".cm-line")].map(
+    (line) => line.textContent ?? ""
+  );
 }
 
 describe("CodeMirrorEditor (browser)", () => {
@@ -27,5 +33,29 @@ describe("CodeMirrorEditor (browser)", () => {
     await expect
       .poll(() => document.querySelector(".cm-content")?.textContent)
       .toBe("**gras**");
+  });
+
+  it("starts wrapper content at column zero on Enter", async () => {
+    await render(<Harness initialDoc={'<Collapsible title="Bloc">'} />);
+    const content = document.querySelector<HTMLElement>(".cm-content")!;
+
+    await userEvent.click(content);
+    await userEvent.keyboard("{Control>}{End}{/Control}{Enter}");
+
+    await expect
+      .poll(editorLines)
+      .toEqual(['<Collapsible title="Bloc">', ""]);
+  });
+
+  it("still continues Markdown lists on Enter", async () => {
+    await render(<Harness initialDoc="- Élément" />);
+    const content = document.querySelector<HTMLElement>(".cm-content")!;
+
+    await userEvent.click(content);
+    await userEvent.keyboard("{Control>}{End}{/Control}{Enter}");
+
+    await expect
+      .poll(editorLines)
+      .toEqual(["- Élément", "- "]);
   });
 });

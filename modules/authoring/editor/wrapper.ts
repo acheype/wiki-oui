@@ -209,15 +209,24 @@ export function generateFreeContentWrapper(
 export interface WrapperMatch {
   from: number;
   to: number;
+  openingTag: Range;
+  closingTag: Range;
   draft: WrapperDraft;
-  childRanges: Range[];
+  childRanges: WrapperTagRange[];
 }
 
 export interface FreeContentWrapperMatch {
   from: number;
   to: number;
+  openingTag: Range;
+  closingTag: Range;
   draft: FreeContentDraft;
 }
+
+export type WrapperTagRange = Range & {
+  openingTag: Range;
+  closingTag?: Range;
+};
 
 /** Finds the innermost known free-content wrapper enclosing the cursor. */
 export function findFreeContentWrapperAtCursor(
@@ -237,6 +246,8 @@ export function findFreeContentWrapperAtCursor(
     shape,
     from: tag.from,
     to: tag.to,
+    openingTag: { from: tag.from, to: tag.contentStart },
+    closingTag: { from: tag.closeStart, to: tag.to },
     draft: {
       values,
       unknownAttributes,
@@ -261,6 +272,8 @@ export function findWrapperAtCursor(
     shape: best.shape,
     from: best.tag.from,
     to: best.tag.to,
+    openingTag: { from: best.tag.from, to: best.tag.contentStart },
+    closingTag: { from: best.tag.closeStart, to: best.tag.to },
     draft: parsed.draft,
     childRanges: parsed.childRanges,
   };
@@ -322,7 +335,7 @@ function readWrapper(
   shape: WrapperShape,
   text: string,
   tag: EnclosingTag
-): { draft: WrapperDraft; childRanges: Range[] } {
+): { draft: WrapperDraft; childRanges: WrapperTagRange[] } {
   const openAttr = tag.open.attributes.find((a) => a.name === OPEN_CHILD_ATTR);
   const rest: ParsedTag = {
     name: tag.open.name,
@@ -353,10 +366,14 @@ function readChildren(
   text: string,
   contentStart: number,
   contentEnd: number
-): { children: WrapperChildDraft[]; interstitial: string[]; childRanges: Range[] } {
+): {
+  children: WrapperChildDraft[];
+  interstitial: string[];
+  childRanges: WrapperTagRange[];
+} {
   const children: WrapperChildDraft[] = [];
   const interstitial: string[] = [];
-  const childRanges: Range[] = [];
+  const childRanges: WrapperTagRange[] = [];
   let i = contentStart;
   let fragmentStart = contentStart;
   const ancestors: string[] = [];
@@ -391,7 +408,11 @@ function readChildren(
     if (open.selfClosing) {
       children.push({ values, content: "", unknownAttributes });
       i = idx + open.length;
-      childRanges.push({ from: idx, to: i });
+      childRanges.push({
+        from: idx,
+        to: i,
+        openingTag: { from: idx, to: i },
+      });
       fragmentStart = i;
       continue;
     }
@@ -404,7 +425,12 @@ function readChildren(
       unknownAttributes,
     });
     i = close.closeEnd;
-    childRanges.push({ from: idx, to: i });
+    childRanges.push({
+      from: idx,
+      to: i,
+      openingTag: { from: idx, to: innerStart },
+      closingTag: { from: close.closeStart, to: close.closeEnd },
+    });
     fragmentStart = i;
   }
   interstitial.push(text.slice(fragmentStart, contentEnd));
