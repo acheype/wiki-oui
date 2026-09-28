@@ -3,6 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 type Box = { left: number; top: number; width: number; height: number };
+type RememberedBox = { box: Box; index: number };
+
+// Authored menus may be repeated on several pages instead of living in the
+// persistent layout. Remember their last client-side position so a newly
+// mounted copy can continue the same motion rather than appearing at rest.
+const rememberedBoxes = new Map<string, RememberedBox>();
 
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -35,6 +41,7 @@ export function ActiveUnderline({
   orientation = "horizontal",
   gap,
   deps,
+  continuityKey,
 }: {
   index: number | null;
   itemSelector: string;
@@ -43,16 +50,51 @@ export function ActiveUnderline({
   gap: number;
   /** Re-measure when the set or identity of items changes. */
   deps: string;
+  /** Preserve motion when the same navigation is remounted on another page. */
+  continuityKey?: string;
 }) {
   const markerRef = useRef<HTMLDivElement>(null);
-  const [box, setBox] = useState<Box | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const [box, setBox] = useState<Box | null>(() =>
+    continuityKey ? (rememberedBoxes.get(continuityKey)?.box ?? null) : null
+  );
 
   useIsomorphicLayoutEffect(() => {
     const container = markerRef.current?.parentElement;
     if (!container) return;
-    const remeasure = () =>
-      setBox(index === null ? null : measure(container, itemSelector, index));
-    remeasure();
+    let entering = false;
+    const remember = (next: Box | null) => {
+      if (continuityKey && index !== null && next) {
+        rememberedBoxes.set(continuityKey, { box: next, index });
+      }
+    };
+    const target =
+      index === null ? null : measure(container, itemSelector, index);
+    const previous = continuityKey
+      ? rememberedBoxes.get(continuityKey)
+      : undefined;
+
+    if (target && previous && previous.index !== index) {
+      entering = true;
+      setBox(previous.box);
+      remember(target);
+      frameRef.current = window.requestAnimationFrame(() => {
+        entering = false;
+        setBox(target);
+        frameRef.current = null;
+      });
+    } else {
+      setBox(target);
+      remember(target);
+    }
+
+    const remeasure = () => {
+      if (entering) return;
+      const next =
+        index === null ? null : measure(container, itemSelector, index);
+      setBox(next);
+      remember(next);
+    };
     const observer =
       typeof ResizeObserver === "undefined"
         ? null
@@ -60,10 +102,14 @@ export function ActiveUnderline({
     observer?.observe(container);
     window.addEventListener("resize", remeasure);
     return () => {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
       observer?.disconnect();
       window.removeEventListener("resize", remeasure);
     };
-  }, [index, itemSelector, orientation, gap, deps]);
+  }, [index, itemSelector, orientation, gap, deps, continuityKey]);
 
   const horizontal = orientation === "horizontal";
   const x = box ? box.left - (horizontal ? 0 : gap) : 0;

@@ -165,6 +165,10 @@ function containsSlug(item: MenuItem, slug: string | null): boolean {
   );
 }
 
+function slugTree(item: MenuItem): string {
+  return `${ownSlug(item) ?? "-"}[${item.children.map(slugTree).join(",")}]`;
+}
+
 // Reuses the element the registry produced, just restyled for the bar.
 function restyleWikiLink(
   node: ReactNode,
@@ -192,10 +196,10 @@ export function Menu({ children }: { children?: ReactNode }) {
   const activeIndex = items.findIndex((item) =>
     containsSlug(item, currentSlug)
   );
-  const itemKey = items.map((item) => ownSlug(item) ?? "-").join("|");
+  const itemKey = items.map(slugTree).join("|");
 
   return (
-    <nav className="relative flex flex-wrap items-center gap-1">
+    <nav className="not-prose relative flex flex-wrap items-center gap-1">
       {items.map((item, index) => {
         const active = containsSlug(item, currentSlug);
         return (
@@ -221,7 +225,8 @@ export function Menu({ children }: { children?: ReactNode }) {
         index={activeIndex === -1 ? null : activeIndex}
         itemSelector="[data-slot=menu-root-item]"
         gap={0}
-        deps={`${itemKey}:${currentSlug ?? ""}`}
+        deps={itemKey}
+        continuityKey={`menu:${itemKey}`}
       />
     </nav>
   );
