@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { Menu } from "./wiki-components/menu";
+
+const { route } = vi.hoisted(() => ({ route: { pathname: "/public" } }));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => route.pathname,
+}));
 
 // Menu's own pruning of a bullet a hideIfNoAccess link emptied out
 // (docs/permissions.md § Liens et boutons vers l'inaccessible, issue #13),
@@ -22,8 +28,11 @@ import { Menu } from "./wiki-components/menu";
 function link(href: string, text: string) {
   return <FakeLink href={href}>{text}</FakeLink>;
 }
-function FakeLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return <a href={href}>{children}</a>;
+function FakeLink({
+  children,
+  ...props
+}: React.ComponentPropsWithoutRef<"a"> & { href: string }) {
+  return <a {...props}>{children}</a>;
 }
 
 describe("Menu ignores a bullet a hideIfNoAccess link emptied out", () => {
@@ -84,5 +93,44 @@ describe("Menu ignores a bullet a hideIfNoAccess link emptied out", () => {
       </Menu>
     );
     expect(html).toContain("Titre");
+  });
+});
+
+describe("Menu marks the current wiki page", () => {
+  it("underlines a current top-level link in secondary", () => {
+    route.pathname = "/public";
+    const html = renderToStaticMarkup(
+      <Menu>
+        <ul>
+          <li>{link("/public", "Public")}</li>
+          <li>{link("/autre", "Autre")}</li>
+        </ul>
+      </Menu>
+    );
+
+    expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*>Public<\/a>/);
+    expect(html).toContain('data-slot="active-underline"');
+    expect(html).toContain("bg-secondary");
+    expect(html).not.toContain("border-secondary");
+    expect(html).not.toMatch(/aria-current="page"[^>]*>Autre<\/a>/);
+  });
+
+  it("underlines a parent whose submenu contains the current page", () => {
+    route.pathname = "/public/revisions";
+    const html = renderToStaticMarkup(
+      <Menu>
+        <ul>
+          <li>
+            Section
+            <ul>
+              <li>{link("/public", "Public")}</li>
+            </ul>
+          </li>
+        </ul>
+      </Menu>
+    );
+
+    expect(html).toMatch(/<button[^>]*class="[^"]*text-foreground[^"]*"/);
+    expect(html).toContain('data-slot="active-underline"');
   });
 });

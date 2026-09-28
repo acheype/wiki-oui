@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { TabsIndicator } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { ActiveUnderline } from "@/modules/pages/ui/active-underline";
 
 // Sliding indicators for the underline tabs (Vercel Tabs look, ADR 0031): a
-// grey highlight that slides under the hovered tab and a black bar that slides
+// grey highlight that slides under the hovered tab and a plum bar that slides
 // to the active one. Both are shared — one element that moves — replacing the
 // `line` variant's per-tab `after` bar and `hover:bg-muted`
 // (components/ui/tabs.tsx). Purely decorative: Base UI keeps the roles and the
 // keyboard.
 //
-// The black bar is Base UI's Tabs.Indicator: it measures the active tab itself
-// and exposes its box as --active-tab-* CSS variables. Base UI tracks no hover,
-// so the grey highlight measures the hovered tab here.
+// The plum bar is the same ActiveUnderline the top menu uses. Base UI tracks no
+// hover, so the grey highlight measures the hovered tab here.
 //
 // The highlight is rendered as the list's own child, so the list is just
 // `parentElement` — no ref threaded through the shadcn TabsList. Positions are
@@ -41,23 +40,16 @@ function measure(list: HTMLElement, index: number): Box | null {
 const useIsomorphicLayoutEffect =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-const SLIDE =
+const HOVER_SLIDE =
   "pointer-events-none absolute top-0 left-0 duration-200 ease-out motion-reduce:transition-none";
 
-// The bar is 2px thick and sits 8px off the active tab's edge: below it when
-// horizontal (top + height + 8 - 2), to its left when vertical (left - 8).
-const BAR_PLACEMENT = {
-  horizontal:
-    "h-0.5 w-(--active-tab-width) translate-x-(--active-tab-left) translate-y-[calc(var(--active-tab-top)+var(--active-tab-height)+6px)]",
-  vertical:
-    "h-(--active-tab-height) w-0.5 translate-x-[calc(var(--active-tab-left)-8px)] translate-y-(--active-tab-top)",
-};
-
 export function UnderlineIndicators({
+  activeIndex,
   hoveredIndex,
   orientation,
   deps,
 }: {
+  activeIndex: number;
   hoveredIndex: number | null;
   orientation: "horizontal" | "vertical";
   /** Re-measure when the tab set changes. */
@@ -87,7 +79,7 @@ export function UnderlineIndicators({
         ref={rootRef}
         aria-hidden
         className={cn(
-          SLIDE,
+          HOVER_SLIDE,
           "z-0 rounded-md bg-muted transition-[transform,width,height,opacity]"
         )}
         style={{
@@ -97,14 +89,12 @@ export function UnderlineIndicators({
           opacity: hover ? 1 : 0,
         }}
       />
-      {/* Base UI keeps it `hidden` until the active tab is measured, so it
-          appears in place instead of sliding in from the list's corner. */}
-      <TabsIndicator
-        className={cn(
-          SLIDE,
-          "bg-foreground transition-[translate,width,height]",
-          BAR_PLACEMENT[orientation]
-        )}
+      <ActiveUnderline
+        index={activeIndex}
+        itemSelector="[data-slot=tabs-trigger]"
+        orientation={orientation}
+        gap={8}
+        deps={deps}
       />
     </>
   );

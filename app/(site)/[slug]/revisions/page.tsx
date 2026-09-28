@@ -162,7 +162,7 @@ export default async function RevisionsPage({ params, searchParams }: Props) {
             className={cn(
               "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
               view === key
-                ? "border-primary font-medium text-foreground"
+                ? "border-secondary font-medium text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >

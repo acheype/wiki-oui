@@ -43,7 +43,10 @@ export default async function SiteLayout({
           <TitleSlot
             slot={slots.title}
             isAdmin={isAdmin}
-            className={cn("text-lg font-semibold tracking-tight", inlineMdx)}
+            className={cn(
+              "text-lg font-semibold tracking-tight text-secondary transition-colors hover:text-secondary/80",
+              inlineMdx
+            )}
           />
           {/* Always rendered, empty menu or not: this is the bar's flexible
               middle, and what keeps the account menu on the right edge. The

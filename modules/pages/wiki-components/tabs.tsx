@@ -110,7 +110,7 @@ export function Tabs({
 
   // Underline (`line` variant) swaps the per-tab bar for two shared indicators
   // that slide (underline-indicators.tsx): the grey one follows the hovered
-  // tab, the black one the active tab. Other displays keep their own look.
+  // tab, the plum one the active tab. Other displays keep their own look.
   const isUnderline = display === "underline";
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -179,6 +179,7 @@ export function Tabs({
       >
         {isUnderline && (
           <UnderlineIndicators
+            activeIndex={tabs.findIndex((tab) => tab.slug === value)}
             hoveredIndex={hoveredIndex}
             orientation={orientation}
             deps={slugKey}

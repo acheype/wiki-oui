@@ -83,7 +83,7 @@ async function renderField(
       ) : null;
     case "email":
       return isEmpty(value) ? null : (
-        <a href={`mailto:${value}`} className="text-primary underline">
+        <a href={`mailto:${value}`} className="text-secondary underline">
           {String(value)}
         </a>
       );
@@ -93,7 +93,7 @@ async function renderField(
           href={String(value)}
           target="_blank"
           rel="noreferrer"
-          className="text-primary underline"
+          className="text-secondary underline"
         >
           {String(value)}
         </a>
@@ -128,7 +128,7 @@ async function renderField(
       return isEmpty(value) ? null : (
         <a
           href={`/api/files/${encodeURIComponent(String(value))}`}
-          className="text-primary underline"
+          className="text-secondary underline"
         >
           {String(value)}
         </a>
@@ -184,7 +184,7 @@ function renderOption(
   if (isOptionsField(field) && field.sourceFormId) {
     const title = linkTitles[value];
     return (
-      <Link href={`/${value}`} className="text-primary underline">
+      <Link href={`/${value}`} className="text-secondary underline">
         {title ?? value}
       </Link>
     );

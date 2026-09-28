@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { usePathname } from "next/navigation";
 import {
   Children,
   cloneElement,
@@ -11,7 +12,9 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
+import { wikiHrefSlug } from "@/lib/slug";
 import { cn } from "@/lib/utils";
+import { ActiveUnderline } from "@/modules/pages/ui/active-underline";
 import { useQuickAccessMenu } from "@/modules/pages/ui/quick-access-slot";
 import { ThemeToggle } from "@/modules/pages/ui/theme-toggle";
 import type { ButtonProps } from "./button";
@@ -42,6 +45,7 @@ function isTag(node: ReactNode, tag: string): node is ElementWithChildren {
 // their props instead — the sandbox whitelist (ADR 0002) makes the shapes
 // unambiguous: only WikiLink carries `href`, only Button its own props.
 type LinkElement = ReactElement<{
+  "aria-current"?: "page";
   className?: string;
   style?: CSSProperties;
   href: string;
@@ -128,13 +132,48 @@ function parseItem(li: ElementWithChildren): MenuItem | null {
   return { label, navigates, children };
 }
 
-const barItemClass =
-  "rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground";
+function barItemClass(active: boolean): string {
+  return cn(
+    "rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+    active && "text-foreground"
+  );
+}
+
+function nodeSlug(node: ReactNode): string | null {
+  const href = isWikiLinkElement(node)
+    ? node.props.href
+    : isButtonElement(node)
+      ? node.props.link
+      : undefined;
+  if (!href) return null;
+  return wikiHrefSlug(href.replace(/^\//, ""));
+}
+
+function ownSlug(item: MenuItem): string | null {
+  for (const node of item.label) {
+    const slug = nodeSlug(node);
+    if (slug) return slug;
+  }
+  return null;
+}
+
+function containsSlug(item: MenuItem, slug: string | null): boolean {
+  return Boolean(
+    slug &&
+      (ownSlug(item) === slug ||
+        item.children.some((child) => containsSlug(child, slug)))
+  );
+}
 
 // Reuses the element the registry produced, just restyled for the bar.
-function restyleWikiLink(node: ReactNode, className: string): ReactNode {
+function restyleWikiLink(
+  node: ReactNode,
+  className: string,
+  current = false
+): ReactNode {
   if (isWikiLinkElement(node)) {
     return cloneElement(node, {
+      "aria-current": current ? "page" : undefined,
       className: cn(className, node.props.className),
     });
   }
@@ -143,42 +182,75 @@ function restyleWikiLink(node: ReactNode, className: string): ReactNode {
 
 export function Menu({ children }: { children?: ReactNode }) {
   const quickAccess = useQuickAccessMenu();
+  const pathname = usePathname();
+  const currentSlug = pathname?.split("/").filter(Boolean)[0] ?? null;
   const list = meaningfulChildren(children).find(
     (node) => isTag(node, "ul") || isTag(node, "ol")
   ) as ElementWithChildren | undefined;
   if (!list) return null;
+  const items = parseList(list);
+  const activeIndex = items.findIndex((item) =>
+    containsSlug(item, currentSlug)
+  );
+  const itemKey = items.map((item) => ownSlug(item) ?? "-").join("|");
 
   return (
-    <nav className="flex flex-wrap items-center gap-1">
-      {parseList(list).map((item, index) =>
-        item.children.length > 0 ? (
-          <Dropdown
+    <nav className="relative flex flex-wrap items-center gap-1">
+      {items.map((item, index) => {
+        const active = containsSlug(item, currentSlug);
+        return (
+          <div
             key={index}
-            item={item}
-            themeToggle={quickAccess && index === 0}
-          />
-        ) : (
-          <LeafItem key={index} item={item} />
-        )
-      )}
+            data-slot="menu-root-item"
+            className="flex items-center"
+          >
+            {item.children.length > 0 ? (
+              <Dropdown
+                item={item}
+                active={active}
+                currentSlug={currentSlug}
+                themeToggle={quickAccess && index === 0}
+              />
+            ) : (
+              <LeafItem item={item} active={active} />
+            )}
+          </div>
+        );
+      })}
+      <ActiveUnderline
+        index={activeIndex === -1 ? null : activeIndex}
+        itemSelector="[data-slot=menu-root-item]"
+        gap={0}
+        deps={`${itemKey}:${currentSlug ?? ""}`}
+      />
     </nav>
   );
 }
 
-function LeafItem({ item }: { item: MenuItem }) {
+function LeafItem({ item, active }: { item: MenuItem; active: boolean }) {
   const [node] = item.label;
   if (item.label.length === 1) {
     if (isButtonElement(node)) return node;
-    if (isWikiLinkElement(node)) return restyleWikiLink(node, barItemClass);
+    if (isWikiLinkElement(node)) {
+      return restyleWikiLink(node, barItemClass(active), active);
+    }
   }
-  return <span className={cn(barItemClass, "hover:bg-transparent")}>{item.label}</span>;
+  return (
+    <span className={cn(barItemClass(active), "hover:bg-transparent")}>
+      {item.label}
+    </span>
+  );
 }
 
 function Dropdown({
   item,
+  active,
+  currentSlug,
   themeToggle,
 }: {
   item: MenuItem;
+  active: boolean;
+  currentSlug: string | null;
   themeToggle: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -211,7 +283,13 @@ function Dropdown({
     >
       {/* Open, not toggle: hover already opened it, so a toggling click
           would close the panel right away (ADR 0010: "clic pour ouvrir"). */}
-      <DropdownTrigger item={item} open={open} onOpen={show} />
+      <DropdownTrigger
+        item={item}
+        active={active}
+        currentSlug={currentSlug}
+        open={open}
+        onOpen={show}
+      />
       {open && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
           {themeToggle && (
@@ -220,7 +298,11 @@ function Dropdown({
               <div className="-mx-1 my-1 h-px bg-border" />
             </>
           )}
-          <DropdownEntries items={item.children} depth={0} />
+          <DropdownEntries
+            items={item.children}
+            depth={0}
+            currentSlug={currentSlug}
+          />
         </div>
       )}
     </div>
@@ -229,10 +311,14 @@ function Dropdown({
 
 function DropdownTrigger({
   item,
+  active,
+  currentSlug,
   open,
   onOpen,
 }: {
   item: MenuItem;
+  active: boolean;
+  currentSlug: string | null;
   open: boolean;
   onOpen: () => void;
 }) {
@@ -248,7 +334,10 @@ function DropdownTrigger({
   // markup also takes this branch: it must not be nested inside the <button>
   // below (invalid HTML).
   if (item.navigates || isBareButton || item.label.some(isComponentElement)) {
-    const trigger = isBareButton ? node : restyleWikiLink(node, barItemClass);
+    const current = ownSlug(item) === currentSlug;
+    const trigger = isBareButton
+      ? node
+      : restyleWikiLink(node, barItemClass(active), current && active);
     return (
       <span
         className="flex items-center"
@@ -265,7 +354,7 @@ function DropdownTrigger({
   return (
     <button
       type="button"
-      className={cn(barItemClass, "flex items-center")}
+      className={cn(barItemClass(active), "flex items-center")}
       onClick={onOpen}
       aria-haspopup="menu"
       aria-expanded={open}
@@ -286,7 +375,15 @@ function Chevron({ open }: { open: boolean }) {
 }
 
 // Levels ≥ 3 are flattened: rendered in the same panel, just indented.
-function DropdownEntries({ items, depth }: { items: MenuItem[]; depth: number }) {
+function DropdownEntries({
+  items,
+  depth,
+  currentSlug,
+}: {
+  items: MenuItem[];
+  depth: number;
+  currentSlug: string | null;
+}) {
   return items.map((item, index) => {
     const indent = { paddingLeft: `${0.625 + depth * 0.875}rem` };
     const [node] = item.label;
@@ -300,9 +397,12 @@ function DropdownEntries({ items, depth }: { items: MenuItem[]; depth: number })
         </div>
       );
     } else if (single && isWikiLinkElement(node)) {
+      const current = ownSlug(item) === currentSlug;
       entry = cloneElement(node, {
+        "aria-current": current ? "page" : undefined,
         className: cn(
           "block rounded-sm py-1.5 pr-2 text-sm hover:bg-accent hover:text-accent-foreground",
+          current && "font-medium text-secondary",
           node.props.className
         ),
         style: indent,
@@ -322,7 +422,11 @@ function DropdownEntries({ items, depth }: { items: MenuItem[]; depth: number })
       <div key={index}>
         {entry}
         {item.children.length > 0 && (
-          <DropdownEntries items={item.children} depth={depth + 1} />
+          <DropdownEntries
+            items={item.children}
+            depth={depth + 1}
+            currentSlug={currentSlug}
+          />
         )}
       </div>
     );

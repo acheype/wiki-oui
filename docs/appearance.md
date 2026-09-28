@@ -8,7 +8,9 @@ Les couleurs configurables sont les couleurs sémantiques définies dans `app/gl
 
 Les fonds légers, comme ceux des blocs dépliables, sont calculés automatiquement avec `color-mix()` à partir de la couleur sémantique, du fond de page et d’une intensité commune, `--subtle-strength`. Il suffit donc de personnaliser les couleurs de base ; les variantes `*-subtle` suivent la palette sans ajouter de réglages à l’utilisateur.
 
-Les icônes et contours utilisent directement la couleur choisie (`primary`, `secondary`, `success`, `info`, `warning`, `destructive`). La couleur `secondary` du thème livré est « Prune documentaire » : `oklch(0.48 0.13 325)` en clair et `oklch(0.72 0.11 325)` en sombre. Les boutons secondaires portent cette couleur en fond ; `secondary-foreground` reste uniquement la couleur contrastée de leur contenu.
+Dans le langage visuel de l’interface, `primary` porte les actions principales ; `secondary` porte la navigation : titre du wiki, liens du contenu et indicateurs de position active. La couleur `secondary` du thème livré est « Prune documentaire » : `oklch(0.48 0.13 325)` en clair et `oklch(0.72 0.11 325)` en sombre.
+
+Les icônes et contours utilisent directement la couleur choisie (`primary`, `secondary`, `success`, `info`, `warning`, `destructive`). Les boutons secondaires portent `secondary` en fond ; `secondary-foreground` reste uniquement la couleur contrastée de leur contenu.
 
 ## Thème clair ou sombre
 

@@ -221,6 +221,11 @@
    the text. These rules sit outside @layer, so they win over the plugin's own
    (layered) styles whatever their specificity. */
 .prose {
+  /* Plum is the editorial accent: links carry it while headings and body
+     copy stay neutral. The typography plugin reads both variables, so the
+     same semantic color follows light and dark themes. */
+  --tw-prose-links: var(--secondary);
+  --tw-prose-invert-links: var(--secondary);
   --prose-space-paragraph: 0.75em;      /* above and below a paragraph */
   --prose-space-heading-top: 1.2em;     /* above a heading (h1–h4) */
   --prose-space-heading-bottom: 0.4em;  /* below a heading */
