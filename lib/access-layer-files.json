@@ -1,29 +1,110 @@
 [
-  "modules/pages/access/guards.ts",
-  "modules/pages/access/page-rights.ts",
-  "modules/pages/access/admin-rights.ts",
-  "modules/pages/content.ts",
-  "modules/pages/revisions.ts",
-  "modules/pages/revisions/restore.ts",
-  "modules/pages/rights.ts",
-  "modules/pages/entries.ts",
-  "modules/forms/access/guards.ts",
-  "modules/forms/forms.ts",
-  "modules/accounts/auth.ts",
-  "modules/accounts/access/guards.ts",
-  "modules/accounts/admin/invite.ts",
-  "modules/accounts/admin/lifecycle.ts",
-  "modules/accounts/invitation/consumption.ts",
-  "modules/accounts/invitation/link.ts",
-  "modules/permissions/groups-directory.ts",
-  "modules/permissions/groups-onboarding.ts",
-  "modules/permissions/access/guards.ts",
-  "modules/permissions/administrators.ts",
-  "modules/permissions/person.ts",
-  "modules/settings/installed.ts",
-  "lib/slug-rename-db.ts",
-  "modules/forms/entry-title/sweep.ts",
-  "modules/forms/field-rename/sweep.ts",
-  "modules/permissions/acl-rename-sweep.ts",
-  "prisma/seed.ts"
+  {
+    "file": "modules/pages/access/guards.ts",
+    "reason": "reads Page rows and decides page access in the same operation"
+  },
+  {
+    "file": "modules/pages/access/page-rights.ts",
+    "reason": "owns guarded reads and writes of one page's rights"
+  },
+  {
+    "file": "modules/pages/access/admin-rights.ts",
+    "reason": "owns administrator-only bulk reads and writes of page rights"
+  },
+  {
+    "file": "modules/pages/content.ts",
+    "reason": "owns guarded Page content reads and mutations"
+  },
+  {
+    "file": "modules/pages/revisions.ts",
+    "reason": "owns guarded revision-history reads"
+  },
+  {
+    "file": "modules/pages/revisions/restore.ts",
+    "reason": "owns the guarded transaction that restores a revision"
+  },
+  {
+    "file": "modules/pages/rights.ts",
+    "reason": "owns page-level permission queries and ownership maintenance"
+  },
+  {
+    "file": "modules/pages/entries.ts",
+    "reason": "owns guarded Page access for form entries"
+  },
+  {
+    "file": "modules/forms/access/guards.ts",
+    "reason": "reads Form rows and decides form access in the same operation"
+  },
+  {
+    "file": "modules/forms/forms.ts",
+    "reason": "owns guarded Form reads, mutations and maintenance operations"
+  },
+  {
+    "file": "modules/accounts/auth.ts",
+    "reason": "provides Prisma to BetterAuth and checks User.disabledAt before session creation"
+  },
+  {
+    "file": "modules/accounts/access/guards.ts",
+    "reason": "owns administrator-only account and invitation directory reads"
+  },
+  {
+    "file": "modules/accounts/admin/invite.ts",
+    "reason": "owns administrator-only invitation and reset-link mutations"
+  },
+  {
+    "file": "modules/accounts/admin/lifecycle.ts",
+    "reason": "owns guarded account disablement and deletion transactions"
+  },
+  {
+    "file": "modules/accounts/invitation/consumption.ts",
+    "reason": "consumes the obsolete AccountLink after account creation"
+  },
+  {
+    "file": "modules/accounts/invitation/link.ts",
+    "reason": "owns token-authorized AccountLink and password-reset operations"
+  },
+  {
+    "file": "modules/permissions/groups-directory.ts",
+    "reason": "owns group and membership directory reads used by permission decisions"
+  },
+  {
+    "file": "modules/permissions/groups-onboarding.ts",
+    "reason": "owns membership writes authorized by installation or invitation"
+  },
+  {
+    "file": "modules/permissions/access/guards.ts",
+    "reason": "owns administrator-guarded group and membership mutations"
+  },
+  {
+    "file": "modules/permissions/administrators.ts",
+    "reason": "owns the active-administrator invariant around membership mutations"
+  },
+  {
+    "file": "modules/permissions/person.ts",
+    "reason": "resolves the current identity and builds guarded access clauses"
+  },
+  {
+    "file": "modules/settings/installed.ts",
+    "reason": "owns the installation flag read and one-way initialization write"
+  },
+  {
+    "file": "lib/slug-rename-db.ts",
+    "reason": "rewrites slug references for referential integrity inside caller-owned transactions"
+  },
+  {
+    "file": "modules/forms/entry-title/sweep.ts",
+    "reason": "recomputes stored entry titles for referential integrity"
+  },
+  {
+    "file": "modules/forms/field-rename/sweep.ts",
+    "reason": "rewrites stored field keys for referential integrity"
+  },
+  {
+    "file": "modules/permissions/acl-rename-sweep.ts",
+    "reason": "rewrites principal names in ACLs for referential integrity"
+  },
+  {
+    "file": "prisma/seed.ts",
+    "reason": "creates initial data before any authenticated person exists"
+  }
 ]

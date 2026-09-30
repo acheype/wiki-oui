@@ -9,7 +9,7 @@ import {
   Project,
   type SourceFile,
 } from "ts-morph";
-import accessLayerFiles from "../../lib/access-layer-files.json";
+import accessLayerEntries from "../../lib/access-layer-files.json";
 
 // One access layer for Page, Form, Revision and the account tables (ADR 0025,
 // issues #20, #21, #23): an ESLint rule keeps each model's Prisma calls inside
@@ -21,8 +21,8 @@ import accessLayerFiles from "../../lib/access-layer-files.json";
 //
 // The list of files comes from lib/access-layer-files.json, shared with ESLint.
 // Six files are excluded from the scan (sweeps, seed and auth.ts) — each one
-// named in EXEMPTIONS with its reason. The remaining 18 files are scanned for
-// every watched table.
+// named in EXEMPTIONS with its reason. Every other entry is scanned for each
+// watched table.
 //
 // The three primitives every access decision in this codebase bottoms out on
 // are canRead, canWrite and isAdmin (modules/permissions/decide/rules.ts) —
@@ -369,7 +369,7 @@ export const EXEMPTIONS: readonly Exemption[] = [
   // --- file-level: sweeps, seed, auth ----------------------------------------
 
   { file: "prisma/seed.ts", reason: "writes before any person exists (ADR 0027)" },
-  { file: "modules/accounts/auth.ts", reason: "BetterAuth manages its own tables" },
+  { file: "modules/accounts/auth.ts", reason: "authentication lifecycle — BetterAuth's pre-session hook checks User.disabledAt before an authenticated WikiOui person exists" },
   { file: "lib/slug-rename-db.ts", reason: "referential integrity — rewrites slug references, no person acts" },
   { file: "modules/forms/entry-title/sweep.ts", reason: "referential integrity — recomputes stored titles, no person acts" },
   { file: "modules/forms/field-rename/sweep.ts", reason: "referential integrity — renames field keys in carriers, no person acts" },
@@ -442,7 +442,7 @@ export function verifyAccessGuards(): void {
     EXEMPTIONS.filter((e) => e.function).map((e) => `${e.file}:${e.function}`)
   );
 
-  const scannedFiles = (accessLayerFiles as string[]).filter(
+  const scannedFiles = accessLayerEntries.map((entry) => entry.file).filter(
     (f) => !fileExemptions.has(f)
   );
 

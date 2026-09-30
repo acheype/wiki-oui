@@ -60,7 +60,7 @@ Le nom du fichier suit ce qu'il tient : `queries.ts` est devenu `access/guards.t
 
 ### Le fichier JSON partagé (issue #23)
 
-`lib/access-layer-files.json` est la liste canonique des 19 fichiers de la couche d'accès. `eslint.config.mjs` l'importe tel quel pour ses `ignores` ; `scripts/verify-access/scan.ts` l'importe et retire les six fichiers exemptés entièrement (4 balayages, le seed, `auth.ts`) — 13 fichiers scannés pour chaque table.
+`lib/access-layer-files.json` est la liste canonique de la couche d'accès. Chaque entrée nomme le fichier et justifie pourquoi il peut atteindre Prisma. `eslint.config.mjs` en extrait les chemins pour ses `ignores` ; `scripts/verify-access/scan.ts` en retire les six fichiers exemptés entièrement (4 balayages, le seed, `auth.ts`) et contrôle tous les autres pour chaque table.
 
 ### Le `via` étendu (issue #23)
 
@@ -71,7 +71,7 @@ Le scan détecte un accès indirect par relation Prisma. Chaque table surveillé
 | Fichier | Pourquoi hors du scan |
 | --- | --- |
 | `prisma/seed.ts` | écrit avant qu'une personne existe (ADR 0027) |
-| `modules/accounts/auth.ts` | BetterAuth — on lui fournit une requête Prisma pour accéder à User, il gère l'authentification lui-même |
+| `modules/accounts/auth.ts` | cycle d'authentification — l'adaptateur fournit Prisma à BetterAuth ; son hook préalable à la session lit `User.disabledAt` avant qu'une personne WikiOui authentifiée existe |
 | `lib/slug-rename-db.ts` | intégrité référentielle — réécrit les références de slug dans toute la base, aucune personne n'agit |
 | `modules/forms/entry-title/sweep.ts` | intégrité référentielle — recalcule les titres stockés après un renommage, aucune personne n'agit |
 | `modules/forms/field-rename/sweep.ts` | intégrité référentielle — renomme les clés de champ dans chaque porteur, aucune personne n'agit |

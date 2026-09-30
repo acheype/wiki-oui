@@ -40,7 +40,7 @@ const page = await prisma.page.findUnique({ where: { slug } });
 import { prisma } from "@/lib/prisma";
 ```
 
-La liste d'exceptions vit dans `lib/access-layer-files.json`, partagée avec le scan (issue #23). Les balayages ne l'importent pas : ils **reçoivent** leur client en paramètre.
+La liste des fichiers autorisés vit dans `lib/access-layer-files.json`, avec la raison de chaque accès, et est partagée avec le scan (issue #23). Les balayages ne l'importent pas : ils **reçoivent** leur client en paramètre.
 
 ### `wikioui/access-clauses` — jamais un `OR` autour d'une clause de droits
 
@@ -85,7 +85,7 @@ Une garde est rarement dans le fichier qui accède : `content.ts` lit la page, `
 
 #### Tables surveillées
 
-La liste des fichiers de la couche d'accès vit dans `lib/access-layer-files.json`, partagée avec ESLint (issue #23). Le scan en retire les balayages, le seed et `auth.ts` — 18 fichiers scannés pour chaque table.
+La liste des fichiers de la couche d'accès vit dans `lib/access-layer-files.json`, avec la raison de chaque accès, et est partagée avec ESLint (issue #23). Le scan en retire les balayages, le seed et `auth.ts`, puis contrôle tous les autres fichiers pour chaque table.
 
 | Table | Lectures | Écritures | Pourquoi pas davantage |
 | --- | --- | --- | --- |

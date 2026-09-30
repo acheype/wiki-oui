@@ -7,9 +7,10 @@ import nextTs from "eslint-config-next/typescript";
 // The canonical list of access-layer files, shared with scripts/verify-access/
 // (ADR 0025, issue #23). ESLint uses it as-is for its ignores; the scan
 // filters out sweeps, seed and auth.ts before checking guards.
-const accessLayerFiles = JSON.parse(
+const accessLayerEntries = JSON.parse(
   readFileSync(new URL("lib/access-layer-files.json", import.meta.url), "utf-8")
 );
+const accessLayerFiles = accessLayerEntries.map(({ file }) => file);
 
 // Prisma model methods: the leaf of `<client>.page.findMany(…)`. Matching on
 // the method (and not on `.page` alone) keeps `page.form`, `source.page.slug`
