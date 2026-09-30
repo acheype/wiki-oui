@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   ACCOUNT_FILTERS,
-  deleteRefusal,
   deletionImpactLines,
   disableRefusal,
   matchesAccountFilter,
 } from "./rules";
-import { REFUSALS } from "@/modules/permissions/rules";
 
 describe("ACCOUNT_FILTERS", () => {
   it("offers the four the system page shows, in the order it shows them", () => {
@@ -36,60 +34,14 @@ describe("matchesAccountFilter", () => {
 });
 
 describe("disableRefusal", () => {
-  const marie = { username: "marie-durand", personUsername: "jean-martin" };
-
   it("lets an administrator cut someone else's access", () => {
-    expect(disableRefusal({ ...marie, lastAdmin: false })).toBeNull();
+    expect(disableRefusal("marie-durand", "jean-martin")).toBeNull();
   });
 
   it("refuses the action that would lock its own author out", () => {
-    expect(
-      disableRefusal({
-        username: "jean-martin",
-        personUsername: "jean-martin",
-        lastAdmin: false,
-      })
-    ).toBe(
+    expect(disableRefusal("jean-martin", "jean-martin")).toBe(
       "Vous ne pouvez pas désactiver votre propre compte. Déconnectez-vous plutôt."
     );
-  });
-
-  it("refuses to leave the wiki without an administrator", () => {
-    expect(disableRefusal({ ...marie, lastAdmin: true })).toBe(
-      REFUSALS.lastAdmin
-    );
-  });
-});
-
-describe("deleteRefusal", () => {
-  it("lets someone erase their own account, as the RGPD asks", () => {
-    expect(
-      deleteRefusal({
-        username: "jean-martin",
-        personUsername: "jean-martin",
-        lastAdmin: false,
-      })
-    ).toBeNull();
-  });
-
-  it("holds the same floor as disabling", () => {
-    expect(
-      deleteRefusal({
-        username: "marie-durand",
-        personUsername: "jean-martin",
-        lastAdmin: true,
-      })
-    ).toBe(REFUSALS.lastAdmin);
-  });
-
-  it("holds it against the last administrator erasing themselves too", () => {
-    expect(
-      deleteRefusal({
-        username: "jean-martin",
-        personUsername: "jean-martin",
-        lastAdmin: true,
-      })
-    ).toBe(REFUSALS.lastAdmin);
   });
 });
 

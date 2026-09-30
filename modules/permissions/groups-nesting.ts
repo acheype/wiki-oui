@@ -9,7 +9,7 @@
 // they were never added to.
 
 import { plural } from "@/lib/format";
-import { ADMINS_GROUP, REFUSALS } from "@/modules/permissions/rules";
+import { ADMINS_GROUP } from "@/modules/permissions/rules";
 
 /** One nesting: `groupSlug` holds `memberGroupSlug` among its members. */
 export interface Nesting {
@@ -237,22 +237,6 @@ export function groupDeletionImpact(
 ): string | null {
   if (pageCount === 0) return null;
   return `${groupLabel(name)} apparaît dans les droits de ${plural(pageCount, "page", "pages")}. Le supprimer retirera ces droits.`;
-}
-
-/**
- * Why this member cannot be taken out, or null when they may go. Only
- * @Admins ever refuses: a wiki whose administrators' group is empty is one
- * nobody can take back — the installation service is a one-way door (ADR
- * 0027), so it will not hand it over a second time.
- */
-export function memberRemovalRefusal(group: {
-  groupSlug: string;
-  memberCount: number;
-}): string | null {
-  if (group.groupSlug !== ADMINS_GROUP.slug || group.memberCount > 1) {
-    return null;
-  }
-  return REFUSALS.lastAdmin;
 }
 
 /**

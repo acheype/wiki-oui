@@ -1,12 +1,10 @@
 import {
-  type AccountAction,
   type AccountRefusal,
-  deleteRefusal,
   disableRefusal,
 } from "@/modules/accounts/admin/rules";
 import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
 import { countFormsOwnedByAccount, reassignOwnedForms } from "@/modules/forms/forms";
-import { listAdminUsernames } from "@/modules/permissions/groups-directory";
+import { administratorDepartureRefusal, preservingAdministrator } from "@/modules/permissions/administrators";
 import { countOwnedByAccount, reassignOwnedPages } from "@/modules/pages/rights";
 import { assertAdmin, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
@@ -16,32 +14,6 @@ import { prisma } from "@/lib/prisma";
 // administrator's, and the check sits here rather than in the callers
 // (ADR 0025) — except the two self-service ones, which reach exactly one
 // account, the one already signed in, and say so in their own comment.
-
-/**
- * The last administrator standing: an account whose loss would leave nobody
- * able to administer the wiki. Direct members only — nesting never makes an
- * administrator (docs/permissions.md § Groupes) — and disabled ones do not
- * count, since an account that cannot sign in cannot take anything back.
- */
-async function isLastAdmin(username: string): Promise<boolean> {
-  const admins = await listAdminUsernames();
-  if (!admins.includes(username)) return false;
-
-  const others = admins.filter((member) => member !== username);
-  if (others.length === 0) return true;
-  const stillThere = await prisma.user.count({
-    where: { username: { in: others }, disabledAt: null },
-  });
-  return stillThere === 0;
-}
-
-async function actionOn(username: string): Promise<AccountAction> {
-  return {
-    username,
-    personUsername: await currentUsername(),
-    lastAdmin: await isLastAdmin(username),
-  };
-}
 
 /**
  * « Cette personne n'est plus des nôtres » — the everyday action, and a
@@ -61,18 +33,19 @@ export async function setAccountDisabled(
     return null;
   }
 
-  const refusal = disableRefusal(await actionOn(username));
+  const refusal = disableRefusal(username, await currentUsername());
   if (refusal) return refusal;
-  await prisma.user.update({
-    where: { username },
-    data: {
-      disabledAt: new Date(),
-      // Revoked, not left to expire: « refuse the next sign-in » would leave
-      // whoever is already signed in inside for as long as their session lasts.
-      sessions: { deleteMany: {} },
-    },
+  return preservingAdministrator(username, async (tx) => {
+    await tx.user.update({
+      where: { username },
+      data: {
+        disabledAt: new Date(),
+        // Revoked, not left to expire: « refuse the next sign-in » would leave
+        // whoever is already signed in inside for as long as their session lasts.
+        sessions: { deleteMany: {} },
+      },
+    });
   });
-  return null;
 }
 
 export interface AccountDeletionImpact {
@@ -103,16 +76,16 @@ export async function ownDeletionImpact(): Promise<AccountDeletionImpact | null>
 }
 
 async function countErasure(username: string): Promise<AccountDeletionImpact> {
-  const [owned, forms, action] = await Promise.all([
+  const [owned, forms, refusal] = await Promise.all([
     countOwnedByAccount(username),
     countFormsOwnedByAccount(username),
-    actionOn(username),
+    administratorDepartureRefusal(username),
   ]);
   return {
     pages: owned.pages,
     forms,
     revisions: owned.revisions,
-    refusal: deleteRefusal(action),
+    refusal,
   };
 }
 
@@ -125,14 +98,7 @@ export async function deleteAccount(
   reassignToUsername: string | null
 ): Promise<AccountRefusal> {
   await assertAdmin();
-  const refusal = deleteRefusal(await actionOn(username));
-  if (refusal) return refusal;
-
-  if (reassignToUsername) {
-    await reassignOwnedPages(username, reassignToUsername);
-    await reassignOwnedForms(username, reassignToUsername);
-  }
-  return erase(username);
+  return erase(username, reassignToUsername);
 }
 
 /**
@@ -146,8 +112,6 @@ export async function deleteAccount(
 export async function deleteOwnAccount(): Promise<AccountRefusal> {
   const username = await currentUsername();
   if (!username) return "Vous n'êtes pas connecté.";
-  const refusal = deleteRefusal(await actionOn(username));
-  if (refusal) return refusal;
   return erase(username);
 }
 
@@ -159,13 +123,20 @@ export async function deleteOwnAccount(): Promise<AccountRefusal> {
  * `Form.schema`, which no foreign key reaches (ADR 0024), so the sweep runs
  * here rather than trusting Postgres to have done it.
  */
-async function erase(username: string): Promise<AccountRefusal> {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    select: { id: true, email: true },
-  });
-  if (!user) return null;
-  await prisma.$transaction(async (tx) => {
+async function erase(
+  username: string,
+  reassignToUsername?: string | null
+): Promise<AccountRefusal> {
+  return preservingAdministrator(username, async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { username },
+      select: { id: true, email: true },
+    });
+    if (!user) return;
+    if (reassignToUsername) {
+      await reassignOwnedPages(username, reassignToUsername, tx);
+      await reassignOwnedForms(username, reassignToUsername, tx);
+    }
     await tx.accountLink.deleteMany({ where: { email: user.email } });
     await tx.user.delete({ where: { id: user.id } });
     await sweepAclReferences(tx, {
@@ -174,5 +145,4 @@ async function erase(username: string): Promise<AccountRefusal> {
       to: null,
     });
   });
-  return null;
 }

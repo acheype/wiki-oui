@@ -8,7 +8,6 @@ import {
   inheritedGroups,
   inheritedMembers,
   isProtectedGroup,
-  memberRemovalRefusal,
   nestedGroupPaths,
   nestingCycle,
   nestingCycleMessage,
@@ -155,24 +154,6 @@ describe("the protection of @Admins", () => {
   it("is neither renamable nor deletable, where any other group is", () => {
     expect(isProtectedGroup(ADMINS_GROUP.slug)).toBe(true);
     expect(isProtectedGroup("bureau")).toBe(false);
-  });
-
-  it("refuses to lose its last member, and says what it holds", () => {
-    expect(
-      memberRemovalRefusal({ groupSlug: ADMINS_GROUP.slug, memberCount: 1 })
-    ).toBe("Ce wiki doit garder au moins un administrateur.");
-  });
-
-  it("lets an administrator go as soon as another remains", () => {
-    expect(
-      memberRemovalRefusal({ groupSlug: ADMINS_GROUP.slug, memberCount: 2 })
-    ).toBeNull();
-  });
-
-  it("lets any other group empty out", () => {
-    expect(memberRemovalRefusal({ groupSlug: "bureau", memberCount: 1 })).toBe(
-      null
-    );
   });
 });
 

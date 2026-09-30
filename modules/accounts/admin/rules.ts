@@ -7,7 +7,6 @@
 // modules/accounts/auth/rules.ts.
 
 import { plural } from "@/lib/format";
-import { REFUSALS } from "@/modules/permissions/rules";
 
 /** Why an account action was refused, or null once it went through. */
 export type AccountRefusal = string | null;
@@ -37,40 +36,16 @@ export function matchesAccountFilter(
   return filter === "all" || filter === status;
 }
 
-/** An administrator's action on one account, as the refusals read it. */
-export interface AccountAction {
-  username: string;
-  /** Who is acting: an administrator, since nobody else reaches this system page. */
-  personUsername: string | null;
-  /** The target is the last administrator who could still sign in. */
-  lastAdmin: boolean;
-}
-
 /**
  * Why this account cannot be disabled, or null when it can. Disabling one's
  * own is refused outright: it locks the author of the action out on the
  * spot, and « se déconnecter » is what they were looking for.
  */
-export function disableRefusal(action: AccountAction): string | null {
-  if (action.username === action.personUsername) {
+export function disableRefusal(username: string, personUsername: string | null): string | null {
+  if (username === personUsername) {
     return "Vous ne pouvez pas désactiver votre propre compte. Déconnectez-vous plutôt.";
   }
-  return lastAdminRefusal(action);
-}
-
-/**
- * Why this account cannot be erased, or null when it can. Erasing one's own
- * is a right, not an accident (RGPD, droit à l'effacement) — so nothing
- * stands in its way but the wiki's one invariant: an administrator has to
- * hand the wiki on before they go, since the installation service will not
- * give it back (ADR 0027).
- */
-export function deleteRefusal(action: AccountAction): string | null {
-  return lastAdminRefusal(action);
-}
-
-function lastAdminRefusal(action: AccountAction): string | null {
-  return action.lastAdmin ? REFUSALS.lastAdmin : null;
+  return null;
 }
 
 /** What an erasure would leave behind, counted before it is decided. */

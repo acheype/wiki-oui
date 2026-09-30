@@ -1,3 +1,4 @@
+import type { Prisma } from "@/lib/generated/prisma/client";
 import { type FormDescriptor, parseFormDescriptor } from "@/modules/forms/form-descriptor";
 import {
   type EntryRightsImpact,
@@ -228,9 +229,10 @@ export async function countFormsOwnedByAccount(
 /** The form half of the reassignment the deletion modal offers. */
 export async function reassignOwnedForms(
   fromUsername: string,
-  toUsername: string
+  toUsername: string,
+  tx: Prisma.TransactionClient
 ): Promise<void> {
-  await prisma.form.updateMany({
+  await tx.form.updateMany({
     where: { ownerUsername: fromUsername },
     data: { ownerUsername: toUsername },
   });

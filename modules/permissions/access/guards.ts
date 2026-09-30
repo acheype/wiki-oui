@@ -2,13 +2,14 @@ import { sweepAclReferences } from "@/modules/permissions/acl-rename-sweep";
 import {
   type MemberRef,
   acceptsNestedGroups,
-  memberRemovalRefusal,
   nestingCycle,
   nestingCycleMessage,
 } from "@/modules/permissions/groups-nesting";
 import { type NamedGroup, groupNames, listNestings } from "@/modules/permissions/groups-directory";
 import { assertAdmin } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
+import { preservingAdministrator } from "../administrators";
+import { ADMINS_GROUP } from "../rules";
 
 // The admin mutations of the group system page (docs/permissions.md § Groupes):
 // every action that changes a group passes through here, and every one of them
@@ -92,27 +93,24 @@ export async function nestGroup(
 }
 
 /**
- * Takes a member out — refused only when it would empty @Admins, and the
- * count that decides is the direct one: nesting never makes an administrator.
+ * Taking an administrator out must leave another direct member able to sign in.
  */
 export async function removeGroupMember(
   groupSlug: string,
   member: MemberRef
 ): Promise<MembershipRefusal> {
   await assertAdmin();
-  const refusal = memberRemovalRefusal({
+  const where = {
     groupSlug,
-    memberCount: await prisma.groupMember.count({ where: { groupSlug } }),
-  });
-  if (refusal) return refusal;
-
-  await prisma.groupMember.deleteMany({
-    where: {
-      groupSlug,
-      ...("username" in member
-        ? { username: member.username }
-        : { memberGroupSlug: member.groupSlug }),
-    },
-  });
+    ...("username" in member
+      ? { username: member.username }
+      : { memberGroupSlug: member.groupSlug }),
+  };
+  if (groupSlug === ADMINS_GROUP.slug && "username" in member) {
+    return preservingAdministrator(member.username, async (tx) => {
+      await tx.groupMember.deleteMany({ where });
+    });
+  }
+  await prisma.groupMember.deleteMany({ where });
   return null;
 }

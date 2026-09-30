@@ -12,7 +12,7 @@ import {
   refGroupSlug,
   refUsername,
 } from "@/modules/permissions/groups-nesting";
-import { type AclDirectory, type Identity, ADMINS_GROUP } from "@/modules/permissions/rules";
+import { type AclDirectory, type Identity } from "@/modules/permissions/rules";
 import { assertAdmin, currentUsername } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 
@@ -365,18 +365,4 @@ function namePeople(
     name: displayName.get(member.username) ?? member.username,
     path: member.path.map((slug) => ({ slug, name: nameOf.get(slug) ?? slug })),
   }));
-}
-
-/**
- * Who administers the wiki, directly — nesting never makes an administrator
- * (docs/permissions.md § Groupes), so this list is the whole answer. Read by
- * modules/accounts/admin/lifecycle.ts before it disables or erases anyone: the
- * memberships are this file's, whoever asks.
- */
-export async function listAdminUsernames(): Promise<string[]> {
-  const members = await prisma.groupMember.findMany({
-    where: { groupSlug: ADMINS_GROUP.slug, username: { not: null } },
-    select: { username: true },
-  });
-  return members.map((member) => member.username!);
 }

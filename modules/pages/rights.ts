@@ -1,3 +1,4 @@
+import type { Prisma } from "@/lib/generated/prisma/client";
 import {
   currentAllows,
   currentWritableWhere,
@@ -128,9 +129,10 @@ export async function countOwnedByAccount(
  */
 export async function reassignOwnedPages(
   fromUsername: string,
-  toUsername: string
+  toUsername: string,
+  tx: Prisma.TransactionClient
 ): Promise<void> {
-  await prisma.page.updateMany({
+  await tx.page.updateMany({
     where: { ownerUsername: fromUsername },
     data: { ownerUsername: toUsername },
   });
