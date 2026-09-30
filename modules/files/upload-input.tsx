@@ -7,7 +7,7 @@
 import { FileText, ImagePlus, Paperclip, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { imageUrl } from "@/lib/image-url";
+import { imageUrl } from "@/modules/files/urls";
 import { toast } from "sonner";
 import { uploadFile } from "./upload";
 

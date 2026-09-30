@@ -1,5 +1,5 @@
 import { statSync } from "node:fs";
-import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { FILE_FAMILIES, type FileFamily } from "@/modules/authoring/descriptor";
 import { captureFileName } from "@/lib/format";
@@ -13,13 +13,6 @@ import { wikiConfig } from "@/wiki.config";
 export const FILES_DIR = path.join(process.cwd(), "files");
 
 export type { FileFamily };
-
-export interface StoredFile {
-  name: string;
-  family: FileFamily;
-  size: number;
-  modifiedAt: Date;
-}
 
 // basename() bars path traversal: an uploaded-file name never has a folder.
 export function filePath(name: string): string {
@@ -52,31 +45,6 @@ export function fileSizeSync(name: string): number | null {
   } catch {
     return null;
   }
-}
-
-export async function listFiles(family?: FileFamily): Promise<StoredFile[]> {
-  let entries: string[];
-  try {
-    entries = await readdir(FILES_DIR);
-  } catch {
-    return []; // the directory appears with the first upload
-  }
-  const files = await Promise.all(
-    entries.sort().map(async (name): Promise<StoredFile | null> => {
-      const fileFamilyName = fileFamily(name);
-      if (fileFamilyName === null) return null;
-      if (family && fileFamilyName !== family) return null;
-      const info = await stat(filePath(name));
-      if (!info.isFile()) return null;
-      return {
-        name,
-        family: fileFamilyName,
-        size: info.size,
-        modifiedAt: info.mtime,
-      };
-    })
-  );
-  return files.filter((file) => file !== null);
 }
 
 // Original name slugified (lib/slug.ts), extension normalized; empty base

@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ViewEntry } from "../view-entry";
 import { usePreloadHandlers } from "@/modules/pages/page-modal";
-import { imageUrl } from "@/lib/image-url";
+import { imageUrl } from "@/modules/files/urls";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";
 import type { ViewContext } from "./types";

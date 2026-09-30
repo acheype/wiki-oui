@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import type { ViewEntry } from "../view-entry";
-import { imageUrl } from "@/lib/image-url";
+import { imageUrl } from "@/modules/files/urls";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import type { ViewContext } from "./types";
 

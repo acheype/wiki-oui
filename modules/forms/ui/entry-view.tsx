@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Prose } from "@/components/ui/prose";
-import { DEFAULT_IMAGE_WIDTH, imageUrl } from "@/lib/image-url";
+import { DEFAULT_IMAGE_WIDTH, imageUrl } from "@/modules/files/urls";
 import { renderMdx } from "@/modules/authoring/mdx";
 import {
   type EntryData,

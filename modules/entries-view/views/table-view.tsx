@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { entryValue } from "../core/rules";
 import type { ViewEntry } from "../view-entry";
-import { imageUrl } from "@/lib/image-url";
+import { imageUrl } from "@/modules/files/urls";
 import type { PagePermissions } from "@/modules/permissions/rules";
 import { SAMPLE_IMAGE } from "@/modules/forms/sample-entries";
 import { cn } from "@/lib/utils";

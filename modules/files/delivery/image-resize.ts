@@ -1,8 +1,9 @@
+import type { ResizeRequest } from "../urls";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
-import { filePath } from "./storage";
+import { filePath } from "../library/storage";
 
 // On-demand image resizing (docs/forms.md): the pool original stays intact,
 // the variant is computed once with sharp and cached on disk. A reusable
@@ -14,11 +15,6 @@ const CACHE_DIR = path.join(process.cwd(), ".image-cache");
 // Never rasterize an svg (it's scalable and sandboxed as-is) or a format
 // sharp can't decode; those fall back to the untouched original.
 const RESIZABLE = new Set(["jpg", "jpeg", "png", "webp", "avif", "gif", "tif"]);
-
-export interface ResizeRequest {
-  width?: number;
-  height?: number;
-}
 
 /** Parses ?w=&h= into a bounded request, or null when neither is asked. */
 export function parseResizeRequest(params: URLSearchParams): ResizeRequest | null {
@@ -64,7 +60,9 @@ export async function resizedVariant(
       fit: "inside",
       withoutEnlargement: true,
     })
-    .toBuffer();
+    .toBuffer()
+    .catch(() => null);
+  if (!output) return null;
   await mkdir(CACHE_DIR, { recursive: true });
   await writeFile(cachePath, output);
   return output;

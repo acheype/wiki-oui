@@ -1,5 +1,5 @@
-import { fileUrl } from "@/modules/files/storage";
-import { imageUrl } from "@/lib/image-url";
+import { fileUrl } from "@/modules/files/library/storage";
+import { imageUrl } from "@/modules/files/urls";
 import { cn } from "@/lib/utils";
 import { WikiLinkView } from "@/modules/pages/wiki-link-view";
 import { ImageLightbox } from "../ui/image-lightbox";

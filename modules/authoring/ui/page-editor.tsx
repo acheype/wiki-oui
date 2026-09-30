@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { discardUploadedFile, lintPage, savePage } from "@/modules/pages/content-actions";
+import { lintPage, savePage } from "@/modules/pages/content-actions";
 import type { PageWarning } from "@/modules/pages/lint";
 import { Button } from "@/components/ui/button";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
@@ -29,7 +29,7 @@ import {
 } from "../editor/cursor-tools";
 import { TagsInput } from "@/components/fields/tags-input";
 import { EditorToolbar } from "../editor/toolbar";
-import { uploadFile } from "@/modules/files/upload";
+import { createUploadSession } from "@/modules/files/upload";
 import { UploadDialog, type UploadDialogState } from "../editor/upload-dialog";
 import { uploadDoors } from "../editor/upload-extension";
 import { WarningsPanel } from "../editor/warnings-panel";
@@ -55,10 +55,7 @@ export function PageEditor({
   const router = useRouter();
   const viewRef = useRef<EditorView | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  // Name of a file whose upload just created it: cancelling the component
-  // modal then deletes it (« annuler = rien ne s'est passé », ADR 0012).
-  // A ref, because the dialog-close handler must read it synchronously.
-  const postUploadName = useRef<string | null>(null);
+  const [uploadSession] = useState(createUploadSession);
   const [tags, setTags] = useState(initialTags);
   const [builderDialog, setBuilderDialog] =
     useState<BuilderDialogState | null>(null);
@@ -159,12 +156,11 @@ export function PageEditor({
       progress: 0,
     });
     try {
-      const uploaded = await uploadFile(file, (progress) =>
+      const uploaded = await uploadSession.upload(file, (progress) =>
         setUpload((current) =>
           current?.phase === "uploading" ? { ...current, progress } : current
         )
       );
-      postUploadName.current = uploaded.name;
       if (uploaded.family === "pdf") {
         // Mini-choice: embed the content (<Pdf>) or a download link.
         setUpload({ phase: "pdf-choice", name: uploaded.name });
@@ -185,10 +181,9 @@ export function PageEditor({
 
   // Cancelling right after the upload that created the file removes it.
   function discardPostUpload() {
-    if (!postUploadName.current) return;
-    void discardUploadedFile(postUploadName.current);
-    postUploadName.current = null;
-    toast.info("Aucun changement n'a été enregistré.");
+    void uploadSession.cancel().then((discarded) => {
+      if (discarded) toast.info("Aucun changement n'a été enregistré.");
+    }).catch(() => toast.error("Le fichier n'a pas pu être supprimé."));
   }
 
   function currentContent(): string {
@@ -374,8 +369,6 @@ export function PageEditor({
         state={builderDialog ?? lastBuilderDialog.current}
         allSlugs={allSlugs}
         onSubmit={(tag) => {
-          // The inserted tag references the file: the upload is kept.
-          postUploadName.current = null;
           const view = viewRef.current;
           const active = builderDialog ?? lastBuilderDialog.current;
           if (!view || !active) return;
@@ -384,6 +377,7 @@ export function PageEditor({
           } else {
             insertSnippet(view, tag);
           }
+          uploadSession.accept();
         }}
       />
 
