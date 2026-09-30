@@ -9,6 +9,7 @@ export type UploadedFile = {
   name: string;
   family: FileFamily;
   size: number;
+  cancellationToken: string;
 };
 
 // Browsers name pasted screenshots "image.png": anonymous clipboards get a
@@ -40,8 +41,8 @@ export function createUploadSession() {
     async cancel(): Promise<boolean> {
       const file = pending;
       if (!file) return false;
+      await discardUploadedFile(file.name, file.cancellationToken);
       pending = null;
-      await discardUploadedFile(file.name);
       return true;
     },
   };

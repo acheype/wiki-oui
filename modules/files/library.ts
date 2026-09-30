@@ -5,6 +5,7 @@ import { REFUSALS } from "@/modules/permissions/rules";
 import { formatFileSize } from "@/lib/format";
 import { wikiConfig } from "@/wiki.config";
 import { FILES_DIR, filePath, fileFamily, saveFile } from "./library/storage";
+import { issueCancellationToken } from "./upload/cancellation";
 
 interface StoredFile {
   name: string;
@@ -33,7 +34,8 @@ export async function receiveFile(file: File | null) {
     } as const;
   }
   const name = await saveFile(file.name, new Uint8Array(await file.arrayBuffer()));
-  return { name, family, size: file.size };
+  const cancellationToken = await issueCancellationToken(name);
+  return { name, family, size: file.size, cancellationToken };
 }
 
 export async function listFiles(familyParam?: string | null): Promise<StoredFile[]> {
@@ -61,4 +63,3 @@ export async function listFiles(familyParam?: string | null): Promise<StoredFile
   );
   return files.filter((file) => file !== null);
 }
-

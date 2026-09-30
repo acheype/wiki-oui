@@ -15,7 +15,7 @@ class UploadRequest {
   constructor() { UploadRequest.requests.push(this); }
   finish(name: string, status = 200) {
     this.status = status;
-    this.responseText = JSON.stringify(status === 200 ? { name, family: "image", size: 3 } : { error: "Refusé" });
+    this.responseText = JSON.stringify(status === 200 ? { name, family: "image", size: 3, cancellationToken: `cancel-${name}` } : { error: "Refusé" });
     this.onload?.();
   }
 }
@@ -38,7 +38,7 @@ describe("upload lifecycle", () => {
     await uploaded(session, "photo-2.png");
     expect(await session.cancel()).toBe(true);
     expect(await session.cancel()).toBe(false);
-    expect(discard).toHaveBeenCalledExactlyOnceWith("photo-2.png");
+    expect(discard).toHaveBeenCalledExactlyOnceWith("photo-2.png", "cancel-photo-2.png");
   });
   it("keeps accepted uploads and never deletes on editing or menu insertion", async () => {
     const session = createUploadSession();
@@ -49,7 +49,7 @@ describe("upload lifecycle", () => {
     expect(discard).not.toHaveBeenCalled();
     await uploaded(session, "second.png");
     await session.cancel();
-    expect(discard).toHaveBeenCalledExactlyOnceWith("second.png");
+    expect(discard).toHaveBeenCalledExactlyOnceWith("second.png", "cancel-second.png");
   });
   it("does not lose an upload to a second concurrent or unfinished insertion", async () => {
     const session = createUploadSession();
@@ -59,7 +59,7 @@ describe("upload lifecycle", () => {
     await pending;
     await expect(session.upload(file(), () => {})).rejects.toThrow();
     await session.cancel();
-    expect(discard).toHaveBeenCalledExactlyOnceWith("first.png");
+    expect(discard).toHaveBeenCalledExactlyOnceWith("first.png", "cancel-first.png");
   });
   it("allows retry after a failed transfer without deleting another file", async () => {
     const session = createUploadSession();
@@ -76,6 +76,9 @@ describe("upload lifecycle", () => {
     await uploaded(session);
     discard.mockRejectedValue(new Error("disk error"));
     await expect(session.cancel()).rejects.toThrow("disk error");
+    discard.mockResolvedValue(undefined);
+    expect(await session.cancel()).toBe(true);
+    expect(discard).toHaveBeenCalledTimes(2);
   });
   it("transmits progress and retains the immediate-upload interface for entry fields", async () => {
     const progress = vi.fn();
@@ -85,7 +88,12 @@ describe("upload lifecycle", () => {
     request.upload.onprogress?.({ lengthComputable: true, loaded: 1, total: 2 });
     expect(progress).toHaveBeenCalledWith(0.5);
     request.finish("photo.png");
-    expect(await pending).toEqual({ name: "photo.png", family: "image", size: 3 });
+    expect(await pending).toEqual({
+      name: "photo.png",
+      family: "image",
+      size: 3,
+      cancellationToken: "cancel-photo.png",
+    });
     expect(discard).not.toHaveBeenCalled();
   });
 });

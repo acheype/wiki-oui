@@ -12,6 +12,7 @@ let library: typeof import("./library");
 let delivery: typeof import("./delivery");
 let actions: typeof import("./upload/actions");
 beforeAll(async () => {
+  vi.stubEnv("BETTER_AUTH_SECRET", "files-test-secret-with-enough-entropy");
   directory = await mkdtemp(path.join(os.tmpdir(), "wikioui-files-test-"));
   vi.spyOn(process, "cwd").mockReturnValue(directory);
   library = await import("./library");
@@ -24,6 +25,7 @@ beforeEach(async () => {
   await mkdir(path.join(directory, "files"));
 });
 afterAll(async () => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   await rm(directory, { recursive: true, force: true });
 });
@@ -33,7 +35,12 @@ const serve = (name: string, query = "", headers?: HeadersInit) =>
 
 describe("file library", () => {
   it("normalizes names, never overwrites, and lists actual disk files by family", async () => {
-    expect(await receive("Mon Logo.PNG", "first")).toEqual({ name: "mon-logo.png", family: "image", size: 5 });
+    expect(await receive("Mon Logo.PNG", "first")).toMatchObject({
+      name: "mon-logo.png",
+      family: "image",
+      size: 5,
+      cancellationToken: expect.any(String),
+    });
     expect(await receive("Mon Logo.PNG", "second")).toMatchObject({ name: "mon-logo-2.png" });
     await receive("notes.pdf");
     await writeFile(path.join(directory, "files", "copied.png"), "operator copy");
@@ -55,10 +62,19 @@ describe("file library", () => {
     expect(await library.listFiles()).toEqual([]);
   });
   it("cancels a newly uploaded file, including an already removed file", async () => {
-    await receive("new.pdf");
-    await actions.discardUploadedFile("new.pdf");
-    await actions.discardUploadedFile("new.pdf");
+    const uploaded = await receive("new.pdf");
+    if ("error" in uploaded) throw new Error(uploaded.error);
+    await actions.discardUploadedFile(uploaded.name, uploaded.cancellationToken);
+    await actions.discardUploadedFile(uploaded.name, uploaded.cancellationToken);
     expect(await library.listFiles()).toEqual([]);
+  });
+  it("refuses to cancel a pool file without the capability issued for it", async () => {
+    const uploaded = await receive("kept.pdf");
+    if ("error" in uploaded) throw new Error(uploaded.error);
+    await expect(
+      actions.discardUploadedFile(uploaded.name, "known-name-is-not-enough")
+    ).rejects.toThrow("ne correspond pas");
+    expect(await library.listFiles()).toHaveLength(1);
   });
 });
 
@@ -96,7 +112,8 @@ describe("file delivery", () => {
     expect(await response.text()).toBe("not decodable");
   });
   it("revalidates cached representations and detects a reused filename", async () => {
-    await receive("cached.png", "old");
+    const uploaded = await receive("cached.png", "old");
+    if ("error" in uploaded) throw new Error(uploaded.error);
     const original = await serve("cached.png", "?w=20");
     const etag = original.headers.get("ETag")!;
     await original.arrayBuffer();
@@ -106,7 +123,7 @@ describe("file delivery", () => {
       expect(cached.status).toBe(304);
       expect(await cached.text()).toBe("");
     }
-    await actions.discardUploadedFile("cached.png");
+    await actions.discardUploadedFile(uploaded.name, uploaded.cancellationToken);
     await receive("cached.png", "different bytes");
     const replaced = await serve("cached.png", "?w=20", { "If-None-Match": etag });
     expect(replaced.status).toBe(200);
