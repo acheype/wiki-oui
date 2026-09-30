@@ -10,6 +10,7 @@ import {
 import { MIN_PASSWORD_LENGTH } from "@/modules/settings/installation";
 import { prisma } from "@/lib/prisma";
 import { isValidUsername } from "@/modules/accounts/username";
+import { consumeLinkForCreatedAccount } from "@/modules/accounts/invitation/consumption";
 
 // BetterAuth authenticates, WikiOui authorizes (ADR 0023): accounts,
 // sessions, passwords and tokens live here; groups, ownership and rights are
@@ -34,11 +35,7 @@ export const auth = betterAuth({
         // that same row would be read as a password-reset link, so account
         // creation spends it regardless of which BetterAuth entry created the
         // account or whether the following session creation succeeds.
-        after: async (user) => {
-          await prisma.accountLink.deleteMany({
-            where: { email: user.email.toLowerCase() },
-          });
-        },
+        after: async (user) => consumeLinkForCreatedAccount(user.email),
       },
     },
     session: {

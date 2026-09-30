@@ -176,7 +176,6 @@ export async function acceptInvitation(input: {
     return signUpRefusal(error);
   }
 
-  await prisma.accountLink.deleteMany({ where: { email: target.email } });
   if (target.group) {
     await joinGroupOnInvitation(target.group.slug, input.username);
   }
