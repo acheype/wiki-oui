@@ -357,7 +357,7 @@ const WATCHED: readonly WatchedTable[] = [
  * File-level exemptions remove an entire file from scanning — the file is
  * in the ESLint ignores (it touches Prisma) but has no person to check
  * against: sweeps retcon a namespace, the seed writes before anyone exists,
- * and BetterAuth manages its own tables.
+ * and the authentication hook runs before a WikiOui person exists.
  *
  * Function-level exemptions are scanned but passed over. Two questions
  * hold over the whole list: for reads, **does this function return
@@ -420,7 +420,7 @@ export const EXEMPTIONS: readonly Exemption[] = [
   // --- Form reads and writes (issue #23) -------------------------------------
 
   { file: "modules/pages/content.ts", function: "countPageSlugReferences", reason: "a headcount of references for the rename dialog, not the rows that carry them" },
-  { file: "modules/forms/forms.ts", function: "countEntryTitleRecompute", reason: "a count of entries a title recompute would touch — the caller already gates on form structuring" },
+  { file: "modules/forms/save/form.ts", function: "countSaveTitleImpact", reason: "a count of entries a title recompute would touch — editableForm gates on form structuring in the same operation" },
   { file: "modules/forms/forms.ts", function: "reassignOwnedForms", reason: "reassignment during account deletion — its caller (deleteAccount) already gates on isAdmin" },
 
   // --- Settings writes (issue #23) -------------------------------------------

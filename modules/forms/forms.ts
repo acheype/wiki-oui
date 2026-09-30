@@ -1,5 +1,5 @@
 import type { Prisma } from "@/lib/generated/prisma/client";
-import { type FormDescriptor, parseFormDescriptor } from "@/modules/forms/form-descriptor";
+import { parseFormDescriptor } from "@/modules/forms/form-descriptor";
 import {
   type EntryRightsImpact,
   type FormPermissions,
@@ -7,25 +7,16 @@ import {
   canCreateEntry,
   formPermissions,
 } from "@/modules/permissions/form-level";
-import type { FieldRenameMapping } from "@/modules/forms/field-rename/rules";
-import { countFieldCarriers, sweepFieldRenames } from "@/modules/forms/field-rename/sweep";
-import {
-  type TitleRecomputeImpact,
-  countTitleRecompute,
-  sweepEntryTitles,
-} from "@/modules/forms/entry-title/sweep";
+import { countFieldCarriers } from "@/modules/forms/field-rename/sweep";
 import {
   COLD_ADMIN_TRANSACTION_TIMEOUT_MS,
   WITH_RIGHTS,
 } from "@/modules/pages/rights";
 import { applyFormDefaultsToEntries, countEntryRightsImpact } from "@/modules/pages/entries";
-import { refuse } from "@/modules/permissions/rules";
 import {
-  currentAllows,
   currentOwns,
   currentPerson,
   currentReadableWhere,
-  currentUsername,
 } from "@/modules/permissions/person";
 import { prisma } from "@/lib/prisma";
 import type { SlugRename } from "@/lib/slug-rename";
@@ -34,7 +25,6 @@ import {
   countSlugReferenceImpact,
   sweepSlugReferences,
 } from "@/lib/slug-rename-db";
-import { wikiConfig } from "@/wiki.config";
 import {
   type OwnedForm,
   assertFormStructuringOf,
@@ -43,35 +33,14 @@ import {
 import { type ReadableForm, readableForm } from "@/modules/permissions/readable-form";
 import type { Form } from "@/lib/generated/prisma/client";
 
-// The public half of the access layer of `Form` (ADR 0025), alongside
-// modules/pages/access/guards.ts for
-// `Page`. An ESLint rule refuses `prisma.form` anywhere else, so the
-// permission checks this layer hosts cannot be bypassed by a caller that
-// forgot them — the risk being a silent read, which no test would ever catch.
-//
-// Split at the access layer like modules/pages/ was (ADR 0029): this file is the
-// public API, modules/forms/access/guards.ts holds the guards and the reads
-// nothing outside the module needs. Where Page had to split into four
-// subjects, this one was small enough to stay a single file.
+// The public subjects of the `Form` access layer (ADR 0025). Private guarded
+// reads live in access/guards.ts; save/form.ts owns creation and the complete
+// save transaction. The canonical list in lib/access-layer-files.json lets
+// ESLint refuse every Prisma import outside that explicit boundary.
 
 /** Whether the system pages offer those permissions at all, or simply leave them out. */
 export async function currentCanEditForm(form: OwnedForm): Promise<boolean> {
   return currentOwns(form.ownerUsername);
-}
-
-/**
- * Creating a form reads the wiki's own rule, the twin of currentCanCreatePage
- * on the other side of the access layer (docs/permissions.md § Où s'appliquent les
- * droits). Distinct from createPage because the two acts differ in reach: a
- * page engages a page, a form shapes every fiche written with it and takes
- * them all with it when it goes (ADR 0014).
- *
- * Posed on the wiki, so there is no owner under the rule — a « seulement »
- * with an empty list, which the shipped configuration writes, means the
- * administrators alone.
- */
-export async function currentCanCreateForm(): Promise<boolean> {
-  return currentAllows(wikiConfig.permissions.createForm);
 }
 
 /**
@@ -157,66 +126,6 @@ export async function countEntriesCarryingField(
   fieldName: string
 ): Promise<number> {
   return countFieldCarriers(prisma, formId, fieldName);
-}
-
-/** What a title recompute would touch, against a candidate descriptor. */
-export async function countEntryTitleRecompute(
-  formId: string,
-  descriptor: FormDescriptor
-): Promise<TitleRecomputeImpact> {
-  return countTitleRecompute(prisma, formId, descriptor);
-}
-
-/** What a form save writes: no history (ADR 0014), saving overwrites. */
-export interface FormDefinition {
-  name: string;
-  schema: FormDescriptor;
-  template: string | null;
-}
-
-/**
- * The sweeps a form save drags along: the staged field renames (ADR 0017)
- * across every revision of the form's entries, and the stored-title recompute
- * (ADR 0020) when the caller found the automatic title affected. Same
- * transaction as the schema overwrite, or nothing happens.
- */
-export interface FormSaveSweeps {
-  renames: FieldRenameMapping;
-  /** The descriptor to recompute titles against, null when none is needed. */
-  recomputeTitlesWith: FormDescriptor | null;
-}
-
-export async function updateForm(
-  formId: string,
-  definition: FormDefinition,
-  sweeps: FormSaveSweeps
-): Promise<void> {
-  await assertFormStructuringOf(formId);
-  const person = await currentUsername();
-  await prisma.$transaction(
-    async (tx) => {
-      await tx.form.update({ where: { id: formId }, data: definition });
-      await sweepFieldRenames(tx, formId, sweeps.renames);
-      if (sweeps.recomputeTitlesWith) {
-        await sweepEntryTitles(tx, formId, sweeps.recomputeTitlesWith, person);
-      }
-    },
-    { timeout: COLD_ADMIN_TRANSACTION_TIMEOUT_MS }
-  );
-}
-
-/**
- * The creator owns what they made, which is what makes the rung above
- * coherent: opening the creation to someone opens the editing of theirs, and
- * of nothing else.
- */
-export async function createForm(
-  slug: string,
-  definition: FormDefinition
-): Promise<void> {
-  if (!(await currentCanCreateForm())) refuse("createForm");
-  const ownerUsername = await currentUsername();
-  await prisma.form.create({ data: { ...definition, slug, ownerUsername } });
 }
 
 /** The form half of what an erasure would leave without an owner. */

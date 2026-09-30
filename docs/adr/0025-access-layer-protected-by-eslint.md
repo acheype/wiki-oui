@@ -33,10 +33,11 @@ L'ADR pose une seule porte par table, gardée par ESLint. Il laissait une questi
 
 ### La couche d'accès
 
-Le nom manquait à la documentation, alors que la liste existe : c'est l'ensemble des fichiers exemptés de la règle `wikioui/access-layer` dans `eslint.config.mjs`, chacun commenté. Deux cercles :
+Le nom manquait à la documentation, alors que la liste existe : c'est l'ensemble des fichiers exemptés de la règle `wikioui/access-layer` dans `eslint.config.mjs`, chacun commenté. Trois cercles :
 
 - **Les gardes**, privées par la profondeur : `modules/pages/access/guards.ts` et `modules/forms/access/guards.ts`. Elles lisent et refusent dans le même appel.
-- **Les fichiers racine qui touchent `Page` ou `Form` directement** : `modules/pages/content.ts`, `revisions.ts`, `rights.ts`, `entries.ts` et `modules/forms/forms.ts`. Ils portent l'API publique de leur module, et chacune de leurs lectures publiques passe par une garde.
+- **Les sujets publics qui touchent `Page` ou `Form` directement** : `modules/pages/content.ts`, `revisions.ts`, `rights.ts`, `entries.ts` et `modules/forms/forms.ts`. Ils portent l'API publique de leur module, et chacune de leurs lectures publiques passe par une garde.
+- **Les coordinateurs privés d'un sujet complet**, actuellement `modules/forms/save/form.ts` : ils gardent puis exécutent dans la même opération les écritures que leurs appelants ne doivent pas planifier eux-mêmes.
 
 S'y ajoutent les voisines derrière la même porte — `modules/accounts/`, `modules/permissions/groups-queries.ts`, `modules/permissions/person.ts`, `modules/settings/settings.ts` — et les balayages, qui reçoivent leur client en paramètre.
 

@@ -37,8 +37,9 @@ vi.mock("@/modules/permissions/groups-directory", () => ({
   currentGroupSlugs: async () => person.current.groupSlugs,
 }));
 
-const { currentCanCreateForm, createForm, listFormsWithEntries } = await import(
-  "@/modules/forms/forms"
+const { listFormsWithEntries } = await import("@/modules/forms/forms");
+const { currentCanCreateForm, createForm } = await import(
+  "@/modules/forms/save/form"
 );
 const { listFormsWithEntryCount } = await import("@/modules/forms/access/guards");
 

@@ -40,6 +40,10 @@
     "reason": "owns guarded Form reads, mutations and maintenance operations"
   },
   {
+    "file": "modules/forms/save/form.ts",
+    "reason": "owns guarded Form creation, save transactions and their impact preview"
+  },
+  {
     "file": "modules/accounts/auth.ts",
     "reason": "provides Prisma to BetterAuth and checks User.disabledAt before session creation"
   },

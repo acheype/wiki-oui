@@ -336,7 +336,9 @@ export function FormBuilder({
     if (!(await persistOnly())) return false;
     const result = await applyEntryDefaults(slug, permissions);
     if (result) {
-      toast.error(result.error);
+      toast.error(
+        "Le formulaire a été enregistré, mais l’application des accès a échoué. Réessayez."
+      );
       return false;
     }
     toast.success("Formulaire enregistré, accès appliqués aux fiches.");

@@ -17,8 +17,13 @@ import {
 } from "@/modules/forms/form-descriptor";
 import { loadComponentBuilders } from "@/modules/authoring/descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/modules/forms/field-rename/rules";
-import { titleRecomputeNeeded } from "@/modules/forms/entry-title";
 import type { TitleRecomputeImpact } from "@/modules/forms/entry-title/sweep";
+import {
+  countSaveTitleImpact,
+  createForm,
+  currentCanCreateForm,
+  saveFormDefinition,
+} from "@/modules/forms/save/form";
 import {
   type EntryRightsImpact,
   type FormPermissions,
@@ -26,17 +31,13 @@ import {
 } from "@/modules/permissions/form-level";
 import {
   currentCanCreateEntry,
-  currentCanCreateForm,
   currentCanEditForm,
   applyFormDefaults,
   countEntriesCarryingField,
-  countEntryTitleRecompute,
   countFormDefaults,
   countFormSlugReferences,
-  createForm,
   permissionsOf,
   renameFormSlug,
-  updateForm,
 } from "@/modules/forms/forms";
 import {
   canEditForm,
@@ -278,14 +279,7 @@ export async function saveForm(input: SaveFormInput): Promise<SaveFormResult> {
       // transaction (ADR 0017/0020): the staged renames apply to every
       // revision of the form's entries, and the recomputed titles to their
       // current one, or nothing does.
-      const before = parseFormDescriptor(existing.schema).descriptor;
-      await updateForm(existing.id, data, {
-        renames,
-        recomputeTitlesWith:
-          before && titleRecomputeNeeded(before, parsed.descriptor)
-            ? parsed.descriptor
-            : null,
-      });
+      await saveFormDefinition(existing.id, data, renames);
     } else {
       await createForm(input.slug, data);
     }
@@ -346,12 +340,9 @@ export async function countTitleImpact(
   formSlug: string,
   schema: unknown
 ): Promise<TitleRecomputeImpact | null> {
-  const form = await editableForm(formSlug);
-  if (!form) return null;
-  const before = parseFormDescriptor(form.schema).descriptor;
   const after = parseFormDescriptor(schema).descriptor;
-  if (!before || !after || !titleRecomputeNeeded(before, after)) return null;
-  return countEntryTitleRecompute(form.id, after);
+  if (!after) return null;
+  return countSaveTitleImpact(formSlug, after);
 }
 
 export type RenameFormResult = { error: string } | { ok: true };
