@@ -26,15 +26,13 @@ import {
 } from "@/components/ui/select";
 import {
   type ActiveFilters,
-  applyPeriod,
-  collectFieldReferences,
-  defaultSearchFields,
   entryValue,
   filterCounts as computeFilterCounts,
   hasActiveFilter,
-  queryEntries,
-  sortEntries,
 } from "../core/rules";
+import { selectEntries } from "../core/selection";
+import { entriesViewQuery } from "../core/field-references";
+import { fieldOptions } from "../core/options";
 import type { ViewEntry } from "../view-entry";
 import { resolveColorMapping } from "@/modules/forms/entry-fields";
 import { valueToText } from "@/modules/forms/form-descriptor";
@@ -168,44 +166,19 @@ export function EntriesView({
     );
   }
 
-  /* --- source restrictions (the admin's, before any interaction) --- */
-  const today = new Date().toISOString().slice(0, 10);
-  const periodField =
-    props.periodField ??
-    props.startDateField ??
-    data.fields.find((field) => field.type === "date")?.name;
-  let source = data.entries;
-  if (period !== "none" && periodField) {
-    source = applyPeriod(source, period, periodField, today);
-  }
-  source = sortEntries(source, sortField, sortOrder);
-  if (props.limit !== undefined && props.limit > 0) {
-    source = source.slice(0, props.limit);
-  }
-
-  /* --- interactive pipeline --- */
-  const searchFields =
-    toNames(props.searchFields).length > 0
-      ? toNames(props.searchFields)
-      : defaultSearchFields(data.fields);
-  const activeSort = queryState.sort ?? { field: sortField, order: sortOrder };
-  const entries = queryEntries(source, {
-    search: search ? queryState.search : "",
-    searchFields,
-    filters: queryState.filters,
-    sortField: activeSort.field,
-    sortOrder: activeSort.order,
-  });
-
-  /* --- pagination --- */
-  const pageSize = props.pageSize;
-  const pageCount =
-    pageSize && pageSize > 0 ? Math.max(1, Math.ceil(entries.length / pageSize)) : 1;
-  const page = Math.min(queryState.page, pageCount - 1);
-  const paged =
-    pageSize && pageSize > 0
-      ? entries.slice(page * pageSize, (page + 1) * pageSize)
-      : entries;
+  const {
+    candidates: source,
+    results: entries,
+    pageEntries: paged,
+    activeSort,
+    page,
+    pageCount,
+  } = selectEntries(
+    data,
+    props,
+    queryState,
+    new Date().toISOString().slice(0, 10)
+  );
 
   /* --- resolved styling + context --- */
   const context = buildContext(
@@ -358,70 +331,22 @@ function useEntriesData(
   formSlugs: string[],
   props: EntriesViewProps
 ): EntriesViewData | null {
-  const references = collectFieldReferences({
-    view: props.view ?? "list",
-    columns: props.columns,
-    filters: props.filters,
-    sortOptions: props.sortOptions,
-    sortField: props.sortField,
-    search: props.search,
-    searchFields: toNames(props.searchFields),
-    fieldProps: [
-      props.titleField,
-      props.subtitleField,
-      props.visualField,
-      props.textField,
-      props.footerField,
-      props.badgeField,
-      props.colorField,
-      props.iconField,
-      props.hoverField,
-      props.startDateField,
-      props.endDateField,
-      props.captionField,
-      props.periodField,
-      ...toNames(props.sumFields),
-    ],
-  });
-  const key = JSON.stringify({
-    forms: formSlugs,
-    fields: references.names.sort(),
-    all: references.all,
-    text: references.allTextFields,
-    map: references.mapFields,
-  });
+  const key = JSON.stringify(entriesViewQuery(formSlugs, props));
   const [loaded, setLoaded] = useState<{
     key: string;
     data: EntriesViewData;
   } | null>(null);
 
   useEffect(() => {
-    const query = JSON.parse(key) as {
-      forms: string[];
-      fields: string[];
-      all: boolean;
-      text: boolean;
-      map: boolean;
-    };
+    const query = JSON.parse(key) as ReturnType<typeof entriesViewQuery>;
     let live = true;
-    getEntriesViewData({
-      forms: query.forms,
-      fields: query.fields,
-      allFields: query.all,
-      allTextFields: query.text,
-      mapFields: query.map,
-    }).then((data) => live && setLoaded({ key, data }));
+    getEntriesViewData(query).then((data) => live && setLoaded({ key, data }));
     return () => {
       live = false;
     };
   }, [key]);
 
   return loaded?.key === key ? loaded.data : null;
-}
-
-function toNames(value: string | string[] | undefined): string[] {
-  if (typeof value === "string") return value !== "" ? [value] : [];
-  return value ?? [];
 }
 
 /* ------------------------------------------------------------------ *
@@ -442,23 +367,11 @@ function buildContext(
     );
   };
 
-  const optionValuesOf = (field: string): string[] => {
-    if (field === "$form") return Object.keys(data.formNames);
-    const declared = data.fields.find((choice) => choice.name === field)?.options;
-    if (declared) return Object.keys(declared);
-    // Fields without declared options (tags): the observed values.
-    const seen = new Set<string>();
-    for (const entry of data.entries) {
-      const value = entryValue(entry, field);
-      for (const item of Array.isArray(value) ? value : [value]) {
-        if (typeof item === "string" && item !== "") seen.add(item);
-      }
-    }
-    return [...seen].sort((a, b) => a.localeCompare(b, "fr"));
-  };
-
   const colorMapping = props.colorField
-    ? resolveColorMapping(optionValuesOf(props.colorField), props.colors)
+    ? resolveColorMapping(
+        fieldOptions(data, props.colorField).map(([value]) => value),
+        props.colors
+      )
     : {};
 
   const firstValue = (entry: ViewEntry, field: string): string | undefined => {
@@ -648,24 +561,10 @@ function FilterGroup({
   const field = filter.field;
   const picked = active[field] ?? [];
 
-  const options = useMemo(() => {
-    const { data } = context;
-    if (field === "$form") {
-      return Object.entries(data.formNames);
-    }
-    const declared = data.fields.find((choice) => choice.name === field)?.options;
-    if (declared) return Object.entries(declared);
-    const seen = new Set<string>();
-    for (const entry of data.entries) {
-      const value = entryValue(entry, field);
-      for (const item of Array.isArray(value) ? value : [value]) {
-        if (typeof item === "string" && item !== "") seen.add(item);
-      }
-    }
-    return [...seen]
-      .sort((a, b) => a.localeCompare(b, "fr"))
-      .map((item) => [item, item] as [string, string]);
-  }, [context, field]);
+  const options = useMemo(
+    () => fieldOptions(context.data, field),
+    [context.data, field]
+  );
 
   const counts = showCounts
     ? computeFilterCounts(

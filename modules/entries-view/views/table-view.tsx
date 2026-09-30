@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { entryValue } from "../core/rules";
+import { configuredFieldNames } from "../core/field-references";
 import type { ViewEntry } from "../view-entry";
 import { imageUrl } from "@/modules/files/urls";
 import type { PagePermissions } from "@/modules/permissions/rules";
@@ -62,7 +63,7 @@ export function TableView({ context }: { context: ViewContext }) {
     return [column];
   });
 
-  const sums = toNames(props.sumFields);
+  const sums = configuredFieldNames(props.sumFields);
   const hasSums = sums.length > 0;
   const sumOf = (field: string) =>
     entries.reduce((total, entry) => {
@@ -314,11 +315,6 @@ function ActionsCell({
       )}
     </td>
   );
-}
-
-function toNames(value: string | string[] | undefined): string[] {
-  if (typeof value === "string") return value !== "" ? [value] : [];
-  return value ?? [];
 }
 
 function formatNumber(value: number): string {

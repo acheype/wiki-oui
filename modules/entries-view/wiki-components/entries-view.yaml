@@ -462,7 +462,7 @@ properties:
       period: /^(future|past|today|last-30-days|next-30-days|one-week-around|last-2-years)$/
   limit:
     label: Nombre maximal de fiches
-    hint: Vide = toutes ; tronque la source («\u00A0les 5 dernières actus\u00A0»)
+    hint: Vide = toutes\u00A0; appliqué après la recherche, les filtres et le tri
     type: number
     advanced: true
   pageSize:

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   applyFilters,
   applyPeriod,
-  collectFieldReferences,
   defaultSearchFields,
   directoryGroups,
   entryDay,
@@ -160,38 +159,7 @@ describe("directoryGroups", () => {
   });
 });
 
-describe("collectFieldReferences", () => {
-  it("flattens every field-bearing prop, deduplicated", () => {
-    const references = collectFieldReferences({
-      view: "grid",
-      filters: [{ field: "type" }, { field: "commune" }],
-      sortOptions: [{ field: "type" }],
-      sortField: "$createdAt",
-      search: true,
-      searchFields: ["title"],
-      fieldProps: ["image", undefined, "type"],
-    });
-    expect(references.names.sort()).toEqual([
-      "$createdAt",
-      "commune",
-      "image",
-      "title",
-      "type",
-    ]);
-    expect(references.all).toBe(false);
-    expect(references.allTextFields).toBe(false);
-  });
-
-  it("marks the table-without-columns and default-search cases", () => {
-    const references = collectFieldReferences({
-      view: "table",
-      search: true,
-      fieldProps: [],
-    });
-    expect(references.all).toBe(true);
-    expect(references.allTextFields).toBe(true);
-  });
-
+describe("splitPseudo", () => {
   it("splits pseudo-fields from real names", () => {
     expect(splitPseudo(["type", "$form", "$createdAt"])).toEqual({
       real: ["type"],

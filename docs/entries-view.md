@@ -188,7 +188,7 @@ Tri visible pour Liste, Grille, Tableau, Carrousel, Galerie ; masqué pour Carte
 | --- | --- | --- |
 | `period` | Période | vide = pas de filtre ; `future` (À venir) · `past` (Passées) · `today` (Aujourd'hui) · `last-30-days` · `next-30-days` · `one-week-around` (± 1 semaine) · `last-2-years` |
 | `periodField` | Sur le champ | visible si `period` ; champs date + pseudo-champs dates ; pré-rempli : `startDateField` sur Calendrier/Agenda, sinon l'unique champ date |
-| `limit` | Nombre maximal de fiches | avancé, vide = toutes — **tronque** la source (« les 5 dernières actus »), à distinguer de `pageSize` qui **pagine** l'affichage |
+| `limit` | Nombre maximal de fiches | avancé, vide = toutes — limite les résultats **après** la période, la recherche, les filtres et le tri, puis `pageSize` pagine ce résultat |
 
 ### Pagination
 

@@ -229,8 +229,8 @@ export interface EntriesQueryState {
   sortOrder: "asc" | "desc";
 }
 
-/** Search → filters → sort, the interactive part (period and limit are the
- * admin's source restrictions, applied before this by the component). */
+/** Search → filters → sort. The period is resolved before this pipeline and
+ * the result limit after it by the selection model. */
 export function queryEntries(
   entries: ViewEntry[],
   state: EntriesQueryState
@@ -259,55 +259,6 @@ export function directoryGroups(
     letter,
     entries: grouped,
   }));
-}
-
-/* ------------------------------------------------------------------ *
- * Referenced fields — what the Server Action is asked for
- * ------------------------------------------------------------------ */
-
-/** The EntriesView props that reference fields, flattened to names. */
-export interface FieldReferences {
-  names: string[];
-  /** true = every field (a Tableau without explicit columns). */
-  all: boolean;
-  /** Include the text-searchable fields (search on, searchFields empty). */
-  allTextFields: boolean;
-  /** Include the geolocation + image fields (the Carte reads them implicitly). */
-  mapFields: boolean;
-}
-
-/** Collects the field names a configuration reads, pseudo-fields included
- * (the Server Action only returns these — docs/entries-view.md). */
-export function collectFieldReferences(config: {
-  view: string;
-  columns?: { field: string }[];
-  filters?: { field: string }[];
-  sortOptions?: { field: string }[];
-  sortField?: string;
-  search?: boolean;
-  searchFields?: string[];
-  fieldProps: (string | undefined)[];
-}): FieldReferences {
-  const names = new Set<string>();
-  for (const name of config.fieldProps) {
-    if (name) names.add(name);
-  }
-  for (const row of [
-    ...(config.columns ?? []),
-    ...(config.filters ?? []),
-    ...(config.sortOptions ?? []),
-  ]) {
-    names.add(row.field);
-  }
-  if (config.sortField) names.add(config.sortField);
-  for (const name of config.searchFields ?? []) names.add(name);
-  return {
-    names: [...names],
-    all: config.view === "table" && (config.columns ?? []).length === 0,
-    allTextFields:
-      config.search === true && (config.searchFields ?? []).length === 0,
-    mapFields: config.view === "map",
-  };
 }
 
 /** Split a reference list into real field names and pseudo-fields. */
