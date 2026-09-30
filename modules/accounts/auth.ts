@@ -28,6 +28,19 @@ export const auth = betterAuth({
     minPasswordLength: MIN_PASSWORD_LENGTH,
   },
   databaseHooks: {
+    user: {
+      create: {
+        // The address may already carry an invitation. Once an account exists,
+        // that same row would be read as a password-reset link, so account
+        // creation spends it regardless of which BetterAuth entry created the
+        // account or whether the following session creation succeeds.
+        after: async (user) => {
+          await prisma.accountLink.deleteMany({
+            where: { email: user.email.toLowerCase() },
+          });
+        },
+      },
+    },
     session: {
       create: {
         /**

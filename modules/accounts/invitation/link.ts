@@ -271,13 +271,3 @@ export async function requestPasswordReset(
   const url = await mintLink(address, RESET_LIFETIME_DAYS, null);
   return sendAccountLink({ to: address, url, purpose: "reset" });
 }
-
-/**
- * Spends whatever link stood on an address, once an account is there by some
- * other way — free sign-up on an invited address. Left behind, the row would
- * read as a password reset for the account just created (readAccountLink
- * decides by the accounts table), and the old invitation would take it over.
- */
-export async function clearAccountLink(email: string): Promise<void> {
-  await prisma.accountLink.deleteMany({ where: { email: email.toLowerCase() } });
-}

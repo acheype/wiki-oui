@@ -19,10 +19,7 @@ import {
   type AuthError,
   identityRefusal,
 } from "@/modules/accounts/auth/rules";
-import {
-  clearAccountLink,
-  signUpRefusal,
-} from "@/modules/accounts/invitation/link";
+import { signUpRefusal } from "@/modules/accounts/invitation/link";
 import { auth } from "@/modules/accounts/auth";
 import { destinationWithinWiki } from "@/lib/destination";
 import { signInMethod } from "@/modules/accounts/username";
@@ -109,11 +106,6 @@ export async function signUp(input: {
   } catch (error) {
     return { error: signUpRefusal(error) };
   }
-
-  // An address that was invited and signed up on its own spends its link all
-  // the same: left standing, it would read as a password reset for the
-  // account just created, and hand it to whoever still held the old mail.
-  await clearAccountLink(email);
 
   revalidatePath("/", "layout");
   redirect(landing(input.destination));

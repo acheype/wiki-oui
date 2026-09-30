@@ -404,7 +404,6 @@ export const EXEMPTIONS: readonly Exemption[] = [
 
   { file: "modules/accounts/admin/lifecycle.ts", function: "deleteOwnAccount", reason: "the person's own account — currentUsername() is the credential, not isAdmin" },
   { file: "modules/accounts/invitation/link.ts", function: "requestPasswordReset", reason: "no person — anyone can ask, the link goes by mail or nowhere, nothing is revealed" },
-  { file: "modules/accounts/invitation/link.ts", function: "clearAccountLink", reason: "no person — runs during free sign-up, spending the invitation the address carried" },
   { file: "modules/accounts/invitation/link.ts", function: "acceptInvitation", reason: "no person — the single-use token is the credential, the account does not exist yet" },
   { file: "modules/accounts/invitation/link.ts", function: "resetPasswordWithLink", reason: "no person — the single-use token is the credential" },
   { file: "modules/accounts/invitation/link.ts", function: "mintLink", reason: "the mechanical act of putting a single-use token on an address, like mintRevision — its two callers sit at different rungs, admin/invite.ts behind isAdmin and link-actions.ts (requestPasswordReset) behind nobody by design" },
