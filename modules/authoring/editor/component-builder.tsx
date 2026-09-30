@@ -63,7 +63,6 @@ import {
   applyManagedWrapperCommand,
   createManagedWrapperEditor,
   managedWrapperResult,
-  nextManagedChildValues,
   type ManagedWrapperEditor,
   type ManagedWrapperRow,
 } from "./managed-wrapper";
@@ -416,14 +415,7 @@ function WrapperBuilderForm({
 
   const addChild = () =>
     setEditor((current) =>
-      applyManagedWrapperCommand(current, {
-        type: "append",
-        child: {
-          values: nextManagedChildValues(childrenDescriptor, current.rows),
-          content: childrenDescriptor.initialContent ?? "",
-          unknownAttributes: [],
-        },
-      })
+      applyManagedWrapperCommand(current, { type: "append" })
     );
 
   const globalMissing = globalFields.some(

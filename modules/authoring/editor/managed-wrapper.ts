@@ -22,6 +22,7 @@ export type ManagedWrapperRow = WrapperChildDraft & { id: string };
 
 /** The private state of the managed-child editor. */
 export interface ManagedWrapperEditor {
+  descriptor: ChildrenDescriptor;
   rows: ManagedWrapperRow[];
   interstitial?: string[];
   defaultId: string | null;
@@ -30,7 +31,7 @@ export interface ManagedWrapperEditor {
 export type ManagedWrapperCommand =
   | { type: "change"; id: string; field: string; value: PropValue }
   | { type: "move"; from: number; to: number }
-  | { type: "append"; child: WrapperChildDraft }
+  | { type: "append" }
   | { type: "remove"; id: string }
   | { type: "select"; id: string | null };
 
@@ -110,7 +111,7 @@ export function createManagedWrapperEditor(
         (row) => childAnchorSlug(row.values[descriptor.anchorField]) === wanted
       )?.id ?? null
     : null;
-  return { rows, interstitial: initial?.interstitial, defaultId };
+  return { descriptor, rows, interstitial: initial?.interstitial, defaultId };
 }
 
 /** Applies one user intent while keeping row identity and direct content. */
@@ -137,9 +138,14 @@ export function applyManagedWrapperCommand(
       return { ...editor, rows: moved.children as ManagedWrapperRow[] };
     }
     case "append": {
+      const child: WrapperChildDraft = {
+        values: nextManagedChildValues(editor.descriptor, editor.rows),
+        content: editor.descriptor.initialContent ?? "",
+        unknownAttributes: [],
+      };
       const appended = appendManagedChild(
         { children: editor.rows, interstitial: editor.interstitial },
-        command.child
+        child
       );
       const rows = appended.children.map((row, index) =>
         index < editor.rows.length

@@ -123,6 +123,18 @@ describe("managed wrapper editing", () => {
     );
   });
 
+  it("owns the complete creation of an appended child", () => {
+    let editor = createManagedWrapperEditor(descriptor.children!);
+    editor = applyManagedWrapperCommand(editor, { type: "remove", id: editor.rows[1].id });
+    editor = applyManagedWrapperCommand(editor, { type: "append" });
+
+    expect(editor.rows[1]).toMatchObject({
+      values: { heading: "Onglet 2" },
+      content: "Contenu initial",
+      unknownAttributes: [],
+    });
+  });
+
   it("falls back to the declared omission policy after deleting the selection", () => {
     const none = { ...descriptor.children!, initialSelection: "none" as const };
     let editor = createManagedWrapperEditor(none, {
