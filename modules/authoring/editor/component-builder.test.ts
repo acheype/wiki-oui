@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ComponentBuilderSpec } from "../descriptors";
 import { descriptorDefaults, type ComponentDescriptor } from "../descriptor";
-import { insertionState, nextManagedChildValues } from "./component-builder";
+import { insertionState } from "./component-builder";
+import { nextManagedChildValues } from "./managed-wrapper";
 
 function spec(name: string, descriptor: ComponentDescriptor): ComponentBuilderSpec {
   return {

@@ -12,7 +12,6 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  arrayMove,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
@@ -41,7 +40,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
   type ComponentDescriptor,
-  type ChildrenDescriptor,
   type DescriptorField,
   type PropDefaults,
   type PropValue,
@@ -56,16 +54,19 @@ import {
   visibleFields,
 } from "@/modules/authoring/descriptor";
 import {
-  type WrapperChildDraft,
   type WrapperEdit,
   generateFreeContentWrapper,
-  generateWrapper,
-  appendManagedChild,
-  moveManagedChild,
-  removeManagedChild,
   isFreeContentDescriptor,
   wrapperShapeOf,
 } from "./wrapper";
+import {
+  applyManagedWrapperCommand,
+  createManagedWrapperEditor,
+  managedWrapperResult,
+  nextManagedChildValues,
+  type ManagedWrapperEditor,
+  type ManagedWrapperRow,
+} from "./managed-wrapper";
 import type { ComponentBuilderSpec } from "@/modules/authoring/descriptors";
 import { cn } from "@/lib/utils";
 import { changeBuilderValue } from "./builder-values";
@@ -85,14 +86,6 @@ export type BuilderState = {
   // without rendering a field or normalizing it on re-edit.
   content?: string;
 };
-
-/** A new managed child with its descriptor-driven props and initial MDX. */
-function emptyChild(
-  values: PropValues = {},
-  content = ""
-): WrapperChildDraft {
-  return { values, content, unknownAttributes: [] };
-}
 
 // What an open builder holds. null means closed; the last non-null value is
 // kept by the caller for the dialog's close animation (see PageEditor).
@@ -118,43 +111,20 @@ export function insertionState(spec: ComponentBuilderSpec): BuilderState {
   // content make the grouped structure plain from insertion (ADR 0031).
   let wrapper: WrapperEdit | undefined;
   if (isManagedChildrenDescriptor(spec.descriptor)) {
-    const first = emptyChild(
-      nextManagedChildValues(spec.descriptor.children, []),
-      spec.descriptor.children.initialContent
-    );
-    const second = emptyChild(
-      nextManagedChildValues(spec.descriptor.children, [first]),
-      spec.descriptor.children.initialContent
-    );
-    wrapper = { children: [first, second] };
+    const editor = createManagedWrapperEditor(spec.descriptor.children);
+    wrapper = {
+      children: editor.rows.map((child) => {
+        const { id, ...draft } = child;
+        void id;
+        return draft;
+      }),
+      interstitial: editor.interstitial,
+    };
   }
   const content = isFreeContentDescriptor(spec.descriptor)
     ? `\n${spec.descriptor.initialContent}\n`
     : undefined;
   return { values, unknownAttributes: [], wrapper, content };
-}
-
-/** Values for a new managed child, including its numbered anchor identity. */
-export function nextManagedChildValues(
-  descriptor: ChildrenDescriptor,
-  children: WrapperChildDraft[]
-): PropValues {
-  const values: PropValues = {};
-  for (const [field, childField] of Object.entries(descriptor.properties)) {
-    if (childField.initialValue !== undefined) {
-      values[field] = childField.initialValue;
-    }
-  }
-  const anchorField = descriptor.anchorField;
-  const anchorBase = descriptor.properties[anchorField]?.initialValue;
-  if (typeof anchorBase !== "string" || anchorBase.trim() === "") return values;
-  const anchors = new Set(
-    children.map((child) => String(child.values[anchorField] ?? ""))
-  );
-  let number = 1;
-  while (anchors.has(`${anchorBase} ${number}`)) number++;
-  values[anchorField] = `${anchorBase} ${number}`;
-  return values;
 }
 
 export function ComponentBuilderDialog({
@@ -357,13 +327,6 @@ function BuilderForm({
  * below. The round-trip preserves each child's MDX content verbatim.
  * ------------------------------------------------------------------ */
 
-type ChildRow = WrapperChildDraft & { id: string };
-
-let childRowSeq = 0;
-function withId(child: WrapperChildDraft): ChildRow {
-  return { ...child, id: `child-${childRowSeq++}` };
-}
-
 function WrapperBuilderForm({
   spec,
   mode,
@@ -393,24 +356,11 @@ function WrapperBuilderForm({
 
   const [values, setValues] = useState<PropValues>(initial.values);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [wrapper, setWrapper] = useState<WrapperEdit>(() => ({
-    children: (initial.wrapper?.children ?? []).map(withId),
-    interstitial: initial.wrapper?.interstitial,
-  }));
-  const children = wrapper.children as ChildRow[];
-  // The default child is tracked by row identity, so it survives a rename and
-  // a reorder. Null means the wrapper's omitted default: first child for Tabs,
-  // no open child for Accordion.
-  const [defaultId, setDefaultId] = useState<string | null>(() => {
-    const wanted = initial.wrapper?.defaultChild;
-    if (!wanted) return null;
-    return (
-      children.find(
-        (child) => childAnchorSlug(child.values[anchorField]) === wanted
-      )?.id ?? null
-    );
-  });
-  const [confirmDelete, setConfirmDelete] = useState<ChildRow | null>(null);
+  const [editor, setEditor] = useState<ManagedWrapperEditor>(() =>
+    createManagedWrapperEditor(childrenDescriptor, initial.wrapper)
+  );
+  const children = editor.rows;
+  const [confirmDelete, setConfirmDelete] = useState<ManagedWrapperRow | null>(null);
 
   const globalFields = Object.entries(spec.descriptor.properties);
   const visibleGlobal = visibleFields(spec.descriptor, spec.defaults, values);
@@ -436,19 +386,19 @@ function WrapperBuilderForm({
     );
 
   const setChildValue = (id: string, field: string, value: PropValue) =>
-    setWrapper((current) => ({
-      ...current,
-      children: (current.children as ChildRow[]).map((row) =>
-        row.id === id ? { ...row, values: { ...row.values, [field]: value } } : row
-      ),
-    }));
+    setEditor((current) =>
+      applyManagedWrapperCommand(current, { type: "change", id, field, value })
+    );
 
   const moveChild = (index: number, delta: number) =>
-    setWrapper((current) => {
-      const rows = current.children as ChildRow[];
+    setEditor((current) => {
       const next = index + delta;
-      if (next < 0 || next >= rows.length) return current;
-      return moveManagedChild(current, index, next);
+      if (next < 0 || next >= current.rows.length) return current;
+      return applyManagedWrapperCommand(current, {
+        type: "move",
+        from: index,
+        to: next,
+      });
     });
 
   // Drag reordering mirrors the form builder (form-builder.tsx). The arrows
@@ -457,98 +407,47 @@ function WrapperBuilderForm({
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    setWrapper((current) => {
-      const rows = current.children as ChildRow[];
-      const from = rows.findIndex((row) => row.id === active.id);
-      const to = rows.findIndex((row) => row.id === over.id);
-      return { ...current, children: arrayMove(rows, from, to) };
+    setEditor((current) => {
+      const from = current.rows.findIndex((row) => row.id === active.id);
+      const to = current.rows.findIndex((row) => row.id === over.id);
+      return applyManagedWrapperCommand(current, { type: "move", from, to });
     });
   };
 
   const addChild = () =>
-    setWrapper((current) =>
-      appendManagedChild(
-        current,
-        withId(
-          emptyChild(
-            nextManagedChildValues(spec.descriptor.children!, current.children),
-            spec.descriptor.children!.initialContent
-          )
-        )
-      )
+    setEditor((current) =>
+      applyManagedWrapperCommand(current, {
+        type: "append",
+        child: {
+          values: nextManagedChildValues(childrenDescriptor, current.rows),
+          content: childrenDescriptor.initialContent ?? "",
+          unknownAttributes: [],
+        },
+      })
     );
 
-  const removeChild = (id: string) => {
-    setWrapper((current) => {
-      const index = (current.children as ChildRow[]).findIndex(
-        (row) => row.id === id
-      );
-      return removeManagedChild(current, index);
-    });
-    setDefaultId((current) => (current === id ? null : current));
-  };
-
-  // A duplicate slug within one group would make an anchor ambiguous, so it
-  // blocks the save (ADR 0031). Empty anchors do not collide — they are caught
-  // by the required-field guard instead.
-  const collidingIds = new Set<string>();
-  const bySlug = new Map<string, string[]>();
-  for (const row of children) {
-    const slug = childAnchorSlug(row.values[anchorField]);
-    if (!slug) continue;
-    bySlug.set(slug, [...(bySlug.get(slug) ?? []), row.id]);
-  }
-  for (const ids of bySlug.values()) {
-    if (ids.length > 1) ids.forEach((id) => collidingIds.add(id));
-  }
-
-  const childRequiredMissing = (row: ChildRow) => {
-    const visible = visibleFields(childDesc, childDefaults, row.values);
-    return Object.entries(childDesc.properties).some(
-      ([field, spec]) =>
-        spec.required && visible.includes(field) && isEmpty(row.values[field])
-    );
-  };
-
-  const missingRequired =
-    children.length === 0 ||
-    children.some(childRequiredMissing) ||
-    globalFields.some(
+  const globalMissing = globalFields.some(
       ([field, f]) =>
         f.required && visibleGlobal.includes(field) && isEmpty(values[field])
     );
-  const blocked = missingRequired || collidingIds.size > 0;
-
-  const firstSlug = children[0]
-    ? childAnchorSlug(children[0].values[anchorField])
-    : undefined;
-  const selectedDefaultRow = children.find((row) => row.id === defaultId);
-  const defaultRow = allowsNoDefault
-    ? selectedDefaultRow
-    : selectedDefaultRow ?? children[0];
-  const defaultSlug = defaultRow
-    ? childAnchorSlug(defaultRow.values[anchorField])
-    : undefined;
-  const tag = generateWrapper(shape, {
+  const result = managedWrapperResult(shape, editor, {
     values,
     unknownAttributes: initial.unknownAttributes,
-    defaultChild:
-      defaultSlug && (allowsNoDefault || defaultSlug !== firstSlug)
-        ? defaultSlug
-        : undefined,
-    children: children.map((row) => ({
-      values: row.values,
-      content: row.content,
-      unknownAttributes: row.unknownAttributes,
-    })),
-    interstitial: wrapper.interstitial,
+    globalMissing,
   });
+  const { source: tag, blocked, collidingIds } = result;
+  const defaultRow = children.find((row) => row.id === result.defaultId);
+
+  const removeChild = (id: string) =>
+    setEditor((current) =>
+      applyManagedWrapperCommand(current, { type: "remove", id })
+    );
 
   const submit = () => {
     if (!blocked) onSubmit(tag);
   };
 
-  const requestRemove = (row: ChildRow) => {
+  const requestRemove = (row: ManagedWrapperRow) => {
     if (row.content.trim() !== "") setConfirmDelete(row);
     else removeChild(row.id);
   };
@@ -570,7 +469,14 @@ function WrapperBuilderForm({
         />
         <RadioGroup
           value={defaultRow?.id ?? "none"}
-          onValueChange={(value) => setDefaultId(value === "none" ? null : value)}
+          onValueChange={(value) =>
+            setEditor((current) =>
+              applyManagedWrapperCommand(current, {
+                type: "select",
+                id: value === "none" ? null : value,
+              })
+            )
+          }
           className="grid gap-3"
         >
           <div className="grid gap-2 rounded-md border bg-muted/30 p-3">
@@ -784,7 +690,7 @@ function ManagedChildRow({
   onMoveDown,
   onRemove,
 }: {
-  row: ChildRow;
+  row: ManagedWrapperRow;
   index: number;
   total: number;
   isDefault: boolean;
