@@ -3,17 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { loadComponentBuilders } from "@/modules/authoring/descriptors";
-import { deleteFile } from "@/modules/files/storage";
-import { restoredEntryValues } from "@/modules/forms/entry-title";
-import {
-  type FormDescriptor,
-  parseFormDescriptor,
-  readEntryData,
-} from "@/modules/forms/form-descriptor";
-import { Prisma } from "@/lib/generated/prisma/client";
 import { listWikiComponentNames } from "@/modules/authoring/mdx";
 import { type PageWarning, lintPageSource } from "@/modules/pages/lint";
-import { hasForm } from "@/modules/pages/entry-page";
 import {
   countPageSlugReferences,
   deletePageBySlug,
@@ -26,9 +17,8 @@ import {
 } from "@/modules/pages/content";
 import { canWritePage } from "@/modules/pages/access/guards";
 import { PageBody } from "@/modules/pages/page-body";
-import { getRevisionToRestore, writeRestoredRevision } from "@/modules/pages/revisions";
-import { isRefused } from "@/modules/pages/rights";
-import { REFUSALS, refusalMessage } from "@/modules/permissions/rules";
+import { restoreArchivedRevision } from "./revisions/restore";
+import { refusalMessage } from "@/modules/permissions/rules";
 import { isValidSlug, reservedSlugRefusal } from "@/lib/slug";
 import { type SlugRename, pageReferenceProps } from "@/lib/slug-rename";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
@@ -208,90 +198,15 @@ export async function deletePage(slug: string): Promise<ActionError | void> {
   redirect(`/${wikiConfig.homeSlug}`);
 }
 
-// Only door that removes an uploaded file: cancelling the component modal
-// right after the upload that created it (« annuler = rien ne s'est passé »,
-// ADR 0012). A mutation, hence a Server Action — the API-service exception
-// covers the upload only (progress needs the request, the deletion doesn't).
-export async function discardUploadedFile(name: string): Promise<void> {
-  await deleteFile(name).catch(() => null); // already gone = fine
-}
+/** The caller owns navigation so the result can explain a kept title. */
+export type RestoreResult = ActionError | { slug: string; titleKept: boolean };
 
-/**
- * The values a restore writes. The restored revision becomes the *current*
- * state, so it follows the form's *current* definition (ADR 0020): an
- * automatic title is recomputed rather than copied back. A computation that
- * comes out empty keeps the archived title — the same conservative skip the
- * form-save sweep applies, and the one that keeps a restore from ever being
- * blocked by a stale entry.
- */
-// Prisma-side wrapper around restoredEntryValues (modules/forms/entry-title): the JSON
-// casting and the MDX-page case, where there are no entry values at all.
-function restoredEntryData(
-  schema: unknown,
-  data: Prisma.JsonValue | null
-): {
-  data: Prisma.InputJsonValue | undefined;
-  titleKept: boolean;
-  descriptor: FormDescriptor | null;
-} {
-  if (data === null) {
-    return { data: undefined, titleKept: false, descriptor: null }; // MDX page
-  }
-  const descriptor = schema ? parseFormDescriptor(schema).descriptor ?? null : null;
-  if (!descriptor) {
-    return {
-      data: data as Prisma.InputJsonValue,
-      titleKept: false,
-      descriptor: null,
-    };
-  }
-  const restored = restoredEntryValues(descriptor, readEntryData(data));
-  return {
-    data: restored.values as Prisma.InputJsonValue,
-    titleKept: restored.titleKept,
-    descriptor,
-  };
-}
-
-/**
- * Success carries information now (ADR 0020), so this action returns instead
- * of redirecting: `redirect()` throws, leaving the success path no channel to
- * report on. The caller owns the navigation — same landing page as before.
- */
-export type RestoreResult =
-  | ActionError
-  | { slug: string; titleKept: boolean };
-
-export async function restoreRevision(
-  revisionId: string
-): Promise<RestoreResult> {
-  const source = await getRevisionToRestore(revisionId);
-  if (!source) {
-    return { error: "Révision introuvable." };
-  }
-  if (isRefused(source)) {
-    return { error: REFUSALS.access };
-  }
-
-  const restored = restoredEntryData(
-    hasForm(source.page) ? source.page.form.schema : undefined,
-    source.data
-  );
-  // Restoring is a write (docs/permissions.md § Quel droit commande quelle
-  // action): the history stays readable to whoever may read the page, and the
-  // button that puts a revision back is offered to whoever may write it.
+export async function restoreRevision(revisionId: string): Promise<RestoreResult> {
   try {
-    await writeRestoredRevision({
-      pageId: source.pageId,
-      content: source.content,
-      data: restored.data ?? undefined,
-      restoredFromId: source.id,
-      descriptor: restored.descriptor,
-    });
+    const result = await restoreArchivedRevision(revisionId);
+    if (!("error" in result)) revalidatePath("/", "layout");
+    return result;
   } catch (error) {
     return { error: refusalMessage(error) };
   }
-
-  revalidatePath("/", "layout");
-  return { slug: source.page.slug, titleKept: restored.titleKept };
 }

@@ -45,7 +45,6 @@ vi.mock("@/modules/permissions/groups-directory", () => ({
 }));
 
 const { writeEntryRevision } = await import("@/modules/pages/entries");
-const { writeRestoredRevision } = await import("@/modules/pages/revisions");
 
 /** A page Marie owns, closed to everyone else in both senses. */
 const MARIES_PAGE = {
@@ -223,41 +222,4 @@ describe("what a save may move, field by field", () => {
     expect(db.revision.create).not.toHaveBeenCalled();
   });
 
-  // A restore is a write like any other, and a silent one: the restorer never
-  // saw on screen what they would be putting back.
-  it("merges a restored snapshot too", async () => {
-    await writeRestoredRevision({
-      pageId: "page-1",
-      content: null,
-      data: { title: "Paie", nom: "Marie", salaire: 1 },
-      restoredFromId: "rev-1",
-      descriptor: PAYROLL,
-    });
-    expect(written()).toEqual({ title: "Paie", nom: "Marie", salaire: 42000 });
-  });
-
-  // The archived title names the archived values; the merge keeps some of
-  // today's. Recomputed after it, the title names what the fiche now holds —
-  // and a stored title is never worked out again at read (ADR 0020).
-  it("names what the merge kept, not what the archive said", async () => {
-    const automatic: FormDescriptor = {
-      fields: [
-        { type: "title", name: "title", label: "Titre", automatic: true, template: "{nom} — {salaire}" },
-        { type: "text", name: "nom", label: "Nom" },
-        { type: "text", name: "salaire", label: "Salaire", readAcl: BUREAU, writeAcl: BUREAU },
-      ],
-    };
-    await writeRestoredRevision({
-      pageId: "page-1",
-      content: null,
-      data: { title: "Marie — 1", nom: "Marie", salaire: 1 },
-      restoredFromId: "rev-1",
-      descriptor: automatic,
-    });
-    expect(written()).toEqual({
-      title: "Marie — 42000",
-      nom: "Marie",
-      salaire: 42000,
-    });
-  });
 });

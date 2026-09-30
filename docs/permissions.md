@@ -97,7 +97,7 @@ L'installation est **irréversible** : vider `@Admins` ne rouvre pas le service.
 
 Un groupe contient des **utilisateurs et/ou d'autres groupes**, sans limite de profondeur. Les cycles sont refusés à l'enregistrement, avec le chemin nommé : « @Rédacteurs contient déjà @Bureau, via @Trésorerie. »
 
-`@Admins` est protégé comme une page spéciale : ni supprimable, ni renommable, **jamais vide** (retirer le dernier administrateur est refusé), et il **n'accepte que des personnes** — son sélecteur ne propose pas de groupes, avec la note « ⓘ Ce groupe n'accepte que des personnes — on ne devient pas administrateur en étant membre d'un autre groupe. » Aucun message d'erreur : l'état est rendu impossible, pas rattrapé.
+`@Admins` est protégé comme une page spéciale : ni supprimable, ni renommable, **garde au moins un administrateur capable de se connecter** (un compte désactivé ne compte pas ; retirer une adhésion, désactiver ou supprimer un compte vérifient le même invariant), et il **n'accepte que des personnes** — son sélecteur ne propose pas de groupes, avec la note « ⓘ Ce groupe n'accepte que des personnes — on ne devient pas administrateur en étant membre d'un autre groupe. » Aucun message d'erreur : l'état est rendu impossible, pas rattrapé.
 
 Un groupe porte un **nom affiché** et un **slug** dérivé de lui à la création, personnalisable avant enregistrement puis figé — la règle d'identité commune du projet, et c'est le slug que retiennent les droits (ADR 0024). Renommer un groupe change son nom affiché ; déplacer son identifiant relèverait de l'action de renommage de l'ADR 0016, hors périmètre v0.5.
 
@@ -521,7 +521,7 @@ Il passe par la couche d'accès comme tout le reste (`getRawContent()`, `modules
 }
 ```
 
-**L'ordre n'est pas une propriété du stockage.** `Revision.data` est du `jsonb`, qui ne garantit pas de préserver l'ordre des clés qu'on lui a écrites — `getRawContent()` le reconstruit donc systématiquement depuis le formulaire (`orderedEntryData()`, `lib/form-descriptor.ts`) plutôt que de faire confiance à ce que Prisma rend. La même fonction ordonne aussi l'écriture (`createEntryPage`, `writeEntryRevision`, `writeRestoredRevision`, le recalcul de masse) : un confort pour qui inspecte la base à la main, mais la garantie que `/{slug}/raw` tient vient de cette reconstruction à la lecture, pas du stockage.
+**L'ordre n'est pas une propriété du stockage.** `Revision.data` est du `jsonb`, qui ne garantit pas de préserver l'ordre des clés qu'on lui a écrites — `getRawContent()` le reconstruit donc systématiquement depuis le formulaire (`orderedEntryData()`, `lib/form-descriptor.ts`) plutôt que de faire confiance à ce que Prisma rend. La même fonction ordonne aussi l'écriture (`createEntryPage`, `writeEntryRevision`, `restoreArchivedRevision`, le recalcul de masse) : un confort pour qui inspecte la base à la main, mais la garantie que `/{slug}/raw` tient vient de cette reconstruction à la lecture, pas du stockage.
 
 `owner` et `last-edited-by` suivent la même règle d'affichage que le reste du wiki (`displayName()`, `lib/username.ts`) : « Anonyme » pour un contenu sans propriétaire ou sans auteur identifié. `read-scope` et `write-scope` sont l'objet `AccessRule` déjà utilisé par la modale de droits (`{ scope, usernames, groupSlugs }`, § Le droit).
 

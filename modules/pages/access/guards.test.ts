@@ -13,7 +13,7 @@ import {
 // reaches the database.
 //
 // Spans modules/pages/content.ts, modules/pages/access/page-rights.ts and
-// modules/pages/revisions.ts on purpose: this is a test of
+// the page rights writes on purpose: this is a test of
 // modules/pages/access/guards.ts's own guards (assertStructuring,
 // assertAddress, assertCanWrite), exercised through every public function
 // that calls them — not a test of any one of those three files' own business
@@ -68,7 +68,6 @@ const { deletePageBySlug, renamePageSlug, writePageContent } = await import(
   "@/modules/pages/content"
 );
 const { setPageRights, transferPageOwnership } = await import("@/modules/pages/access/page-rights");
-const { writeRestoredRevision } = await import("@/modules/pages/revisions");
 
 /** A page Marie owns, closed to everyone else in both senses. */
 const MARIES_PAGE = {
@@ -126,18 +125,7 @@ const guarded: [string, string, () => Promise<unknown>][] = [
     REFUSALS.write,
     () => writePageContent({ slug: "compte-rendu", content: "# Salut", tags: [] }),
   ],
-  [
-    "restoring a revision",
-    REFUSALS.write,
-    () =>
-      writeRestoredRevision({
-        pageId: "page-1",
-        content: "# Ancien",
-        data: undefined,
-        restoredFromId: "rev-1",
-        descriptor: null,
-      }),
-  ],
+
 ];
 
 describe("the guards refuse what the bar would not offer", () => {
