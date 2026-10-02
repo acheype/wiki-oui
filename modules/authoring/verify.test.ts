@@ -447,3 +447,63 @@ describe("checkSignature on a wrapper child (ADR 0031)", () => {
     expect(error).toContain('field "title" must set "required: true"');
   });
 });
+
+describe("managed selection parent signature", () => {
+  const descriptor: ComponentDescriptor = {
+    label: "Blocs",
+    properties: {},
+    children: {
+      component: "Block",
+      label: "Bloc",
+      anchorField: "title",
+      selection: { prop: "active", initial: "none" },
+      properties: { title: { label: "Titre", type: "text" } },
+    },
+  };
+  const signature: ComponentSignature = {
+    file: "blocks.tsx",
+    props: { active: { tsOptional: true, type: { kind: "string" } } },
+  };
+
+  it("accepts the declared string prop on the parent", () => {
+    expect(checkSignature("Blocks", descriptor, signature)).toEqual({ errors: [], warnings: [] });
+  });
+
+  it("points a missing parent prop at children.selection.prop in YAML", () => {
+    const result = checkSignature("Blocks", descriptor, { ...signature, props: {} },
+      (path) => path.join(".") === "children.selection.prop" ? 12 : undefined
+    );
+    expect(result.errors).toEqual([
+      'blocks.yaml:12: field "active" is not a prop of <Blocks> (blocks.tsx)',
+    ]);
+  });
+
+  it("rejects a selection prop that cannot receive an anchor", () => {
+    const result = checkSignature("Blocks", descriptor, {
+      ...signature,
+      props: { active: { tsOptional: true, type: { kind: "boolean" } } },
+    });
+    expect(result.errors).toEqual([
+      expect.stringContaining('does not match prop "active": boolean'),
+    ]);
+  });
+
+  it("rejects a selection prop that cannot be omitted", () => {
+    const result = checkSignature("Blocks", descriptor, {
+      ...signature,
+      props: { active: { tsOptional: false, type: { kind: "string" } } },
+    });
+    expect(result.errors).toEqual([
+      expect.stringContaining('selection prop "active" must be optional or have a runtime default'),
+    ]);
+  });
+
+  it("does not require a selection prop when selection is absent", () => {
+    const withoutSelection = {
+      ...descriptor,
+      children: { ...descriptor.children!, selection: undefined },
+    };
+    expect(checkSignature("Blocks", withoutSelection, { ...signature, props: {} }))
+      .toEqual({ errors: [], warnings: [] });
+  });
+});

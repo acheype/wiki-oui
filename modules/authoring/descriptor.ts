@@ -222,8 +222,14 @@ const childrenDescriptorSchema = z.object({
   label: z.string(),
   /** Heading for the repeatable list in the builder. */
   collectionLabel: z.string().optional(),
-  /** Meaning of an omitted wrapper `default` attribute. */
-  initialSelection: z.enum(["first", "none"]).optional(),
+  /** Parent prop carrying the selected child's anchor, and its omission policy. */
+  selection: z
+    .object({
+      prop: z.string().regex(/^[A-Za-z_][A-Za-z0-9_-]*$/),
+      initial: z.enum(["first", "none"]),
+    })
+    .strict()
+    .optional(),
   /** Non-blocking guidance when the wrapper contains only one child. */
   singleChildWarning: z.string().optional(),
   /** Child field whose slug identifies the child and must be unique. */
@@ -265,6 +271,18 @@ export function childDescriptor(
   children: ChildrenDescriptor
 ): ComponentDescriptor {
   return { label: children.label, properties: children.properties };
+}
+
+/** All emitted parent fields, including the managed-child selection control. */
+export function componentProperties(
+  descriptor: ComponentDescriptor
+): Record<string, DescriptorField> {
+  const children = descriptor.children;
+  if (!children?.selection) return descriptor.properties;
+  return {
+    ...descriptor.properties,
+    [children.selection.prop]: { label: children.label, type: "text" },
+  };
 }
 
 /** Slug shared by managed-child renderers, builder validation and page lint. */
@@ -386,6 +404,19 @@ export function validateDescriptor(
   // its props are validated exactly like a root component's — only their path
   // is nested under "children" so messages point at the right YAML line.
   if (descriptor.children) {
+    const selection = descriptor.children.selection;
+    if (
+      selection && (
+        Object.hasOwn(descriptor.properties, selection.prop) ||
+        Object.entries(descriptor.properties).some(([field, property]) =>
+          property.type !== "divider" && fieldProp(field, property) === selection.prop
+        )
+      )
+    ) {
+      throw new Error(
+        `${at(["children", "selection", "prop"])}: children selection prop "${selection.prop}" is already declared in properties`
+      );
+    }
     validatePropertiesBlock(descriptor.children.properties, at, ["children"]);
     const anchorField = descriptor.children.anchorField;
     const anchor = descriptor.children.properties[anchorField];

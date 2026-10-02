@@ -20,7 +20,7 @@ describe("Accordion ComponentBuilder descriptor", () => {
         component: "Collapsible",
         label: "Bloc",
         collectionLabel: "Blocs dépliables",
-        initialSelection: "none",
+        selection: { prop: "default", initial: "none" },
         anchorField: "title",
         initialContent: "Contenu du bloc dépliable à modifier",
         singleChildWarning:

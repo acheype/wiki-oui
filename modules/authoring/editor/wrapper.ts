@@ -4,8 +4,8 @@
 // each child's MDX content verbatim. Pure text logic, unit-tested; the leaf
 // tag round-trip (self-closing, one line) stays in descriptor.ts.
 //
-// The engine is slug-agnostic: it carries the child list and the reserved
-// `default` attribute (the open child) as-is, leaving slug derivation,
+// The engine is slug-agnostic: it carries the child list and the declared
+// selection attribute as-is, leaving slug derivation,
 // collision and default-omission to the wrapper builder that knows the domain.
 
 import {
@@ -15,14 +15,12 @@ import {
   type PropValues,
   type Range,
   childDescriptor,
+  componentProperties,
   descriptorDefaults,
   parseOpenTag,
   tagAttributes,
   tagToBuilderState,
 } from "../descriptor";
-
-/** The reserved wrapper attribute naming the open child (its slug). */
-export const OPEN_CHILD_ATTR = "default";
 
 /** One managed child: its props (as builder values) and its verbatim MDX. */
 export interface WrapperChildDraft {
@@ -40,13 +38,13 @@ export interface WrapperEdit {
   children: WrapperChildDraft[];
   /** Raw MDX around the managed child slots, from before the first to after the last. */
   interstitial?: string[];
-  /** The `default` attribute value (open child), verbatim; absent when omitted. */
+  /** The declared selection attribute value, verbatim; absent when omitted. */
   defaultChild?: string;
 }
 
 /** A wrapper's editable state: its own props, and its managed children. */
 export interface WrapperDraft extends WrapperEdit {
-  /** Wrapper props as builder values — the reserved `default` excluded. */
+  /** Wrapper props as builder values, excluding the managed selection. */
   values: PropValues;
   /** Wrapper attributes the descriptor does not describe, carried verbatim. */
   unknownAttributes: string[];
@@ -117,10 +115,14 @@ function stripWrap(inner: string): string {
 // child content sits between blank-free wrapping newlines so the round-trip is
 // idempotent; only structure and props are (re)written, never the content.
 export function generateWrapper(shape: WrapperShape, draft: WrapperDraft): string {
-  const attributes = tagAttributes(shape.descriptor, shape.defaults, draft.values);
-  if (draft.defaultChild !== undefined) {
-    attributes.push(`${OPEN_CHILD_ATTR}="${draft.defaultChild}"`);
-  }
+  const selection = shape.descriptor.children?.selection;
+  const descriptor = {
+    ...shape.descriptor,
+    properties: componentProperties(shape.descriptor),
+  };
+  const values = { ...draft.values };
+  if (selection) values[selection.prop] = draft.defaultChild;
+  const attributes = tagAttributes(descriptor, shape.defaults, values);
   attributes.push(...draft.unknownAttributes);
   const body = attributes.length > 0 ? ` ${attributes.join(" ")}` : "";
   const open = `<${shape.name}${body}>`;
@@ -336,10 +338,11 @@ function readWrapper(
   text: string,
   tag: EnclosingTag
 ): { draft: WrapperDraft; childRanges: WrapperTagRange[] } {
-  const openAttr = tag.open.attributes.find((a) => a.name === OPEN_CHILD_ATTR);
+  const selectionProp = shape.descriptor.children?.selection?.prop;
+  const openAttr = tag.open.attributes.find((a) => a.name === selectionProp);
   const rest: ParsedTag = {
     name: tag.open.name,
-    attributes: tag.open.attributes.filter((a) => a.name !== OPEN_CHILD_ATTR),
+    attributes: tag.open.attributes.filter((a) => a.name !== selectionProp),
   };
   const { values, unknownAttributes } = tagToBuilderState(
     shape.descriptor,

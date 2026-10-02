@@ -1,6 +1,6 @@
 # ComponentBuilder descriptor of <Tabs> (docs/component-builder.md, ADR 0031).
 # A wrapper: its own props here, its repeatable <Tab> child under `children:`.
-# The open tab (`default`) is not a field — the builder sets it from a radio.
+# The selection prop and omission policy are declared under children.selection.
 label: Onglets
 description: Regrouper du contenu en onglets
 previewHeight: 300px
@@ -32,7 +32,9 @@ children:
   component: Tab
   label: Onglet
   collectionLabel: Onglets
-  initialSelection: first
+  selection:
+    prop: default
+    initial: first
   singleChildWarning: Ce groupe ne contient qu'un onglet et n'apporte donc aucune navigation. Vous pouvez afficher directement son titre et son contenu.
   anchorField: title
   initialContent: Contenu de l'onglet à modifier

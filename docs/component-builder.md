@@ -169,24 +169,34 @@ Quand on veut que l'interface graphique **crée et gère une liste de balises fi
 ```yaml
 label: Onglets
 previewHeight: 300px
-properties:              # props du wrapper <Tabs>
+properties:
   display:
+    label: Apparence
     type: list
     default: segmented
-    options: { … }
+    options:
+      segmented: Segments
+      separated: Pastilles
+      folder: Dossiers
+      underline: Soulignement
   orientation:
+    label: Orientation
     type: list
     default: horizontal
-    options: { … }
-children:                # l'enfant répétable, sans descripteur propre
-  component: Tab         # émet <Tab …>…contenu MDX…</Tab>
+    options:
+      horizontal: Horizontale
+      vertical: Verticale
+children:
+  component: Tab
   label: Onglet
   collectionLabel: Onglets
-  initialSelection: first # `default` omis = premier enfant (`none` = aucun)
+  selection:
+    prop: default
+    initial: first
   singleChildWarning: Ce groupe ne contient qu'un onglet…
-  anchorField: title      # identité, ancre et unicité de chaque enfant
-  initialContent: Contenu de l'onglet à modifier # MDX de chaque nouvel enfant
-  properties:            # props de chaque enfant
+  anchorField: title
+  initialContent: Contenu de l'onglet à modifier
+  properties:
     title:
       label: Titre
       type: text
@@ -199,19 +209,19 @@ children:                # l'enfant répétable, sans descripteur propre
 
 | Clé de `children` | Rôle |
 | --- | --- |
-| `component` | Nom exact du composant enfant dans le registre ; sa signature est vérifiée même s'il n'a pas de descripteur autonome |
+| `component` | Nom exact du composant enfant dans le registre, par exemple `Tab` ou `Collapsible` |
 | `label` | Nom singulier d'un enfant dans l'interface |
 | `collectionLabel` | Titre de la liste répétable |
-| `initialSelection` | Sens de l'absence de prop `default` sur le wrapper : premier enfant (`first`) ou aucun (`none`) |
+| `selection` | Sélecteur facultatif de l’enfant ouvert au chargement (voir ci-dessous) |
 | `singleChildWarning` | Conseil non bloquant affiché lorsqu'il ne reste qu'un enfant |
-| `anchorField` | Clé du champ de `children.properties` qui fournit l'identité, l'ancre et le choix initial ; ce champ seul est numéroté et doit rester unique après slugification |
+| `anchorField` | Champ de `children.properties` dont la valeur fournit l’ancre de l’enfant. Il doit être de type chaîne, requis, toujours visible et avoir un `initialValue` non vide. Les ancres doivent être uniques. |
 | `initialContent` | MDX placé dans chaque enfant nouvellement créé, sans jamais remplacer son contenu existant |
 | `properties` | Champs des props de l'enfant ; ils acceptent les mêmes clés et comportements que les champs du wrapper |
 
 Le contenu d'un enfant n'est **pas** une prop : c'est le MDX écrit entre ses balises, dans l'éditeur. Le builder génère la structure, l'auteur remplit le contenu :
 
 ```mdx
-<Tabs display="segmented">
+<Tabs>
   <Tab title="Présentation" icon="lucide:info">
 Contenu de la présentation…
   </Tab>
@@ -221,17 +231,23 @@ Contenu de contact…
 </Tabs>
 ```
 
-Le builder tire alors de la section `children:` :
+Les `properties` du parent deviennent les réglages globaux ; celles de `children` deviennent les champs de chaque enfant. Le builder crée deux enfants à l’insertion, puis permet d’en ajouter, d’en réordonner et d’en supprimer. Le champ désigné par `anchorField` reçoit une valeur initiale numérotée (`Titre de mon onglet 1`, `Titre de mon onglet 2`), et `children.initialContent` fournit le contenu de chacun. À la réédition, les contenus existants sont préservés.
 
-- **Un builder à deux étages** : les `properties` du wrapper deviennent les champs **globaux** ; la section `children:` devient une **liste répétable** d'enfants — ajouter, réordonner, supprimer —, chacun portant les champs de ses propres `properties`.
-- **Une présentation décrite, jamais codée par composant** : `collectionLabel` titre la liste, `initialSelection` donne le sens de l'absence de `default` (`first` ou `none`) et `singleChildWarning` porte le conseil propre au wrapper lorsqu'il ne reste qu'un enfant.
-- **Une identité explicite** : `anchorField` nomme un champ chaîne requis, toujours visible et doté d'un `initialValue` non vide, dont le slug identifie l'enfant. Le builder et le lint refusent deux enfants produisant la même ancre ; seul l'`initialValue` de ce champ sert de base numérotée. Les autres champs peuvent aussi avoir un `initialValue`, mais il reste identique d'un enfant à l'autre.
-- **Deux enfants à l'insertion** : leurs identités préremplies sont numérotées (`… 1`, `… 2`) et leur `initialContent` fournit le MDX initial ; chaque ajout reçoit les mêmes préremplissages. Le builder refuse un wrapper sans enfant. Un seul enfant reste enregistrable, mais déclenche un avertissement adapté au composant.
-- **Édition contextuelle** : le crayon d'un enfant direct ouvre le builder du wrapper, même si cet enfant possède un descripteur autonome. Un composant du même type imbriqué plus profondément dans le contenu garde son propre builder.
-- **Contenu préservé** : le round-trip conserve le MDX de chaque enfant ; seuls son ordre et ses props changent. Un rappel en pied indique que le contenu s'écrit entre les balises, dans l'éditeur.
-- **Contenu interstitiel préservé** : du texte ou des composants placés directement dans le wrapper, hors des balises filles attendues, restent dans la source lors d'une réédition. Ces fragments gardent leur position dans la séquence lorsque les enfants sont réordonnés ; supprimer un enfant ne supprime pas les fragments qui l'entourent. Le rendu du wrapper peut les ignorer, mais le lint les signale à l'enregistrement ; le ComponentBuilder ne les efface jamais silencieusement.
-- **Suppression d'un enfant non vide** : avertissement de confirmation — le builder connaît le contenu de chaque enfant.
-- **Vérification** : la vérification par signature (voir « Vérification ») s'applique au composant enfant comme à tout composant à props.
+#### Sélection initiale (`children.selection`)
+
+Ce bloc facultatif ajoute le choix de l’enfant ouvert au chargement. Sans lui, le builder gère la liste d’enfants sans proposer de sélection initiale. Lorsqu’il est présent, ses deux clés sont obligatoires :
+
+| Clé | Rôle |
+| --- | --- |
+| `prop` | Nom de la propriété du **parent** qui reçoit l’ancre de l’enfant choisi, par exemple `default` pour `Tabs` et `Accordion` |
+| `initial` | Comportement lorsque cette propriété est omise : `first` pour le premier enfant, `none` pour aucun enfant |
+
+Les choix du sélecteur viennent des enfants présents. La valeur écrite dans le MDX est l’ancre issue de leur `anchorField` : avec `anchorField: title`, choisir l’onglet « Contact » écrit `default="contact"` sur `<Tabs>`.
+
+- Avec **`initial: first`**, le premier enfant est sélectionné en l’absence de choix. Choisir le premier omet la propriété ; choisir un autre écrit son ancre. Le sélecteur ne propose pas « Aucun ».
+- Avec **`initial: none`**, aucun enfant n’est sélectionné en l’absence de choix. Choisir un enfant écrit son ancre, même si c’est le premier. Choisir « Aucun » omet la propriété.
+
+Le nom donné par `prop` doit correspondre à une propriété chaîne du composant parent, qui accepte d’être omise. Elle est déclarée uniquement dans `selection`, sans la répéter dans les `properties` du parent ou de l’enfant. `initial` doit refléter le comportement du composant : le YAML configure le builder, pas le rendu React. C’est pourquoi l’exemple `Tabs` utilise `first`, tandis qu’`Accordion` utilise `none`.
 
 ## Table de traduction YesWiki → WikiOui
 

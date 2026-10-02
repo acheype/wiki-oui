@@ -26,7 +26,7 @@ const descriptor: ComponentDescriptor = {
     label: "Bloc",
     anchorField: "title",
     collectionLabel: "Blocs dépliables",
-    initialSelection: "none",
+    selection: { prop: "default", initial: "none" },
     singleChildWarning:
       "Cet accordéon ne contient qu'un bloc. Utilisez plutôt un bloc dépliable seul.",
     initialContent: "Contenu du bloc dépliable à modifier",
@@ -51,6 +51,30 @@ const spec: ComponentBuilderSpec = {
 
 describe("managed-child ComponentBuilder", () => {
   afterEach(cleanup);
+
+  it("keeps child editing without a selection control when selection is absent", () => {
+    const withoutSelection = {
+      ...spec,
+      descriptor: {
+        ...descriptor,
+        children: { ...descriptor.children!, selection: undefined },
+      },
+    };
+    render(
+      <ComponentBuilderDialog
+        open
+        onOpenChange={vi.fn()}
+        state={{ mode: "insert", spec: withoutSelection, initial: insertionState(withoutSelection) }}
+        allSlugs={[]}
+        onSubmit={vi.fn()}
+      />
+    );
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.queryByText("Bloc ouvert au chargement")).toBeNull();
+    expect(screen.queryByText("Ouvert au départ")).toBeNull();
+    expect(screen.getAllByRole("textbox")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Ajouter un élément" })).toBeTruthy();
+  });
 
   it("offers no initial block, numbers additions, and blocks an empty wrapper", async () => {
     const user = userEvent.setup();

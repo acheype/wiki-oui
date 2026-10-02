@@ -14,6 +14,7 @@ import {
   type LineLookup,
   type PropValue,
   childDescriptor,
+  componentProperties,
   emitsMarkdownLink,
   fieldProp,
   pascalCase,
@@ -107,6 +108,7 @@ interface CheckContext {
   // Prefix under which this block's fields live in the YAML (["children"] for a
   // wrapper's contextual child surface, [] for a root component).
   pathBase: (string | number)[];
+  selectionProp?: string;
   lineOf?: LineLookup;
 }
 
@@ -114,7 +116,10 @@ interface CheckContext {
 // the field, then the bare file — so a message points at the offending key.
 function yamlRef(ctx: CheckContext, ...candidates: (string | number)[][]): string {
   for (const candidate of candidates) {
-    const line = ctx.lineOf?.(candidate.length ? [...ctx.pathBase, ...candidate] : candidate);
+    const fieldPath = candidate[0] === "properties" && candidate[1] === ctx.selectionProp
+      ? ["children", "selection", "prop"]
+      : candidate;
+    const line = ctx.lineOf?.(fieldPath.length ? [...ctx.pathBase, ...fieldPath] : fieldPath);
     if (line !== undefined) return `${ctx.yamlFile}:${line}`;
   }
   return ctx.yamlFile;
@@ -145,6 +150,7 @@ export function checkSignature(
     file: signature.file,
     yamlFile: options?.yamlFile ?? signature.file.replace(/\.tsx$/, ".yaml"),
     pathBase: options?.pathBase ?? [],
+    selectionProp: descriptor.children?.selection?.prop,
     lineOf,
   };
 
@@ -153,13 +159,14 @@ export function checkSignature(
   // component cannot destructure one default: it resolves it at runtime and
   // the drift check does not apply.
   const carrierCounts = new Map<string, number>();
-  for (const [field, spec] of Object.entries(descriptor.properties)) {
+  const properties = componentProperties(descriptor);
+  for (const [field, spec] of Object.entries(properties)) {
     if (spec.type === "divider") continue;
     const prop = fieldProp(field, spec);
     carrierCounts.set(prop, (carrierCounts.get(prop) ?? 0) + 1);
   }
 
-  for (const [field, spec] of Object.entries(descriptor.properties)) {
+  for (const [field, spec] of Object.entries(properties)) {
     if (spec.type === "divider") continue;
     const propName = fieldProp(field, spec);
     const prop = signature.props[propName];
@@ -175,12 +182,15 @@ export function checkSignature(
     const runtimeRequired = !prop.tsOptional && prop.destructuringDefault === undefined;
     if (runtimeRequired && !spec.required) {
       errors.push(
-        `${yamlRef(ctx, ["properties", field])}: field "${field}" must set "required: true" — prop "${propName}" is required at runtime in <${name}> (${tsxRef(ctx, prop.line)})`
+        field === ctx.selectionProp
+          ? `${yamlRef(ctx, ["properties", field])}: selection prop "${propName}" must be optional or have a runtime default in <${name}> (${tsxRef(ctx, prop.line)})`
+          : `${yamlRef(ctx, ["properties", field])}: field "${field}" must set "required: true" — prop "${propName}" is required at runtime in <${name}> (${tsxRef(ctx, prop.line)})`
       );
     }
 
     checkType(ctx, field, spec, prop, errors);
-    if ((carrierCounts.get(propName) ?? 0) < 2) {
+    // `first`/`none` describes child-dependent behavior, not a literal prop default.
+    if (field !== ctx.selectionProp && (carrierCounts.get(propName) ?? 0) < 2) {
       checkDrift(ctx, field, spec.default, prop, errors, warnings);
     }
 

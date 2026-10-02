@@ -105,7 +105,7 @@ export function createManagedWrapperEditor(
 ): ManagedWrapperEditor {
   const children = initial?.children ?? initialChildren(descriptor);
   const rows = withIds(children);
-  const wanted = initial?.defaultChild;
+  const wanted = descriptor.selection ? initial?.defaultChild : undefined;
   const defaultId = wanted
     ? rows.find(
         (row) => childAnchorSlug(row.values[descriptor.anchorField]) === wanted
@@ -224,8 +224,9 @@ export function managedWrapperResult(
   const collisions = collisionIds(descriptor, editor.rows);
   const first = editor.rows[0];
   const selected = editor.rows.find((row) => row.id === editor.defaultId);
-  const defaultRow =
-    descriptor.initialSelection === "none" ? selected : selected ?? first;
+  const selection = descriptor.selection;
+  let defaultRow = selection ? selected : undefined;
+  if (selection?.initial === "first") defaultRow ??= first;
   const defaultSlug = defaultRow
     ? childAnchorSlug(defaultRow.values[descriptor.anchorField])
     : undefined;
@@ -234,7 +235,7 @@ export function managedWrapperResult(
     : undefined;
   const defaultChild =
     defaultSlug &&
-    (descriptor.initialSelection === "none" || defaultSlug !== firstSlug)
+    (selection?.initial === "none" || defaultSlug !== firstSlug)
       ? defaultSlug
       : undefined;
   const source = generateWrapper(shape, {

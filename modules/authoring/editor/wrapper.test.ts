@@ -40,6 +40,7 @@ function tabsDescriptor(): ComponentDescriptor {
       component: "Tab",
       label: "Onglet",
       anchorField: "title",
+      selection: { prop: "default", initial: "first" },
       properties: {
         title: { label: "Titre", type: "text", required: true },
         icon: { label: "Icône", type: "icon" },
@@ -334,5 +335,29 @@ Contenu deux
 Contenu deux
   </Tab>après
 </Tabs>`);
+  });
+});
+
+describe("declared wrapper selection attribute", () => {
+  it("round-trips the declared prop while preserving an unrelated default attribute", () => {
+    const descriptor = tabsDescriptor();
+    descriptor.children!.selection = { prop: "active", initial: "first" };
+    const shape = wrapperShapeOf({ name: "Panels", descriptor, defaults: descriptorDefaults(descriptor) });
+    const source = '<Panels active="contact" default="untouched">\n  <Tab title="Contact">\nContent\n  </Tab>\n</Panels>';
+    const found = findWrapperAtCursor([shape], source, source.indexOf("Content"));
+    expect(found?.draft.defaultChild).toBe("contact");
+    expect(found?.draft.unknownAttributes).toEqual(['default="untouched"']);
+    expect(generateWrapper(shape, found!.draft)).toBe(source);
+  });
+
+  it("preserves default as an unknown prop when no selection is declared", () => {
+    const descriptor = tabsDescriptor();
+    delete descriptor.children!.selection;
+    const shape = wrapperShapeOf({ name: "Panels", descriptor, defaults: descriptorDefaults(descriptor) });
+    const source = '<Panels default="untouched">\n  <Tab title="Contact">\nContent\n  </Tab>\n</Panels>';
+    const found = findWrapperAtCursor([shape], source, source.indexOf("Content"));
+    expect(found?.draft.defaultChild).toBeUndefined();
+    expect(found?.draft.unknownAttributes).toEqual(['default="untouched"']);
+    expect(generateWrapper(shape, { ...found!.draft, defaultChild: "contact" })).toBe(source);
   });
 });

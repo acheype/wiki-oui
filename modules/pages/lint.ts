@@ -7,6 +7,7 @@ import {
   type PropValue,
   type PropValues,
   childAnchorSlug,
+  componentProperties,
   fieldProp,
   isManagedChildrenDescriptor,
   propKind,
@@ -290,7 +291,7 @@ export function lintPageSource(
     const spec = specs.get(name);
     if (!spec) return;
 
-    const properties = spec.descriptor.properties;
+    const properties = componentProperties(spec.descriptor);
     const written = new Set<string>();
 
     // A prop may be carried by several fields with disjoint showif (the

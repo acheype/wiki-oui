@@ -1170,3 +1170,47 @@ describe("wrapper children (ADR 0031)", () => {
     );
   });
 });
+
+describe("managed child selection declaration", () => {
+  function descriptor(selection: unknown) {
+    return {
+      label: "Blocs",
+      properties: {},
+      children: {
+        component: "Block",
+        label: "Bloc",
+        anchorField: "title",
+        selection,
+        properties: {
+          title: { label: "Titre", type: "text", required: true, initialValue: "Bloc" },
+        },
+      },
+    };
+  }
+
+  it("keeps an explicit selection contract", () => {
+    const selection = { prop: "active", initial: "none" };
+    expect(validateDescriptor("blocks.yaml", descriptor(selection)).children?.selection)
+      .toEqual(selection);
+  });
+
+  it.each([
+    { prop: "", initial: "none" },
+    { prop: 'active="injected"', initial: "none" },
+    { prop: "active" },
+    { initial: "none" },
+    { prop: "active", initial: "last" },
+  ])("rejects an invalid selection contract: %j", (selection) => {
+    expect(() => validateDescriptor("blocks.yaml", descriptor(selection))).toThrow();
+  });
+
+  it.each([
+    { active: { label: "Autre", type: "text" } },
+    { other: { label: "Autre", type: "text", prop: "active" } },
+  ])("rejects selection props also emitted by ordinary fields", (properties) => {
+    const raw = { ...descriptor({ prop: "active", initial: "none" }), properties };
+    expect(() => validateDescriptor("blocks.yaml", raw)).toThrow(
+      'children selection prop "active" is already declared in properties'
+    );
+  });
+});

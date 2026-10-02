@@ -345,7 +345,8 @@ function WrapperBuilderForm({
   const childDesc = shape.childDescriptor;
   const childDefaults = shape.childDefaults;
   const childrenDescriptor = spec.descriptor.children!;
-  const allowsNoDefault = childrenDescriptor.initialSelection === "none";
+  const selection = childrenDescriptor.selection;
+  const allowsNoDefault = selection?.initial === "none";
   const childLabel = childrenDescriptor.label;
   const childLabelLower = childLabel.toLocaleLowerCase("fr");
   const anchorField = childrenDescriptor.anchorField;
@@ -459,46 +460,48 @@ function WrapperBuilderForm({
           title={collectionLabel}
           hint={`Le champ «\u00A0${anchorLabel}\u00A0» de chaque élément donne son lien d'ancrage (#…).`}
         />
-        <RadioGroup
-          value={defaultRow?.id ?? "none"}
-          onValueChange={(value) =>
-            setEditor((current) =>
-              applyManagedWrapperCommand(current, {
-                type: "select",
-                id: value === "none" ? null : value,
-              })
-            )
-          }
-          className="grid gap-3"
-        >
-          <div className="grid gap-2 rounded-md border bg-muted/30 p-3">
-            <SectionHeading
-              title={`${childLabel} ouvert au chargement`}
-              hint={`Choisissez le ${childLabelLower} qui sera déjà ouvert quand la page s’affiche.`}
-            />
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              {allowsNoDefault && (
-                <Label className="flex items-center gap-2 text-sm font-normal">
-                  <RadioGroupItem value="none" />
-                  {`Aucun ${childLabelLower} ouvert`}
-                </Label>
-              )}
-              {children.map((row) => {
-                const label = String(row.values[anchorField] ?? "").trim();
-                return (
-                  <Label
-                    key={`initial-${row.id}`}
-                    className="flex min-w-0 items-center gap-2 text-sm font-normal"
-                  >
-                    <RadioGroupItem value={row.id} />
-                    <span className="max-w-64 truncate">
-                      {label || `${childLabel} sans ${anchorLabel.toLocaleLowerCase("fr")}`}
-                    </span>
+        <div className="grid gap-3">
+          {selection && (
+            <RadioGroup
+              value={defaultRow?.id ?? "none"}
+              onValueChange={(value) =>
+                setEditor((current) =>
+                  applyManagedWrapperCommand(current, {
+                    type: "select",
+                    id: value === "none" ? null : value,
+                  })
+                )
+              }
+              className="grid gap-2 rounded-md border bg-muted/30 p-3"
+            >
+              <SectionHeading
+                title={`${childLabel} ouvert au chargement`}
+                hint={`Choisissez le ${childLabelLower} qui sera déjà ouvert quand la page s’affiche.`}
+              />
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {allowsNoDefault && (
+                  <Label className="flex items-center gap-2 text-sm font-normal">
+                    <RadioGroupItem value="none" />
+                    {`Aucun ${childLabelLower} ouvert`}
                   </Label>
-                );
-              })}
-            </div>
-          </div>
+                )}
+                {children.map((row) => {
+                  const label = String(row.values[anchorField] ?? "").trim();
+                  return (
+                    <Label
+                      key={`initial-${row.id}`}
+                      className="flex min-w-0 items-center gap-2 text-sm font-normal"
+                    >
+                      <RadioGroupItem value={row.id} />
+                      <span className="max-w-64 truncate">
+                        {label || `${childLabel} sans ${anchorLabel.toLocaleLowerCase("fr")}`}
+                      </span>
+                    </Label>
+                  );
+                })}
+              </div>
+            </RadioGroup>
+          )}
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -536,7 +539,7 @@ function WrapperBuilderForm({
               Ajouter un élément
             </Button>
           </div>
-        </RadioGroup>
+        </div>
         <p className="text-xs text-muted-foreground">
           Le contenu de chaque élément s’écrit à l’intérieur de sa balise{" "}
           <code className="font-mono">{`<${shape.childName}>`}</code>

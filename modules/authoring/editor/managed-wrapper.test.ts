@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { lintPageSource } from "@/modules/pages/lint";
+import { loadComponentBuilders } from "../descriptors";
 import { descriptorDefaults, type ComponentDescriptor } from "../descriptor";
 import {
   applyManagedWrapperCommand,
@@ -14,7 +16,7 @@ const descriptor: ComponentDescriptor = {
     component: "Tab",
     label: "Onglet",
     anchorField: "heading",
-    initialSelection: "first",
+    selection: { prop: "default", initial: "first" },
     initialContent: "Contenu initial",
     properties: {
       heading: {
@@ -34,6 +36,34 @@ const shape = wrapperShapeOf({
 });
 
 describe("managed wrapper editing", () => {
+  it.each(["Accordion", "Tabs"])("generates %s selections accepted at page save", async (name) => {
+    const builders = await loadComponentBuilders();
+    const spec = builders.find((candidate) => candidate.name === name)!;
+    let editor = createManagedWrapperEditor(spec.descriptor.children!);
+    editor = applyManagedWrapperCommand(editor, { type: "select", id: editor.rows[1].id });
+    const result = managedWrapperResult(wrapperShapeOf(spec), editor, {
+      values: {}, unknownAttributes: [], globalMissing: false,
+    });
+    expect(result.blocked).toBe(false);
+    expect(result.source).toContain('default="');
+    const registry = builders.flatMap((builder) => [
+      builder.name, ...(builder.descriptor.children ? [builder.descriptor.children.component] : []),
+    ]);
+    expect(lintPageSource(result.source, registry, builders, new Set())).toEqual([]);
+  });
+
+  it("does not select or emit an initial child without a selection declaration", () => {
+    const children = { ...descriptor.children!, selection: undefined };
+    const spec = { name: "Blocks", descriptor: { ...descriptor, children }, defaults: {} };
+    let editor = createManagedWrapperEditor(children);
+    editor = applyManagedWrapperCommand(editor, { type: "select", id: editor.rows[1].id });
+    const result = managedWrapperResult(wrapperShapeOf(spec), editor, {
+      values: {}, unknownAttributes: [], globalMissing: false,
+    });
+    expect(result.defaultId).toBeNull();
+    expect(result.source).not.toContain(" default=");
+  });
+
   it("keeps the selected child through rename and reorder", () => {
     let editor = createManagedWrapperEditor(descriptor.children!, {
       defaultChild: "contact",
@@ -136,7 +166,7 @@ describe("managed wrapper editing", () => {
   });
 
   it("falls back to the declared omission policy after deleting the selection", () => {
-    const none = { ...descriptor.children!, initialSelection: "none" as const };
+    const none = { ...descriptor.children!, selection: { prop: "default", initial: "none" as const } };
     let editor = createManagedWrapperEditor(none, {
       defaultChild: "contact",
       children: [

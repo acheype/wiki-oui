@@ -301,7 +301,7 @@ const TABS_BUILDERS = [
         label: "Onglet",
         anchorField: "title",
         collectionLabel: "Onglets",
-        initialSelection: "first",
+        selection: { prop: "default", initial: "first" },
         singleChildWarning:
           "Ce groupe ne contient qu'un onglet et n'apporte donc aucune navigation. Vous pouvez afficher directement son titre et son contenu.",
         properties: {
@@ -392,7 +392,7 @@ const ACCORDION_BUILDERS = [
         label: "Bloc",
         anchorField: "title",
         collectionLabel: "Blocs dépliables",
-        initialSelection: "none",
+        selection: { prop: "default", initial: "none" },
         singleChildWarning:
           "Cet accordéon ne contient qu'un bloc. Utilisez plutôt un bloc dépliable seul.",
         properties: {
