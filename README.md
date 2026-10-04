@@ -99,7 +99,7 @@ Site-level configuration (special page slugs, upload limits and allowed extensio
 
 ### Deploying to a VPS (Dokploy)
 
-To run WikiOui on your own server rather than locally, see [`docs/deployment-dokploy.md`](docs/deployment-dokploy.md) (in French) — a step-by-step guide to deploying on any VPS with [Dokploy](https://dokploy.com), including PostgreSQL setup and HTTPS.
+To run WikiOui on your own server rather than locally, see [`docs/dokploy-deployment.md`](docs/dokploy-deployment.md) (in French) — a step-by-step guide to deploying on any VPS with [Dokploy](https://dokploy.com), including PostgreSQL setup and HTTPS.
 
 ## Documentation
 
@@ -107,7 +107,7 @@ To run WikiOui on your own server rather than locally, see [`docs/deployment-dok
 - [`docs/architecture.md`](docs/architecture.md) — architecture overview.
 - [`docs/adr/`](docs/adr/) — architecture decision records.
 - [`docs/component-builder.md`](docs/component-builder.md), [`docs/forms.md`](docs/forms.md), [`docs/entries-view.md`](docs/entries-view.md) — feature specifications.
-- [`docs/deployment-dokploy.md`](docs/deployment-dokploy.md) — VPS deployment guide (in French).
+- [`docs/dokploy-deployment.md`](docs/dokploy-deployment.md) — VPS deployment guide (in French).
 
 ## License
 

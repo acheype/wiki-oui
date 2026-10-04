@@ -133,7 +133,7 @@ Trois chantiers hors périmètre initial :
 
 - **Titre automatique calculé à l'écriture** (ADR [0020](adr/0020-automatic-title-stored-at-write.md)) : le titre d'une fiche en mode automatique était recalculé à chaque lecture (illisible pour trier, filtrer ou chercher côté base). Il est désormais **stocké dans `data`** comme toute valeur de champ, injecté côté serveur après validation, recalculé en masse quand le gabarit bouge (nouvelle révision par fiche changée, derrière confirmation) et garanti non vide par une contrainte en base.
 - **Rendu chrome-free** (ADR [0022](adr/0022-chrome-free-iframe-handler-and-wikiframe.md)) : handler `/{slug}/iframe` dans un groupe de routes `(bare)`, brique `WikiFrame` partagée, et `<Embed>` renommé en **`<Iframe>`** — il embarque désormais aussi bien une page du wiki (auto-dimensionnée) que le site d'un tiers.
-- **Déploiement** (ADR [0021](adr/0021-docker-standalone-migrate-seed-on-start.md)) : image Docker en sortie `standalone`, outils Prisma isolés, `migrate` à chaque démarrage et seed une seule fois. Guide VPS pas à pas : [`deployment-dokploy.md`](deployment-dokploy.md).
+- **Déploiement** (ADR [0021](adr/0021-docker-standalone-migrate-seed-on-start.md)) : image Docker en sortie `standalone`, outils Prisma isolés, `migrate` à chaque démarrage et seed une seule fois. Guide VPS pas à pas : [`dokploy-deployment.md`](dokploy-deployment.md).
 
 ## v0.5 — Utilisateurs & droits
 

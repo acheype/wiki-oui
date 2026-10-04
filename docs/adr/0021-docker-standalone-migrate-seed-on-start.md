@@ -4,7 +4,7 @@ L'image de production (`Dockerfile`) construit WikiOui avec `output: "standalone
 
 ## Contexte
 
-Jusqu'à la v0.4, WikiOui n'avait aucune histoire de déploiement en production — seule l'installation développeur (`pnpm dev` contre un Postgres local) était documentée. [`docs/deployment-dokploy.md`](../deployment-dokploy.md) introduit un chemin VPS via [Dokploy](https://dokploy.com), ce qui impose de packager l'application en image Docker.
+Jusqu'à la v0.4, WikiOui n'avait aucune histoire de déploiement en production — seule l'installation développeur (`pnpm dev` contre un Postgres local) était documentée. [`docs/dokploy-deployment.md`](../dokploy-deployment.md) introduit un chemin VPS via [Dokploy](https://dokploy.com), ce qui impose de packager l'application en image Docker.
 
 Deux contraintes structurent ce choix :
 

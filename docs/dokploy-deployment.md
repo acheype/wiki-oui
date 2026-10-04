@@ -10,16 +10,23 @@ Ce guide s'adresse à quiconque veut mettre en ligne un WikiOui sur son propre s
 
 Dokploy lui-même ne demande que 2 Go de RAM, mais la compilation de WikiOui (une application Next.js) est plus gourmande à la construction : nous recommandons **2 vCPU et 4 Go de RAM** au minimum. Sur une offre à 2 Go, ajoutez un [fichier d'échange (swap)](https://doc.ubuntu-fr.org/swap) de 2 Go avant l'installation pour éviter un plantage du build par manque de mémoire.
 
-Quelques fournisseurs proposant une offre 2 vCPU / 4 Go adaptée :
+**Configurations recommandées — 2 vCPU et 4 Go de RAM.** Ces offres donnent davantage de marge pour compiler et héberger WikiOui. Les prix ci-dessous sont exprimés en **TTC pour la France (TVA de 20 %)** afin de faciliter la comparaison.
 
-| Fournisseur | Offre | Prix indicatif |
-| --- | --- | --- |
-| [Hetzner](https://www.hetzner.com/cloud/) | CX22 (2 vCPU, 4 Go, 40 Go NVMe) | ≈ 4,50 €/mois |
-| [OVHcloud](https://www.ovhcloud.com/fr/vps/) | VPS-1 (2 vCPU, 4 Go) | ≈ 4,50 €/mois (engagement annuel) |
-| [Infomaniak](https://www.infomaniak.com/fr/hebergement/vps-lite) | VPS Lite 2 vCPU / 4 Go | ≈ 7,50 €/mois (facturé en CHF) |
-| [Scaleway](https://www.scaleway.com/fr/pricing/virtual-instances/) | BASIC2-A2C-4G (2 vCPU, 4 Go) | ≈ 17 €/mois |
+| Fournisseur | Offre | Prix indicatif TTC/mois | Conditions |
+| --- | --- | --- | --- |
+| [Hetzner](https://www.hetzner.com/cloud/cost-optimized/) | CX23 (2 vCPU, 4 Go, 40 Go NVMe) | ≈ 7,19 € | IPv4 incluse, facturation horaire avec plafond mensuel ; offre indiquée indisponible lors du relevé |
+| [OVHcloud](https://www.ovhcloud.com/fr/vps/) | VPS-1 (2 vCores, 4 Go, 40 Go NVMe) | Dès 4,57 € | Engagement de 12 mois, payé d'avance |
+| [Infomaniak](https://www.infomaniak.com/fr/hebergement/vps-lite) | VPS Lite (2 vCPU, 4 Go, 60 Go NVMe) | 8,64 € | Engagement annuel, payé en une fois |
+| [Netcup](https://www.netcup.com/en/server/vps-lite) | VPS Lite 1 G12.5s (2 vCore, 4 Go, 80 Go SSD) | ≈ 5,91 € | Engagement de 6 mois |
 
-*Tarifs indicatifs relevés en juillet 2026, hors taxes, à vérifier sur le site du fournisseur au moment de la commande — les grilles tarifaires évoluent régulièrement.*
+**Petit budget — offres à 2 Go de RAM.** Pour essayer WikiOui ou héberger un petit wiki peu fréquenté, ces offres réduisent le coût mensuel, mais la compilation dispose de moins de mémoire. Ajoutez **2 Go de swap avant l'installation** (étape 2) ; cela aide à éviter un manque de mémoire, au prix d'une compilation potentiellement plus lente. L'offre Infomaniak ne dispose aussi que d'un seul vCPU.
+
+| Fournisseur | Offre | Prix indicatif TTC/mois | Conditions |
+| --- | --- | --- | --- |
+| [Infomaniak](https://www.infomaniak.com/fr/hebergement/vps-lite) | VPS Lite (1 vCPU, 2 Go, 20 Go NVMe) | 3,24 € (2,70 € HT) | Engagement annuel, payé en une fois |
+| [Netcup](https://www.netcup.com/en/server/vps-lite) | VPS nano G11.5s (2 vCore, 2 Go, 60 Go SSD) | ≈ 3,72 € | Engagement de 6 mois |
+
+*Tarifs vérifiés le 4 octobre 2026 sur les pages des fournisseurs.
 
 Choisissez une image **Ubuntu** récente (22.04 ou 24.04 LTS) — c'est le système le plus largement testé avec Dokploy.
 
