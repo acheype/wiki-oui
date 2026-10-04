@@ -11,11 +11,13 @@ import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import {
   defaultHighlightStyle,
+  HighlightStyle,
   syntaxTree,
   syntaxHighlighting,
 } from "@codemirror/language";
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
+import { tags } from "@lezer/highlight";
 import { useEffect, useId, useRef, type RefObject } from "react";
 import { toggleInline } from "./commands";
 
@@ -42,6 +44,12 @@ function insertUnindentedElementLine(view: EditorView): boolean {
   }
   return insertNewline(view);
 }
+
+const editorHighlightStyle = HighlightStyle.define([
+  ...defaultHighlightStyle.specs,
+  { tag: tags.url, color: "var(--secondary)" },
+  { tag: tags.tagName, color: "#219" },
+]);
 
 const editorTheme = EditorView.theme({
   "&": { fontSize: "0.875rem", backgroundColor: "transparent" },
@@ -91,7 +99,7 @@ export function CodeMirrorEditor({
         extensions: [
           history(),
           markdown({ codeLanguages: languages }),
-          syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+          syntaxHighlighting(editorHighlightStyle, { fallback: true }),
           EditorView.lineWrapping,
           editorTheme,
           placeholder("Contenu de la page en MDX…"),

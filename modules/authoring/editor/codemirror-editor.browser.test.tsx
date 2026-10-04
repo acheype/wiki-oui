@@ -79,6 +79,30 @@ function editorLines(): string[] {
 }
 
 describe("CodeMirrorEditor (browser)", () => {
+  it("colors link targets secondary and component names blue", async () => {
+    await render(
+      <Harness
+        initialDoc={'[Texte](Accueil) [Site](https://example.org) <Button label="OK" />'}
+      />
+    );
+    const content = document.querySelector<HTMLElement>(".cm-content")!;
+    content.style.setProperty("--secondary", "rgb(120, 40, 140)");
+    const textNodes = document.createTreeWalker(content, NodeFilter.SHOW_TEXT);
+    const colors = new Map<string, string>();
+    while (textNodes.nextNode()) {
+      const node = textNodes.currentNode;
+      const text = node.textContent ?? "";
+      if (["Texte", "Accueil", "https://example.org", "Button"].includes(text)) {
+        colors.set(text, getComputedStyle(node.parentElement!).color);
+      }
+    }
+
+    expect(colors.get("Accueil")).toBe("rgb(120, 40, 140)");
+    expect(colors.get("https://example.org")).toBe("rgb(120, 40, 140)");
+    expect(colors.get("Texte")).not.toBe("rgb(120, 40, 140)");
+    expect(colors.get("Button")).toBe("rgb(34, 17, 153)");
+  });
+
   it("wraps the selection in ** on Mod-b", async () => {
     await render(<Harness />);
     const content = document.querySelector<HTMLElement>(".cm-content")!;
