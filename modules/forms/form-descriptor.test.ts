@@ -966,6 +966,12 @@ describe("Date / heure and Période values (docs/forms.md)", () => {
       expect(messageOf(dateTime, "18:30")).toBe("Choisissez la date.");
     });
 
+    it("asks for the date of a period whose times come first", () => {
+      expect(messageOf(period, { start: "18:30", end: "20:00" })).toBe(
+        "Choisissez la date."
+      );
+    });
+
     it("names the bound whose time is missing", () => {
       expect(
         messageOf(period, { start: "2026-11-03T18:30", end: "2026-11-03T" })

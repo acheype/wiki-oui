@@ -230,7 +230,7 @@ function EntryFields({
                   // A date or a period is judged as soon as it is complete —
                   // an end before its start shows at once, not at submit —
                   // and never while a time is still being typed.
-                  if (isTemporalField(field) && isSettled(value)) {
+                  if (isTemporalField(field) && isSettled(field, value)) {
                     void trigger(field.name);
                   }
                 }}

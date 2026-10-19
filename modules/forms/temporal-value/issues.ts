@@ -41,7 +41,9 @@ export function boundIssue(
       ? ", ou cochez « Toute la journée »"
       : "";
   const askTime = `Saisissez l'heure${of}${orTheBox}.`;
-  const askDate = `Choisissez la date${of}.`;
+  // One date button serves both bounds of a Période: name the date, not the
+  // bound.
+  const askDate = "Choisissez la date.";
   const format = resolvedFormat(settings);
 
   // A date waiting for its time: « Toute la journée » is unchecked and no

@@ -314,6 +314,22 @@ describe("<Field> for a Période", () => {
     });
   });
 
+  it("takes times before any date, over several days, without a stray day", async () => {
+    const user = userEvent.setup();
+    render(<Controlled initial={undefined} onChange={vi.fn()} />);
+
+    await user.click(screen.getByRole("checkbox", { name: "Sur plusieurs jours" }));
+    const start = within(screen.getByRole("group", { name: "Heure de début" }));
+    await user.click(start.getByRole("combobox", { name: "Heures" }));
+    await user.keyboard("1");
+    expect(screen.queryByText(/^le /)).toBeNull();
+    await user.keyboard("8");
+    expect(screen.queryByText(/^le /)).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    expect(await screen.findByRole("grid")).toBeTruthy();
+  });
+
   it("moves the end with the start, keeping the duration", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

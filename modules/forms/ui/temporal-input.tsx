@@ -38,10 +38,14 @@ interface BoundDraft {
   time: string;
 }
 
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+// A bound is a date only when it starts with one: a time typed before any
+// date — even half typed, « 1: » — stays a time.
 function splitBound(value: string): BoundDraft {
-  if (/^\d{2}:\d{2}$/.test(value)) return { date: "", time: value };
-  const [date = "", time = ""] = value.split("T");
-  return { date, time };
+  const [head = "", rest] = value.split("T");
+  if (rest !== undefined) return { date: head, time: rest };
+  return DAY.test(head) ? { date: head, time: "" } : { date: "", time: head };
 }
 
 // What a bound stores: the time is left out all day, and awaited (`date` +
@@ -280,7 +284,7 @@ function RangePicker({
   /** The first day clicked during this opening, awaiting the last one. */
   const [first, setFirst] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
-  const filled = start !== "" && end !== "";
+  const filled = DAY.test(start) && DAY.test(end);
   const text = filled ? formatTemporalValue({ start, end }) : "Choisir les dates";
   const length = filled ? Math.max(daysBetween(start, end), 0) : 0;
 
@@ -495,28 +499,19 @@ export function PeriodInput({
           )}
         </div>
       )}
-      {oneDay ? (
-        <div className="flex flex-wrap items-center gap-2">
-          {mode !== "time" && (
-            <DatePicker
-              id={id}
-              label="Date"
-              value={drafts.start.date}
-              invalid={invalid}
-              onChange={setOneDay}
-            />
-          )}
-          {showTimes && (
-            <>
-              {mode !== "time" && joiner("de")}
-              {startTime}
-              {joiner("à")}
-              {endTime}
-            </>
-          )}
-        </div>
-      ) : (
-        <>
+      {/* One line, wrapping only between whole « de … » and « à … » blocks.
+          Over several days each time is followed by its day: « de 18:30 à
+          19:30 » alone would read as a daily schedule. */}
+      <div className="flex flex-wrap items-center gap-2">
+        {mode === "time" ? null : oneDay ? (
+          <DatePicker
+            id={id}
+            label="Date"
+            value={drafts.start.date}
+            invalid={invalid}
+            onChange={setOneDay}
+          />
+        ) : (
           <RangePicker
             id={id}
             start={drafts.start.date}
@@ -526,21 +521,22 @@ export function PeriodInput({
               emit({ start: { ...drafts.start, date: start }, end: { ...drafts.end, date: end } })
             }
           />
-          {showTimes && (
-            // The day after each time: « de 18:30 à 19:30 » alone would read
-            // as a daily schedule, not as « from the 16th at 18:30 to the
-            // 20th at 19:30 ».
-            <div className="flex flex-wrap items-center gap-2">
-              {joiner("de")}
+        )}
+        {showTimes && (
+          <>
+            <span className="flex items-center gap-2">
+              {mode !== "time" && joiner("de")}
               {startTime}
-              {drafts.start.date && joiner(dayOfMonth(drafts.start.date))}
+              {!oneDay && DAY.test(drafts.start.date) && joiner(dayOfMonth(drafts.start.date))}
+            </span>
+            <span className="flex items-center gap-2">
               {joiner("à")}
               {endTime}
-              {drafts.end.date && joiner(dayOfMonth(drafts.end.date))}
-            </div>
-          )}
-        </>
-      )}
+              {!oneDay && DAY.test(drafts.end.date) && joiner(dayOfMonth(drafts.end.date))}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -99,12 +99,17 @@ export function isEmptyRange(value: unknown): boolean {
 
 /**
  * Whether a value being entered is finished enough to be judged: empty, or
- * every bound complete. A time half typed, a date awaiting its time, or a
- * Période with one bound left are still on their way.
+ * every bound complete. A time half typed, a date awaiting its time, a time
+ * whose date is still to be chosen, or a Période with one bound left are
+ * still on their way.
  */
-export function isSettled(value: unknown): boolean {
+export function isSettled(settings: TemporalSettings, value: unknown): boolean {
   if (isEmptyRange(value)) return true;
-  const settledBound = (bound: unknown) => parseTemporal(bound) !== null;
+  const expectsDate = resolvedFormat(settings) !== "time";
+  const settledBound = (bound: unknown) => {
+    const parts = parseTemporal(bound);
+    return parts !== null && (!expectsDate || parts.date !== undefined);
+  };
   if (isTemporalRange(value)) return settledBound(value.start) && settledBound(value.end);
   return settledBound(value);
 }
