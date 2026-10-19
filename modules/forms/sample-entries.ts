@@ -44,6 +44,27 @@ function sampleDay(today: string, index: number, span: number): string {
   return date.toISOString().slice(0, 10);
 }
 
+function shiftDay(day: string, days: number): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+const SAMPLE_TIMES = ["09:00", "14:30", "18:30", "20:00"];
+
+// A plausible Date / heure in the field's mode: every other sample is all day
+// in Date et heure mode, so a preview shows both kinds.
+function sampleMoment(
+  format: "datetime" | "date" | "time" | undefined,
+  day: string,
+  index: number
+): string {
+  const time = SAMPLE_TIMES[index % SAMPLE_TIMES.length];
+  if (format === "time") return time;
+  if (format === "date" || index % 2 === 1) return day;
+  return `${day}T${time}`;
+}
+
 // Geo points dispersed around a common center, so a map preview shows a
 // plausible scatter instead of a stack.
 function samplePoint(index: number): { lat: number; lng: number } {
@@ -86,8 +107,18 @@ function sampleValue(
       return `${SAMPLE_NAMES[index % SAMPLE_NAMES.length].toLowerCase()}@exemple.org`;
     case "url":
       return "https://exemple.org";
-    case "date":
-      return sampleDay(today, index, 7);
+    case "datetime":
+      return sampleMoment(field.format, sampleDay(today, index, 7), index);
+    case "datetimeRange": {
+      // Both bounds share one shape: timed or all day, and in order.
+      const start = sampleDay(today, index, 7);
+      const end = shiftDay(start, index % 3);
+      const from = SAMPLE_TIMES[index % 3];
+      const to = SAMPLE_TIMES[(index % 3) + 1];
+      if (field.format === "time") return { start: from, end: to };
+      if (field.format === "date" || index % 2 === 1) return { start, end };
+      return { start: `${start}T${from}`, end: `${end}T${to}` };
+    }
     case "image":
       return SAMPLE_IMAGE;
     case "file":
@@ -115,7 +146,7 @@ export const FALLBACK_SAMPLE_DESCRIPTOR: FormDescriptor = {
       options: { initiative: "Initiative", evenement: "Événement", lieu: "Lieu" },
     },
     { type: "textarea", name: "description", label: "Description" },
-    { type: "date", name: "date", label: "Date" },
+    { type: "datetime", name: "date", label: "Date", format: "date" },
     { type: "image", name: "image", label: "Image" },
     { type: "geolocation", name: "position", label: "Position" },
   ],

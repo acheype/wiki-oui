@@ -26,7 +26,8 @@ const associations: FormDescriptor = {
 const evenements: FormDescriptor = {
   fields: [
     { type: "title", name: "title", label: "Titre" },
-    { type: "date", name: "date-debut", label: "Date de début" },
+    { type: "datetime", name: "date-debut", label: "Date de début" },
+    { type: "datetime", name: "horaire", label: "Horaire", format: "time" },
     {
       type: "list",
       name: "type",
@@ -48,6 +49,7 @@ describe("unionEntryFields", () => {
       "commune",
       "logo",
       "date-debut",
+      "horaire",
     ]);
     const type = choices.find((choice) => choice.name === "type")!;
     expect(type.label).toBe("Type de structure");
@@ -93,15 +95,25 @@ describe("fieldChoiceOptions", () => {
 
   it("appends the declared pseudo-fields, $form only across several forms", () => {
     const restrict = {
-      fieldTypes: ["date" as const],
+      fieldTypes: ["datetime" as const],
       pseudoFields: ["$form" as const, "$createdAt" as const],
     };
     expect(
       fieldChoiceOptions(choices, restrict, true).map((option) => option.name)
-    ).toEqual(["date-debut", "$form", "$createdAt"]);
+    ).toEqual(["date-debut", "horaire", "$form", "$createdAt"]);
     expect(
       fieldChoiceOptions(choices, restrict, false).map((option) => option.name)
-    ).toEqual(["date-debut", "$createdAt"]);
+    ).toEqual(["date-debut", "horaire", "$createdAt"]);
+  });
+
+  it("leaves out the fields without a date when the selector asks for dates", () => {
+    const restrict = {
+      fieldTypes: ["datetime" as const, "datetimeRange" as const],
+      dated: true,
+    };
+    expect(
+      fieldChoiceOptions(choices, restrict, false).map((option) => option.name)
+    ).toEqual(["date-debut"]);
   });
 });
 

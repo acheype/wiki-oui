@@ -202,6 +202,8 @@ const descriptorFieldSchema = z.object({
   fieldTypes: z.array(z.enum(FORM_FIELD_TYPES)).optional(),
   /** form-field / field-rows: pseudo-fields offered next to the real fields. */
   pseudoFields: z.array(z.enum(PSEUDO_FIELDS)).optional(),
+  /** form-field: only the fields carrying a date (a time alone is left out). */
+  dated: z.boolean().optional(),
   /** For `field-rows`: each row also carries an optional icon. */
   withIcon: z.boolean().optional(),
   // color-mapping / icon-mapping: the sibling form-field whose selected

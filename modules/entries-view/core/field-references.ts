@@ -11,8 +11,7 @@ const SINGLE_FIELD_PROPS = [
   "colorField",
   "iconField",
   "hoverField",
-  "startDateField",
-  "endDateField",
+  "dateField",
   "captionField",
   "periodField",
 ] as const satisfies readonly (keyof EntriesViewProps)[];

@@ -39,6 +39,7 @@ import {
   countEntryDefaults,
   countFormReferences,
   countTitleImpact,
+  countValueConversion,
   renameForm,
   saveForm,
 } from "@/modules/forms/form-actions";
@@ -46,6 +47,7 @@ import { NO_FLOOR } from "@/modules/permissions/acl-input";
 import { Field } from "@/modules/forms/field-widget";
 import { InfoNote } from "@/components/ui/info-note";
 import type { TitleRecomputeImpact } from "@/modules/forms/entry-title/sweep";
+import type { TemporalConversionImpact } from "@/modules/forms/temporal-value/sweep";
 import {
   type EntryRightsImpact,
   type FormPermissions,
@@ -191,17 +193,23 @@ export function FormBuilder({
   const [permissions, setPermissions] = useState<FormPermissions>(
     initial?.permissions ?? bornFormPermissions()
   );
-  /** Pending title recompute awaiting confirmation (ADR 0020). */
-  const [titleImpact, setTitleImpact] = useState<TitleRecomputeImpact | null>(
-    null
-  );
+  /**
+   * Pending save awaiting confirmation: the title recompute (ADR 0020) and
+   * the value conversion of a changed Date / heure mode (docs/forms.md), each
+   * null when the save leaves that part of the fiches alone.
+   */
+  const [saveImpact, setSaveImpact] = useState<{
+    titles: TitleRecomputeImpact | null;
+    values: TemporalConversionImpact | null;
+  } | null>(null);
   /**
    * Pending « Appliquer ces accès… » awaiting confirmation, with the title
-   * recompute the same save would trigger (null when titles stay as they are).
+   * recompute and value conversion the same save would trigger.
    */
   const [applyImpact, setApplyImpact] = useState<{
     rights: EntryRightsImpact;
     titles: TitleRecomputeImpact | null;
+    values: TemporalConversionImpact | null;
   } | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -291,22 +299,25 @@ export function FormBuilder({
     setTemplate((current) => renameFieldReferences(current, mapping) ?? current);
   }
 
-  /** Saves, and says whether it went through — the callers that follow it care. */
-  async function persistOnly(): Promise<boolean> {
-    // The staged renames (ADR 0017): every persisted field whose identifier
-    // moved since load feeds the server's data-key retcon.
-    const renames = fields.flatMap((field) =>
+  // The staged renames (ADR 0017): every persisted field whose identifier
+  // moved since load feeds the server's data-key retcon.
+  function stagedRenames() {
+    return fields.flatMap((field) =>
       field.persistedName !== undefined && field.persistedName !== field.name
         ? [{ from: field.persistedName, to: field.name }]
         : []
     );
+  }
+
+  /** Saves, and says whether it went through — the callers that follow it care. */
+  async function persistOnly(): Promise<boolean> {
     const result: SaveFormResult = await saveForm({
       slug,
       name,
       schema: toDescriptor(fields, permissions),
       template,
       isNew,
-      renames,
+      renames: stagedRenames(),
     });
     if (!result.ok) {
       reportIssues(result.issues);
@@ -372,11 +383,24 @@ export function FormBuilder({
     return impact && impact.updated + impact.skipped > 0 ? impact : null;
   }
 
+  /** A changed Date / heure mode converts the stored values: counted first. */
+  async function valueConversion(): Promise<TemporalConversionImpact | null> {
+    if (isNew) return null;
+    return countValueConversion(
+      slug,
+      toDescriptor(fields, permissions),
+      stagedRenames()
+    );
+  }
+
   function save() {
     startTransition(async () => {
       if (reportUnfinished()) return;
-      const impact = await titleRecompute();
-      if (impact) setTitleImpact(impact);
+      const [titles, values] = await Promise.all([
+        titleRecompute(),
+        valueConversion(),
+      ]);
+      if (titles || values) setSaveImpact({ titles, values });
       else await persist();
     });
   }
@@ -394,9 +418,10 @@ export function FormBuilder({
   function askToApply() {
     startTransition(async () => {
       if (reportUnfinished()) return;
-      const [counted, titles] = await Promise.all([
+      const [counted, titles, values] = await Promise.all([
         countEntryDefaults(slug, permissions),
         titleRecompute(),
+        valueConversion(),
       ]);
       if ("error" in counted) {
         toast.error(counted.error);
@@ -406,7 +431,7 @@ export function FormBuilder({
         toast.error("Ce formulaire n'existe plus.");
         return;
       }
-      setApplyImpact({ rights: counted.impact, titles });
+      setApplyImpact({ rights: counted.impact, titles, values });
     });
   }
 
@@ -542,17 +567,36 @@ export function FormBuilder({
       </Tabs>
 
       <AlertDialog
-        open={titleImpact !== null}
-        onOpenChange={(open) => !open && setTitleImpact(null)}
+        open={saveImpact !== null}
+        onOpenChange={(open) => !open && setSaveImpact(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Recalculer le titre des fiches&nbsp;?
+              {saveImpact?.values
+                ? "Modifier les fiches existantes\u00A0?"
+                : "Recalculer le titre des fiches\u00A0?"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {titleImpact && (
-                <TitleImpactSentence impact={titleImpact} />
+            <AlertDialogDescription render={<div className="grid gap-3" />}>
+              {saveImpact?.values && saveImpact.titles ? (
+                <>
+                  <ImpactSection heading="1. Valeurs">
+                    <ValueConversionSentences impact={saveImpact.values} />
+                  </ImpactSection>
+                  <ImpactSection heading="2. Titres">
+                    <TitleImpactSentence impact={saveImpact.titles} />
+                  </ImpactSection>
+                </>
+              ) : saveImpact?.values ? (
+                <p>
+                  <ValueConversionSentences impact={saveImpact.values} />
+                </p>
+              ) : (
+                saveImpact?.titles && (
+                  <p>
+                    <TitleImpactSentence impact={saveImpact.titles} />
+                  </p>
+                )
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -562,11 +606,13 @@ export function FormBuilder({
               disabled={isPending}
               onClick={() =>
                 startTransition(async () => {
-                  if (await persist()) setTitleImpact(null);
+                  if (await persist()) setSaveImpact(null);
                 })
               }
             >
-              Enregistrer et recalculer
+              {saveImpact?.values
+                ? "Enregistrer et modifier les fiches"
+                : "Enregistrer et recalculer"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -579,22 +625,39 @@ export function FormBuilder({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {applyImpact?.titles
+              {applyImpact?.titles || applyImpact?.values
                 ? "Enregistrer et modifier les fiches existantes\u00A0?"
                 : "Appliquer ces accès aux fiches existantes\u00A0?"}
             </AlertDialogTitle>
             <AlertDialogDescription render={<div className="grid gap-3" />}>
-              {applyImpact?.titles ? (
-                // Two effects of one save, each under its own heading so the
-                // reader does not take the title count for part of the rights.
+              {applyImpact?.titles || applyImpact?.values ? (
+                // Several effects of one save, each under its own heading so
+                // the reader does not take one count for part of another.
                 <>
-                  <p>L&apos;enregistrement modifie les fiches existantes sur deux points.</p>
-                  <ImpactSection heading="1. Accès">
-                    <ImpactSentences {...entryRightsNote(applyImpact.rights)} />
-                  </ImpactSection>
-                  <ImpactSection heading="2. Titres">
-                    <TitleImpactSentence impact={applyImpact.titles} />
-                  </ImpactSection>
+                  <p>L&apos;enregistrement modifie aussi les fiches existantes.</p>
+                  {[
+                    {
+                      heading: "Accès",
+                      body: <ImpactSentences {...entryRightsNote(applyImpact.rights)} />,
+                    },
+                    applyImpact.values && {
+                      heading: "Valeurs",
+                      body: <ValueConversionSentences impact={applyImpact.values} />,
+                    },
+                    applyImpact.titles && {
+                      heading: "Titres",
+                      body: <TitleImpactSentence impact={applyImpact.titles} />,
+                    },
+                  ]
+                    .filter((section) => !!section)
+                    .map((section, index) => (
+                      <ImpactSection
+                        key={section.heading}
+                        heading={`${index + 1}. ${section.heading}`}
+                      >
+                        {section.body}
+                      </ImpactSection>
+                    ))}
                 </>
               ) : (
                 applyImpact && (
@@ -616,7 +679,8 @@ export function FormBuilder({
                 isPending ||
                 (applyImpact !== null &&
                   appliesNothing(applyImpact.rights) &&
-                  !applyImpact.titles?.updated)
+                  !applyImpact.titles?.updated &&
+                  !applyImpact.values)
               }
               onClick={() =>
                 startTransition(async () => {
@@ -768,6 +832,36 @@ function RightsEditor({
         )}
       </div>
     </div>
+  );
+}
+
+// What a change of Date / heure mode does to the stored values, field by
+// field (docs/forms.md § Changer le mode d'un champ).
+function ValueConversionSentences({
+  impact,
+}: {
+  impact: TemporalConversionImpact;
+}) {
+  const sentences = impact.flatMap(({ label, timeDropped, emptied, timeMissing }) => {
+    const field = `«\u00A0${label}\u00A0»\u00A0:`;
+    const entryCount = (count: number) => (count > 1 ? `${count} fiches` : "1 fiche");
+    return [
+      timeDropped > 0 &&
+        `${field} ${entryCount(timeDropped)} ${timeDropped > 1 ? "perdront leur heure" : "perdra son heure"}.`,
+      emptied > 0 &&
+        `${field} ${entryCount(emptied)} ${emptied > 1 ? "perdront leur valeur" : "perdra sa valeur"}.`,
+      timeMissing > 0 &&
+        `${field} ${entryCount(timeMissing)} ${timeMissing > 1 ? "n'ont pas d'heure. Elle sera demandée à leur" : "n'a pas d'heure. Elle sera demandée à sa"} prochaine modification.`,
+    ].filter((sentence): sentence is string => typeof sentence === "string");
+  });
+  return (
+    <>
+      {sentences.map((sentence) => (
+        <span key={sentence} className="block">
+          {sentence}
+        </span>
+      ))}
+    </>
   );
 }
 

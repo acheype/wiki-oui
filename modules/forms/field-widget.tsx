@@ -5,24 +5,14 @@
 // the entry form (descriptor JSON → entry data). The entry vocabulary is a
 // superset of the component one; every new widget benefits both.
 
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { listUsedFieldValues } from "@/modules/forms/entry-actions";
 import { listFormChoices } from "@/modules/forms/form-actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -40,10 +30,14 @@ import {
   propKindFits,
 } from "@/modules/authoring/descriptor";
 import type { FormFieldType } from "@/modules/forms/form-descriptor";
+import type {
+  TemporalFormat,
+  TemporalRange,
+} from "@/modules/forms/temporal-value/formats";
+import { DateTimeInput, PeriodInput } from "@/modules/forms/ui/temporal-input";
 import type { AccessRule, AclDirectory, AclFloor } from "@/modules/permissions/rules";
 import type { PseudoField } from "@/modules/forms/pseudo-fields";
 import { isExternalHref } from "@/lib/slug";
-import { cn } from "@/lib/utils";
 import { NO_FLOOR, AclInput } from "@/modules/permissions/acl-input";
 import {
   ColorMappingInput,
@@ -112,6 +106,8 @@ export interface FieldWidgetSpec {
   fieldTypes?: FormFieldType[];
   /** form-field/field-rows: pseudo-fields offered next to the real fields. */
   pseudoFields?: PseudoField[];
+  /** form-field: only the fields carrying a date. */
+  dated?: boolean;
   /** field-rows: each row also carries an optional icon. */
   withIcon?: boolean;
   /** color-mapping/icon-mapping: sibling form-field the options come from. */
@@ -119,7 +115,9 @@ export interface FieldWidgetSpec {
   subtype?: "text" | "number";
   maxLength?: number;
   rows?: number;
-  initTodayButton?: boolean;
+  /** datetime/datetimeRange: what is entered, and whether the time may be left out. */
+  format?: TemporalFormat;
+  optionalTime?: boolean;
   fillingMode?: "normal" | "tags" | "dragAndDrop";
   /** geolocation: bindings to the form's address fields + locate button. */
   streetField?: string;
@@ -139,6 +137,7 @@ export type FieldValue =
   | PropValue
   | string[]
   | { lat: number; lng: number }
+  | TemporalRange
   | AccessRule;
 
 /** Ambient data some widgets list from (injected by the envelope). */
@@ -359,12 +358,22 @@ export function FieldWidget({
           }
         />
       );
-    case "date":
+    case "datetime":
       return (
-        <DateInput
+        <DateTimeInput
           id={id}
           value={typeof value === "string" ? value : ""}
-          initTodayButton={spec.initTodayButton}
+          settings={spec}
+          invalid={invalid}
+          onChange={onChange}
+        />
+      );
+    case "datetimeRange":
+      return (
+        <PeriodInput
+          id={id}
+          value={value}
+          settings={spec}
           invalid={invalid}
           onChange={onChange}
         />
@@ -626,74 +635,6 @@ function ChoiceChips({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-// shadcn datepicker over an ISO yyyy-mm-dd storage (docs/forms.md).
-function DateInput({
-  id,
-  value,
-  initTodayButton,
-  invalid,
-  onChange,
-}: {
-  id: string;
-  value: string;
-  initTodayButton?: boolean;
-  invalid?: boolean;
-  onChange: (value: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = value ? new Date(`${value}T00:00:00`) : undefined;
-  const setDate = (date: Date | undefined) =>
-    onChange(date ? format(date, "yyyy-MM-dd") : "");
-
-  return (
-    <div className="flex items-center gap-2">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              id={id}
-              type="button"
-              variant="outline"
-              aria-invalid={invalid}
-              className={cn(
-                "w-52 justify-start font-normal",
-                !selected && "text-muted-foreground"
-              )}
-            />
-          }
-        >
-          <CalendarIcon className="size-4" aria-hidden />
-          {selected
-            ? format(selected, "d MMMM yyyy", { locale: fr })
-            : "Choisir une date"}
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            locale={fr}
-            selected={selected}
-            defaultMonth={selected}
-            onSelect={(date) => {
-              setDate(date);
-              setOpen(false);
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-      {initTodayButton && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => setDate(new Date())}
-        >
-          Aujourd&apos;hui
-        </Button>
-      )}
     </div>
   );
 }

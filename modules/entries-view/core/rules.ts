@@ -7,6 +7,10 @@
 import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
 import { valueToText } from "@/modules/forms/form-descriptor";
 import { isPseudoField } from "@/modules/forms/pseudo-fields";
+import {
+  compareTemporalValues,
+  temporalSpan,
+} from "@/modules/forms/temporal-value";
 import { fold } from "@/lib/fold";
 import type { ViewEntry } from "../view-entry";
 
@@ -136,11 +140,16 @@ function isBlank(value: unknown): boolean {
   return value === undefined || value === null || value === "";
 }
 
-// Numbers numerically; everything else as folded text (ISO dates order
-// lexically).
+// Numbers numerically; a Période by its start, then its end; everything
+// else as folded text — ISO dates order lexically, and an all-day date, the
+// shorter string, comes before the same day with a time.
 function compareValues(left: unknown, right: unknown): number {
   if (typeof left === "number" && typeof right === "number") {
     return left - right;
+  }
+  if (typeof left === "object" && typeof right === "object") {
+    const order = compareTemporalValues(left, right);
+    if (order !== null) return order;
   }
   return fold(valueToText(left)).localeCompare(fold(valueToText(right)), "fr");
 }
@@ -191,10 +200,13 @@ function periodBounds(
 }
 
 /**
- * Keeps the entries whose date field falls in the period. An entry without a
- * date on that field is dropped: a period is a restriction on a date, and a
- * dateless entry cannot satisfy it. `today` is injected (yyyy-mm-dd) so the
- * rule stays pure and testable.
+ * Keeps the entries whose date field overlaps the period — a single date
+ * falls in it, a Période shares at least one day with it, so an ongoing
+ * event stays « À venir » — except « Passées », which keeps only what is
+ * over (docs/entries-view.md). An entry without a date on
+ * that field is dropped: a period is a restriction on a date, and a dateless
+ * entry cannot satisfy it. `today` is injected (yyyy-mm-dd) so the rule stays
+ * pure and testable.
  */
 export function applyPeriod(
   entries: ViewEntry[],
@@ -204,18 +216,16 @@ export function applyPeriod(
 ): ViewEntry[] {
   const { from, to } = periodBounds(period, today);
   return entries.filter((entry) => {
-    const day = entryDay(entryValue(entry, periodField));
-    if (day === null) return false;
-    return (!from || day >= from) && (!to || day <= to);
+    const span = temporalSpan(entryValue(entry, periodField));
+    if (span === null) return false;
+    const first = span.start.slice(0, 10);
+    const last = span.end.slice(0, 10);
+    // « Passées » means over: a Période still running is not past yet.
+    if (period === "past") return to !== undefined && last <= to;
+    return (!from || last >= from) && (!to || first <= to);
   });
 }
 
-/** yyyy-mm-dd of a date value (entry date, or pseudo-field ISO datetime). */
-export function entryDay(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const day = value.slice(0, 10);
-  return /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null;
-}
 
 /* ------------------------------------------------------------------ *
  * The full pipeline, in the order the spec fixes

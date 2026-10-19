@@ -4,7 +4,6 @@ import {
   applyPeriod,
   defaultSearchFields,
   directoryGroups,
-  entryDay,
   filterCounts,
   hasActiveFilter,
   queryEntries,
@@ -13,6 +12,7 @@ import {
   splitPseudo,
 } from "./rules";
 import type { ViewEntry } from "../view-entry";
+import { temporalSpan } from "@/modules/forms/temporal-value";
 import { sampleEntries, FALLBACK_SAMPLE_DESCRIPTOR } from "@/modules/forms/sample-entries";
 
 const entry = (
@@ -125,11 +125,84 @@ describe("applyPeriod", () => {
     expect(applyPeriod(dateless, "future", "date", today)).toHaveLength(0);
   });
 
-  it("reads pseudo-field ISO datetimes as days", () => {
-    expect(entryDay("2026-07-19T10:00:00.000Z")).toBe("2026-07-19");
-    expect(entryDay("2026-07-19")).toBe("2026-07-19");
-    expect(entryDay(42)).toBeNull();
-    expect(entryDay("pas-une-date")).toBeNull();
+  it("reads a pseudo-field timestamp as its day", () => {
+    const created = [entry("x", "Créée", { $createdAt: "2026-07-19T10:00:00.000Z" })];
+    expect(applyPeriod(created, "today", "$createdAt", today)).toHaveLength(1);
+  });
+});
+
+describe("a Période on the period field (overlap)", () => {
+  const today = "2026-11-03";
+  const festival = entry("festival", "Festival", {
+    dates: { start: "2026-11-01", end: "2026-11-05" },
+  });
+  const salon = entry("salon", "Salon", {
+    dates: { start: "2026-10-20", end: "2026-10-22" },
+  });
+  const concert = entry("concert", "Concert", {
+    dates: { start: "2026-11-20T20:00", end: "2026-11-20T23:00" },
+  });
+  const all = [festival, salon, concert];
+  const slugs = (period: Parameters<typeof applyPeriod>[1]) =>
+    applyPeriod(all, period, "dates", today).map((e) => e.slug);
+
+  it("keeps an ongoing period in « À venir »", () => {
+    expect(slugs("future")).toEqual(["festival", "concert"]);
+  });
+
+  it("keeps in « Passées » only the periods already over", () => {
+    expect(slugs("past")).toEqual(["salon"]);
+  });
+
+  it("keeps in « Aujourd'hui » the periods containing today", () => {
+    expect(slugs("today")).toEqual(["festival"]);
+  });
+
+  it("keeps in a window the periods overlapping it", () => {
+    expect(slugs("one-week-around")).toEqual(["festival"]);
+    expect(slugs("last-30-days")).toEqual(["festival", "salon"]);
+  });
+});
+
+describe("sorting Date / heure and Période values", () => {
+  const by = (list: ViewEntry[], order: "asc" | "desc" = "asc") =>
+    sortEntries(list, "quand", order).map((e) => e.slug);
+
+  it("sorts an all-day value before a timed one on the same day", () => {
+    const list = [
+      entry("soir", "Soir", { quand: "2026-11-03T18:30" }),
+      entry("jour", "Jour", { quand: "2026-11-03" }),
+      entry("matin", "Matin", { quand: "2026-11-03T09:00" }),
+    ];
+    expect(by(list)).toEqual(["jour", "matin", "soir"]);
+  });
+
+  it("sorts periods by start, then by end", () => {
+    const list = [
+      entry("long", "Long", { quand: { start: "2026-11-03", end: "2026-11-09" } }),
+      entry("tard", "Tard", { quand: { start: "2026-11-04", end: "2026-11-04" } }),
+      entry("court", "Court", { quand: { start: "2026-11-03", end: "2026-11-04" } }),
+    ];
+    expect(by(list)).toEqual(["court", "long", "tard"]);
+    expect(by(list, "desc")).toEqual(["tard", "long", "court"]);
+  });
+
+  it("sorts time ranges by start, then by end", () => {
+    const list = [
+      entry("aprem", "Après-midi", { quand: { start: "14:00", end: "17:00" } }),
+      entry("long", "Matinée longue", { quand: { start: "09:00", end: "12:30" } }),
+      entry("court", "Matinée courte", { quand: { start: "09:00", end: "10:00" } }),
+    ];
+    expect(by(list)).toEqual(["court", "long", "aprem"]);
+  });
+
+  it("sinks an empty period to the end whatever the direction", () => {
+    const list = [
+      entry("vide", "Vide", { quand: undefined }),
+      entry("plein", "Plein", { quand: { start: "2026-11-03", end: "2026-11-03" } }),
+    ];
+    expect(by(list, "asc")).toEqual(["plein", "vide"]);
+    expect(by(list, "desc")).toEqual(["plein", "vide"]);
   });
 });
 
@@ -197,7 +270,7 @@ describe("sampleEntries", () => {
     const samples = sampleEntries(FALLBACK_SAMPLE_DESCRIPTOR, today, "assos");
     expect(samples[0].values.$form).toBe("assos");
     expect(typeof samples[0].values.$owner).toBe("string");
-    expect(entryDay(samples[0].values.$createdAt)).not.toBeNull();
+    expect(temporalSpan(samples[0].values.$createdAt)).not.toBeNull();
   });
 
   it("defaultSearchFields sweeps the text-like union fields", () => {

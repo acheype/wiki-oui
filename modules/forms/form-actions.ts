@@ -18,7 +18,9 @@ import {
 import { loadComponentBuilders } from "@/modules/authoring/descriptors";
 import { type FieldRename, fieldRenameMapping } from "@/modules/forms/field-rename/rules";
 import type { TitleRecomputeImpact } from "@/modules/forms/entry-title/sweep";
+import type { TemporalConversionImpact } from "@/modules/forms/temporal-value/sweep";
 import {
+  countSaveTemporalImpact,
   countSaveTitleImpact,
   createForm,
   currentCanCreateForm,
@@ -343,6 +345,27 @@ export async function countTitleImpact(
   const after = parseFormDescriptor(schema).descriptor;
   if (!after) return null;
   return countSaveTitleImpact(formSlug, after);
+}
+
+/**
+ * The confirmation's headcount before a form save converts the stored values
+ * of a Date / heure or Période whose mode changed (docs/forms.md § Changer le
+ * mode d'un champ). Null when no entry is touched, so the FormBuilder saves
+ * straight through. The staged renames pair each field with its stored self.
+ */
+export async function countValueConversion(
+  formSlug: string,
+  schema: unknown,
+  renames: FieldRename[]
+): Promise<TemporalConversionImpact | null> {
+  const after = parseFormDescriptor(schema).descriptor;
+  if (!after) return null;
+  const impact = await countSaveTemporalImpact(
+    formSlug,
+    after,
+    fieldRenameMapping(renames)
+  );
+  return impact && impact.length > 0 ? impact : null;
 }
 
 export type RenameFormResult = { error: string } | { ok: true };

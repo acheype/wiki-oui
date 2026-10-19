@@ -285,7 +285,7 @@ describe("deriveEntrySchema", () => {
       { type: "textarea", name: "bio", label: "Bio" },
       { type: "email", name: "email", label: "Email", required: true },
       { type: "url", name: "site", label: "Site" },
-      { type: "date", name: "naissance", label: "Naissance" },
+      { type: "datetime", name: "naissance", label: "Naissance", format: "date" },
       {
         type: "list",
         name: "statut",
@@ -388,7 +388,7 @@ describe("deriveEntrySchema", () => {
     ).toBe(false);
   });
 
-  it("stores a date as ISO yyyy-mm-dd", () => {
+  it("stores a date as ISO yyyy-mm-dd, never a French date", () => {
     expect(
       schema.safeParse({ ...validData, naissance: "14/03/1992" }).success
     ).toBe(false);
@@ -599,6 +599,26 @@ describe("computeAutomaticTitle", () => {
       computeAutomaticTitle(descriptor, { prenom: "Alice", nom: "Dupont" })
     ).toBe("Alice Dupont (asso)");
   });
+
+  it("writes a Date / heure or Période reference as French text", () => {
+    const descriptor: FormDescriptor = {
+      fields: [
+        {
+          type: "title",
+          name: "title",
+          label: "Titre de la fiche",
+          automatic: true,
+          template: "Concert ({dates})",
+        },
+        { type: "datetimeRange", name: "dates", label: "Dates" },
+      ],
+    };
+    expect(
+      computeAutomaticTitle(descriptor, {
+        dates: { start: "2026-11-03", end: "2026-11-05" },
+      })
+    ).toBe("Concert (du 3 au 5 novembre 2026)");
+  });
 });
 
 // ADR 0020: the title is stored, so the refusal has to name the fields the
@@ -643,8 +663,8 @@ describe("formAuthoringIssues", () => {
   // Naming the field by its label would name it "" — the missing setting
   // itself — so the refusal falls back on the type it was dropped from.
   it("names a label-less field by its type", () => {
-    const [issue] = formAuthoringIssues(withField({ type: "date", label: "" }));
-    expect(issue.message).toContain("«\u00A0Champ date\u00A0»");
+    const [issue] = formAuthoringIssues(withField({ type: "datetime", label: "" }));
+    expect(issue.message).toContain("«\u00A0Date / heure\u00A0»");
   });
 
   it("refuses a field whose identifier is empty", () => {
@@ -856,5 +876,114 @@ describe("slugify", () => {
 
   it("returns an empty string when nothing survives", () => {
     expect(slugify("’’ !!")).toBe("");
+  });
+});
+
+describe("Date / heure and Période values (docs/forms.md)", () => {
+  function schemaOf(field: FormDescriptor["fields"][number]) {
+    return deriveEntrySchema({
+      fields: [{ type: "title", name: "title", label: "Titre" }, field],
+    });
+  }
+  const valid = (field: FormDescriptor["fields"][number], value: unknown) =>
+    schemaOf(field).safeParse({ title: "Concert", quand: value }).success;
+
+  describe("a Date / heure field in Date et heure mode", () => {
+    const field = {
+      type: "datetime",
+      name: "quand",
+      label: "Quand",
+      format: "datetime",
+      optionalTime: true,
+    } as const;
+
+    it("accepts a local date with a time", () => {
+      expect(valid(field, "2026-11-03T18:30")).toBe(true);
+    });
+
+    it("accepts a date alone when the time is optional (all day)", () => {
+      expect(valid(field, "2026-11-03")).toBe(true);
+    });
+
+    it("refuses an impossible time", () => {
+      expect(valid(field, "2026-11-03T25:00")).toBe(false);
+    });
+
+    it("refuses a date alone when the time is required", () => {
+      expect(valid({ ...field, optionalTime: false }, "2026-11-03")).toBe(false);
+    });
+
+    it("refuses a time alone", () => {
+      expect(valid(field, "18:30")).toBe(false);
+    });
+
+    it("refuses a date still waiting for its time", () => {
+      expect(valid(field, "2026-11-03T")).toBe(false);
+    });
+
+    it("blames the time, not the date, for an unfinished time", () => {
+      const result = schemaOf(field).safeParse({
+        title: "Concert",
+        quand: "2026-11-03T18",
+      });
+      expect(result.error?.issues[0].message).toBe("Heure invalide.");
+    });
+  });
+
+  it("takes a date alone in Date mode, a time alone in Heure mode", () => {
+    const base = { type: "datetime", name: "quand", label: "Quand" } as const;
+    expect(valid({ ...base, format: "date" }, "2026-11-03")).toBe(true);
+    expect(valid({ ...base, format: "date" }, "2026-11-03T18:30")).toBe(false);
+    expect(valid({ ...base, format: "time" }, "18:30")).toBe(true);
+    expect(valid({ ...base, format: "time" }, "2026-11-03")).toBe(false);
+  });
+
+  describe("a Période field", () => {
+    const field = {
+      type: "datetimeRange",
+      name: "quand",
+      label: "Dates",
+    } as const;
+    const range = (start: string, end: string) => ({ start, end });
+
+    it("accepts a period over several days, with or without times", () => {
+      expect(valid(field, range("2026-11-03", "2026-11-05"))).toBe(true);
+      expect(
+        valid(field, range("2026-11-03T18:30", "2026-11-05T12:00"))
+      ).toBe(true);
+    });
+
+    it("accepts a single all-day date as start and end", () => {
+      expect(valid(field, range("2026-11-03", "2026-11-03"))).toBe(true);
+    });
+
+    it("refuses a start after the end", () => {
+      expect(valid(field, range("2026-11-05", "2026-11-03"))).toBe(false);
+    });
+
+    it("refuses a start time not strictly before the end time", () => {
+      expect(
+        valid(field, range("2026-11-03T22:00", "2026-11-03T22:00"))
+      ).toBe(false);
+      expect(
+        valid({ ...field, format: "time" }, range("22:00", "02:00"))
+      ).toBe(false);
+    });
+
+    it("refuses a half-filled period, even when optional", () => {
+      expect(valid(field, range("2026-11-03", ""))).toBe(false);
+      expect(valid(field, range("", "2026-11-03"))).toBe(false);
+    });
+
+    it("refuses one bound with a time and the other without", () => {
+      expect(valid(field, range("2026-11-03T18:30", "2026-11-04"))).toBe(false);
+    });
+
+    it("may stay empty when optional, never when required", () => {
+      expect(valid(field, undefined)).toBe(true);
+      expect(valid(field, range("", ""))).toBe(true);
+      expect(valid({ ...field, required: true }, range("", ""))).toBe(false);
+      expect(valid({ ...field, required: true }, undefined)).toBe(false);
+    });
   });
 });

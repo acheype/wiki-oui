@@ -4,7 +4,9 @@
 // (month / week / day, plus the Planning list views), French locale, events
 // colored by colorField, click applying entryDisplay. The forma theme is
 // restyled onto WikiOui's design tokens in globals.css (.entries-calendar).
-// Without a start-date field the view states its requirement explicitly.
+// Without a date field the view states its requirement explicitly. A value
+// with a time sits at its hour in the week and day grids; one without lies in
+// the all-day row (docs/entries-view.md).
 
 import { Calendar } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/react/daygrid";
@@ -15,7 +17,12 @@ import timeGridPlugin from "@fullcalendar/react/timegrid";
 import "@fullcalendar/react/skeleton.css";
 import "@fullcalendar/react/themes/forma/theme.css";
 import { useRef } from "react";
-import { entryDay, entryValue } from "../core/rules";
+import { entryValue } from "../core/rules";
+import {
+  type TemporalSpan,
+  formatTemporalValue,
+  temporalSpan,
+} from "@/modules/forms/temporal-value";
 import { cn } from "@/lib/utils";
 import { HOVER_PRELOAD_MS } from "@/modules/pages/page-modal";
 import type { ViewContext } from "./types";
@@ -37,32 +44,27 @@ export function CalendarView({ context }: { context: ViewContext }) {
   // FullCalendar events are not React components, so the sweep debounce is one
   // shared timer here rather than per-row handlers (ADR 0022).
   const preloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startField = props.startDateField;
+  const dateField = props.dateField;
 
-  if (!startField) {
+  if (!dateField) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        Le Calendrier attend un champ date de début.
+        Le Calendrier attend un champ de date.
       </p>
     );
   }
 
   const events = entries.flatMap((entry) => {
-    const start = entryDay(entryValue(entry, startField));
-    if (!start) return [];
-    const end = props.endDateField
-      ? entryDay(entryValue(entry, props.endDateField))
-      : null;
+    const span = temporalSpan(entryValue(entry, dateField));
+    if (!span) return [];
     const color = context.colorOf(entry);
     return [
       {
         id: entry.slug,
         title: entry.title,
-        start,
-        // FullCalendar's all-day end is exclusive; a stored end date is the
-        // event's last day, so it shifts by one.
-        ...(end && end > start ? { end: nextDay(end) } : {}),
-        allDay: true,
+        start: span.start,
+        ...eventEnd(span),
+        allDay: span.allDay,
         ...(color ? { color } : {}),
       },
     ];
@@ -115,10 +117,24 @@ export function CalendarView({ context }: { context: ViewContext }) {
           }
         }}
         eventClass="cursor-pointer"
+        eventTimeFormat={({ date }) =>
+          formatTemporalValue(`${pad(date.hour)}:${pad(date.minute)}`)
+        }
         dayMaxEventRows={compact ? 2 : undefined}
       />
     </div>
   );
+}
+
+// FullCalendar's all-day end is exclusive: a stored end date is the event's
+// last day, so it shifts by one. A timed end is an instant, taken as it is.
+function eventEnd(span: TemporalSpan) {
+  if (span.end <= span.start) return {};
+  return { end: span.allDay ? nextDay(span.end) : span.end };
+}
+
+function pad(value: number): string {
+  return String(value).padStart(2, "0");
 }
 
 function nextDay(day: string): string {

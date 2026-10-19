@@ -7,14 +7,25 @@
 import { z } from "zod";
 import { SCOPES } from "@/modules/permissions/rules";
 import { SLUG_PATTERN } from "@/lib/slug";
+import {
+  TEMPORAL_FORMATS,
+  boundIssue,
+  isEmptyRange,
+  rangeIssue,
+} from "./temporal-value/formats";
+import { fieldValueText } from "./entry/value-text";
 
-/** Palette of the 14 entry field types (docs/forms.md). */
+export { valueToText } from "./entry/value-text";
+export { isTemporalType } from "./temporal-value/formats";
+
+/** Palette of the 15 entry field types (docs/forms.md). */
 export const FORM_FIELD_TYPES = [
   "text",
   "textarea",
   "email",
   "url",
-  "date",
+  "datetime",
+  "datetimeRange",
   "list",
   "radio",
   "multiChoice",
@@ -34,7 +45,8 @@ export const FIELD_TYPE_LABELS: Record<FormFieldType, string> = {
   textarea: "Texte long",
   email: "Email",
   url: "Url",
-  date: "Champ date",
+  datetime: "Date / heure",
+  datetimeRange: "Période",
   list: "Liste déroulante",
   radio: "Boutons radio",
   multiChoice: "Cases à cocher",
@@ -85,6 +97,15 @@ const textLikeBase = fieldBase.extend({
   placeholder: z.string().optional(),
 });
 
+// Date / heure and Période share their settings (docs/forms.md): what is
+// entered (« Saisir ») and whether the time may be left out (« Heure
+// facultative », Date et heure mode only). Both absent mean the defaults:
+// date and time, time optional.
+const temporalBase = fieldBase.extend({
+  format: z.enum(TEMPORAL_FORMATS).optional(),
+  optionalTime: z.boolean().optional(),
+});
+
 // Options fields (list/radio/multiChoice) draw from exactly one source —
 // entered pairs (value → label) or the entries of a form (sourceFormId holds
 // the form slug, the user-facing id). Exclusivity is a cross rule below.
@@ -111,10 +132,8 @@ const formFieldSchema = z.discriminatedUnion("type", [
   }),
   textLikeBase.extend({ type: z.literal("email") }),
   textLikeBase.extend({ type: z.literal("url") }),
-  fieldBase.extend({
-    type: z.literal("date"),
-    initTodayButton: z.boolean().optional(),
-  }),
+  temporalBase.extend({ type: z.literal("datetime") }),
+  temporalBase.extend({ type: z.literal("datetimeRange") }),
   optionsBase.extend({ type: z.literal("list") }),
   optionsBase.extend({
     type: z.literal("radio"),
@@ -240,24 +259,18 @@ export function formSourcedValues(
   return [...slugs];
 }
 
-// A single entry value as plain display text: absent → "", multiple → joined,
-// a structured value (geolocation point) → "" (rendered elsewhere).
-export function valueToText(value: unknown): string {
-  if (value === undefined || value === null) return "";
-  if (Array.isArray(value)) return value.join(", ");
-  if (typeof value === "object") return "";
-  return String(value);
-}
 
 // Replaces {champ} references with entry values, an absent value rendering
 // as an empty string, silently (docs/forms.md). Plain-text substitution:
 // MDX escaping is the entry template renderer's concern, on top of this.
 export function substituteFieldReferences(
   text: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  fields: readonly FormField[] = []
 ): string {
+  const byName = new Map(fields.map((field) => [field.name, field]));
   return text.replace(fieldReferencePattern(), (_, name: string) =>
-    valueToText(data[name])
+    fieldValueText(byName.get(name), data[name])
   );
 }
 
@@ -313,12 +326,24 @@ function fieldValueSchema(field: FormField): z.ZodType | null {
       return stringValue(z.email("Adresse email invalide."), field.required);
     case "url":
       return stringValue(z.url("URL invalide."), field.required);
-    case "date":
-      // ISO storage (docs/forms.md): the datepicker writes yyyy-mm-dd.
+    case "datetime":
       return stringValue(
-        z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide."),
+        z.string().superRefine((value, ctx) => {
+          const issue = boundIssue(value, field);
+          if (issue) ctx.addIssue({ code: "custom", message: issue });
+        }),
         field.required
       );
+    case "datetimeRange":
+      return z.unknown().superRefine((value, ctx) => {
+        if (isEmptyRange(value)) {
+          if (field.required) ctx.addIssue({ code: "custom", message: REQUIRED });
+          return;
+        }
+        // Aimed at the field itself: the entry form shows one message per field.
+        const issue = rangeIssue(value, field);
+        if (issue) ctx.addIssue({ code: "custom", message: issue });
+      });
     case "list":
     case "radio":
       return stringValue(optionValues(field), field.required);
@@ -380,7 +405,7 @@ export function initialEntryValues(
       values[field.name] = field.defaultValue;
     } else if (field.type === "multiChoice" || field.type === "tags") {
       values[field.name] = [];
-    } else if (field.type === "geolocation") {
+    } else if (field.type === "geolocation" || field.type === "datetimeRange") {
       values[field.name] = undefined;
     } else {
       values[field.name] = "";
@@ -461,7 +486,7 @@ export function computeAutomaticTitle(
 ): string {
   const title = descriptor.fields.find((field) => field.type === "title");
   if (title?.type === "title" && title.automatic && title.template) {
-    return substituteFieldReferences(title.template, data).trim();
+    return substituteFieldReferences(title.template, data, descriptor.fields).trim();
   }
   const value = data.title;
   return typeof value === "string" ? value : "";

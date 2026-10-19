@@ -42,6 +42,10 @@ import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import type { SlugReferenceImpact } from "@/lib/slug-rename-db";
 import type { CanvasField } from "./form-builder";
+import {
+  TEMPORAL_FORMATS,
+  type TemporalFormat,
+} from "@/modules/forms/temporal-value/formats";
 
 const SUBTYPE_LABELS = { text: "Texte", number: "Nombre" };
 const SOURCE_LABELS = { inline: "Paires saisies", form: "Fiches d'un formulaire" };
@@ -534,17 +538,15 @@ function TypeSpecificSettings({
           </p>
         </div>
       );
-    case "date":
+    case "datetime":
+    case "datetimeRange":
       return (
-        <label className="flex items-center gap-2 text-sm font-normal">
-          <Checkbox
-            checked={field.initTodayButton === true}
-            onCheckedChange={(checked) =>
-              onChange({ initTodayButton: checked })
-            }
-          />
-          Proposer un bouton «&nbsp;Aujourd&apos;hui&nbsp;»
-        </label>
+        <TemporalSettingsPanel
+          format={field.format ?? "datetime"}
+          optionalTime={field.optionalTime !== false}
+          range={field.type === "datetimeRange"}
+          onChange={onChange}
+        />
       );
     case "list":
     case "radio":
@@ -580,6 +582,73 @@ function TypeSpecificSettings({
     default:
       return null;
   }
+}
+
+const FORMAT_LABELS: Record<TemporalFormat, string> = {
+  datetime: "Date et heure",
+  date: "Date",
+  time: "Heure",
+};
+
+// « Saisir » answers what is entered; « Heure facultative », shown only where
+// it applies, whether the time may be left out (docs/forms.md).
+function TemporalSettingsPanel({
+  format,
+  optionalTime,
+  range,
+  onChange,
+}: {
+  format: TemporalFormat;
+  optionalTime: boolean;
+  range: boolean;
+  onChange: (patch: Partial<FormField>) => void;
+}) {
+  return (
+    <div className="grid gap-3">
+      <div className="grid gap-1.5">
+        <Label id="setting-format">Saisir</Label>
+        <div
+          role="radiogroup"
+          aria-labelledby="setting-format"
+          className="inline-flex w-fit rounded-md border p-0.5"
+        >
+          {TEMPORAL_FORMATS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={option === format}
+              onClick={() => onChange({ format: option })}
+              className={cn(
+                "rounded-sm px-3 py-1 text-sm transition-colors",
+                option === format
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              )}
+            >
+              {FORMAT_LABELS[option]}
+            </button>
+          ))}
+        </div>
+      </div>
+      {format === "datetime" && (
+        <div className="grid gap-1">
+          <label className="flex items-center gap-2 text-sm font-normal">
+            <Checkbox
+              checked={optionalTime}
+              onCheckedChange={(checked) => onChange({ optionalTime: checked })}
+            />
+            Heure facultative
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Le contributeur peut cocher «&nbsp;Toute la journée&nbsp;» au lieu
+            de saisir une heure.
+            {range && " La case vaut pour le début et la fin."}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function OptionsSettings({

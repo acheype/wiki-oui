@@ -127,20 +127,16 @@ properties:
     default: false
     showif:
       view: table
-  startDateField:
-    label: Champ date de début
+  dateField:
+    label: Champ de date
+    hint: Une période, ou une date pour un événement ponctuel
     type: form-field
-    fieldTypes: [date]
+    fieldTypes: [datetimeRange, datetime]
+    dated: true
     pseudoFields: ["$createdAt", "$editedAt"]
     required: true
-    showif: &dated-views
+    showif:
       view: /^(calendar|agenda)$/
-  endDateField:
-    label: Champ date de fin
-    hint: Optionnel — événements sur plusieurs jours
-    type: form-field
-    fieldTypes: [date]
-    showif: *dated-views
   initialView:
     label: Vue initiale
     type: list
@@ -418,7 +414,7 @@ properties:
     label: Trier par
     type: form-field
     default: $createdAt
-    fieldTypes: [title, text, textarea, email, url, date, list, radio, multiChoice, tags]
+    fieldTypes: [title, text, textarea, email, url, datetime, datetimeRange, list, radio, multiChoice, tags]
     pseudoFields: ["$owner", "$createdAt", "$editedAt"]
     showif: *sorted-views
   sortOrder:
@@ -432,7 +428,7 @@ properties:
   sortOptions:
     label: Tris proposés aux visiteurs
     type: field-rows
-    fieldTypes: [title, text, textarea, email, url, date, list, radio, multiChoice, tags]
+    fieldTypes: [title, text, textarea, email, url, datetime, datetimeRange, list, radio, multiChoice, tags]
     pseudoFields: ["$owner", "$createdAt", "$editedAt"]
     showif:
       view: /^(list|grid|gallery)$/
@@ -456,7 +452,8 @@ properties:
   periodField:
     label: Sur le champ
     type: form-field
-    fieldTypes: [date]
+    fieldTypes: [datetimeRange, datetime]
+    dated: true
     pseudoFields: ["$createdAt", "$editedAt"]
     showif:
       period: /^(future|past|today|last-30-days|next-30-days|one-week-around|last-2-years)$/

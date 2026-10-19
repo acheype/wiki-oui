@@ -35,7 +35,8 @@ import { entriesViewQuery } from "../core/field-references";
 import { fieldOptions } from "../core/options";
 import type { ViewEntry } from "../view-entry";
 import { resolveColorMapping } from "@/modules/forms/entry-fields";
-import { valueToText } from "@/modules/forms/form-descriptor";
+import { isTemporalType, valueToText } from "@/modules/forms/form-descriptor";
+import { formatTemporalValue } from "@/modules/forms/temporal-value";
 import { PSEUDO_FIELD_LABELS, isPseudoField } from "@/modules/forms/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/icon";
@@ -393,7 +394,10 @@ function buildContext(
         .map((item) => meta.options?.[String(item)] ?? String(item))
         .join(", ");
     }
-    if (meta?.type === "date" || isPseudoField(field)) {
+    if (meta && isTemporalType(meta.type)) {
+      return formatTemporalValue(value);
+    }
+    if (isPseudoField(field)) {
       const text = valueToText(value);
       const day = text.slice(0, 10);
       if (/^\d{4}-\d{2}-\d{2}$/.test(day)) {

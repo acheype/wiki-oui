@@ -57,4 +57,16 @@ describe("renderTemplateSource", () => {
   it("leaves an unknown reference in place (refused at form save)", () => {
     expect(renderTemplateSource("{inconnu}", descriptor, {})).toBe("{inconnu}");
   });
+
+  it("writes a Date / heure value as French text", () => {
+    const dated: FormDescriptor = {
+      fields: [
+        { type: "title", name: "title", label: "Titre de la fiche" },
+        { type: "datetime", name: "quand", label: "Quand" },
+      ],
+    };
+    expect(
+      renderTemplateSource("Le {quand}", dated, { quand: "2026-11-03T18:30" })
+    ).toBe("Le 3 novembre 2026 à 18h30");
+  });
 });

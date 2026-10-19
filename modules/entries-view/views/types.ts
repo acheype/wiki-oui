@@ -95,8 +95,8 @@ export interface EntriesViewProps {
   wheelZoom?: boolean;
 
   /* Calendrier / Agenda */
-  startDateField?: string;
-  endDateField?: string;
+  /** A Période, a Date / heure carrying a date, or a date pseudo-field. */
+  dateField?: string;
   initialView?: "month" | "week" | "day" | "planning";
   planningRange?: "year" | "month" | "week";
   compact?: boolean;

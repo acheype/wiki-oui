@@ -1,5 +1,6 @@
 import type { FieldWidgetSpec } from "@/modules/forms/field-widget";
 import { type FormField, isOptionsField } from "@/modules/forms/form-descriptor";
+import { isTemporalField } from "@/modules/forms/temporal-value/formats";
 
 // Adapts a descriptor FormField to the flat FieldWidgetSpec the shared
 // renderer consumes (ADR 0015). Form-sourced options are resolved at the
@@ -23,7 +24,10 @@ export function toWidgetSpec(
     spec.maxLength = field.maxLength;
   }
   if (field.type === "textarea") spec.rows = field.rows;
-  if (field.type === "date") spec.initTodayButton = field.initTodayButton;
+  if (isTemporalField(field)) {
+    spec.format = field.format;
+    spec.optionalTime = field.optionalTime;
+  }
   if (isOptionsField(field)) {
     spec.options = resolvedOptions ?? field.options ?? {};
     if (field.type !== "list") spec.fillingMode = field.fillingMode;

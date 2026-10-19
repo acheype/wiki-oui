@@ -159,8 +159,7 @@ export const entrySeeds: EntrySeed[] = [
       title: "Atelier réparation vélo",
       description:
         "Venez avec votre vélo, on répare ensemble : freins, chaîne, crevaisons. Outils fournis, gratuit, ouvert à toustes.",
-      "date-debut": isoDay(4),
-      "date-fin": isoDay(4),
+      dates: { start: `${isoDay(4)}T14:00`, end: `${isoDay(4)}T17:30` },
       photo: "atelier-velo.jpg",
       ...addressFields(NOUMEA, "12 rue de l'Alma"),
     },
@@ -173,8 +172,7 @@ export const entrySeeds: EntrySeed[] = [
       title: "Fête de quartier",
       description:
         "Deux jours de stands, de musique et de repas partagé pour clôturer la saison des ateliers.",
-      "date-debut": isoDay(12),
-      "date-fin": isoDay(13),
+      dates: { start: isoDay(12), end: isoDay(13) },
       photo: "fete-de-quartier.jpg",
       ...addressFields(DUMBEA, "Place du marché"),
     },
@@ -187,7 +185,7 @@ export const entrySeeds: EntrySeed[] = [
       title: "Marché de la ressourcerie",
       description:
         "Vide-grenier associatif : objets, vêtements et meubles à petit prix, dépôt possible sur place.",
-      "date-debut": isoDay(26),
+      dates: { start: isoDay(26), end: isoDay(26) },
       photo: "marche-ressourcerie.jpg",
       ...addressFields(PAITA, "Rue du Marché"),
     },
@@ -200,8 +198,7 @@ export const entrySeeds: EntrySeed[] = [
       title: "Sortie nature en forêt",
       description:
         "Balade accompagnée à la découverte de la flore locale, niveau facile, prévoir de bonnes chaussures.",
-      "date-debut": isoDay(45),
-      "date-fin": isoDay(46),
+      dates: { start: `${isoDay(45)}T08:30`, end: `${isoDay(46)}T16:00` },
       photo: "sortie-nature.jpg",
       ...addressFields(MONT_DORE, "Sentier de la forêt"),
     },
@@ -214,7 +211,7 @@ export const entrySeeds: EntrySeed[] = [
       title: "Assemblée générale",
       description:
         "Bilan de l'année, budget, élection du bureau. Ouverte à toustes les adhérent·es.",
-      "date-debut": isoDay(-40),
+      dates: { start: `${isoDay(-40)}T18:30`, end: `${isoDay(-40)}T21:00` },
       photo: "assemblee-generale.jpg",
       ...addressFields(NOUMEA, "Salle communale"),
     },
@@ -226,7 +223,7 @@ export const entrySeeds: EntrySeed[] = [
     data: {
       title: "Grainothèque mobile : collecte de graines",
       description: "Apportez vos graines reproductibles, repartez avec celles des autres.",
-      "date-debut": isoDay(-11),
+      dates: { start: isoDay(-11), end: isoDay(-11) },
       photo: "grainotheque.jpg",
       ...addressFields(KONE, "Marché municipal"),
     },

@@ -5,6 +5,7 @@
 
 import type { FormDescriptor, FormFieldType } from "./form-descriptor";
 import { isOptionsField } from "./form-descriptor";
+import { isTemporalField } from "./temporal-value/formats";
 import {
   PSEUDO_FIELD_LABELS,
   type PseudoField,
@@ -19,6 +20,8 @@ export interface EntryFieldChoice {
   options?: Record<string, string>;
   /** Carrying form names, present only when some chosen forms lack the field. */
   partialTo?: string[];
+  /** A Date / heure or Période in Heure mode: a time with no date. */
+  timeOnly?: true;
 }
 
 /**
@@ -44,6 +47,8 @@ export function unionEntryFields(
         label: field.label || field.name,
         type: field.type,
         options: isOptionsField(field) ? field.options : undefined,
+        ...(isTemporalField(field) &&
+          field.format === "time" && { timeOnly: true as const }),
         carriers: [form.name],
       });
     }
@@ -69,13 +74,19 @@ export interface FieldChoiceOption {
  */
 export function fieldChoiceOptions(
   choices: EntryFieldChoice[],
-  restrict: { fieldTypes?: FormFieldType[]; pseudoFields?: PseudoField[] },
+  restrict: {
+    fieldTypes?: FormFieldType[];
+    pseudoFields?: PseudoField[];
+    /** Only the fields carrying a date: Heure mode is left out. */
+    dated?: boolean;
+  },
   multiForm: boolean
 ): FieldChoiceOption[] {
   const fields = choices
     .filter(
       (choice) =>
-        !restrict.fieldTypes || restrict.fieldTypes.includes(choice.type)
+        (!restrict.fieldTypes || restrict.fieldTypes.includes(choice.type)) &&
+        !(restrict.dated && choice.timeOnly)
     )
     .map(({ name, label, partialTo }) => ({ name, label, partialTo }));
   const pseudo = (restrict.pseudoFields ?? [])

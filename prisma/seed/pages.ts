@@ -116,12 +116,12 @@ Une aide complète sur la syntaxe est à un clic : l'icône __?__ de la barre d'
 
   "vue-activite": `${agendaNav}
 
-<EntriesView form="agenda" view="agenda" startDateField="date-debut" endDateField="date-fin" period="future" />
+<EntriesView form="agenda" view="agenda" dateField="dates" period="future" />
 `,
 
   "vue-agenda": `${agendaNav}
 
-<EntriesView form="agenda" view="calendar" startDateField="date-debut" endDateField="date-fin" />
+<EntriesView form="agenda" view="calendar" dateField="dates" />
 `,
 
   "saisir-agenda": `${agendaNav}

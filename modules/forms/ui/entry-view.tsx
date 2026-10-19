@@ -9,6 +9,7 @@ import {
   isOptionsField,
 } from "@/modules/forms/form-descriptor";
 import { EntryMap } from "./entry-map-lazy";
+import { formatTemporalValue } from "@/modules/forms/temporal-value";
 
 // Default entry render (docs/forms.md): a title in h1, then each field by its
 // type. Used when the form has no template. Server component; the map piece
@@ -98,8 +99,11 @@ async function renderField(
           {String(value)}
         </a>
       );
-    case "date":
-      return isEmpty(value) ? null : localizedDate(String(value));
+    case "datetime":
+    case "datetimeRange": {
+      const text = formatTemporalValue(value);
+      return text === "" ? null : text;
+    }
     case "textarea":
       if (isEmpty(value)) return null;
       return field.allowMdx ? (
@@ -207,15 +211,4 @@ function readPoint(value: unknown): { lat: number; lng: number } | null {
     }
   }
   return null;
-}
-
-function localizedDate(iso: string): string {
-  const date = new Date(`${iso}T00:00:00`);
-  return Number.isNaN(date.getTime())
-    ? iso
-    : date.toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      });
 }

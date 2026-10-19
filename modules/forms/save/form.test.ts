@@ -11,6 +11,8 @@ const {
   countTitles,
   rename,
   retitle,
+  countConversions,
+  convert,
 } = vi.hoisted(() => {
     const transaction = {
       form: {
@@ -34,6 +36,8 @@ const {
       countTitles: vi.fn(),
       rename: vi.fn(),
       retitle: vi.fn(),
+      countConversions: vi.fn(),
+      convert: vi.fn(),
     };
 });
 
@@ -54,7 +58,13 @@ vi.mock("@/modules/forms/entry-title/sweep", () => ({
   sweepEntryTitles: retitle,
 }));
 
-const { countSaveTitleImpact, saveFormDefinition } = await import("./form");
+vi.mock("@/modules/forms/temporal-value/sweep", () => ({
+  countTemporalConversion: countConversions,
+  sweepTemporalValues: convert,
+}));
+
+const { countSaveTemporalImpact, countSaveTitleImpact, saveFormDefinition } =
+  await import("./form");
 
 const descriptor = (template: string): FormDescriptor => ({
   fields: [
@@ -141,5 +151,62 @@ describe("saveFormDefinition", () => {
     );
 
     expect(retitle).not.toHaveBeenCalled();
+  });
+});
+
+describe("a change of Date / heure mode at save", () => {
+  const dated = (format: "datetime" | "date"): FormDescriptor => ({
+    fields: [
+      { type: "title", name: "title", label: "Titre" },
+      { type: "datetime", name: "quand", label: "Quand", format },
+    ],
+  });
+  const change = { name: "quand", label: "Quand", settings: { format: "date" } };
+
+  it("converts the stored values of the field whose mode changes", async () => {
+    db.form.findUniqueOrThrow.mockResolvedValue({ schema: dated("datetime") });
+    const definition = { name: "Agenda", schema: dated("date"), template: null };
+
+    await saveFormDefinition("form-1", definition, new Map());
+
+    expect(convert).toHaveBeenCalledWith(
+      tx,
+      "form-1",
+      definition.schema,
+      [change],
+      "marie"
+    );
+  });
+
+  it("leaves the values alone when no mode changes", async () => {
+    db.form.findUniqueOrThrow.mockResolvedValue({ schema: dated("date") });
+
+    await saveFormDefinition(
+      "form-1",
+      { name: "Agenda", schema: dated("date"), template: null },
+      new Map()
+    );
+
+    expect(convert).not.toHaveBeenCalled();
+  });
+
+  it("previews the conversion against the stored definition", async () => {
+    editableForm.mockResolvedValue({ id: "form-1", schema: dated("datetime") });
+    const impact = [{ label: "Quand", timeDropped: 2, emptied: 0, timeMissing: 0 }];
+    countConversions.mockResolvedValue(impact);
+
+    await expect(
+      countSaveTemporalImpact("agenda", dated("date"), new Map())
+    ).resolves.toEqual(impact);
+    expect(countConversions).toHaveBeenCalledWith(db, "form-1", [change]);
+  });
+
+  it("previews nothing when no mode changes", async () => {
+    editableForm.mockResolvedValue({ id: "form-1", schema: dated("date") });
+
+    await expect(
+      countSaveTemporalImpact("agenda", dated("date"), new Map())
+    ).resolves.toBeNull();
+    expect(countConversions).not.toHaveBeenCalled();
   });
 });

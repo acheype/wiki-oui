@@ -53,7 +53,7 @@ describe("selectEntries", () => {
         ...data,
         fields: [
           ...data.fields,
-          { name: "date", label: "Date", type: "date" },
+          { name: "date", label: "Date", type: "datetime" },
         ],
         entries: [
           {

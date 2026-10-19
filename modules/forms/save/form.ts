@@ -11,6 +11,12 @@ import {
   countTitleRecompute,
   sweepEntryTitles,
 } from "@/modules/forms/entry-title/sweep";
+import { temporalModeChanges } from "@/modules/forms/temporal-value/conversion";
+import {
+  type TemporalConversionImpact,
+  countTemporalConversion,
+  sweepTemporalValues,
+} from "@/modules/forms/temporal-value/sweep";
 import {
   assertFormStructuringOf,
   editableForm,
@@ -62,6 +68,28 @@ export async function countSaveTitleImpact(
   return countTitleRecompute(prisma, form.id, candidate);
 }
 
+function storedTemporalChanges(
+  currentSchema: unknown,
+  candidate: FormDescriptor,
+  renames: FieldRenameMapping
+) {
+  const current = parseFormDescriptor(currentSchema).descriptor;
+  return current ? temporalModeChanges(current, candidate, renames) : [];
+}
+
+/** What a change of Date / heure mode would do to the stored values. */
+export async function countSaveTemporalImpact(
+  formSlug: string,
+  candidate: FormDescriptor,
+  renames: FieldRenameMapping
+): Promise<TemporalConversionImpact | null> {
+  const form = await editableForm(formSlug);
+  if (!form) return null;
+  const changes = storedTemporalChanges(form.schema, candidate, renames);
+  if (changes.length === 0) return null;
+  return countTemporalConversion(prisma, form.id, changes);
+}
+
 /**
  * Saves an existing form and derives every resulting maintenance operation
  * from the definition currently stored in the same transaction.
@@ -81,6 +109,14 @@ export async function saveFormDefinition(
       });
       await tx.form.update({ where: { id: formId }, data: definition });
       await sweepFieldRenames(tx, formId, fieldRenames);
+      const changes = storedTemporalChanges(
+        current.schema,
+        definition.schema,
+        fieldRenames
+      );
+      if (changes.length > 0) {
+        await sweepTemporalValues(tx, formId, definition.schema, changes, person);
+      }
       if (titlesNeedRecompute(current.schema, definition.schema)) {
         await sweepEntryTitles(tx, formId, definition.schema, person);
       }

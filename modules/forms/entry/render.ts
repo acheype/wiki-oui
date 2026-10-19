@@ -8,8 +8,8 @@ import {
   type EntryData,
   type FormDescriptor,
   fieldReferencePattern,
-  valueToText,
 } from "../form-descriptor";
+import { fieldValueText } from "./value-text";
 
 // Escapes MDX-significant characters in author-supplied text. Component and
 // expression openers become HTML entities (they render as literal `<`/`{`);
@@ -38,7 +38,7 @@ export function renderTemplateSource(
     const field = byName.get(name);
     if (!field) return whole;
     const value = data[name];
-    const text = valueToText(value);
+    const text = fieldValueText(field, value);
     const rawMdx = field.type === "textarea" && field.allowMdx === true;
     return rawMdx ? text : escapeMdxText(text);
   });

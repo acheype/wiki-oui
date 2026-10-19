@@ -129,6 +129,7 @@ export interface EntryFieldRestriction {
   formFrom?: string;
   fieldTypes?: FormFieldType[];
   pseudoFields?: PseudoField[];
+  dated?: boolean;
   required?: boolean;
   withIcon?: boolean;
   fieldFrom?: string;

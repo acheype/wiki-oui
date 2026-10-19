@@ -1,6 +1,8 @@
 import type { EntriesViewProps } from "../views/types";
 import type { ViewEntry } from "../view-entry";
 import type { EntriesViewData } from "./actions";
+import type { EntryFieldChoice } from "@/modules/forms/entry-fields";
+import { isTemporalType } from "@/modules/forms/form-descriptor";
 import {
   type ActiveFilters,
   applyPeriod,
@@ -40,9 +42,7 @@ export function selectEntries(
 ): EntriesSelection {
   const period = props.period ?? "none";
   const periodField =
-    props.periodField ??
-    props.startDateField ??
-    data.fields.find((field) => field.type === "date")?.name;
+    props.periodField ?? props.dateField ?? firstDatedField(data.fields);
   const candidates =
     period !== "none" && periodField
       ? applyPeriod(data.entries, period, periodField, today)
@@ -88,4 +88,13 @@ export function selectEntries(
     page,
     pageCount,
   };
+}
+
+/** The first field carrying a date: the period's fallback target. */
+function firstDatedField(fields: EntryFieldChoice[]): string | undefined {
+  return fields.find(
+    (field) =>
+      isTemporalType(field.type) &&
+      !field.timeOnly
+  )?.name;
 }

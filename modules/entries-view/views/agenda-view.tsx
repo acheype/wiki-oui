@@ -5,7 +5,13 @@
 // by time. Typographic date block on the left, grouped by month, only the
 // days that have events. Title/subtitle zones like the Liste.
 
-import { entryDay, entryValue } from "../core/rules";
+import { entryValue } from "../core/rules";
+import {
+  type TemporalSpan,
+  compareTemporalValues,
+  dateBlockCaption,
+  temporalSpan,
+} from "@/modules/forms/temporal-value";
 import { usePreloadHandlers } from "@/modules/pages/page-modal";
 import type { ViewEntry } from "../view-entry";
 import { cn } from "@/lib/utils";
@@ -14,8 +20,7 @@ import { defaultColumnCount, type ViewContext } from "./types";
 
 interface Dated {
   entry: ViewEntry;
-  day: string;
-  end: string | null;
+  span: TemporalSpan;
 }
 
 const COLUMN_CLASSES: Record<number, string> = {
@@ -26,30 +31,26 @@ const COLUMN_CLASSES: Record<number, string> = {
 
 export function AgendaView({ context }: { context: ViewContext }) {
   const { entries, props } = context;
-  const startField = props.startDateField;
+  const dateField = props.dateField;
 
-  if (!startField) {
+  if (!dateField) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        L&apos;Agenda attend un champ date de début.
+        L&apos;Agenda attend un champ de date.
       </p>
     );
   }
 
   const dated: Dated[] = entries
     .flatMap((entry) => {
-      const day = entryDay(entryValue(entry, startField));
-      if (!day) return [];
-      const end = props.endDateField
-        ? entryDay(entryValue(entry, props.endDateField))
-        : null;
-      return [{ entry, day, end }];
+      const span = temporalSpan(entryValue(entry, dateField));
+      return span ? [{ entry, span }] : [];
     })
-    .sort((a, b) => a.day.localeCompare(b.day));
+    .sort((a, b) => compareTemporalValues(a.span, b.span) ?? 0);
 
   const months = new Map<string, Dated[]>();
   for (const item of dated) {
-    const month = item.day.slice(0, 7);
+    const month = item.span.start.slice(0, 7);
     months.set(month, [...(months.get(month) ?? []), item]);
   }
 
@@ -66,12 +67,11 @@ export function AgendaView({ context }: { context: ViewContext }) {
             {monthLabel(month)}
           </h3>
           <div className={cn("grid gap-2 grid-cols-1", COLUMN_CLASSES[columns])}>
-            {items.map(({ entry, day, end }) => (
+            {items.map(({ entry, span }) => (
               <AgendaRow
                 key={entry.slug}
                 entry={entry}
-                day={day}
-                end={end}
+                span={span}
                 context={context}
               />
             ))}
@@ -89,13 +89,11 @@ export function AgendaView({ context }: { context: ViewContext }) {
 
 function AgendaRow({
   entry,
-  day,
-  end,
+  span,
   context,
 }: {
   entry: ViewEntry;
-  day: string;
-  end: string | null;
+  span: TemporalSpan;
   context: ViewContext;
 }) {
   const { props } = context;
@@ -107,7 +105,8 @@ function AgendaRow({
   const subtitle = props.subtitleField
     ? context.textOf(entry, props.subtitleField)
     : "";
-  const date = new Date(`${day}T00:00:00`);
+  const date = new Date(`${span.start.slice(0, 10)}T00:00:00`);
+  const when = dateBlockCaption(span);
   const preload = usePreloadHandlers(() => context.preloadEntry(entry.slug));
 
   return (
@@ -138,10 +137,8 @@ function AgendaRow({
           )}
           {title}
         </span>
-        {end && end > day && (
-          <span className="block text-xs text-muted-foreground">
-            Jusqu&apos;au {formatDay(end)}
-          </span>
+        {when && (
+          <span className="block text-xs text-muted-foreground">{when}</span>
         )}
         {subtitle && (
           <span className="block truncate text-sm text-muted-foreground">
@@ -157,12 +154,5 @@ function monthLabel(month: string): string {
   return new Date(`${month}-01T00:00:00`).toLocaleDateString("fr-FR", {
     month: "long",
     year: "numeric",
-  });
-}
-
-function formatDay(day: string): string {
-  return new Date(`${day}T00:00:00`).toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
   });
 }
