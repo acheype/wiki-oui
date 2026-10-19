@@ -461,21 +461,37 @@ describe("deriveEntrySchema", () => {
 });
 
 describe("substituteFieldReferences", () => {
+  const fields: FormDescriptor["fields"] = [
+    { type: "text", name: "prenom", label: "Prénom" },
+    { type: "text", name: "nom", label: "Nom" },
+    { type: "text", name: "age", label: "Âge", subtype: "number" },
+    { type: "datetime", name: "quand", label: "Quand" },
+  ];
+
   it("replaces {champ} references with entry values", () => {
     expect(
-      substituteFieldReferences("{prenom} {nom} (asso)", {
-        prenom: "Alice",
-        nom: "Dupont",
-      })
+      substituteFieldReferences(
+        "{prenom} {nom} (asso)",
+        { prenom: "Alice", nom: "Dupont" },
+        fields
+      )
     ).toBe("Alice Dupont (asso)");
   });
 
   it("renders an absent value as an empty string, silently", () => {
-    expect(substituteFieldReferences("{prenom} {nom}", {})).toBe(" ");
+    expect(substituteFieldReferences("{prenom} {nom}", {}, fields)).toBe(" ");
   });
 
   it("stringifies non-text values", () => {
-    expect(substituteFieldReferences("{age} ans", { age: 34 })).toBe("34 ans");
+    expect(substituteFieldReferences("{age} ans", { age: 34 }, fields)).toBe(
+      "34 ans"
+    );
+  });
+
+  it("writes a Date / heure value in French, never as raw ISO", () => {
+    expect(
+      substituteFieldReferences("Le {quand}", { quand: "2026-11-03" }, fields)
+    ).toBe("Le 3 novembre 2026");
   });
 });
 

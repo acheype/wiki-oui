@@ -266,7 +266,9 @@ export function formSourcedValues(
 export function substituteFieldReferences(
   text: string,
   data: Record<string, unknown>,
-  fields: readonly FormField[] = []
+  // Required on purpose: without the fields' types a date would come out as
+  // raw ISO (`2026-11-03`), silently, instead of in French.
+  fields: readonly FormField[]
 ): string {
   const byName = new Map(fields.map((field) => [field.name, field]));
   return text.replace(fieldReferencePattern(), (_, name: string) =>
