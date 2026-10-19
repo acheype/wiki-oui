@@ -58,10 +58,13 @@ describe("formatTemporalValue (docs/forms.md § Affichage)", () => {
     );
   });
 
-  it("writes nothing for an empty or unreadable value", () => {
+  it("writes nothing for an empty value", () => {
     expect(formatTemporalValue(undefined)).toBe("");
     expect(formatTemporalValue("")).toBe("");
     expect(formatTemporalValue({ start: "", end: "" })).toBe("");
+  });
+
+  it("gives back an unreadable string as it is", () => {
     expect(formatTemporalValue("14/03/1992")).toBe("14/03/1992");
   });
 });
