@@ -94,11 +94,12 @@ Le clic marqueur applique **directement** `entryDisplay`, qui gagne ici deux opt
 
 | Prop | Libellé | Notes |
 | --- | --- | --- |
-| `startDateField` | Champ date de début | **requis** (sans lui : état vide explicite dans l'aperçu) ; pré-rempli si le formulaire n'a qu'un champ date ; pseudo-champs dates acceptés |
-| `endDateField` | Champ date de fin | optionnel — événements multi-jours |
+| `dateField` | Champ de date | **requis** (sans lui : état vide explicite dans l'aperçu) ; un champ Période (l'événement couvre ses deux bornes), un champ Date / heure en mode Date et heure ou Date (événement ponctuel), ou un pseudo-champ date ; les champs en mode Heure ne sont pas proposés ; pré-rempli si le formulaire n'a qu'un champ éligible |
 | `initialView` | Vue initiale | `month` (défaut) · `week` · `day` · `planning` |
 | `planningRange` | Étendue du planning | avancé : `year` (défaut) · `month` · `week` |
 | `compact` | Mini calendrier | rendu compact pour colonne étroite |
+
+Une valeur avec heure se place à son heure dans la grille des vues Semaine et Jour ; une valeur sans heure va dans la ligne « toute la journée ». En vue Mois, l'heure précède le titre : `18h30 Concert`.
 
 `planning` (et `planningRange`) n'existent que si la bibliothèque calendrier retenue offre une vue liste — le critère de choix de la bibliothèque est l'ergonomie et l'esthétique, pas la parité YesWiki. Export iCal : backlog.
 
@@ -108,7 +109,7 @@ Le Calendrier montre le temps (avec des événements dedans), l'Agenda montre le
 
 | Prop | Libellé | Notes |
 | --- | --- | --- |
-| `startDateField` / `endDateField` | Champs dates | mêmes règles que le Calendrier |
+| `dateField` | Champ de date | mêmes règles que le Calendrier ; l'heure ou la plage horaire s'affiche sous le bloc date |
 | `titleField` / `subtitleField` | Zones | comme la Liste |
 | `columnCount` | Nombre de colonnes | avancé, défaut 1 |
 
@@ -182,13 +183,17 @@ Le bouton « **Effacer les filtres** » apparaît automatiquement dès qu'un fil
 
 Tri visible pour Liste, Grille, Tableau, Carrousel, Galerie ; masqué pour Carte, Calendrier, Agenda, Annuaire (ordre spatial/temporel/alphabétique par nature). `sortOptions` : Liste, Grille, Galerie seulement (le Tableau a ses en-têtes).
 
+Tri d'une valeur temporelle : une Période se trie par début, puis par fin ; le même jour, une valeur « toute la journée » passe avant une valeur avec heure ; un champ en mode Heure se trie par heure. Une fiche sans valeur passe en dernier, quel que soit l'ordre.
+
 ### Sélection des fiches
 
 | Prop | Libellé | Notes |
 | --- | --- | --- |
 | `period` | Période | vide = pas de filtre ; `future` (À venir) · `past` (Passées) · `today` (Aujourd'hui) · `last-30-days` · `next-30-days` · `one-week-around` (± 1 semaine) · `last-2-years` |
-| `periodField` | Sur le champ | visible si `period` ; champs date + pseudo-champs dates ; pré-rempli : `startDateField` sur Calendrier/Agenda, sinon l'unique champ date |
+| `periodField` | Sur le champ | visible si `period` ; champs Date / heure et Période (hors mode Heure) + pseudo-champs dates ; pré-rempli : `dateField` sur Calendrier/Agenda, sinon l'unique champ éligible |
 | `limit` | Nombre maximal de fiches | avancé, vide = toutes — limite les résultats **après** la période, la recherche, les filtres et le tri, puis `pageSize` pagine ce résultat |
+
+Sur un champ Période, la restriction s'applique par **chevauchement** : « À venir » garde les périodes qui finissent aujourd'hui ou plus tard (une période en cours est incluse), « Passées » celles qui finissent avant aujourd'hui, « Aujourd'hui » celles qui contiennent aujourd'hui, et une fenêtre (`next-30-days`, `one-week-around`…) celles qui la chevauchent.
 
 ### Pagination
 
@@ -269,7 +274,7 @@ Le contrat de migration : toute donnée YesWiki (actions `{{bazar…}}`) doit tr
 | carto `zoommolette` | `wheelZoom` |
 | carto `smallmarker` | **Supprimé** (un seul design de marqueur) |
 | carto `popuptemplate`/`popupcustomtemplate`/`popupselectedfields`/`necessary_fields` | **Supprimés** — la mini-fiche `map-popup` est native (visuel + titre + « Voir la fiche ») |
-| calendar/agenda `bf_date_debut_evenement`/`bf_date_fin_evenement` | `startDateField` / `endDateField` |
+| calendar/agenda `bf_date_debut_evenement`/`bf_date_fin_evenement` | `dateField`, sur le champ Période qui remplace les deux dates ([`reference/yeswiki-form-migration.md`](reference/yeswiki-form-migration.md)) |
 | calendar `initialview` (dayGridMonth/timeGridWeek/timeGridDay/list) | `initialView` (`month`/`week`/`day`/`planning`) |
 | calendar `showlist` (« bouton planning » semaine/mois/année) | `planningRange` (`week`/`month`/`year`) |
 | `minical` | `compact` |

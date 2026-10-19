@@ -129,6 +129,14 @@ _Avoid_: Bazar, ID numérique de formulaire, page de formulaire
 Une **Page** dont le contenu est structuré par un formulaire (`Page.formId`) : ses valeurs de champs vivent en snapshot JSON `data` sur chaque Révision (historisées comme du contenu). Saisie et éditée par le **formulaire généré** (jamais CodeMirror), rendue par la vue par défaut ou le gabarit du formulaire. Son slug est dérivé de son titre à la création (chip éditable en place, personnalisable) puis ne change plus que par « Changer l'adresse » — jamais recalculé depuis le titre. Toute fiche porte un **titre non vide** dans ses valeurs de champs, y compris en mode **titre automatique** où il est calculé depuis un template `{champ}` : calculé à l'écriture, jamais à la lecture (ADR 0020).
 _Avoid_: Entrée (réservé aux noms de code : entry), fiche-page séparée de Page
 
+**Date / heure**:
+Un type de champ de formulaire qui saisit un instant : une date et une heure, une date seule ou une heure seule, au choix de l'auteur. Une valeur sans heure veut dire **toute la journée** ; elle n'est jamais une valeur à minuit.
+_Avoid_: Champ date, datetime (nom de code seulement)
+
+**Période**:
+Un intervalle de temps borné par un **début** et une **fin**. C'est le même mot dans deux usages : un type de champ de formulaire, qui saisit les deux bornes dans un seul champ, et la restriction de la **Sélection des fiches** d'EntriesView (« À venir », « Passées »…). Un champ Période renseigné a toujours ses deux bornes remplies. S'il est facultatif, il peut rester vide, mais jamais à moitié rempli. Son début ne vient jamais après sa fin.
+_Avoid_: Plage de dates, intervalle, deux champs date de début et de fin
+
 **FormBuilder**:
 L'interface de construction d'un formulaire (page spéciale `formulaires`) : palette de types de champs, drag & drop vers le canvas, panneau de paramétrage par champ, éditeur de gabarit. Produit le descripteur JSON `Form.schema`, validé à l'enregistrement (méta-schéma Zod + règles croisées). Spécification : [`docs/forms.md`](docs/forms.md).
 _Avoid_: ComponentBuilder (son cousin pour les composants), éditeur de page

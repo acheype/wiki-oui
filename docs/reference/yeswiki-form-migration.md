@@ -79,16 +79,26 @@ WikiOui remplace tout cela par le descripteur **JSON** de `Form.schema` (attribu
 | 8 | `required` | `required` | |
 | 10 | `hint` | `hint` | |
 
-## `jour` → `date`
+## `jour` → `datetime`
 
 | Index | YesWiki | WikiOui | Note |
 | --- | --- | --- | --- |
-| 0 | type = `jour` *(à vérifier ; fichier : `date.js`)* | `type: "date"` | |
+| 0 | type = `jour` *(à vérifier ; fichier : `date.js`)* | `type: "datetime"` | |
 | 1 | `name` | `name` | normalisé |
 | 2 | `label` | `label` | |
-| 5 | `today_button` (` `/`today`) | `initTodayButton` | `today` → `true` |
+| 5 | `today_button` (` `/`today`) | — | **non repris** : le sélecteur de date marque déjà le jour courant, un bouton « Aujourd'hui » n'apporte rien |
 | 8 | `required` | `required` | |
 | 10 | `hint` | `hint` | |
+
+### Les dates d'événement deviennent une Période
+
+Un formulaire qui a les deux champs `bf_date_debut_evenement` et `bf_date_fin_evenement` reçoit **un seul** champ `datetimeRange` (Période) à leur place, et non deux champs `datetime` :
+
+- `name` : `dates` ; `label` : celui de `bf_date_debut_evenement` (à défaut, « Dates de l'événement ») ;
+- `format: "datetime"`, `optionalTime: true` ;
+- `required` : celui de `bf_date_debut_evenement` ;
+- valeur de chaque fiche : `start` ← `bf_date_debut_evenement`, `end` ← `bf_date_fin_evenement`. Une fin vide reçoit le début, car une Période renseignée a toujours ses deux bornes ;
+- les références à ces deux champs dans les actions `bazarliste` (calendrier, agenda, `datefilter`) visent le champ `dates`.
 
 ## Champs à options : `liste`/`radio`/`checkbox` (+ variantes `…fiche`) → `list`/`radio`/`multiChoice`
 

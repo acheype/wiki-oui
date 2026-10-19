@@ -120,7 +120,7 @@ La soumission valide côté client **et** côté serveur avec le **même schéma
 
 Deux voies, selon `Form.template` :
 
-- **Vide → rendu par défaut** auto-généré depuis le schéma : titre en `h1`, puis chaque champ rendu selon son type (image affichée — redimensionnée, url cliquable, email en `mailto:`, date localisée, options → libellés, valeur de champ sourcé formulaire → **lien wiki** vers la fiche cible, géolocalisation → carte + marqueur).
+- **Vide → rendu par défaut** auto-généré depuis le schéma : titre en `h1`, puis chaque champ rendu selon son type (image affichée — redimensionnée, url cliquable, email en `mailto:`, date et heure en français (voir § Date / heure et Période), options → libellés, valeur de champ sourcé formulaire → **lien wiki** vers la fiche cible, géolocalisation → carte + marqueur).
 - **Renseigné → gabarit MDX** : les `{champ}` sont substitués par les valeurs de la fiche **avant compilation**, puis le résultat passe par le **pipeline MDX existant** (sandbox ADR 0002, composants du registre). La règle « titre = premier `#` » vaut au niveau du gabarit rendu (`# {title}`).
 
 **Échappement** : les valeurs injectées sont du **texte brut** — celui qui remplit une fiche ne peut ni injecter de composants ni casser la mise en page. Deux exceptions, toutes deux **décidées par l'admin du formulaire** : le contenu d'un champ `customContent` (c'est son rôle), et un `textarea` dont l'admin a activé `allowMdx`.
@@ -137,7 +137,8 @@ Tronc commun à tous les types : `label` · `name` (voir Identités) · `require
 | `textarea` | Texte long | `rows` · `defaultValue` · `allowMdx` (la valeur est rendue comme MDX — opt-in admin) |
 | `email` | Email | — (validation email, rendu `mailto:`) |
 | `url` | Url | — (validation URL, rendu lien cliquable) |
-| `date` | Champ date | `initTodayButton` (datepicker shadcn, stockage ISO `yyyy-mm-dd`) |
+| `datetime` | Date / heure | `format` · `optionalTime` (voir ci-dessous) |
+| `datetimeRange` | Période | `format` · `optionalTime` — une seule valeur `{ start, end }` (voir ci-dessous) |
 | `list` | Liste déroulante | source d'options + `defaultValue` (voir ci-dessous) |
 | `radio` | Boutons radio | source d'options + `defaultValue` + `fillingMode` (`normal` · `tags`) |
 | `multiChoice` | Cases à cocher | source d'options + `defaultValue` + `fillingMode` (`normal` · `tags` · `dragAndDrop`) — valeur multiple (tableau) |
@@ -147,6 +148,62 @@ Tronc commun à tous les types : `label` · `name` (voir Identités) · `require
 | `tags` | Mots-clés | — liste de mots libres, stockée dans `data` (voir ci-dessous) |
 | `customContent` | Custom html/wiki | `entryContent` (MDX affiché dans le formulaire de saisie) · `displayContent` (MDX affiché dans la fiche) — rédigés par l'admin, rendus par le pipeline sandboxé |
 | `title` | Titre de la fiche | `automatic` + `template` (mode titre automatique) |
+
+### Date / heure et Période
+
+Deux types partagent les mêmes réglages et le même widget de saisie : `datetime` saisit un instant, `datetimeRange` saisit une **Période**, un début et une fin dans un seul champ.
+
+**Réglages de l'auteur** (panneau du champ) :
+
+| Réglage | Libellé | Valeurs |
+| --- | --- | --- |
+| `format` | Saisir | `datetime` (Date et heure, **défaut**) · `date` (Date) · `time` (Heure) — contrôle segmenté |
+| `optionalTime` | Heure facultative | visible en mode `datetime` seulement, cochée par défaut. Aide : « Le contributeur peut cocher « Toute la journée » au lieu de saisir une heure. » Pour une Période, l'aide ajoute : « La case vaut pour le début et la fin. » |
+
+**Saisie** :
+
+- La date se choisit dans un sélecteur de date. Il n'y a pas de bouton « Aujourd'hui » : le sélecteur marque déjà le jour courant.
+- L'heure se tape au clavier, à la minute près, ou se choisit dans un popover à deux colonnes : les heures (00 à 23) et les minutes par créneaux de 15.
+- Avec `optionalTime`, la case « Toute la journée » (décochée par défaut) masque l'heure. Case décochée, l'heure est **requise** : une heure absente veut toujours dire « toute la journée ». Une Période n'a qu'une case, qui vaut pour ses deux bornes.
+- Période : libellés « Début » et « Fin ». Choisir un début quand la fin est vide recopie le début dans la fin. Le calendrier de la fin s'ouvre sur le mois du début et grise les jours antérieurs.
+
+**Valeurs stockées** : des chaînes ISO en **heure locale, sans fuseau**. `18h30` veut dire 18h30 pour tout lecteur, où qu'il soit.
+
+| Mode | Valeur |
+| --- | --- |
+| Date et heure | `yyyy-mm-ddTHH:mm`, ou `yyyy-mm-dd` si « Toute la journée » est cochée |
+| Date | `yyyy-mm-dd` |
+| Heure | `HH:mm` |
+
+Une heure absente n'est jamais écrite `00:00`. Une Période est un objet `{ "start": …, "end": … }` sous le `name` du champ, chaque borne au format du mode.
+
+**Validation d'une Période** :
+
+- Un champ Période renseigné a ses deux bornes. Facultatif, il peut rester vide, jamais à moitié rempli. Obligatoire, il exige les deux bornes.
+- Sans heure : début ≤ fin (une période d'un jour est valide).
+- Avec heures, ou en mode Heure : début strictement avant fin. Une plage horaire qui passe minuit (`22:00` → `02:00`) est refusée : l'auteur choisit alors le mode Date et heure.
+
+**Affichage** (rendu par défaut, gabarit, titre automatique, vues de fiches) :
+
+| Valeur | Texte |
+| --- | --- |
+| Date et heure | `3 novembre 2026 à 18h30` |
+| Date | `3 novembre 2026` |
+| Heure | `18h30` — une heure pleine s'écrit sans minutes : `12h` |
+| Période sur plusieurs jours | `du 3 au 5 novembre 2026` ; avec heures : `du 3 novembre 2026 à 18h30 au 5 novembre 2026 à 12h` |
+| Période sur un jour | `3 novembre 2026, de 18h30 à 22h` |
+| Période en mode Heure | `de 9h à 12h30` |
+
+Les parties communes aux deux bornes sont factorisées (`du 3 au 5 novembre 2026`). Dans un gabarit ou un titre automatique, `{champ}` produit ce texte ; il n'y a pas d'accès aux bornes (`{champ.start}`).
+
+**Changer le mode d'un champ** : à l'enregistrement du formulaire, les valeurs sont converties quand la conversion n'invente aucune donnée. Sinon, elles sont gardées, comme pour un champ devenu obligatoire. Le FormBuilder annonce l'impact avant d'enregistrer, sur le modèle du recalcul des titres.
+
+| Changement | Effet sur les fiches | Annonce |
+| --- | --- | --- |
+| Date et heure → Date | l'heure est retirée | « 12 fiches perdront leur heure. » |
+| Date → Date et heure, heure facultative | aucun : les valeurs deviennent « toute la journée » | — |
+| Date → Date et heure, heure obligatoire, ou « Heure facultative » décochée | valeurs gardées ; l'heure est demandée à la prochaine modification | « 5 fiches n'ont pas d'heure. Elle sera demandée à leur prochaine modification. » |
+| une date → Heure, ou Heure → une date | la valeur est vidée | « 12 fiches perdront leur valeur. » |
 
 ### Champs à options : deux sources
 
