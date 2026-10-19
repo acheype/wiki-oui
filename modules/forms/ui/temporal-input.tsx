@@ -8,12 +8,11 @@
 
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon, ClockIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Popover,
@@ -28,6 +27,7 @@ import {
   resolvedFormat,
   timeIsOptional,
 } from "../temporal-value/formats";
+import { TimeInput } from "./time-input";
 
 /** A bound as the widgets edit it: its two parts, each possibly unfinished. */
 interface BoundDraft {
@@ -57,18 +57,6 @@ function joinBound(
       if (date === "") return time;
       return allDay ? date : `${date}T${time}`;
   }
-}
-
-// A typed time, normalized when it reads as one: `9h`, `9h05`, `9:05`,
-// `0905` and `18h30` all mean what they say. Anything else — `18` halfway
-// through typing included — is kept as typed, for the derived schema to refuse.
-function normalizeTime(text: string): string {
-  const match = /^(\d{1,2})(?:h(\d{2})?|:(\d{2})|(\d{2}))$/.exec(text.trim());
-  if (!match) return text;
-  const hours = Number(match[1]);
-  const minutes = Number(match[2] ?? match[3] ?? match[4] ?? "0");
-  if (hours > 23 || minutes > 59) return text;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -135,123 +123,6 @@ function DatePicker({
   );
 }
 
-const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
-const QUARTERS = ["00", "15", "30", "45"];
-
-function TimeColumn({
-  label,
-  items,
-  selected,
-  onPick,
-}: {
-  label: string;
-  items: string[];
-  selected: string | undefined;
-  onPick: (item: string) => void;
-}) {
-  return (
-    <div
-      role="listbox"
-      aria-label={label}
-      className="flex max-h-56 w-14 flex-col gap-0.5 overflow-y-auto p-1"
-    >
-      {items.map((item) => (
-        <button
-          key={item}
-          type="button"
-          role="option"
-          aria-selected={item === selected}
-          onClick={() => onPick(item)}
-          className={cn(
-            "rounded-sm px-2 py-1 text-center text-sm tabular-nums hover:bg-accent",
-            item === selected && "bg-primary text-primary-foreground hover:bg-primary"
-          )}
-        >
-          {item}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function TimeInput({
-  id,
-  label,
-  value,
-  invalid,
-  onChange,
-}: {
-  id?: string;
-  label: string;
-  value: string;
-  invalid?: boolean;
-  onChange: (time: string) => void;
-}) {
-  const [text, setText] = useState(value);
-  const [open, setOpen] = useState(false);
-  // While typing, the text leads; a stored value changed from outside (a
-  // reset, the other bound) takes over — adjusted during render, not in an
-  // effect (react.dev, « You Might Not Need an Effect »).
-  const [shown, setShown] = useState(value);
-  if (value !== shown) {
-    setShown(value);
-    setText(value);
-  }
-
-  const commit = (next: string) => {
-    setText(next);
-    onChange(normalizeTime(next));
-  };
-  const [hours, minutes] = /^\d{2}:\d{2}$/.test(text) ? text.split(":") : [];
-
-  return (
-    <div className="flex items-center gap-1">
-      <Input
-        id={id}
-        aria-label={label}
-        aria-invalid={invalid}
-        inputMode="numeric"
-        placeholder="hh:mm"
-        className="w-20 tabular-nums"
-        value={text}
-        onChange={(event) => commit(event.target.value)}
-        onBlur={() => setText(normalizeTime(text))}
-      />
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger
-          render={
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label="Choisir l'heure"
-            />
-          }
-        >
-          <ClockIcon className="size-4" aria-hidden />
-        </PopoverTrigger>
-        <PopoverContent className="w-auto flex-row gap-1 p-1" align="start">
-          <TimeColumn
-            label="Heures"
-            items={HOURS}
-            selected={hours}
-            onPick={(hour) => commit(`${hour}:${minutes ?? "00"}`)}
-          />
-          <TimeColumn
-            label="Minutes"
-            items={QUARTERS}
-            selected={minutes}
-            onPick={(minute) => {
-              commit(`${hours ?? "00"}:${minute}`);
-              setOpen(false);
-            }}
-          />
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
-
 function AllDayBox({
   checked,
   onChange,
@@ -277,6 +148,7 @@ function BoundInputs({
   invalid,
   defaultMonth,
   notBefore,
+  durationFrom,
   onChange,
 }: {
   id?: string;
@@ -287,6 +159,7 @@ function BoundInputs({
   invalid?: boolean;
   defaultMonth?: string;
   notBefore?: string;
+  durationFrom?: string;
   onChange: (draft: BoundDraft) => void;
 }) {
   const mode = resolvedFormat(settings);
@@ -309,6 +182,7 @@ function BoundInputs({
           label={labels.time}
           value={draft.time}
           invalid={invalid}
+          durationFrom={durationFrom}
           onChange={(time) => onChange({ ...draft, time })}
         />
       )}
@@ -389,6 +263,11 @@ export function PeriodInput({
   const [allDay, setAllDay] = useState(() => initiallyAllDay(settings, range.start));
   const drafts = { start: splitBound(range.start), end: splitBound(range.end) };
   const labelId = useId();
+  // The end's time menu counts from the start when both fall on one day.
+  const sameDay =
+    resolvedFormat(settings) === "time" || drafts.start.date === drafts.end.date;
+  const durationFrom =
+    sameDay && /^\d{2}:\d{2}$/.test(drafts.start.time) ? drafts.start.time : undefined;
 
   const emit = (next: { start: BoundDraft; end: BoundDraft }, nextAllDay: boolean) => {
     const start = joinBound(next.start, settings, nextAllDay);
@@ -430,6 +309,7 @@ export function PeriodInput({
             invalid={invalid}
             defaultMonth={bound === "end" ? drafts.start.date || undefined : undefined}
             notBefore={bound === "end" ? drafts.start.date || undefined : undefined}
+            durationFrom={bound === "end" ? durationFrom : undefined}
             onChange={(next) =>
               bound === "start" ? setStart(next) : emit({ ...drafts, end: next }, allDay)
             }

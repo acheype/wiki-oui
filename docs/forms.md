@@ -163,7 +163,9 @@ Deux types partagent les mêmes réglages et le même widget de saisie : `dateti
 **Saisie** :
 
 - La date se choisit dans un sélecteur de date. Il n'y a pas de bouton « Aujourd'hui » : le sélecteur marque déjà le jour courant.
-- L'heure se tape au clavier, à la minute près, ou se choisit dans un popover à deux colonnes : les heures (00 à 23) et les minutes par créneaux de 15.
+- L'heure est un champ à deux cases, `hh : mm`. Chaque case se tape au clavier et ouvre son menu en dessous : les heures (00 à 23) sous l'heure, les quarts d'heure (00, 15, 30, 45) sous les minutes. Une heure complète passe aux minutes (`9` donne `09`). Les flèches ↑ et ↓ changent d'une heure ou d'un quart d'heure. Une minute hors quart d'heure se tape (`18:20`), elle n'est jamais refusée.
+- Le menu des heures s'ouvre sur 09 quand l'heure est vide. Dans la fin d'une Période sur un seul jour, il s'ouvre sur la première heure possible, grise les heures antérieures au début et affiche la durée de chaque option (`1h30`).
+- Sur un écran tactile, le champ heure est le sélecteur natif de l'appareil.
 - Avec `optionalTime`, la case « Toute la journée » (décochée par défaut) masque l'heure. Case décochée, l'heure est **requise** : une heure absente veut toujours dire « toute la journée ». Une Période n'a qu'une case, qui vaut pour ses deux bornes.
 - Période : libellés « Début » et « Fin ». Choisir un début quand la fin est vide recopie le début dans la fin. Le calendrier de la fin s'ouvre sur le mois du début et grise les jours antérieurs.
 
