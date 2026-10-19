@@ -36,9 +36,9 @@ export interface TemporalParts {
 
 const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
-const AWAITING_TIME = /^\d{4}-\d{2}-\d{2}T$/;
+export const AWAITING_TIME = /^\d{4}-\d{2}-\d{2}T$/;
 
-function isRealDate(text: string): boolean {
+export function isRealDate(text: string): boolean {
   const match = DATE.exec(text);
   if (!match) return false;
   const [, year, month, day] = match.map(Number);
@@ -76,37 +76,6 @@ export function timeIsOptional(settings: TemporalSettings): boolean {
   return resolvedFormat(settings) === "datetime" && settings.optionalTime !== false;
 }
 
-/** Whether a stored bound fits the field's mode, or the French reason why not. */
-export function boundIssue(
-  value: unknown,
-  settings: TemporalSettings
-): string | null {
-  const format = resolvedFormat(settings);
-  // The entry form's way of saying « Toute la journée » is unchecked and no
-  // time is entered yet (temporal-input.tsx): a date waiting for its time.
-  if (typeof value === "string" && AWAITING_TIME.test(value)) {
-    return "Saisissez une heure.";
-  }
-  const parts = parseTemporal(value);
-  if (!parts) {
-    // A real date before the « T » means the time is what went wrong.
-    const datePart = typeof value === "string" ? value.split("T")[0] : "";
-    return format === "time" || isRealDate(datePart)
-      ? "Heure invalide."
-      : "Date invalide.";
-  }
-  switch (format) {
-    case "date":
-      return parts.date && !parts.time ? null : "Saisissez une date seule.";
-    case "time":
-      return parts.time && !parts.date ? null : "Saisissez une heure seule.";
-    case "datetime":
-      if (!parts.date) return "Saisissez une date.";
-      if (!parts.time && !timeIsOptional(settings)) return "Saisissez une heure.";
-      return null;
-  }
-}
-
 /** A Période value as stored: one object holding both bounds. */
 export interface TemporalRange {
   start: string;
@@ -128,28 +97,14 @@ export function isEmptyRange(value: unknown): boolean {
   return isTemporalRange(value) && value.start === "" && value.end === "";
 }
 
-// A filled Période has both bounds, each fitting the mode, both with a time or
-// both without (the « Toute la journée » box covers the two), and its start
-// before its end — strictly once times are involved: an all-day period may
-// last one day, a timed one cannot end when it starts. Bounds of one shape
-// compare as plain strings, the ISO order being the chronological one.
-export function rangeIssue(
-  value: unknown,
-  settings: TemporalSettings
-): string | null {
-  if (!isTemporalRange(value)) return "Période invalide.";
-  if (value.start === "") return "Saisissez le début.";
-  if (value.end === "") return "Saisissez la fin.";
-  for (const [bound, name] of [["start", "Début"], ["end", "Fin"]] as const) {
-    const issue = boundIssue(value[bound], settings);
-    if (issue) return `${name}\u00A0: ${issue.charAt(0).toLowerCase()}${issue.slice(1)}`;
-  }
-  const start = parseTemporal(value.start);
-  const end = parseTemporal(value.end);
-  if (Boolean(start?.time) !== Boolean(end?.time)) {
-    return "Saisissez une heure pour le début et la fin, ou pour aucun des deux.";
-  }
-  const timed = Boolean(start?.time);
-  const ordered = timed ? value.start < value.end : value.start <= value.end;
-  return ordered ? null : "La fin doit venir après le début.";
+/**
+ * Whether a value being entered is finished enough to be judged: empty, or
+ * every bound complete. A time half typed, a date awaiting its time, or a
+ * Période with one bound left are still on their way.
+ */
+export function isSettled(value: unknown): boolean {
+  if (isEmptyRange(value)) return true;
+  const settledBound = (bound: unknown) => parseTemporal(bound) !== null;
+  if (isTemporalRange(value)) return settledBound(value.start) && settledBound(value.end);
+  return settledBound(value);
 }

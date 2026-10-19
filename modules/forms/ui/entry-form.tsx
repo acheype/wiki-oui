@@ -30,6 +30,7 @@ import {
 import { slugify } from "@/lib/slug";
 import { authPagePath } from "@/wiki.config";
 import { formSourcedFields, toWidgetSpec } from "./field-adapter";
+import { isSettled, isTemporalField } from "../temporal-value/formats";
 
 export function EntryForm({
   form,
@@ -107,6 +108,7 @@ function EntryFields({
   const {
     control,
     handleSubmit,
+    trigger,
     formState: { errors },
   } = useForm<EntryData>({
     // The derived schema is dynamic (its keys come from the descriptor), so
@@ -223,7 +225,15 @@ function EntryFields({
                 // react-hook-form reads that `undefined` as "no value here"
                 // and serves the field's default back, so an emptied field
                 // would show the stored value again.
-                onChange={(value) => rhf.onChange(value ?? "")}
+                onChange={(value) => {
+                  rhf.onChange(value ?? "");
+                  // A date or a period is judged as soon as it is complete —
+                  // an end before its start shows at once, not at submit —
+                  // and never while a time is still being typed.
+                  if (isTemporalField(field) && isSettled(value)) {
+                    void trigger(field.name);
+                  }
+                }}
                 error={errors[field.name]?.message as string | undefined}
                 environment={{ entryValues, formSlug: form.formSlug }}
               />

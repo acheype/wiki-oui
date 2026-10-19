@@ -163,14 +163,14 @@ Deux types partagent les mêmes réglages et le même widget de saisie : `dateti
 **Saisie** :
 
 - La date se choisit dans un sélecteur de date. Il n'y a pas de bouton « Aujourd'hui » : le sélecteur marque déjà le jour courant.
-- L'heure est un champ à deux cases, `hh : mm`. Chaque case se tape au clavier et ouvre son menu en dessous : les heures (00 à 23) sous l'heure, les quarts d'heure (00, 15, 30, 45) sous les minutes. Une heure complète passe aux minutes (`9` donne `09`). Les flèches ↑ et ↓ changent d'une heure ou d'un quart d'heure. Une minute hors quart d'heure se tape (`18:20`), elle n'est jamais refusée.
+- L'heure est un champ à deux cases, `hh : mm`. Chaque case se tape au clavier et ouvre son menu en dessous : les heures (00 à 23) sous l'heure, les quarts d'heure (00, 15, 30, 45) sous les minutes. Une heure complète passe aux minutes (`9` donne `09`), qui valent `00` tant qu'on ne les change pas : aucune heure ne reste à moitié saisie. Les flèches ↑ et ↓ changent d'une heure ou d'un quart d'heure. Une minute hors quart d'heure se tape (`18:20`), elle n'est jamais refusée.
 - Le menu des heures s'ouvre sur 09 quand l'heure est vide. Dans la fin d'une Période sur un seul jour, il s'ouvre sur la première heure possible, grise les heures antérieures au début et affiche la durée de chaque option (`1h30`).
 - Sur un écran tactile, le champ heure est le sélecteur natif de l'appareil.
 - Avec `optionalTime`, la case « Toute la journée » (décochée par défaut) masque l'heure. Case décochée, l'heure est **requise** : une heure absente veut toujours dire « toute la journée ». Une Période n'a qu'une case, qui vaut pour ses deux bornes.
 - Période : la saisie part d'**un seul jour**, le cas le plus courant. Les cases « Toute la journée » et « Sur plusieurs jours » viennent en premier, car elles changent les champs qui suivent.
   - Un jour : une date (un clic), puis « de [heure] à [heure] ».
-  - « Sur plusieurs jours » : un calendrier de période, avec la plage en surbrillance. Un premier clic déplace toute la période en gardant sa durée (la fin suit le début). Un second clic, facultatif, fixe le dernier jour ; les jours antérieurs au premier sont grisés et le survol prévisualise la période. Une fiche dont les deux dates diffèrent s'ouvre dans ce mode. Décocher la case ramène la fin au jour du début.
-  - Le même jour, la fin ne reste jamais derrière le début : une fin sans heure reçoit le début + 1h, et une fin que le début dépasse se décale avec lui en gardant la durée, tant qu'elle reste dans la journée.
+  - « Sur plusieurs jours » : un calendrier de période, avec la plage en surbrillance, puis « de [heure] le 16 à [heure] le 20 » — le jour suit chaque heure, pour ne pas lire un horaire quotidien. Un premier clic déplace toute la période en gardant sa durée (la fin suit le début). Un second clic, facultatif, fixe le dernier jour ; les jours antérieurs au premier sont grisés et le survol prévisualise la période. Une fiche dont les deux dates diffèrent s'ouvre dans ce mode. Décocher la case ramène la fin au jour du début.
+  - Le même jour, la fin suit le début en gardant la durée, comme dans un agenda : une fin sans heure reçoit le début + 1h, et changer l'heure de début déplace la fin d'autant, tant qu'elle reste dans la journée.
 
 **Valeurs stockées** : des chaînes ISO en **heure locale, sans fuseau**. `18h30` veut dire 18h30 pour tout lecteur, où qu'il soit.
 
@@ -187,6 +187,18 @@ Une heure absente n'est jamais écrite `00:00`. Une Période est un objet `{ "st
 - Un champ Période renseigné a ses deux bornes. Facultatif, il peut rester vide, jamais à moitié rempli. Obligatoire, il exige les deux bornes.
 - Sans heure : début ≤ fin (une période d'un jour est valide).
 - Avec heures, ou en mode Heure : début strictement avant fin. Une plage horaire qui passe minuit (`22:00` → `02:00`) est refusée : l'auteur choisit alors le mode Date et heure.
+- Une Date / heure ou une Période est validée **dès que sa saisie est complète**, sans attendre l'enregistrement. Rien ne s'affiche tant qu'une heure est en cours de frappe ou qu'une borne reste vide.
+- Chaque message dit quoi faire, avec la valeur en cause :
+
+| Situation | Message |
+| --- | --- |
+| Fin avant le début, le même jour | « Choisissez une heure de fin après 18h30. » |
+| Date de fin avant la date de début | « Choisissez une date de fin à partir du 16 octobre 2026. » |
+| Date choisie, heure vide (Date / heure) | « Saisissez l'heure, ou cochez « Toute la journée ». » |
+| Heure de début ou de fin vide (Période) | « Saisissez l'heure de début. » · « Saisissez l'heure de fin. » |
+| Heure incomplète | « Complétez l'heure (par exemple 18:30). » |
+| Heure sans date | « Choisissez la date. » |
+| Champ obligatoire vide | « Choisissez une date. » (mode Heure : « Saisissez l'heure. ») |
 
 **Affichage** (rendu par défaut, gabarit, titre automatique, vues de fiches) :
 

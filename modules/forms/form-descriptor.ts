@@ -7,12 +7,12 @@
 import { z } from "zod";
 import { SCOPES } from "@/modules/permissions/rules";
 import { SLUG_PATTERN } from "@/lib/slug";
+import { TEMPORAL_FORMATS, isEmptyRange } from "./temporal-value/formats";
 import {
-  TEMPORAL_FORMATS,
   boundIssue,
-  isEmptyRange,
   rangeIssue,
-} from "./temporal-value/formats";
+  requiredMessage,
+} from "./temporal-value/issues";
 import { fieldValueText } from "./entry/value-text";
 
 export { valueToText } from "./entry/value-text";
@@ -282,9 +282,12 @@ const REQUIRED = "Ce champ est obligatoire.";
 // format. Required wraps the format with the non-empty guard.
 function stringValue(
   format: z.ZodType<string, string>,
-  required: boolean | undefined
+  required: boolean | undefined,
+  requiredMessage = REQUIRED
 ): z.ZodType {
-  if (required) return z.string(REQUIRED).min(1, REQUIRED).pipe(format);
+  if (required) {
+    return z.string(requiredMessage).min(1, requiredMessage).pipe(format);
+  }
   return z.union([format, z.literal("")]).optional();
 }
 
@@ -334,12 +337,15 @@ function fieldValueSchema(field: FormField): z.ZodType | null {
           const issue = boundIssue(value, field);
           if (issue) ctx.addIssue({ code: "custom", message: issue });
         }),
-        field.required
+        field.required,
+        requiredMessage(field)
       );
     case "datetimeRange":
       return z.unknown().superRefine((value, ctx) => {
         if (isEmptyRange(value)) {
-          if (field.required) ctx.addIssue({ code: "custom", message: REQUIRED });
+          if (field.required) {
+            ctx.addIssue({ code: "custom", message: requiredMessage(field) });
+          }
           return;
         }
         // Aimed at the field itself: the entry form shows one message per field.

@@ -2,9 +2,10 @@
 
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Field } from "./field-widget";
+import { Field, type FieldValue } from "./field-widget";
 
 afterEach(cleanup);
 
@@ -81,6 +82,30 @@ describe("<Field> for a Date / heure", () => {
     await user.keyboard("1820");
 
     expect(onChange).toHaveBeenLastCalledWith("2026-11-03T18:20");
+  });
+
+  it("fills the minutes with 00 once the hour is entered", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Field id="quand" spec={spec} value="2026-11-03T" onChange={onChange} />);
+
+    await user.click(segment("Heure", "Heures"));
+    await user.keyboard("18");
+    expect(onChange).toHaveBeenLastCalledWith("2026-11-03T18:00");
+
+    await user.keyboard("30");
+    expect(onChange).toHaveBeenLastCalledWith("2026-11-03T18:30");
+  });
+
+  it("fills the minutes with 00 once an hour is picked in the menu", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<Field id="quand" spec={spec} value="2026-11-03T" onChange={onChange} />);
+
+    await user.click(segment("Heure", "Heures"));
+    await user.click(screen.getByRole("option", { name: "18" }));
+
+    expect(onChange).toHaveBeenLastCalledWith("2026-11-03T18:00");
   });
 
   it("moves to the minutes once the hour is complete", async () => {
@@ -247,6 +272,68 @@ describe("<Field> for a Période", () => {
     });
   });
 
+  // The entry form feeds each change back as the new value: so does this one.
+  function Controlled({
+    initial,
+    onChange,
+  }: {
+    initial: FieldValue;
+    onChange: (value: FieldValue) => void;
+  }) {
+    const [value, setValue] = useState(initial);
+    return (
+      <Field
+        id="dates"
+        spec={{ ...spec, format: "datetime" }}
+        value={value}
+        onChange={(next) => {
+          setValue(next);
+          onChange(next);
+        }}
+      />
+    );
+  }
+
+  it("keeps the end an hour after a start time typed digit by digit", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Controlled
+        initial={{ start: "2026-11-03T", end: "2026-11-03T" }}
+        onChange={onChange}
+      />
+    );
+
+    const start = within(screen.getByRole("group", { name: "Heure de début" }));
+    await user.click(start.getByRole("combobox", { name: "Heures" }));
+    await user.keyboard("1830");
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      start: "2026-11-03T18:30",
+      end: "2026-11-03T19:30",
+    });
+  });
+
+  it("moves the end with the start, keeping the duration", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Controlled
+        initial={{ start: "2026-11-03T18:00", end: "2026-11-03T20:00" }}
+        onChange={onChange}
+      />
+    );
+
+    const start = within(screen.getByRole("group", { name: "Heure de début" }));
+    await user.click(start.getByRole("combobox", { name: "Heures" }));
+    await user.keyboard("{ArrowDown}");
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      start: "2026-11-03T17:00",
+      end: "2026-11-03T19:00",
+    });
+  });
+
   it("carries the end along, keeping the duration, when the start passes it", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
@@ -283,6 +370,23 @@ describe("<Field> for a Période", () => {
       screen.getByRole("checkbox", { name: "Sur plusieurs jours" }).getAttribute("aria-checked")
     ).toBe("true");
     expect(screen.getByRole("button", { name: /^Dates, du 3 au 5 novembre 2026/ })).toBeTruthy();
+  });
+
+  it("writes « de … le 1er à … le 5 » under a period over several days", () => {
+    render(
+      <Field
+        id="dates"
+        spec={{ ...spec, format: "datetime" }}
+        value={{ start: "2026-11-01T18:00", end: "2026-11-05T12:00" }}
+        onChange={vi.fn()}
+      />
+    );
+
+    for (const text of ["de", "le 1er", "à", "le 5"]) {
+      expect(screen.getByText(text)).toBeTruthy();
+    }
+    expect(screen.queryByText("Début")).toBeNull();
+    expect(screen.queryByText("Fin")).toBeNull();
   });
 
   it("moves a period with one click, keeping its length", async () => {

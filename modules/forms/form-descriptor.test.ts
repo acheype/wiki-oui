@@ -937,12 +937,67 @@ describe("Date / heure and Période values (docs/forms.md)", () => {
       expect(valid(field, "2026-11-03T")).toBe(false);
     });
 
-    it("blames the time, not the date, for an unfinished time", () => {
-      const result = schemaOf(field).safeParse({
-        title: "Concert",
-        quand: "2026-11-03T18",
-      });
-      expect(result.error?.issues[0].message).toBe("Heure invalide.");
+  });
+
+  // Each message says what to do, with the value at stake (docs/forms.md).
+  describe("messages", () => {
+    const messageOf = (field: FormDescriptor["fields"][number], value: unknown) =>
+      schemaOf(field).safeParse({ title: "Concert", quand: value }).error?.issues[0]
+        .message;
+    const dateTime = { type: "datetime", name: "quand", label: "Quand" } as const;
+    const period = { type: "datetimeRange", name: "quand", label: "Dates" } as const;
+
+    it("asks for the time, or the box, when a date waits for its time", () => {
+      expect(messageOf(dateTime, "2026-11-03T")).toBe(
+        "Saisissez l'heure, ou cochez «\u00A0Toute la journée\u00A0»."
+      );
+      expect(messageOf({ ...dateTime, optionalTime: false }, "2026-11-03T")).toBe(
+        "Saisissez l'heure."
+      );
+    });
+
+    it("asks to complete an unfinished time", () => {
+      expect(messageOf(dateTime, "2026-11-03T18:3")).toBe(
+        "Complétez l'heure (par exemple 18:30)."
+      );
+    });
+
+    it("asks for the date when only a time is entered", () => {
+      expect(messageOf(dateTime, "18:30")).toBe("Choisissez la date.");
+    });
+
+    it("names the bound whose time is missing", () => {
+      expect(
+        messageOf(period, { start: "2026-11-03T18:30", end: "2026-11-03T" })
+      ).toBe("Saisissez l'heure de fin.");
+      expect(messageOf(period, { start: "2026-11-03T", end: "2026-11-03T" })).toBe(
+        "Saisissez l'heure de début."
+      );
+    });
+
+    it("gives the earliest end time possible", () => {
+      expect(
+        messageOf(period, { start: "2026-11-03T18:30", end: "2026-11-03T17:00" })
+      ).toBe("Choisissez une heure de fin après 18h30.");
+      expect(
+        messageOf({ ...period, format: "time" }, { start: "22:00", end: "02:00" })
+      ).toBe("Choisissez une heure de fin après 22h.");
+    });
+
+    it("gives the earliest end date possible", () => {
+      expect(messageOf(period, { start: "2026-10-16", end: "2026-10-14" })).toBe(
+        "Choisissez une date de fin à partir du 16 octobre 2026."
+      );
+    });
+
+    it("asks for a date when a required one is missing", () => {
+      expect(messageOf({ ...period, required: true }, undefined)).toBe(
+        "Choisissez une date."
+      );
+      expect(messageOf({ ...dateTime, required: true }, "")).toBe("Choisissez une date.");
+      expect(messageOf({ ...dateTime, required: true, format: "time" }, "")).toBe(
+        "Saisissez l'heure."
+      );
     });
   });
 

@@ -179,13 +179,23 @@ function SegmentedTime({
     onChange(next.hours === "" && next.minutes === "" ? "" : `${next.hours}:${next.minutes}`);
   };
 
+  // Selected once the new value is on screen — selecting right away would
+  // select the old one, and the next digit would land after the « 00 ».
   const focus = (segment: Segment) => {
-    inputs[segment].current?.focus();
-    inputs[segment].current?.select();
+    const input = inputs[segment].current;
+    input?.focus();
+    setTimeout(() => input?.select(), 0);
   };
 
-  const set = (segment: Segment, segmentValue: string) =>
-    emit({ ...latest.current, [segment]: segmentValue });
+  // A complete hour never waits on empty minutes: they start at 00, already
+  // selected, so typing over them still sets any minute.
+  const set = (segment: Segment, segmentValue: string) => {
+    const next = { ...latest.current, [segment]: segmentValue };
+    if (segment === "hours" && segmentValue.length === 2 && next.minutes === "") {
+      next.minutes = "00";
+    }
+    emit(next);
+  };
 
   const pick = (segment: Segment, option: string) => {
     set(segment, option);
@@ -353,12 +363,16 @@ function SegmentInput({
         aria-invalid={invalid}
         inputMode="numeric"
         autoComplete="off"
-        maxLength={2}
         placeholder={segment === "hours" ? "hh" : "mm"}
         value={value}
         onFocus={onFocus}
         onClick={onClick}
-        onChange={(event) => onType(event.target.value)}
+        // A digit typed after a full segment starts it over: « 00 » then « 3 »
+        // reads 3, not 003.
+        onChange={(event) => {
+          const text = event.target.value;
+          onType(text.length > 2 ? text.slice(value.length) : text);
+        }}
         onKeyDown={onKeyDown}
         onBlur={onBlur}
         className="w-[3ch] rounded-sm bg-transparent py-0.5 text-center text-base tabular-nums outline-none placeholder:text-muted-foreground focus:bg-accent focus:text-accent-foreground md:text-sm"

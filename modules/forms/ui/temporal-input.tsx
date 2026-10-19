@@ -9,7 +9,7 @@
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -348,6 +348,12 @@ function RangePicker({
   );
 }
 
+/** « le 16 », « le 1er » — the day of a date, as a time's companion. */
+function dayOfMonth(date: string): string {
+  const day = Number(date.slice(8, 10));
+  return `le ${day === 1 ? "1er" : day}`;
+}
+
 function MultiDayBox({
   checked,
   onChange,
@@ -406,24 +412,25 @@ export function PeriodInput({
     onChange(start === "" && end === "" ? undefined : { start, end });
   };
 
-  // Within one day the end never lags behind the start: an end with no time
-  // yet gets the start + 1h, and an end the start overtakes moves with it,
-  // keeping the duration — as long as it stays within the day.
+  // Within one day the end follows the start, keeping the duration — as
+  // agendas do — and an end with no time yet gets the start + 1h, as long as
+  // it stays within the day. The duration counts from the last complete start
+  // time: typing 18:30 passes through 18:00 and the unfinished 18:3.
+  const lastStart = useRef(minutesOf(drafts.start.time));
   const setStartTime = (time: string) => {
     let end = drafts.end;
     const startMinutes = minutesOf(time);
     if (oneDay && startMinutes !== null) {
-      const previousStart = minutesOf(drafts.start.time);
+      const previousStart = lastStart.current;
       const previousEnd = minutesOf(drafts.end.time);
-      if (drafts.end.time === "") {
-        end = { ...end, time: shiftTime(time, 60) ?? "" };
-      } else if (previousEnd !== null && previousEnd <= startMinutes) {
-        const duration =
-          previousStart !== null && previousEnd > previousStart
-            ? previousEnd - previousStart
-            : 60;
+      const duration =
+        previousStart !== null && previousEnd !== null && previousEnd > previousStart
+          ? previousEnd - previousStart
+          : 60;
+      if (previousEnd === null || previousStart !== null || previousEnd <= startMinutes) {
         end = { ...end, time: shiftTime(time, duration) ?? end.time };
       }
+      lastStart.current = startMinutes;
     }
     emit({ start: { ...drafts.start, time }, end });
   };
@@ -520,11 +527,16 @@ export function PeriodInput({
             }
           />
           {showTimes && (
+            // The day after each time: « de 18:30 à 19:30 » alone would read
+            // as a daily schedule, not as « from the 16th at 18:30 to the
+            // 20th at 19:30 ».
             <div className="flex flex-wrap items-center gap-2">
-              {joiner("Début")}
+              {joiner("de")}
               {startTime}
-              {joiner("Fin")}
+              {drafts.start.date && joiner(dayOfMonth(drafts.start.date))}
+              {joiner("à")}
               {endTime}
+              {drafts.end.date && joiner(dayOfMonth(drafts.end.date))}
             </div>
           )}
         </>
