@@ -352,10 +352,15 @@ function RangePicker({
   );
 }
 
-/** « le 16 », « le 1er » — the day of a date, as a time's companion. */
+/**
+ * « le 16 octobre », « le 1er novembre » — the day of a date, as a time's
+ * companion. The month is spelled out like everywhere else in the wiki, and
+ * spares a reader from looking back at the dates when they span two months.
+ */
 function dayOfMonth(date: string): string {
   const day = Number(date.slice(8, 10));
-  return `le ${day === 1 ? "1er" : day}`;
+  const month = format(dateOf(date), "MMMM", { locale: fr });
+  return `le ${day === 1 ? "1er" : day} ${month}`;
 }
 
 function MultiDayBox({
@@ -474,8 +479,11 @@ export function PeriodInput({
       onChange={(time) => emit({ ...drafts, end: { ...drafts.end, time } })}
     />
   );
-  const joiner = (text: string) => (
-    <span className="text-sm text-muted-foreground">{text}</span>
+  // The words of the sentence read in the text color; a time's day, which
+  // only qualifies the time, steps back in grey.
+  const joiner = (text: string) => <span className="text-sm">{text}</span>;
+  const dayNote = (date: string) => (
+    <span className="text-sm text-muted-foreground">{dayOfMonth(date)}</span>
   );
 
   return (
@@ -527,12 +535,12 @@ export function PeriodInput({
             <span className="flex items-center gap-2">
               {mode !== "time" && joiner("de")}
               {startTime}
-              {!oneDay && DAY.test(drafts.start.date) && joiner(dayOfMonth(drafts.start.date))}
+              {!oneDay && DAY.test(drafts.start.date) && dayNote(drafts.start.date)}
             </span>
             <span className="flex items-center gap-2">
               {joiner("à")}
               {endTime}
-              {!oneDay && DAY.test(drafts.end.date) && joiner(dayOfMonth(drafts.end.date))}
+              {!oneDay && DAY.test(drafts.end.date) && dayNote(drafts.end.date)}
             </span>
           </>
         )}

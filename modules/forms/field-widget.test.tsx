@@ -388,7 +388,7 @@ describe("<Field> for a Période", () => {
     expect(screen.getByRole("button", { name: /^Dates, du 3 au 5 novembre 2026/ })).toBeTruthy();
   });
 
-  it("writes « de … le 1er à … le 5 » under a period over several days", () => {
+  it("writes « de … le 1er novembre à … le 5 novembre » over several days", () => {
     render(
       <Field
         id="dates"
@@ -398,7 +398,7 @@ describe("<Field> for a Période", () => {
       />
     );
 
-    for (const text of ["de", "le 1er", "à", "le 5"]) {
+    for (const text of ["de", "le 1er novembre", "à", "le 5 novembre"]) {
       expect(screen.getByText(text)).toBeTruthy();
     }
     expect(screen.queryByText("Début")).toBeNull();
