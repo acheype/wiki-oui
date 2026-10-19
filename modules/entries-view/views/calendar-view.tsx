@@ -23,6 +23,7 @@ import {
   formatTemporalValue,
   temporalSpan,
 } from "@/modules/forms/temporal-value";
+import { shiftDay } from "@/lib/day";
 import { cn } from "@/lib/utils";
 import { HOVER_PRELOAD_MS } from "@/modules/pages/page-modal";
 import type { ViewContext } from "./types";
@@ -130,15 +131,9 @@ export function CalendarView({ context }: { context: ViewContext }) {
 // last day, so it shifts by one. A timed end is an instant, taken as it is.
 function eventEnd(span: TemporalSpan) {
   if (span.end <= span.start) return {};
-  return { end: span.allDay ? nextDay(span.end) : span.end };
+  return { end: span.allDay ? shiftDay(span.end, 1) : span.end };
 }
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
-}
-
-function nextDay(day: string): string {
-  const date = new Date(`${day}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + 1);
-  return date.toISOString().slice(0, 10);
 }

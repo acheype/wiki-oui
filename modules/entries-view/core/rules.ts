@@ -11,6 +11,7 @@ import {
   compareTemporalValues,
   temporalSpan,
 } from "@/modules/forms/temporal-value";
+import { shiftDay } from "@/lib/day";
 import { fold } from "@/lib/fold";
 import type { ViewEntry } from "../view-entry";
 
@@ -170,17 +171,12 @@ export const PERIODS = [
 
 export type Period = (typeof PERIODS)[number];
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 /** [from, to] bounds (inclusive, yyyy-mm-dd) for a period around `today`. */
 function periodBounds(
   period: Period,
   today: string
 ): { from?: string; to?: string } {
-  const shift = (days: number) =>
-    new Date(new Date(`${today}T00:00:00Z`).getTime() + days * DAY_MS)
-      .toISOString()
-      .slice(0, 10);
+  const shift = (days: number) => shiftDay(today, days);
   switch (period) {
     case "future":
       return { from: today };

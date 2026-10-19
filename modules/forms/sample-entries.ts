@@ -6,6 +6,7 @@
 import type { ViewEntry } from "@/modules/entries-view/view-entry";
 import type { FormDescriptor, FormField } from "./form-descriptor";
 import { isOptionsField } from "./form-descriptor";
+import { shiftDay } from "@/lib/day";
 
 export const SAMPLE_COUNT = 5;
 
@@ -38,16 +39,7 @@ const SAMPLE_TAGS = ["nature", "entraide", "culture", "sport", "jeunesse"];
 /** yyyy-mm-dd shifted from `today` by a few days, one per sample index. */
 function sampleDay(today: string, index: number, span: number): string {
   const offsets = [-3, 2, 7, 12, 19, 26];
-  const days = Math.round((offsets[index % offsets.length] * span) / 7);
-  const date = new Date(`${today}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-function shiftDay(day: string, days: number): string {
-  const date = new Date(`${day}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
+  return shiftDay(today, Math.round((offsets[index % offsets.length] * span) / 7));
 }
 
 const SAMPLE_TIMES = ["09:00", "14:30", "18:30", "20:00"];

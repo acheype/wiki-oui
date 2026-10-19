@@ -5,6 +5,8 @@
 // communes, consistent with the sample-entry generator's own town list
 // (modules/forms/sample-entries.ts).
 
+import { shiftDay } from "../../lib/day";
+
 // Pool filename (written under files/, ADR 0012) → source asset shipped in
 // prisma/seed/assets/ (attribution: prisma/seed/assets/ATTRIBUTIONS.md).
 export const IMAGE_ASSETS: Record<string, string> = {
@@ -491,7 +493,5 @@ export const entrySeeds: EntrySeed[] = [
 // entries.ts (not computed at import time) so re-running the seed later
 // still produces plausible future/past events relative to *that* run.
 function isoDay(offset: number): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + offset);
-  return date.toISOString().slice(0, 10);
+  return shiftDay(new Date().toISOString().slice(0, 10), offset);
 }
