@@ -184,42 +184,163 @@ describe("<Field> for a Date / heure", () => {
 describe("<Field> for a Période", () => {
   const spec = { type: "datetimeRange", label: "Dates", format: "date" } as const;
 
-  it("copies a picked start into an empty end", async () => {
+  const day = (number: number) =>
+    screen.findByRole("button", { name: new RegExp(` ${number} novembre 2026$`) });
+
+  it("puts « Toute la journée » and « Sur plusieurs jours » above the date", () => {
+    render(
+      <Field
+        id="dates"
+        spec={{ ...spec, format: "datetime" }}
+        value={undefined}
+        onChange={vi.fn()}
+      />
+    );
+
+    const date = screen.getByRole("button", { name: /^Date/ });
+    for (const name of ["Toute la journée", "Sur plusieurs jours"]) {
+      const box = screen.getByRole("checkbox", { name });
+      expect(box.compareDocumentPosition(date) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it("enters a one-day period with a single date", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Field
+        id="dates"
+        spec={{ ...spec, format: "datetime" }}
+        value={{ start: "2026-11-01T18:00", end: "2026-11-01T19:00" }}
+        onChange={onChange}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^Date/ }));
+    await user.click(await day(3));
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      start: "2026-11-03T18:00",
+      end: "2026-11-03T19:00",
+    });
+  });
+
+  it("ends an hour after a start time typed with no end time yet", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Field
+        id="dates"
+        spec={{ ...spec, format: "datetime" }}
+        value={{ start: "2026-11-03T", end: "2026-11-03T" }}
+        onChange={onChange}
+      />
+    );
+
+    const start = within(screen.getByRole("group", { name: "Heure de début" }));
+    await user.click(start.getByRole("combobox", { name: "Heures" }));
+    await user.keyboard("1830");
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      start: "2026-11-03T18:30",
+      end: "2026-11-03T19:30",
+    });
+  });
+
+  it("carries the end along, keeping the duration, when the start passes it", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Field
+        id="dates"
+        spec={{ ...spec, format: "datetime" }}
+        value={{ start: "2026-11-03T18:00", end: "2026-11-03T19:30" }}
+        onChange={onChange}
+      />
+    );
+
+    const start = within(screen.getByRole("group", { name: "Heure de début" }));
+    await user.click(start.getByRole("combobox", { name: "Heures" }));
+    await user.keyboard("20");
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      start: "2026-11-03T20:00",
+      end: "2026-11-03T21:30",
+    });
+  });
+
+  it("opens a stored period over several days in its own mode", () => {
+    render(
+      <Field
+        id="dates"
+        spec={spec}
+        value={{ start: "2026-11-03", end: "2026-11-05" }}
+        onChange={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "Sur plusieurs jours" }).getAttribute("aria-checked")
+    ).toBe("true");
+    expect(screen.getByRole("button", { name: /^Dates, du 3 au 5 novembre 2026/ })).toBeTruthy();
+  });
+
+  it("moves a period with one click, keeping its length", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     render(
       <Field
         id="dates"
         spec={spec}
-        value={{ start: "2026-11-01", end: "" }}
+        value={{ start: "2026-11-10", end: "2026-11-12" }}
         onChange={onChange}
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /^Date de début/ }));
-    await user.click(await screen.findByRole("button", { name: /\b3 novembre 2026$/ }));
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    await user.click(await day(24));
 
-    expect(onChange).toHaveBeenLastCalledWith({
-      start: "2026-11-03",
-      end: "2026-11-03",
-    });
+    expect(onChange).toHaveBeenLastCalledWith({ start: "2026-11-24", end: "2026-11-26" });
   });
 
-  it("greys the end days before the start", async () => {
+  it("sets the end with a second click, never before the start", async () => {
     const user = userEvent.setup();
+    const onChange = vi.fn();
     render(
       <Field
         id="dates"
         spec={spec}
         value={{ start: "2026-11-10", end: "2026-11-12" }}
-        onChange={vi.fn()}
+        onChange={onChange}
       />
     );
 
-    await user.click(screen.getByRole("button", { name: /^Date de fin/ }));
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    await user.click(await day(24));
+    expect((await day(20)).hasAttribute("disabled")).toBe(true);
+    await user.click(await day(28));
 
-    const before = await screen.findByRole("button", { name: /\b9 novembre 2026$/ });
-    expect(before.hasAttribute("disabled")).toBe(true);
+    expect(onChange).toHaveBeenLastCalledWith({ start: "2026-11-24", end: "2026-11-28" });
+  });
+
+  it("brings the end back to the start's day when « Sur plusieurs jours » is unchecked", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <Field
+        id="dates"
+        spec={{ ...spec, format: "datetime" }}
+        value={{ start: "2026-11-03T18:00", end: "2026-11-05T12:00" }}
+        onChange={onChange}
+      />
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: "Sur plusieurs jours" }));
+
+    expect(onChange).toHaveBeenLastCalledWith({
+      start: "2026-11-03T18:00",
+      end: "2026-11-03T19:00",
+    });
   });
 
   it("clears to no value when both bounds are emptied", async () => {

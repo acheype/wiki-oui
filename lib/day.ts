@@ -7,3 +7,11 @@ export function shiftDay(day: string, days: number): string {
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
+
+/** How many calendar days separate `from` from `to` (negative when earlier). */
+export function daysBetween(from: string, to: string): number {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  return Math.round(
+    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS
+  );
+}

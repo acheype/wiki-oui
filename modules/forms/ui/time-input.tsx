@@ -17,6 +17,7 @@ import {
 } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { minutesOf } from "./clock";
 
 type Segment = "hours" | "minutes";
 
@@ -71,10 +72,6 @@ function stepped(value: string, segment: Segment, direction: 1 | -1): string {
   return pad((quarter + 60) % 60);
 }
 
-function minutesOf(time: string): number | null {
-  const match = /^(\d{2}):(\d{2})$/.exec(time);
-  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
-}
 
 /** `30 min`, `1h`, `1h30` — the length of a period that ends at an option. */
 function formatDuration(minutes: number): string {

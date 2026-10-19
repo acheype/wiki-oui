@@ -167,7 +167,10 @@ Deux types partagent les mêmes réglages et le même widget de saisie : `dateti
 - Le menu des heures s'ouvre sur 09 quand l'heure est vide. Dans la fin d'une Période sur un seul jour, il s'ouvre sur la première heure possible, grise les heures antérieures au début et affiche la durée de chaque option (`1h30`).
 - Sur un écran tactile, le champ heure est le sélecteur natif de l'appareil.
 - Avec `optionalTime`, la case « Toute la journée » (décochée par défaut) masque l'heure. Case décochée, l'heure est **requise** : une heure absente veut toujours dire « toute la journée ». Une Période n'a qu'une case, qui vaut pour ses deux bornes.
-- Période : libellés « Début » et « Fin ». Choisir un début quand la fin est vide recopie le début dans la fin. Le calendrier de la fin s'ouvre sur le mois du début et grise les jours antérieurs.
+- Période : la saisie part d'**un seul jour**, le cas le plus courant. Les cases « Toute la journée » et « Sur plusieurs jours » viennent en premier, car elles changent les champs qui suivent.
+  - Un jour : une date (un clic), puis « de [heure] à [heure] ».
+  - « Sur plusieurs jours » : un calendrier de période, avec la plage en surbrillance. Un premier clic déplace toute la période en gardant sa durée (la fin suit le début). Un second clic, facultatif, fixe le dernier jour ; les jours antérieurs au premier sont grisés et le survol prévisualise la période. Une fiche dont les deux dates diffèrent s'ouvre dans ce mode. Décocher la case ramène la fin au jour du début.
+  - Le même jour, la fin ne reste jamais derrière le début : une fin sans heure reçoit le début + 1h, et une fin que le début dépasse se décale avec lui en gardant la durée, tant qu'elle reste dans la journée.
 
 **Valeurs stockées** : des chaînes ISO en **heure locale, sans fuseau**. `18h30` veut dire 18h30 pour tout lecteur, où qu'il soit.
 

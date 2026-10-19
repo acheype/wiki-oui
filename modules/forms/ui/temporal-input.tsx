@@ -27,6 +27,9 @@ import {
   resolvedFormat,
   timeIsOptional,
 } from "../temporal-value/formats";
+import { formatTemporalValue } from "../temporal-value";
+import { daysBetween, shiftDay } from "@/lib/day";
+import { minutesOf, shiftTime } from "./clock";
 import { TimeInput } from "./time-input";
 
 /** A bound as the widgets edit it: its two parts, each possibly unfinished. */
@@ -246,6 +249,126 @@ export function DateTimeInput({
 
 const EMPTY_RANGE: TemporalRange = { start: "", end: "" };
 
+function dateOf(day: string): Date {
+  return new Date(`${day}T00:00:00`);
+}
+
+function isoOf(date: Date): string {
+  return format(date, "yyyy-MM-dd");
+}
+
+/**
+ * The calendar of a period over several days. A first click moves the whole
+ * period, keeping its length — the end follows the start; a second click,
+ * if any, sets the last day, never before the first. Hovering previews the
+ * period the second click would make.
+ */
+function RangePicker({
+  id,
+  start,
+  end,
+  invalid,
+  onChange,
+}: {
+  id?: string;
+  start: string;
+  end: string;
+  invalid?: boolean;
+  onChange: (start: string, end: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  /** The first day clicked during this opening, awaiting the last one. */
+  const [first, setFirst] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+  const filled = start !== "" && end !== "";
+  const text = filled ? formatTemporalValue({ start, end }) : "Choisir les dates";
+  const length = filled ? Math.max(daysBetween(start, end), 0) : 0;
+
+  const close = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      setFirst(null);
+      setHovered(null);
+    }
+  };
+
+  const pick = (date: Date) => {
+    const day = isoOf(date);
+    if (first === null) {
+      onChange(day, shiftDay(day, length));
+      setFirst(day);
+      return;
+    }
+    onChange(first, day);
+    close(false);
+  };
+
+  const preview =
+    first !== null && hovered !== null && hovered >= first
+      ? { from: dateOf(first), to: dateOf(hovered) }
+      : undefined;
+
+  return (
+    <Popover open={open} onOpenChange={close}>
+      <PopoverTrigger
+        render={
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            aria-label={filled ? `Dates, ${text}` : "Dates"}
+            aria-invalid={invalid}
+            className={cn("w-fit min-w-52 justify-start font-normal", !filled && "text-muted-foreground")}
+          />
+        }
+      >
+        <CalendarIcon className="size-4" aria-hidden />
+        {text}
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="range"
+          locale={fr}
+          selected={filled ? { from: dateOf(start), to: dateOf(end) } : undefined}
+          defaultMonth={filled ? dateOf(start) : undefined}
+          disabled={first !== null ? { before: dateOf(first) } : undefined}
+          onSelect={(_, triggerDate) => pick(triggerDate)}
+          onDayMouseEnter={(date) => setHovered(isoOf(date))}
+          onDayMouseLeave={() => setHovered(null)}
+          modifiers={preview ? { preview } : undefined}
+          modifiersClassNames={{ preview: "bg-accent/70" }}
+        />
+        <p className="px-3 pb-3 text-xs text-muted-foreground">
+          {first === null
+            ? "Choisissez le premier jour."
+            : "Choisissez le dernier jour, ou fermez pour garder la durée."}
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function MultiDayBox({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <Label className="flex items-center gap-2 font-normal">
+      <Checkbox checked={checked} onCheckedChange={onChange} />
+      Sur plusieurs jours
+    </Label>
+  );
+}
+
+/**
+ * A Période, entered one day first: most periods hold in a day, so a single
+ * date and a « de … à … » time pair is the default, and « Sur plusieurs
+ * jours » switches to the period calendar. The boxes come first, since they
+ * change what the fields below them look like.
+ */
 export function PeriodInput({
   id,
   value,
@@ -260,70 +383,151 @@ export function PeriodInput({
   onChange: (value: TemporalRange | undefined) => void;
 }) {
   const range = isTemporalRange(value) ? value : EMPTY_RANGE;
-  const [allDay, setAllDay] = useState(() => initiallyAllDay(settings, range.start));
+  const mode = resolvedFormat(settings);
   const drafts = { start: splitBound(range.start), end: splitBound(range.end) };
+  const [allDay, setAllDay] = useState(() => initiallyAllDay(settings, range.start));
+  const [multiDay, setMultiDay] = useState(
+    () =>
+      drafts.start.date !== "" &&
+      drafts.end.date !== "" &&
+      drafts.start.date !== drafts.end.date
+  );
   const labelId = useId();
+  const showTimes = mode === "time" || (mode === "datetime" && !allDay);
+  const oneDay = mode === "time" || !multiDay;
   // The end's time menu counts from the start when both fall on one day.
-  const sameDay =
-    resolvedFormat(settings) === "time" || drafts.start.date === drafts.end.date;
   const durationFrom =
-    sameDay && /^\d{2}:\d{2}$/.test(drafts.start.time) ? drafts.start.time : undefined;
+    oneDay && minutesOf(drafts.start.time) !== null ? drafts.start.time : undefined;
 
-  const emit = (next: { start: BoundDraft; end: BoundDraft }, nextAllDay: boolean) => {
+  const emit = (next: { start: BoundDraft; end: BoundDraft }, nextAllDay = allDay) => {
     const start = joinBound(next.start, settings, nextAllDay);
     const end = joinBound(next.end, settings, nextAllDay);
     // Both bounds emptied: the Période has no value at all, never half of one.
     onChange(start === "" && end === "" ? undefined : { start, end });
   };
 
-  const setStart = (start: BoundDraft) => {
-    // Picking a start with no end yet makes a one-day period: one click for
-    // the most common case.
-    const end =
-      drafts.end.date === "" && start.date !== drafts.start.date
-        ? { ...drafts.end, date: start.date }
-        : drafts.end;
-    emit({ start, end }, allDay);
+  // Within one day the end never lags behind the start: an end with no time
+  // yet gets the start + 1h, and an end the start overtakes moves with it,
+  // keeping the duration — as long as it stays within the day.
+  const setStartTime = (time: string) => {
+    let end = drafts.end;
+    const startMinutes = minutesOf(time);
+    if (oneDay && startMinutes !== null) {
+      const previousStart = minutesOf(drafts.start.time);
+      const previousEnd = minutesOf(drafts.end.time);
+      if (drafts.end.time === "") {
+        end = { ...end, time: shiftTime(time, 60) ?? "" };
+      } else if (previousEnd !== null && previousEnd <= startMinutes) {
+        const duration =
+          previousStart !== null && previousEnd > previousStart
+            ? previousEnd - previousStart
+            : 60;
+        end = { ...end, time: shiftTime(time, duration) ?? end.time };
+      }
+    }
+    emit({ start: { ...drafts.start, time }, end });
   };
+
+  const setOneDay = (date: string) =>
+    emit({ start: { ...drafts.start, date }, end: { ...drafts.end, date } });
+
+  const toggleMultiDay = (checked: boolean) => {
+    setMultiDay(checked);
+    if (checked) return;
+    // Back to one day: the end returns to the start's day, and an end time
+    // now before the start becomes the start + 1h.
+    let end = { ...drafts.end, date: drafts.start.date };
+    const startMinutes = minutesOf(drafts.start.time);
+    const endMinutes = minutesOf(end.time);
+    if (startMinutes !== null && endMinutes !== null && endMinutes <= startMinutes) {
+      end = { ...end, time: shiftTime(drafts.start.time, 60) ?? "" };
+    }
+    emit({ start: drafts.start, end });
+  };
+
+  const startTime = (
+    <TimeInput
+      id={mode === "time" ? id : undefined}
+      label="Heure de début"
+      value={drafts.start.time}
+      invalid={invalid}
+      onChange={setStartTime}
+    />
+  );
+  const endTime = (
+    <TimeInput
+      label="Heure de fin"
+      value={drafts.end.time}
+      invalid={invalid}
+      durationFrom={durationFrom}
+      onChange={(time) => emit({ ...drafts, end: { ...drafts.end, time } })}
+    />
+  );
+  const joiner = (text: string) => (
+    <span className="text-sm text-muted-foreground">{text}</span>
+  );
 
   return (
     <div className="grid gap-2" role="group" aria-labelledby={labelId}>
       <span id={labelId} className="sr-only">
         Période
       </span>
-      {(["start", "end"] as const).map((bound) => (
-        <div key={bound} className="flex flex-wrap items-center gap-2">
-          <span className="w-10 text-sm text-muted-foreground">
-            {bound === "start" ? "Début" : "Fin"}
-          </span>
-          <BoundInputs
-            id={bound === "start" ? id : undefined}
-            draft={drafts[bound]}
-            settings={settings}
-            allDay={allDay}
-            labels={
-              bound === "start"
-                ? { date: "Date de début", time: "Heure de début" }
-                : { date: "Date de fin", time: "Heure de fin" }
-            }
+      {(timeIsOptional(settings) || mode !== "time") && (
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          {timeIsOptional(settings) && (
+            <AllDayBox
+              checked={allDay}
+              onChange={(checked) => {
+                setAllDay(checked);
+                emit(drafts, checked);
+              }}
+            />
+          )}
+          {mode !== "time" && (
+            <MultiDayBox checked={multiDay} onChange={toggleMultiDay} />
+          )}
+        </div>
+      )}
+      {oneDay ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {mode !== "time" && (
+            <DatePicker
+              id={id}
+              label="Date"
+              value={drafts.start.date}
+              invalid={invalid}
+              onChange={setOneDay}
+            />
+          )}
+          {showTimes && (
+            <>
+              {mode !== "time" && joiner("de")}
+              {startTime}
+              {joiner("à")}
+              {endTime}
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <RangePicker
+            id={id}
+            start={drafts.start.date}
+            end={drafts.end.date}
             invalid={invalid}
-            defaultMonth={bound === "end" ? drafts.start.date || undefined : undefined}
-            notBefore={bound === "end" ? drafts.start.date || undefined : undefined}
-            durationFrom={bound === "end" ? durationFrom : undefined}
-            onChange={(next) =>
-              bound === "start" ? setStart(next) : emit({ ...drafts, end: next }, allDay)
+            onChange={(start, end) =>
+              emit({ start: { ...drafts.start, date: start }, end: { ...drafts.end, date: end } })
             }
           />
-        </div>
-      ))}
-      {timeIsOptional(settings) && (
-        <AllDayBox
-          checked={allDay}
-          onChange={(checked) => {
-            setAllDay(checked);
-            emit(drafts, checked);
-          }}
-        />
+          {showTimes && (
+            <div className="flex flex-wrap items-center gap-2">
+              {joiner("Début")}
+              {startTime}
+              {joiner("Fin")}
+              {endTime}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
