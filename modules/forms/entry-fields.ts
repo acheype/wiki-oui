@@ -3,13 +3,11 @@
 // the Server Action resolves data (forms, sourced options), this module
 // decides what a field selector shows. No fs, no Prisma, no React.
 
+import { z } from "zod";
 import type { FormDescriptor, FormFieldType } from "./form-descriptor";
-import { isOptionsField } from "./form-descriptor";
+import { FORM_FIELD_TYPES, isOptionsField } from "./form-descriptor";
 import { isTemporalField } from "./temporal-value/formats";
-import {
-  PSEUDO_FIELD_LABELS,
-  type PseudoField,
-} from "./pseudo-fields";
+import { PSEUDO_FIELD_LABELS, PSEUDO_FIELDS } from "./pseudo-fields";
 
 export interface EntryFieldChoice {
   name: string;
@@ -59,6 +57,22 @@ export function unionEntryFields(
   }));
 }
 
+/**
+ * Which fields a form-field / field-rows selector offers. Declared once, in
+ * Zod: the component descriptor schema spreads it, and the widget types
+ * extend the type inferred from it (docs/entries-view.md).
+ */
+export const fieldChoiceRestrictionSchema = z.object({
+  /** Restricts the selectable fields to these types. */
+  fieldTypes: z.array(z.enum(FORM_FIELD_TYPES)).optional(),
+  /** Pseudo-fields offered next to the real fields. */
+  pseudoFields: z.array(z.enum(PSEUDO_FIELDS)).optional(),
+  /** Only the fields carrying a date: Heure mode is left out. */
+  dated: z.boolean().optional(),
+});
+
+export type FieldChoiceRestriction = z.infer<typeof fieldChoiceRestrictionSchema>;
+
 /** What a field selector displays for one selectable name. */
 export interface FieldChoiceOption {
   name: string;
@@ -74,12 +88,7 @@ export interface FieldChoiceOption {
  */
 export function fieldChoiceOptions(
   choices: EntryFieldChoice[],
-  restrict: {
-    fieldTypes?: FormFieldType[];
-    pseudoFields?: PseudoField[];
-    /** Only the fields carrying a date: Heure mode is left out. */
-    dated?: boolean;
-  },
+  restrict: FieldChoiceRestriction,
   multiForm: boolean
 ): FieldChoiceOption[] {
   const fields = choices

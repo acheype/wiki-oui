@@ -3,9 +3,8 @@
 // YAML files are read and parsed by the server-side loader.
 
 import { z } from "zod";
-import { FORM_FIELD_TYPES } from "@/modules/forms/form-descriptor";
+import { fieldChoiceRestrictionSchema } from "@/modules/forms/entry-fields";
 import { SCOPES } from "@/modules/permissions/rules";
-import { PSEUDO_FIELDS } from "@/modules/forms/pseudo-fields";
 import { slugify } from "@/lib/slug";
 
 const FIELD_TYPES = [
@@ -198,12 +197,8 @@ const descriptorFieldSchema = z.object({
   // form-field / field-rows (ADR 0018): the sibling field holding the chosen
   // form slug(s) the selectable fields come from. Defaults to "form".
   formFrom: z.string().optional(),
-  /** form-field / field-rows: restricts the selectable fields to these types. */
-  fieldTypes: z.array(z.enum(FORM_FIELD_TYPES)).optional(),
-  /** form-field / field-rows: pseudo-fields offered next to the real fields. */
-  pseudoFields: z.array(z.enum(PSEUDO_FIELDS)).optional(),
-  /** form-field: only the fields carrying a date (a time alone is left out). */
-  dated: z.boolean().optional(),
+  // form-field / field-rows: which fields the selector offers.
+  ...fieldChoiceRestrictionSchema.shape,
   /** For `field-rows`: each row also carries an optional icon. */
   withIcon: z.boolean().optional(),
   // color-mapping / icon-mapping: the sibling form-field whose selected

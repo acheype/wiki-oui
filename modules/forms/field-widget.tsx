@@ -30,13 +30,13 @@ import {
   propKindFits,
 } from "@/modules/authoring/descriptor";
 import type { FormFieldType } from "@/modules/forms/form-descriptor";
+import type { FieldChoiceRestriction } from "@/modules/forms/entry-fields";
 import type {
   TemporalFormat,
   TemporalRange,
 } from "@/modules/forms/temporal-value/formats";
 import { DateTimeInput, PeriodInput } from "@/modules/forms/ui/temporal-input";
 import type { AccessRule, AclDirectory, AclFloor } from "@/modules/permissions/rules";
-import type { PseudoField } from "@/modules/forms/pseudo-fields";
 import { isExternalHref } from "@/lib/slug";
 import { NO_FLOOR, AclInput } from "@/modules/permissions/acl-input";
 import {
@@ -82,7 +82,7 @@ export type WidgetType = FieldType | FormFieldType;
 // it comes from. Envelopes adapt: a component DescriptorField is assignable
 // as-is; a FormField resolves its options source first (a form-sourced field
 // arrives as plain value → label pairs).
-export interface FieldWidgetSpec {
+export interface FieldWidgetSpec extends FieldChoiceRestriction {
   type: WidgetType;
   label: string;
   /** Control text beside a checkbox when `label` is used as a field heading. */
@@ -102,12 +102,6 @@ export interface FieldWidgetSpec {
   multiple?: boolean;
   /** form-field/field-rows: sibling field holding the chosen form slug(s). */
   formFrom?: string;
-  /** form-field/field-rows: restrict the selectable fields to these types. */
-  fieldTypes?: FormFieldType[];
-  /** form-field/field-rows: pseudo-fields offered next to the real fields. */
-  pseudoFields?: PseudoField[];
-  /** form-field: only the fields carrying a date. */
-  dated?: boolean;
   /** field-rows: each row also carries an optional icon. */
   withIcon?: boolean;
   /** color-mapping/icon-mapping: sibling form-field the options come from. */

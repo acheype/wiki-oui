@@ -41,12 +41,11 @@ import type { LiteralValue, StructuredValue } from "@/modules/authoring/descript
 import {
   type EntryFieldChoice,
   type FieldChoiceOption,
+  type FieldChoiceRestriction,
   autoColorMapping,
   fieldChoiceOptions,
   resolveColorMapping,
 } from "@/modules/forms/entry-fields";
-import type { FormFieldType } from "@/modules/forms/form-descriptor";
-import type { PseudoField } from "@/modules/forms/pseudo-fields";
 import { cn } from "@/lib/utils";
 import { IconPicker } from "./icon-picker";
 
@@ -125,11 +124,8 @@ function useForms(): { slug: string; name: string }[] {
 }
 
 /** What the widgets need from the descriptor field (subset of FieldWidgetSpec). */
-export interface EntryFieldRestriction {
+export interface EntryFieldRestriction extends FieldChoiceRestriction {
   formFrom?: string;
-  fieldTypes?: FormFieldType[];
-  pseudoFields?: PseudoField[];
-  dated?: boolean;
   required?: boolean;
   withIcon?: boolean;
   fieldFrom?: string;
