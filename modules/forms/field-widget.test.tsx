@@ -409,7 +409,7 @@ describe("<Field> for a Période", () => {
     await user.click(await screen.findByRole("button", { name: / 15 \S+ \d{4}/ }));
 
     expect(
-      screen.getByText("Choisissez le dernier jour, ou fermez pour un seul jour.")
+      screen.getByText("Choisissez le dernier jour, ou fermez pour revenir à un seul jour.")
     ).toBeTruthy();
   });
 

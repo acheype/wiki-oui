@@ -8,7 +8,7 @@
 
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Info } from "lucide-react";
 import { useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -356,13 +356,18 @@ function RangePicker({
           modifiersClassNames={{ preview: "bg-accent/70" }}
         />
         {/* `w-0 min-w-full`: the guidance takes the calendar's width and
-            wraps within it, rather than widening the popover. */}
-        <p className="w-0 min-w-full px-3 pb-3 text-sm">
-          {first === null
-            ? "Choisissez le premier jour."
-            : `Choisissez le dernier jour, ou fermez pour ${
-                length === 0 ? "un seul jour" : `garder ${length + 1} jours`
-              }.`}
+            wraps within it, rather than widening the popover. A pale info
+            band sets it apart: the info blue as small text on white would
+            fall short of a readable contrast, the band keeps the text dark. */}
+        <p className="mx-3 mb-3 flex w-0 min-w-[calc(100%-1.5rem)] items-start gap-2 rounded-md bg-info-subtle px-2.5 py-2 text-sm">
+          <Info className="mt-0.5 size-4 shrink-0 text-info" aria-hidden />
+          <span>
+            {first === null
+              ? "Choisissez le premier jour."
+              : `Choisissez le dernier jour, ou fermez pour ${
+                  length === 0 ? "revenir à un seul jour" : `garder ${length + 1} jours`
+                }.`}
+          </span>
         </p>
       </PopoverContent>
     </Popover>
