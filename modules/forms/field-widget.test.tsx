@@ -382,6 +382,37 @@ describe("<Field> for a Période", () => {
     expect(multiDayBox().getAttribute("aria-checked")).toBe("false");
   });
 
+  it("says what closing after a first click keeps", async () => {
+    const user = userEvent.setup();
+    render(
+      <Controlled
+        initial={{ start: "2026-11-03T18:00", end: "2026-11-05T20:00" }}
+        onChange={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    expect(screen.getByText("Choisissez le premier jour.")).toBeTruthy();
+    await user.click(await day(10));
+
+    expect(
+      screen.getByText("Choisissez le dernier jour, ou fermez pour garder 3 jours.")
+    ).toBeTruthy();
+  });
+
+  it("says closing after a first click on an empty period keeps one day", async () => {
+    const user = userEvent.setup();
+    render(<Controlled initial={undefined} onChange={vi.fn()} />);
+
+    await user.click(multiDayBox());
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    await user.click(await screen.findByRole("button", { name: / 15 \S+ \d{4}/ }));
+
+    expect(
+      screen.getByText("Choisissez le dernier jour, ou fermez pour un seul jour.")
+    ).toBeTruthy();
+  });
+
   it("stays over several days when the calendar closes on a longer period", async () => {
     const user = userEvent.setup();
     render(

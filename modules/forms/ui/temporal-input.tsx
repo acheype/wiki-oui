@@ -355,10 +355,14 @@ function RangePicker({
           modifiers={preview ? { preview } : undefined}
           modifiersClassNames={{ preview: "bg-accent/70" }}
         />
-        <p className="px-3 pb-3 text-xs text-muted-foreground">
+        {/* `w-0 min-w-full`: the guidance takes the calendar's width and
+            wraps within it, rather than widening the popover. */}
+        <p className="w-0 min-w-full px-3 pb-3 text-sm">
           {first === null
             ? "Choisissez le premier jour."
-            : "Choisissez le dernier jour, ou fermez pour garder la durée."}
+            : `Choisissez le dernier jour, ou fermez pour ${
+                length === 0 ? "un seul jour" : `garder ${length + 1} jours`
+              }.`}
         </p>
       </PopoverContent>
     </Popover>
