@@ -210,7 +210,7 @@ describe("<Field> for a Période", () => {
   const spec = { type: "datetimeRange", label: "Dates", format: "date" } as const;
 
   const day = (number: number) =>
-    screen.findByRole("button", { name: new RegExp(` ${number} novembre 2026$`) });
+    screen.findByRole("button", { name: new RegExp(` ${number} novembre 2026`) });
 
   it("puts « Toute la journée » and « Sur plusieurs jours » above the date", () => {
     render(
@@ -328,6 +328,26 @@ describe("<Field> for a Période", () => {
 
     await user.click(screen.getByRole("button", { name: /^Dates/ }));
     expect(await screen.findByRole("grid")).toBeTruthy();
+  });
+
+  it("greys earlier end hours when several days come down to one", async () => {
+    const user = userEvent.setup();
+    render(
+      <Controlled
+        initial={{ start: "2026-11-03T18:00", end: "2026-11-05T20:00" }}
+        onChange={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    await user.click(await day(3));
+    await user.click(await day(3));
+    const end = within(screen.getByRole("group", { name: "Heure de fin" }));
+    await user.click(end.getByRole("combobox", { name: "Heures" }));
+
+    expect(
+      screen.getByRole("option", { name: /^17/ }).getAttribute("aria-disabled")
+    ).toBe("true");
   });
 
   it("moves the end with the start, keeping the duration", async () => {

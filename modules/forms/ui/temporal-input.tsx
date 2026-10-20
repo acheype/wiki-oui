@@ -410,9 +410,12 @@ export function PeriodInput({
   const labelId = useId();
   const showTimes = mode === "time" || (mode === "datetime" && !allDay);
   const oneDay = mode === "time" || !multiDay;
-  // The end's time menu counts from the start when both fall on one day.
+  // Both bounds on one day — in either mode: several days may come down to
+  // one. The end's time menu then counts from the start, and the end follows
+  // the start.
+  const sameDay = mode === "time" || drafts.start.date === drafts.end.date;
   const durationFrom =
-    oneDay && minutesOf(drafts.start.time) !== null ? drafts.start.time : undefined;
+    sameDay && minutesOf(drafts.start.time) !== null ? drafts.start.time : undefined;
 
   const emit = (next: { start: BoundDraft; end: BoundDraft }, nextAllDay = allDay) => {
     const start = joinBound(next.start, settings, nextAllDay);
@@ -429,7 +432,7 @@ export function PeriodInput({
   const setStartTime = (time: string) => {
     let end = drafts.end;
     const startMinutes = minutesOf(time);
-    if (oneDay && startMinutes !== null) {
+    if (sameDay && startMinutes !== null) {
       const previousStart = lastStart.current;
       const previousEnd = minutesOf(drafts.end.time);
       const duration =
