@@ -350,6 +350,54 @@ describe("<Field> for a Période", () => {
     ).toBe("true");
   });
 
+  const multiDayBox = () => screen.getByRole("checkbox", { name: "Sur plusieurs jours" });
+
+  it("returns to one day when the calendar closes on a single day", async () => {
+    const user = userEvent.setup();
+    render(<Controlled initial={undefined} onChange={vi.fn()} />);
+
+    await user.click(multiDayBox());
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    // An empty period opens on the current month: any of its days will do.
+    await user.click(await screen.findByRole("button", { name: / 15 \S+ \d{4}/ }));
+    await user.keyboard("{Escape}");
+
+    expect(multiDayBox().getAttribute("aria-checked")).toBe("false");
+    expect(screen.getByRole("button", { name: /^Date, / })).toBeTruthy();
+  });
+
+  it("returns to one day when the same day is clicked twice", async () => {
+    const user = userEvent.setup();
+    render(
+      <Controlled
+        initial={{ start: "2026-11-03T18:00", end: "2026-11-05T20:00" }}
+        onChange={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    await user.click(await day(10));
+    await user.click(await day(10));
+
+    expect(multiDayBox().getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("stays over several days when the calendar closes on a longer period", async () => {
+    const user = userEvent.setup();
+    render(
+      <Controlled
+        initial={{ start: "2026-11-03T18:00", end: "2026-11-05T20:00" }}
+        onChange={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^Dates/ }));
+    await user.click(await day(10));
+    await user.keyboard("{Escape}");
+
+    expect(multiDayBox().getAttribute("aria-checked")).toBe("true");
+  });
+
   it("moves the end with the start, keeping the duration", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

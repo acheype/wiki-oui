@@ -273,14 +273,20 @@ function RangePicker({
   end,
   invalid,
   onChange,
+  onSingleDay,
 }: {
   id?: string;
   start: string;
   end: string;
   invalid?: boolean;
   onChange: (start: string, end: string) => void;
+  /** Closed on a period of one day, after at least one click. */
+  onSingleDay: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  // The period this opening last chose — read at close, in the same event
+  // as the second click, before the new value comes back through the props.
+  const lastChoice = useRef<{ start: string; end: string } | null>(null);
   /** The first day clicked during this opening, awaiting the last one. */
   const [first, setFirst] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -290,20 +296,27 @@ function RangePicker({
 
   const close = (next: boolean) => {
     setOpen(next);
-    if (!next) {
-      setFirst(null);
-      setHovered(null);
-    }
+    if (next) return;
+    setFirst(null);
+    setHovered(null);
+    const chosen = lastChoice.current;
+    lastChoice.current = null;
+    if (chosen && chosen.start === chosen.end) onSingleDay();
+  };
+
+  const choose = (from: string, to: string) => {
+    lastChoice.current = { start: from, end: to };
+    onChange(from, to);
   };
 
   const pick = (date: Date) => {
     const day = isoOf(date);
     if (first === null) {
-      onChange(day, shiftDay(day, length));
+      choose(day, shiftDay(day, length));
       setFirst(day);
       return;
     }
-    onChange(first, day);
+    choose(first, day);
     close(false);
   };
 
@@ -531,6 +544,9 @@ export function PeriodInput({
             onChange={(start, end) =>
               emit({ start: { ...drafts.start, date: start }, end: { ...drafts.end, date: end } })
             }
+            // Several days that come down to one are one day: the box says
+            // what was entered, as the entry will reopen.
+            onSingleDay={() => setMultiDay(false)}
           />
         )}
         {showTimes && (
